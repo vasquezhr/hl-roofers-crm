@@ -1,0 +1,22 @@
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# Python / Django
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.sqlite3
+/media/
+/staticfiles/
+
+# Secrets and local config
+.env
+*.env
+!.env.example
+
+# Real customer data stays out of the repo
+/data/
+/exports/
+*.notes-export/

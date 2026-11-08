@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>H &amp; L Roofers – App Mockup</title>
+<style>
+:root{
+  --bg:#f4f1ec; --surface:#ffffff; --surface-2:#f9f7f3; --line:#e4ded4;
+  --ink:#1d2430; --ink-2:#4a5363; --ink-3:#7b8392;
+  --brand:#1f3a5f; --brand-ink:#ffffff; --accent:#c4672a; --accent-soft:#f6e3d4;
+  --ok:#2f7d4f; --ok-soft:#dcefe3; --warn:#b7791f; --warn-soft:#f8ecd2; --bad:#b23b3b; --bad-soft:#f6dddd;
+  --info:#2c5d9b; --info-soft:#dde8f6;
+  --radius:14px; --shadow:0 1px 2px rgba(20,25,35,.06),0 4px 14px rgba(20,25,35,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12161d; --surface:#1a2029; --surface-2:#202733; --line:#2c3441;
+    --ink:#e9edf3; --ink-2:#b4bccb; --ink-3:#8a93a3;
+    --brand:#1a2f4c; --brand-ink:#ffffff; --accent:#e08a4c; --accent-soft:#3a2a1f;
+    --ok:#6cc392; --ok-soft:#1d3527; --warn:#e3b45c; --warn-soft:#3a3020; --bad:#ec8a8a; --bad-soft:#3d2224;
+    --info:#86b2ea; --info-soft:#1f2c3f; --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12161d; --surface:#1a2029; --surface-2:#202733; --line:#2c3441;
+  --ink:#e9edf3; --ink-2:#b4bccb; --ink-3:#8a93a3;
+  --brand:#1a2f4c; --brand-ink:#ffffff; --accent:#e08a4c; --accent-soft:#3a2a1f;
+  --ok:#6cc392; --ok-soft:#1d3527; --warn:#e3b45c; --warn-soft:#3a3020; --bad:#ec8a8a; --bad-soft:#3d2224;
+  --info:#86b2ea; --info-soft:#1f2c3f; --shadow:0 1px 2px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--info)}
+.app{display:flex;min-height:100vh}
+/* ---------- header ---------- */
+.topbar{position:sticky;top:0;z-index:20;background:var(--brand);color:var(--brand-ink);padding:10px 16px calc(10px);padding-top:max(10px,env(safe-area-inset-top));display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.brand{display:flex;flex-direction:column;line-height:1.05;min-width:0;overflow:hidden}
+.brand .tag{overflow:hidden;text-overflow:ellipsis}
+@media(max-width:420px){.seg button{padding:5px 8px}.top-controls{gap:4px}.brand .name{font-size:15px}.brand .tag{font-size:10px}}
+.brand .name{font-weight:800;letter-spacing:.06em;font-size:17px;white-space:nowrap}
+.brand .name span{color:#f0b07f}
+.brand .tag{font-size:11px;opacity:.8;letter-spacing:.04em;white-space:nowrap}
+.top-controls{margin-left:auto;display:flex;gap:6px;align-items:center}
+.seg{display:flex;background:rgba(255,255,255,.12);border-radius:999px;padding:2px}
+.seg button{border:0;background:transparent;color:#fff;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;opacity:.8}
+.seg button.on{background:#fff;color:var(--brand);opacity:1}
+/* ---------- nav ---------- */
+.side{display:none}
+.tabbar{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:6px 4px max(6px,env(safe-area-inset-bottom))}
+.tabbar a,.side a{text-decoration:none;color:var(--ink-3);display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600;padding:4px 6px;border-radius:10px;min-width:58px}
+.tabbar a.on,.side a.on{color:var(--accent)}
+.tabbar svg,.side svg{width:24px;height:24px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.content{padding:16px 16px 96px;max-width:860px;width:100%;margin:0 auto}
+@media (min-width:900px){
+  .side{display:flex;flex-direction:column;gap:4px;width:200px;flex:none;background:var(--surface);border-right:1px solid var(--line);padding:16px 10px;position:sticky;top:0;height:100vh}
+  .side a{flex-direction:row;gap:10px;font-size:14px;padding:10px 12px;min-width:0}
+  .side a.on{background:var(--accent-soft)}
+  .side .side-brand{font-weight:800;letter-spacing:.06em;color:var(--brand);padding:6px 12px 14px;font-size:15px}
+  :root[data-theme="dark"] .side .side-brand{color:var(--ink)}
+  .tabbar{display:none}
+  .content{padding:24px 28px 48px}
+}
+/* ---------- common ---------- */
+h1{font-size:22px;margin:4px 0 2px;letter-spacing:-.01em}
+h2{font-size:16px;margin:22px 0 10px;color:var(--ink-2);font-weight:700}
+.sub{color:var(--ink-3);font-size:13px;margin:0 0 14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
+.list{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:10px;align-items:center}
+.grow{flex:1;min-width:0}
+.muted{color:var(--ink-3)}
+.small{font-size:12.5px}
+.b{font-weight:700}
+.ellip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line);white-space:nowrap}
+.st-lead{background:var(--info-soft);color:var(--info);border-color:transparent}
+.st-inspection{background:var(--info-soft);color:var(--info);border-color:transparent}
+.st-proposal{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.st-accepted{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.st-scheduled{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.st-inprogress{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.st-done{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.st-invoiced{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.st-paid{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 12px;font-weight:650;cursor:pointer;text-decoration:none;color:var(--ink);font-size:14px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.brand{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn svg{width:16px;height:16px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:6px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.kpi .v{font-size:20px;font-weight:800}
+.kpi .l{font-size:11.5px;color:var(--ink-3);font-weight:600}
+.kpi.alert .v{color:var(--bad)}
+.time{font-weight:800;font-size:15px;width:58px;flex:none}
+.appt{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.appt .bar{width:4px;align-self:stretch;border-radius:4px;background:var(--accent);flex:none}
+.filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin:0 -16px 8px;padding-left:16px;padding-right:16px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.filters button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 11px;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-2)}
+.filters button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.filters .n{opacity:.6;margin-left:4px;font-weight:700}
+.jobcard{cursor:pointer}
+.money{font-variant-numeric:tabular-nums;font-weight:750}
+.hide-crew{} body.crew .hide-crew{display:none!important}
+.only-crew{display:none} body.crew .only-crew{display:revert}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:6px 10px;font-size:14px}
+.kv dt{color:var(--ink-3);font-weight:600}
+.kv dd{margin:0}
+.stepper{display:flex;gap:4px;overflow-x:auto;padding:4px 0 2px;scrollbar-width:none}
+.stepper div{flex:1;min-width:64px;text-align:center;font-size:10.5px;font-weight:700;color:var(--ink-3)}
+.stepper div i{display:block;height:6px;border-radius:6px;background:var(--line);margin-bottom:5px}
+.stepper div.done i{background:var(--ok)}
+.stepper div.cur i{background:var(--accent)}
+.stepper div.cur{color:var(--accent)}
+.note{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:var(--surface-2);border:1px dashed var(--line);border-radius:10px;padding:10px;color:var(--ink-2)}
+.back{display:inline-flex;align-items:center;gap:4px;color:var(--ink-3);text-decoration:none;font-weight:600;font-size:14px;margin-bottom:6px}
+/* measure */
+.sec{display:grid;grid-template-columns:1fr 12px 1fr 12px 46px 50px 24px;gap:5px;align-items:center;margin-bottom:8px}
+.sec input[type=number]{width:100%;min-width:0;padding:9px 4px;font-size:16px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);text-align:center;font-weight:650}
+.sec .x{text-align:center;color:var(--ink-3);font-weight:700}
+.sec .tri{display:flex;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:700;color:var(--ink-3);border:1px solid var(--line);border-radius:9px;padding:10px 2px;cursor:pointer;user-select:none;background:var(--surface-2)}
+.sec .tri.on{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.sec .del{border:0;background:transparent;color:var(--ink-3);cursor:pointer;font-size:18px}
+.sec-head{display:grid;grid-template-columns:1fr 12px 1fr 12px 46px 50px 24px;gap:5px;font-size:11px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.sec-head span{text-align:center}
+.inrow{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media(min-width:560px){.inrow{grid-template-columns:repeat(4,1fr)}}
+.field label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-3);margin-bottom:3px}
+.field input,.field select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2)}
+.result{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.result div{background:var(--brand);color:#fff;border-radius:12px;padding:10px;text-align:center}
+.result .v{font-size:22px;font-weight:800}
+.result .l{font-size:11px;opacity:.8;font-weight:600}
+table.mat{width:100%;border-collapse:collapse;font-size:14px}
+table.mat td{padding:7px 4px;border-bottom:1px solid var(--line)}
+table.mat td:last-child,table.mat td.num{text-align:right;font-variant-numeric:tabular-nums}
+table.mat tr.tot td{font-weight:800;border-bottom:0;font-size:15px}
+.hint{font-size:12px;color:var(--ink-3);background:var(--surface-2);border-radius:10px;padding:8px 10px;margin-top:10px}
+/* schedule */
+.week{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.day{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px;min-height:140px}
+.day.today{border-color:var(--accent)}
+.day h4{margin:0 0 6px;font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}
+.day h4 b{display:block;color:var(--ink);font-size:17px;letter-spacing:0}
+.slot{font-size:11.5px;background:var(--accent-soft);color:var(--ink);border-radius:8px;padding:5px 6px;margin-bottom:5px;cursor:pointer;border-left:3px solid var(--accent)}
+.slot b{display:block;font-size:11px;color:var(--accent)}
+.slot.new{background:var(--ok-soft);border-left-color:var(--ok)}
+.slot.new b{color:var(--ok)}
+@media(max-width:700px){.week{grid-template-columns:1fr}.day{min-height:0}.day h4{display:flex;gap:8px;align-items:baseline}.day h4 b{display:inline}}
+.sugg{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer}
+.sugg.best{border-color:var(--ok);background:var(--ok-soft)}
+.sugg .when{font-weight:800;min-width:96px}
+.minimap{width:100%;height:auto;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+/* search */
+.searchbox{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow)}
+.searchbox input{border:0;outline:0;background:transparent;flex:1;font-size:16px}
+mark{background:var(--accent-soft);color:inherit;border-radius:3px;padding:0 1px}
+/* sheet / modal */
+.scrim{position:fixed;inset:0;background:rgba(10,14,20,.5);z-index:50;display:none;align-items:flex-end;justify-content:center}
+.scrim.open{display:flex}
+.sheet{background:var(--bg);width:100%;max-width:760px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px 28px}
+@media(min-width:760px){.scrim{align-items:center}.sheet{border-radius:18px}}
+.sheet-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sheet-head h3{margin:0;font-size:17px}
+.x-btn{margin-left:auto;border:0;background:var(--surface);border-radius:999px;width:32px;height:32px;cursor:pointer;font-size:18px;color:var(--ink-2)}
+/* proposal doc */
+.doc{background:#fff;color:#1d2430;border-radius:6px;box-shadow:0 2px 20px rgba(0,0,0,.12);padding:28px 26px;font-size:13px;max-width:680px;margin:0 auto}
+.doc .dh{display:flex;justify-content:space-between;gap:12px;border-bottom:3px solid #1f3a5f;padding-bottom:12px;margin-bottom:14px;flex-wrap:wrap}
+.doc .dn{font-weight:900;letter-spacing:.07em;font-size:20px;color:#1f3a5f}
+.doc .dn span{color:#c4672a}
+.doc .dt{font-size:11px;color:#5a6372;letter-spacing:.03em}
+.doc h5{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#7b8392;margin:14px 0 4px}
+.doc table{width:100%;border-collapse:collapse}
+.doc td{padding:7px 0;border-bottom:1px solid #e7e2da;vertical-align:top}
+.doc td.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.doc .total td{font-weight:900;font-size:15px;border-bottom:0;color:#1f3a5f}
+@media(max-width:520px){.doc .dh>div:last-child{text-align:left!important}}
+.doc .sig{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:26px}
+.doc .sig div{border-top:1px solid #9aa1ad;padding-top:4px;font-size:11px;color:#5a6372}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:999px;font-weight:650;font-size:14px;opacity:0;transition:.25s;z-index:80;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.demo-flag{font-size:11px;color:var(--ink-3);text-align:center;margin-top:28px}
+.photos{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.photos div{aspect-ratio:1;border-radius:8px;background:repeating-linear-gradient(45deg,var(--surface-2),var(--surface-2) 8px,var(--line) 8px,var(--line) 9px);display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:11px;font-weight:700}
+.two{display:grid;gap:12px}
+@media(min-width:760px){.photos{grid-template-columns:repeat(6,1fr)}}
+@media(min-width:760px){.two{grid-template-columns:1fr 1fr}}
+.empty{color:var(--ink-3);text-align:center;padding:20px}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="side" id="side"></nav>
+  <div class="main">
+    <header class="topbar">
+      <div class="brand">
+        <div class="name">H <span>&amp;</span> L ROOFERS</div>
+        <div class="tag">HONEST &amp; LOYAL · VIRGINIA</div>
+      </div>
+      <div class="top-controls">
+        <div class="seg" id="langSeg"><button data-lang="en" class="on">EN</button><button data-lang="es">ES</button></div>
+        <div class="seg" id="roleSeg"><button data-role="office" class="on" data-i18n="office">Office</button><button data-role="crew" data-i18n="crew">Crew</button></div>
+      </div>
+    </header>
+    <div class="content" id="view"></div>
+  </div>
+</div>
+<nav class="tabbar" id="tabbar"></nav>
+<div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   H & L Roofers — clickable mockup. All customer data below is fictional.
+   ===================================================================== */
+const I18N = {
+  en:{today:"Today",jobs:"Jobs",measure:"Measure",schedule:"Schedule",search:"Search",office:"Office",crew:"Crew",
+    goodMorning:"Good morning",todaysWork:"Today's appointments",nothingToday:"Nothing scheduled today",
+    unpaid:"Unpaid invoices",openProposals:"Proposals out",thisWeek:"Jobs this week",
+    call:"Call",directions:"Directions",markDone:"Mark done",start:"Start",
+    all:"All",status:{lead:"New lead",inspection:"Inspection",proposal:"Proposal sent",accepted:"Accepted",scheduled:"Scheduled",inprogress:"In progress",done:"Done",invoiced:"Invoice sent",paid:"Paid"},
+    type:{repair:"Repair",replacement:"Roof replacement",gutters:"Gutters",tpo:"Flat roof (TPO)",siding:"Siding",inspection:"Inspection",chimney:"Chimney",skylight:"Skylight"},
+    customer:"Customer",property:"Property",phone:"Phone",email:"Email",source:"Source",account:"Account",homeowner:"Homeowner",
+    crewOn:"Crew",scope:"Scope of work",history:"History",fromNotes:"Imported from Notes",photos:"Photos",addPhoto:"+ Photo",
+    proposal:"Proposal",invoice:"Invoice",viewProposal:"View proposal",sendInvoice:"Send invoice",measureJob:"Measure",
+    price:"Price",materials:"Materials",leftovers:"Leftover materials",
+    measureTitle:"Measure & estimate",measureSub:"Enter each roof section. Triangles count as half.",
+    length:"Length",width:"Width",count:"×",tri:"Tri",addSection:"+ Add section",waste:"Waste %",
+    sqft:"Sq ft",squares:"Squares",bundles:"Bundles",
+    ridge:"Ridge (ft)",eaves:"Eaves (ft)",rakes:"Rakes (ft)",valleys:"Valleys (ft)",
+    boots15:"Pipe boots 1½″",boots2:"Pipe boots 2″",boots3:"Pipe boots 3″",vents:"Vents",plywood:"Plywood sheets",
+    matList:"Material list",qty:"Qty",pricing:"Pricing",labor:"Labor",laborPerSq:"Labor $/sq",materialCost:"Materials",hl:"H & L",total:"Total",
+    makeProposal:"Create proposal",factorsHint:"Material factors and prices are placeholders — we'll set them with Dad and the ABC / RSG price lists.",
+    weekOf:"This week",newAppt:"New appointment",pickJob:"Which job?",suggestions:"Suggested times",best:"Best fit",
+    nearby:"from",sameDay:"same day as",noNearby:"No other jobs that day",conflict:"Already booked",free:"Open",
+    book:"Book",booked:"Booked",searchPh:"Name, address, phone, job…",searchHint:"Searches customers, addresses, jobs and old notes.",
+    results:"results",noResults:"No matches",sendEmail:"Send by email",print:"Download PDF",
+    proposalFor:"Proposal for",date:"Date",scopeLines:"Description",amount:"Amount",
+    terms:"Terms",termsText:"Price valid 30 days. Payment terms to be confirmed with H & L. Workmanship warranty in writing plus manufacturer's material warranty.",
+    accept:"Customer acceptance",hlSign:"{Company Legal Name}",emailSent:"Proposal emailed to customer (demo)",invoiceSent:"Invoice sent (demo)",
+    doneMsg:"Marked done (demo)",bookedMsg:"Appointment booked (demo)",demo:"Demo with made-up customers — nothing here is saved.",
+    contractorAcct:"Contractor account",properties:"properties",assigned:"Assigned",miles:"mi",
+    crewHidden:"Crew view: prices and invoices are hidden.",today2:"today",tomorrow:"tomorrow"},
+  es:{today:"Hoy",jobs:"Trabajos",measure:"Medir",schedule:"Agenda",search:"Buscar",office:"Oficina",crew:"Equipo",
+    goodMorning:"Buenos días",todaysWork:"Citas de hoy",nothingToday:"Nada programado hoy",
+    unpaid:"Facturas sin pagar",openProposals:"Propuestas enviadas",thisWeek:"Trabajos esta semana",
+    call:"Llamar",directions:"Cómo llegar",markDone:"Terminado",start:"Empezar",
+    all:"Todos",status:{lead:"Nuevo contacto",inspection:"Inspección",proposal:"Propuesta enviada",accepted:"Aceptado",scheduled:"Programado",inprogress:"En progreso",done:"Terminado",invoiced:"Factura enviada",paid:"Pagado"},
+    type:{repair:"Reparación",replacement:"Techo nuevo",gutters:"Canaletas",tpo:"Techo plano (TPO)",siding:"Siding",inspection:"Inspección",chimney:"Chimenea",skylight:"Tragaluz"},
+    customer:"Cliente",property:"Propiedad",phone:"Teléfono",email:"Correo",source:"Origen",account:"Cuenta",homeowner:"Dueño de casa",
+    crewOn:"Equipo",scope:"Trabajo a realizar",history:"Historial",fromNotes:"Importado de Notas",photos:"Fotos",addPhoto:"+ Foto",
+    proposal:"Propuesta",invoice:"Factura",viewProposal:"Ver propuesta",sendInvoice:"Enviar factura",measureJob:"Medir",
+    price:"Precio",materials:"Materiales",leftovers:"Material sobrante",
+    measureTitle:"Medir y estimar",measureSub:"Anote cada sección del techo. Los triángulos cuentan la mitad.",
+    length:"Largo",width:"Ancho",count:"×",tri:"Tri",addSection:"+ Agregar sección",waste:"Desperdicio %",
+    sqft:"Pies²",squares:"Cuadros",bundles:"Bultos",
+    ridge:"Cumbrera (ft)",eaves:"Aleros (ft)",rakes:"Bordes (ft)",valleys:"Valles (ft)",
+    boots15:"Paipas 1½″",boots2:"Paipas 2″",boots3:"Paipas 3″",vents:"Ventilas",plywood:"Plywood",
+    matList:"Lista de material",qty:"Cant.",pricing:"Precio",labor:"Mano de obra",laborPerSq:"Mano de obra $/sq",materialCost:"Material",hl:"H & L",total:"Total",
+    makeProposal:"Crear propuesta",factorsHint:"Los factores y precios de material son de ejemplo — los ajustamos con su papá y las listas de precios de ABC / RSG.",
+    weekOf:"Esta semana",newAppt:"Nueva cita",pickJob:"¿Qué trabajo?",suggestions:"Horarios sugeridos",best:"Mejor opción",
+    nearby:"de",sameDay:"mismo día que",noNearby:"No hay otros trabajos ese día",conflict:"Ocupado",free:"Libre",
+    book:"Agendar",booked:"Agendado",searchPh:"Nombre, dirección, teléfono, trabajo…",searchHint:"Busca clientes, direcciones, trabajos y notas viejas.",
+    results:"resultados",noResults:"Sin resultados",sendEmail:"Enviar por correo",print:"Descargar PDF",
+    proposalFor:"Propuesta para",date:"Fecha",scopeLines:"Descripción",amount:"Monto",
+    terms:"Términos",termsText:"Precio válido por 30 días. Términos de pago por confirmar con H & L. Garantía de mano de obra por escrito más la garantía del fabricante.",
+    accept:"Aceptación del cliente",hlSign:"{Company Legal Name}",emailSent:"Propuesta enviada al cliente (demo)",invoiceSent:"Factura enviada (demo)",
+    doneMsg:"Marcado como terminado (demo)",bookedMsg:"Cita agendada (demo)",demo:"Demostración con clientes inventados — nada se guarda.",
+    contractorAcct:"Cuenta de contratista",properties:"propiedades",assigned:"Asignado",miles:"mi",
+    crewHidden:"Vista de equipo: precios y facturas ocultos.",today2:"hoy",tomorrow:"mañana"}
+};
+const STATUS_ORDER=["lead","inspection","proposal","accepted","scheduled","inprogress","done","invoiced","paid"];
+
+/* ---------- dates relative to today so the demo always looks current ---------- */
+function addWorkdays(base,n){const d=new Date(base);d.setHours(0,0,0,0);let k=0;while(k<n){d.setDate(d.getDate()+1);if(d.getDay()!==0)k++;}return d}
+const TODAY=(()=>{const d=new Date();d.setHours(0,0,0,0);if(d.getDay()===0)d.setDate(d.getDate()+1);return d})();
+const D=n=>n===0?new Date(TODAY):addWorkdays(TODAY,n);
+const iso=d=>d.toISOString().slice(0,10);
+
+/* ---------- made-up sample data: customer and company names, house numbers and note text are invented
+   and were checked against the business's real notes and files, so none belongs to a real customer.
+   Street names are real Richmond-area streets. ---------- */
+const ACCOUNTS={kestrel:{name:"Kestrel Roofing & Exteriors",kind:"contractor",contact:"Office",phone:"(804) 555-0141",email:"office@example.com"}};
+const JOBS=[
+ {id:"26-112",cust:"Denise Wyckoff",phone:"(804) 555-0182",email:"dwyckoff@example.com",addr:"2309 Grove Ave",city:"Richmond VA 23220",lat:37.5513,lng:-77.4688,type:"replacement",status:"scheduled",price:9050,src:"Website",crew:["Efraín","Osvaldo","Ramiro","Wilmer"],date:0,time:"08:00",
+  scope:["Tear off existing shingles down to the deck","Replace up to 4 sheets of rotted plywood","GAF Timberline HDZ shingles, Charcoal","Ice & water shield at eaves and valleys","New pipe boots (2) and ridge vent"],sq:22,
+  note:"Denise Wyckoff\n2309 Grove Ave\n28x16x2\n15x11x2\n9x8/2\n39x21\n————\n2,081 + 5% = 22 sq\n3 paipas de 1 1/2\nRidge y ridge vent 34,12,14"},
+ {id:"26-118",cust:"Terrence Oakes",phone:"(804) 555-0127",email:"toakes@example.com",addr:"1512 N 26th St",city:"Richmond VA 23223",lat:37.5326,lng:-77.4172,type:"repair",status:"scheduled",price:685,src:"Referral",crew:["Teodoro"],date:0,time:"13:30",
+  scope:["Replace damaged shingles on rear slope","Reseal chimney flashing","Replace one cracked pipe boot"],sq:2},
+ {id:"26-121",cust:"Kestrel Roofing & Exteriors",acct:"kestrel",phone:"(804) 555-0141",addr:"9420 Iron Bridge Rd",city:"Chesterfield VA 23832",lat:37.3846,lng:-77.4945,type:"replacement",status:"inprogress",price:9200,src:"Kestrel Roofing & Exteriors",crew:["Efraín","Osvaldo","Ramiro"],date:0,time:"07:30",
+  scope:["Labor only — Kestrel supplies materials","Tear off and install 18 sq architectural shingles"],sq:18},
+ {id:"26-109",cust:"Anjali Raman",phone:"(804) 555-0163",email:"araman@example.com",addr:"11807 Wyndham Lake Dr",city:"Glen Allen VA 23059",lat:37.6802,lng:-77.5638,type:"gutters",status:"proposal",price:2340,src:"Website",crew:[],date:null,
+  scope:["Remove old gutters","Install 6″ seamless aluminum gutters, 142 ft","Gutter guards on front"],sq:0},
+ {id:"26-104",cust:"Walt & Joan Pruett",phone:"(804) 555-0109",email:"pruett.family@example.com",addr:"10640 Mountain Rd",city:"Glen Allen VA 23060",lat:37.6871,lng:-77.4795,type:"tpo",status:"scheduled",price:6480,src:"Referral",crew:["Efraín","Ramiro"],date:2,time:"08:00",
+  scope:["Remove existing low-slope roof on rear addition","Install 60-mil TPO with tapered insulation","New drip edge and termination bar"],sq:5},
+ {id:"26-099",cust:"Rosa Villalta",phone:"(804) 555-0155",email:"rvillalta@example.com",addr:"7120 Hull Street Rd",city:"Richmond VA 23224",lat:37.4855,lng:-77.5156,type:"siding",status:"invoiced",price:3125,src:"Northfield Home Warranty",crew:["Wilmer","Teodoro"],date:-6,
+  scope:["Replace 7 pieces of vinyl siding","Replace 3 outside corners and J-channel","Caulk and clean"],sq:0},
+ {id:"26-095",cust:"Curtis Penhallow",phone:"(804) 555-0198",email:"cpenhallow@example.com",addr:"6315 Mechanicsville Tpke",city:"Mechanicsville VA 23111",lat:37.6075,lng:-77.3592,type:"repair",status:"invoiced",price:410,src:"Website",crew:["Teodoro"],date:-9,
+  scope:["Repair leak on right dormer","Install flashing cap on outside corner"],sq:1},
+ {id:"26-123",cust:"Mina Seo",phone:"(804) 555-0174",email:"mseo@example.com",addr:"3214 Broad St Rd",city:"Short Pump VA 23233",lat:37.6545,lng:-77.6124,type:"inspection",status:"lead",price:0,src:"Website form",crew:[],date:null,
+  scope:["Free roof inspection — possible wind damage, missing shingles"],sq:0},
+ {id:"26-124",cust:"Gerald Whitcomb",phone:"(804) 555-0131",email:"gwhitcomb@example.com",addr:"4906 Old Buckingham Rd",city:"Midlothian VA 23113",lat:37.5098,lng:-77.6553,type:"replacement",status:"inspection",price:0,src:"Referral",crew:[],date:1,time:"10:00",
+  scope:["Measure for full replacement","Check attic ventilation"],sq:0},
+ {id:"26-101",cust:"Beverly Kincaid",phone:"(804) 555-0116",email:"bkincaid@example.com",addr:"611 S Sycamore St",city:"Petersburg VA 23803",lat:37.2253,lng:-77.4019,type:"skylight",status:"paid",price:1850,src:"Website",crew:["Wilmer","Osvaldo"],date:-12,
+  scope:["Replace leaking skylight with VELUX deck-mount","Re-flash and shingle around opening"],sq:0},
+ {id:"26-125",cust:"Kestrel Roofing & Exteriors",acct:"kestrel",phone:"(804) 555-0141",addr:"2240 Corner Rock Rd",city:"Midlothian VA 23113",lat:37.4762,lng:-77.6311,type:"repair",status:"accepted",price:875,src:"Kestrel Roofing & Exteriors",crew:[],date:null,
+  scope:["Gutter cleaning and minor shingle repair"],sq:0},
+ {id:"26-126",cust:"Marisol Quintero",phone:"(804) 555-0190",email:"mquintero@example.com",addr:"9015 Patterson Ave",city:"Richmond VA 23229",lat:37.5891,lng:-77.5703,type:"chimney",status:"scheduled",price:1290,src:"Website",crew:["Teodoro","Wilmer"],date:3,time:"09:00",
+  scope:["Rebuild chimney crown","New step and counter flashing"],sq:0},
+];
+JOBS.forEach(j=>{ if(j.date!==null&&j.date!==undefined){ j.day=j.date>=0?D(j.date):(()=>{const d=new Date(TODAY);d.setDate(d.getDate()+j.date);return d})(); } });
+
+/* ---------- state ---------- */
+let LANG="en", ROLE="office", JOB_FILTER="all";
+const t=k=>{const v=k.split('.').reduce((o,p)=>o&&o[p],I18N[LANG]);return v??k};
+const $=s=>document.querySelector(s);
+const money=n=>"$"+n.toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:0});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtDay=d=>d.toLocaleDateString(LANG==="es"?"es-US":"en-US",{weekday:"short",month:"short",day:"numeric"});
+const fmtTime=s=>{if(!s)return"";const[h,m]=s.split(":").map(Number);const ap=h<12?"am":"pm";return `${((h+11)%12)+1}:${String(m).padStart(2,"0")}${ap}`};
+const statusChip=s=>`<span class="chip st-${s}">${t("status."+s)}</span>`;
+const mapsLink=j=>`https://maps.apple.com/?daddr=${encodeURIComponent(j.addr+", "+j.city)}`;
+function miles(a,b){const R=3958.8,r=x=>x*Math.PI/180;const dLat=r(b.lat-a.lat),dLng=r(b.lng-a.lng);const h=Math.sin(dLat/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(h))*1.25 /* rough road factor */}
+function toast(m){const el=$("#toast");el.textContent=m;el.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove("show"),2200)}
+
+const ICONS={
+ today:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>',
+ jobs:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
+ measure:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17L17 3l4 4L7 21H3z"/><path d="M14 6l2 2M11 9l2 2M8 12l2 2"/></svg>',
+ schedule:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+ search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
+ phone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-3 2a11 11 0 006 6l2-3 5 2v4a2 2 0 01-2 2A17 17 0 013 6a2 2 0 012-2z"/></svg>',
+ nav:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8z"/></svg>',
+ check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>',
+ mail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+ doc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
+};
+const TABS=["today","jobs","measure","schedule","search"];
+function renderNav(active){
+  const html=TABS.map(k=>`<a href="#${k}" class="${active===k?"on":""}">${ICONS[k]}<span>${t(k)}</span></a>`).join("");
+  $("#tabbar").innerHTML=html;
+  $("#side").innerHTML=`<div class="side-brand">H &amp; L ROOFERS</div>`+html;
+}
+
+/* ================= VIEWS ================= */
+function viewToday(){
+  const todays=JOBS.filter(j=>j.day&&iso(j.day)===iso(TODAY)).sort((a,b)=>a.time.localeCompare(b.time));
+  const unpaid=JOBS.filter(j=>j.status==="invoiced");
+  const props=JOBS.filter(j=>j.status==="proposal");
+  const weekJobs=JOBS.filter(j=>j.day&&j.day>=TODAY&&j.day<=D(5));
+  return `
+  <p class="sub" style="margin-bottom:2px">${fmtDay(TODAY)}</p>
+  <h1>${t("goodMorning")}</h1>
+  <p class="sub only-crew">${t("crewHidden")}</p>
+  <div class="kpis hide-crew" style="margin-top:12px">
+    <div class="kpi alert" onclick="JOB_FILTER='invoiced';location.hash='#jobs'" style="cursor:pointer"><div class="v">${money(unpaid.reduce((s,j)=>s+j.price,0))}</div><div class="l">${t("unpaid")} · ${unpaid.length}</div></div>
+    <div class="kpi" onclick="JOB_FILTER='proposal';location.hash='#jobs'" style="cursor:pointer"><div class="v">${props.length}</div><div class="l">${t("openProposals")}</div></div>
+    <div class="kpi"><div class="v">${weekJobs.length}</div><div class="l">${t("thisWeek")}</div></div>
+  </div>
+  <h2>${t("todaysWork")}</h2>
+  <div class="list">${todays.length?todays.map(j=>`
+    <div class="card appt" onclick="location.hash='#job/${j.id}'">
+      <div class="bar"></div>
+      <div class="time">${fmtTime(j.time)}</div>
+      <div class="grow">
+        <div class="row" style="justify-content:space-between;gap:6px"><div class="b ellip">${esc(j.cust)}</div>${statusChip(j.status)}</div>
+        <div class="muted small ellip">${esc(j.addr)}, ${esc(j.city)}</div>
+        <div class="small" style="margin:4px 0 8px">${t("type."+j.type)} · ${t("crewOn")}: ${j.crew.join(", ")}</div>
+        <div class="btns" onclick="event.stopPropagation()">
+          <a class="btn sm" href="tel:${j.phone.replace(/\D/g,"")}">${ICONS.phone}${t("call")}</a>
+          <a class="btn sm" href="${mapsLink(j)}" target="_blank" rel="noopener">${ICONS.nav}${t("directions")}</a>
+          <button class="btn sm" onclick="toast(t('doneMsg'))">${ICONS.check}${t("markDone")}</button>
+        </div>
+      </div>
+    </div>`).join(""):`<div class="card empty">${t("nothingToday")}</div>`}
+  </div>
+  <p class="demo-flag">${t("demo")}</p>`;
+}
+
+function viewJobs(){
+  const counts={};STATUS_ORDER.forEach(s=>counts[s]=JOBS.filter(j=>j.status===s).length);
+  const list=JOBS.filter(j=>JOB_FILTER==="all"||j.status===JOB_FILTER)
+    .sort((a,b)=>STATUS_ORDER.indexOf(a.status)-STATUS_ORDER.indexOf(b.status));
+  return `
+  <h1>${t("jobs")}</h1>
+  <p class="sub">${JOBS.length} · 2026</p>
+  <div class="filters">
+    <button class="${JOB_FILTER==="all"?"on":""}" onclick="JOB_FILTER='all';render()">${t("all")}<span class="n">${JOBS.length}</span></button>
+    ${STATUS_ORDER.filter(s=>counts[s]).map(s=>`<button class="${JOB_FILTER===s?"on":""} ${["invoiced","paid","proposal"].includes(s)?"hide-crew":""}" onclick="JOB_FILTER='${s}';render()">${t("status."+s)}<span class="n">${counts[s]}</span></button>`).join("")}
+  </div>
+  <div class="list">${list.map(j=>`
+    <div class="card jobcard" onclick="location.hash='#job/${j.id}'">
+      <div class="row" style="justify-content:space-between">
+        <div class="grow">
+          <div class="row" style="gap:8px"><span class="muted small b">#${j.id}</span>${j.acct?`<span class="chip">${t("contractorAcct")}</span>`:""}</div>
+          <div class="b ellip" style="font-size:16px">${esc(j.cust)}</div>
+          <div class="muted small ellip">${esc(j.addr)}, ${esc(j.city)}</div>
+        </div>
+        <div style="text-align:right">
+          ${statusChip(j.status)}
+          <div class="money hide-crew" style="margin-top:6px">${j.price?money(j.price):"—"}</div>
+        </div>
+      </div>
+      <div class="small muted" style="margin-top:6px">${t("type."+j.type)}${j.day?" · "+fmtDay(j.day)+(j.time?" "+fmtTime(j.time):""):""}</div>
+    </div>`).join("")}
+  </div>`;
+}
+
+function viewJob(id){
+  const j=JOBS.find(x=>x.id===id); if(!j) return `<p>Not found</p>`;
+  const idx=STATUS_ORDER.indexOf(j.status);
+  const acct=j.acct?ACCOUNTS[j.acct]:null;
+  return `
+  <a class="back" href="#jobs">‹ ${t("jobs")}</a>
+  <div class="row" style="justify-content:space-between;align-items:flex-start">
+    <div class="grow"><span class="muted small b">#${j.id} · ${t("type."+j.type)}</span><h1>${esc(j.cust)}</h1></div>
+    ${statusChip(j.status)}
+  </div>
+  <div class="stepper" style="margin:8px 0 14px">${STATUS_ORDER.map((s,i)=>`<div class="${i<idx?"done":i===idx?"cur":""}"><i></i>${t("status."+s)}</div>`).join("")}</div>
+  <div class="btns" style="margin-bottom:14px">
+    <a class="btn" href="tel:${j.phone.replace(/\D/g,"")}">${ICONS.phone}${t("call")}</a>
+    <a class="btn" href="${mapsLink(j)}" target="_blank" rel="noopener">${ICONS.nav}${t("directions")}</a>
+    <a class="btn" href="#measure">${ICONS.measure.replace('<svg','<svg style="width:16px;height:16px"')}${t("measureJob")}</a>
+    <button class="btn hide-crew" onclick="openProposal('${j.id}')">${ICONS.doc}${t("viewProposal")}</button>
+    ${j.status==="done"||j.status==="invoiced"?`<button class="btn primary hide-crew" onclick="toast(t('invoiceSent'))">${ICONS.mail}${t("sendInvoice")}</button>`:""}
+  </div>
+  <div class="two">
+    <div class="card">
+      <dl class="kv">
+        <dt>${t("customer")}</dt><dd>${esc(j.cust)} <span class="chip" style="margin-left:4px">${acct?t("contractorAcct"):t("homeowner")}</span></dd>
+        <dt>${t("property")}</dt><dd>${esc(j.addr)}<br><span class="muted">${esc(j.city)}</span></dd>
+        <dt>${t("phone")}</dt><dd><a href="tel:${j.phone.replace(/\D/g,"")}">${j.phone}</a></dd>
+        ${j.email?`<dt>${t("email")}</dt><dd><a href="mailto:${j.email}">${j.email}</a></dd>`:""}
+        <dt>${t("source")}</dt><dd>${esc(j.src)}</dd>
+        ${j.day?`<dt>${t("schedule")}</dt><dd>${fmtDay(j.day)} ${fmtTime(j.time||"")}</dd>`:""}
+        <dt>${t("crewOn")}</dt><dd>${j.crew.length?j.crew.join(", "):"—"}</dd>
+        <dt class="hide-crew">${t("price")}</dt><dd class="hide-crew money">${j.price?money(j.price):"—"}</dd>
+      </dl>
+    </div>
+    <div class="card">
+      <div class="b" style="margin-bottom:6px">${t("scope")}</div>
+      <ul style="margin:0;padding-left:18px">${j.scope.map(s=>`<li>${esc(s)}</li>`).join("")}</ul>
+    </div>
+  </div>
+  <h2>${t("photos")}</h2>
+  <div class="photos"><div>IMG</div><div>IMG</div><div>IMG</div><div style="cursor:pointer" onclick="toast('Camera (demo)')">${t("addPhoto")}</div></div>
+  ${j.status==="done"||j.status==="invoiced"||j.status==="paid"?`<h2>${t("leftovers")}</h2><div class="card small">1 bd shingle · 1 bd ridge short · 2 plywood used (OSB)</div>`:""}
+  <h2>${t("history")}</h2>
+  <div class="list">
+    ${j.note?`<div class="card"><div class="small muted b" style="margin-bottom:6px">${t("fromNotes")} · Apple Notes</div><div class="note">${esc(j.note)}</div></div>`:""}
+    <div class="card small"><span class="muted">${fmtDay(new Date(TODAY.getTime()-86400000*3))}</span> — ${t("status.proposal")} · ${j.email||j.phone}</div>
+    <div class="card small"><span class="muted">${fmtDay(new Date(TODAY.getTime()-86400000*9))}</span> — ${t("status.lead")} · ${esc(j.src)}</div>
+  </div>`;
+}
+
+/* ---------- Measure ---------- */
+let SECTIONS=[{l:28,w:16,n:2,tri:false},{l:15,w:11,n:2,tri:false},{l:9,w:8,n:1,tri:true},{l:39,w:21,n:1,tri:false}];
+let M={waste:5,ridge:52,eaves:96,rakes:88,valleys:24,b15:3,b2:2,b3:1,vents:4,ply:4,laborSq:130,hlPct:15};
+const PRICE={bundle:38,ridge:62,starter:55,ice:95,felt:110,nails:48,boot:14,vent:28,ply:42};
+function calcMeasure(){
+  const sqft=SECTIONS.reduce((s,x)=>s+(+x.l||0)*(+x.w||0)*(+x.n||0)*(x.tri?0.5:1),0);
+  const withWaste=sqft*(1+M.waste/100);
+  const squares=Math.ceil(withWaste/100*3)/3;
+  const items=[
+    ["Shingles (bundles)",Math.ceil(squares*3),PRICE.bundle],
+    ["Ridge cap (bundles)",Math.ceil(M.ridge/25),PRICE.ridge],
+    ["Starter strip (bundles)",Math.ceil((+M.eaves+ +M.rakes)/100),PRICE.starter],
+    ["Ice & water (rolls)",Math.ceil((+M.eaves+ +M.valleys)/66),PRICE.ice],
+    ["Synthetic felt (rolls)",Math.ceil(squares/10),PRICE.felt],
+    ["Coil nails (boxes)",Math.ceil(squares/15),PRICE.nails],
+    [t("boots15"),+M.b15,PRICE.boot],[t("boots2"),+M.b2,PRICE.boot],[t("boots3"),+M.b3,PRICE.boot+6],
+    [t("vents"),+M.vents,PRICE.vent],[t("plywood"),+M.ply,PRICE.ply],
+  ].filter(r=>r[1]>0);
+  const mat=items.reduce((s,r)=>s+r[1]*r[2],0);
+  const labor=squares*M.laborSq;
+  const hl=(mat+labor)*M.hlPct/100;
+  return {sqft,withWaste,squares,items,mat,labor,hl,total:mat+labor+hl};
+}
+function viewMeasure(){
+  const r=calcMeasure();
+  const num=(k,lab)=>`<div class="field"><label>${lab}</label><input type="number" inputmode="decimal" value="${M[k]}" oninput="M['${k}']=+this.value;updMeasure()"></div>`;
+  return `
+  <h1>${t("measureTitle")}</h1>
+  <p class="sub">Denise Wyckoff · 2309 Grove Ave — ${t("measureSub")}</p>
+  <div class="card">
+    <div class="sec-head"><span>${t("length")}</span><span></span><span>${t("width")}</span><span></span><span>${t("count")}</span><span>${t("tri")}</span><span></span></div>
+    <div id="secs">${SECTIONS.map((s,i)=>`
+      <div class="sec">
+        <input type="number" inputmode="decimal" value="${s.l}" oninput="SECTIONS[${i}].l=+this.value;updMeasure()">
+        <span class="x">×</span>
+        <input type="number" inputmode="decimal" value="${s.w}" oninput="SECTIONS[${i}].w=+this.value;updMeasure()">
+        <span class="x">×</span>
+        <input type="number" inputmode="numeric" value="${s.n}" oninput="SECTIONS[${i}].n=+this.value;updMeasure()">
+        <div class="tri ${s.tri?"on":""}" onclick="SECTIONS[${i}].tri=!SECTIONS[${i}].tri;render()">◺ ½</div>
+        <button class="del" onclick="SECTIONS.splice(${i},1);render()" aria-label="remove">×</button>
+      </div>`).join("")}
+    </div>
+    <div class="row" style="justify-content:space-between;margin-top:4px">
+      <button class="btn sm" onclick="SECTIONS.push({l:10,w:10,n:1,tri:false});render()">${t("addSection")}</button>
+      <div class="field" style="width:120px"><label>${t("waste")}</label><input type="number" value="${M.waste}" oninput="M.waste=+this.value;updMeasure()"></div>
+    </div>
+    <div class="result" id="mres">${resultHTML(r)}</div>
+    <div class="inrow">
+      ${num("ridge",t("ridge"))}${num("eaves",t("eaves"))}${num("rakes",t("rakes"))}${num("valleys",t("valleys"))}
+      ${num("b15",t("boots15"))}${num("b2",t("boots2"))}${num("b3",t("boots3"))}${num("vents",t("vents"))}
+      ${num("ply",t("plywood"))}
+    </div>
+  </div>
+  <div class="two" style="margin-top:12px">
+    <div class="card"><div class="b" style="margin-bottom:6px">${t("matList")}</div><div id="mlist">${matHTML(r)}</div></div>
+    <div class="card hide-crew">
+      <div class="b" style="margin-bottom:6px">${t("pricing")}</div>
+      <div class="inrow" style="grid-template-columns:1fr 1fr">
+        ${num("laborSq",t("laborPerSq"))}${num("hlPct",t("hl")+" %")}
+      </div>
+      <div id="mprice" style="margin-top:8px">${priceHTML(r)}</div>
+      <button class="btn primary" style="width:100%;margin-top:10px" onclick="openProposal('26-112')">${ICONS.doc}${t("makeProposal")}</button>
+    </div>
+  </div>
+  <p class="hint">${t("factorsHint")}</p>`;
+}
+const resultHTML=r=>`<div><div class="v">${Math.round(r.sqft).toLocaleString()}</div><div class="l">${t("sqft")}</div></div><div><div class="v">${r.squares.toFixed(1)}</div><div class="l">${t("squares")} (+${M.waste}%)</div></div><div><div class="v">${Math.ceil(r.squares*3)}</div><div class="l">${t("bundles")}</div></div>`;
+const matHTML=r=>`<table class="mat">${r.items.map(i=>`<tr><td>${esc(i[0])}</td><td class="num">${i[1]}</td><td class="hide-crew">${money(i[1]*i[2])}</td></tr>`).join("")}</table>`;
+const priceHTML=r=>`<table class="mat"><tr><td>${t("materialCost")}</td><td>${money(r.mat)}</td></tr><tr><td>${t("labor")} (${r.squares.toFixed(1)} sq × $${M.laborSq})</td><td>${money(r.labor)}</td></tr><tr><td>${t("hl")} (${M.hlPct}%)</td><td>${money(r.hl)}</td></tr><tr class="tot"><td>${t("total")}</td><td>${money(Math.round(r.total/5)*5)}</td></tr></table>`;
+function updMeasure(){const r=calcMeasure();$("#mres").innerHTML=resultHTML(r);$("#mlist").innerHTML=matHTML(r);const p=$("#mprice");if(p)p.innerHTML=priceHTML(r)}
+
+/* ---------- Schedule ---------- */
+let NEW_JOB="26-123", BOOKED=null;
+const SLOTS=["08:00","10:00","13:00","15:00"];
+function weekDays(){const out=[];let d=new Date(TODAY);while(out.length<6){if(d.getDay()!==0)out.push(new Date(d));d.setDate(d.getDate()+1)}return out}
+function suggestions(job){
+  const days=weekDays(); const res=[];
+  days.forEach(day=>{
+    const on=JOBS.filter(j=>j.day&&iso(j.day)===iso(day)&&j.id!==job.id);
+    const mins=x=>{const[h,m]=x.split(":").map(Number);return h*60+m};
+    const clash=s=>on.some(j=>Math.abs(mins(j.time)-mins(s))<120); // each visit blocks ~2 hours
+    let near=null;on.forEach(o=>{const m=miles(job,o);if(!near||m<near.m)near={m,j:o}});
+    SLOTS.forEach(s=>{
+      if(iso(day)===iso(TODAY))return; // don't suggest same-day
+      if(clash(s))return;
+      const score=near?near.m:40;
+      res.push({day,time:s,near,score});
+    });
+  });
+  res.sort((a,b)=>a.score-b.score||a.day-b.day||a.time.localeCompare(b.time));
+  // keep the best slot per day, top 4
+  const seen=new Set(),top=[];for(const r of res){const k=iso(r.day);if(seen.has(k))continue;seen.add(k);top.push(r);if(top.length===4)break}
+  return top;
+}
+function minimap(job,day){
+  const pts=JOBS.filter(j=>j.day&&iso(j.day)===iso(day));
+  const all=[...pts,job];
+  const lats=all.map(p=>p.lat),lngs=all.map(p=>p.lng);
+  const pad=.03,minLat=Math.min(...lats)-pad,maxLat=Math.max(...lats)+pad,minLng=Math.min(...lngs)-pad,maxLng=Math.max(...lngs)+pad;
+  const W=320,H=150,X=l=>((l-minLng)/(maxLng-minLng||1))*(W-30)+15,Y=l=>H-(((l-minLat)/(maxLat-minLat||1))*(H-30)+15);
+  return `<svg class="minimap" viewBox="0 0 ${W} ${H}" role="img" aria-label="map">
+    ${pts.map(p=>`<line x1="${X(job.lng)}" y1="${Y(job.lat)}" x2="${X(p.lng)}" y2="${Y(p.lat)}" stroke="var(--line)" stroke-width="2" stroke-dasharray="4 4"/>`).join("")}
+    ${pts.map(p=>`<circle cx="${X(p.lng)}" cy="${Y(p.lat)}" r="7" fill="var(--accent)"/><text x="${X(p.lng)+10}" y="${Y(p.lat)+4}" font-size="11" fill="var(--ink-2)">${esc(p.cust.split(" ")[0])} ${fmtTime(p.time)}</text>`).join("")}
+    <circle cx="${X(job.lng)}" cy="${Y(job.lat)}" r="8" fill="var(--ok)" stroke="#fff" stroke-width="2"/><text x="${X(job.lng)+11}" y="${Y(job.lat)+4}" font-size="11" font-weight="700" fill="var(--ok)">${esc(job.cust.split(" ")[0])}</text>
+  </svg>`;
+}
+function viewSchedule(){
+  const days=weekDays();
+  const job=JOBS.find(j=>j.id===NEW_JOB);
+  const sug=suggestions(job);
+  const unscheduled=JOBS.filter(j=>!j.day&&["lead","accepted","proposal"].includes(j.status));
+  return `
+  <h1>${t("schedule")}</h1>
+  <p class="sub">${t("weekOf")}</p>
+  <div class="week">${days.map(d=>{
+    const on=JOBS.filter(j=>j.day&&iso(j.day)===iso(d)).sort((a,b)=>a.time.localeCompare(b.time));
+    const isNew=BOOKED&&iso(BOOKED.day)===iso(d);
+    return `<div class="day ${iso(d)===iso(TODAY)?"today":""}"><h4>${d.toLocaleDateString(LANG==="es"?"es-US":"en-US",{weekday:"short"})} <b>${d.getDate()}</b></h4>
+      ${on.map(j=>`<div class="slot" onclick="location.hash='#job/${j.id}'"><b>${fmtTime(j.time)}</b>${esc(j.cust.split(" ")[0])} · ${t("type."+j.type)}</div>`).join("")}
+      ${isNew?`<div class="slot new"><b>${fmtTime(BOOKED.time)} · ${t("booked")}</b>${esc(job.cust)}</div>`:""}
+    </div>`}).join("")}
+  </div>
+  <h2>${t("newAppt")}</h2>
+  <div class="card">
+    <div class="field"><label>${t("pickJob")}</label>
+      <select onchange="NEW_JOB=this.value;BOOKED=null;render()">
+        ${unscheduled.map(j=>`<option value="${j.id}" ${j.id===NEW_JOB?"selected":""}>${esc(j.cust)} — ${esc(j.addr)}, ${esc(j.city.split(" VA")[0])} (${t("type."+j.type)})</option>`).join("")}
+      </select>
+    </div>
+    <div class="b" style="margin:14px 0 8px">${t("suggestions")}</div>
+    <div class="list">${sug.map((s,i)=>`
+      <div class="sugg ${i===0?"best":""}" onclick="BOOKED={day:new Date('${iso(s.day)}T12:00'),time:'${s.time}'};toast(t('bookedMsg'));render()">
+        <div class="when">${fmtDay(s.day)}<div class="small muted">${fmtTime(s.time)}</div></div>
+        <div class="grow small">${s.near?`<b>${s.near.m.toFixed(1)} ${t("miles")}</b> ${t("nearby")} ${esc(s.near.j.cust)} (${fmtTime(s.near.j.time)})`:t("noNearby")}
+          ${i===0?`<div><span class="chip st-done" style="margin-top:4px">${t("best")}</span></div>`:""}</div>
+        <span class="btn sm">${t("book")}</span>
+      </div>`).join("")}
+    </div>
+    ${sug[0]?`<div style="margin-top:12px">${minimap(job,sug[0].day)}</div>`:""}
+  </div>`;
+}
+
+/* ---------- Search ---------- */
+let Q="";
+function viewSearch(){
+  return `
+  <h1>${t("search")}</h1>
+  <div class="searchbox">${ICONS.search.replace('<svg','<svg style="width:20px;height:20px;color:var(--ink-3)"')}<input id="q" placeholder="${t("searchPh")}" value="${esc(Q)}" oninput="Q=this.value;$('#sres').innerHTML=searchResults()" autocomplete="off"></div>
+  <p class="sub" style="margin-top:8px">${t("searchHint")}</p>
+  <div id="sres" class="list">${searchResults()}</div>`;
+}
+function searchResults(){
+  const q=Q.trim().toLowerCase(); if(!q) return "";
+  const hl=s=>esc(s).replace(new RegExp("("+q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig"),"<mark>$1</mark>");
+  const hits=JOBS.filter(j=>[j.cust,j.addr,j.city,j.phone,j.email||"",j.id,t("type."+j.type),j.note||"",j.scope.join(" ")].join(" ").toLowerCase().includes(q));
+  if(!hits.length) return `<div class="empty">${t("noResults")}</div>`;
+  return `<div class="small muted">${hits.length} ${t("results")}</div>`+hits.map(j=>`
+    <div class="card jobcard" onclick="location.hash='#job/${j.id}'">
+      <div class="row" style="justify-content:space-between"><div class="b">${hl(j.cust)}</div>${statusChip(j.status)}</div>
+      <div class="small muted">${hl(j.addr)}, ${hl(j.city)} · ${hl(j.phone)}</div>
+      <div class="small">#${hl(j.id)} · ${hl(t("type."+j.type))}</div>
+      ${j.note&&j.note.toLowerCase().includes(q)?`<div class="note" style="margin-top:6px">${hl(j.note.split("\n").find(l=>l.toLowerCase().includes(q))||"")}</div>`:""}
+    </div>`).join("");
+}
+
+/* ---------- Proposal sheet ---------- */
+function openProposal(id){
+  const j=JOBS.find(x=>x.id===id);
+  const r=calcMeasure();
+  const total=j.id==="26-112"?Math.round(r.total/5)*5:j.price;
+  const lines=j.id==="26-112"
+    ?[[`Complete roof replacement — ${r.squares.toFixed(1)} squares, GAF Timberline HDZ (Charcoal)`,Math.round(r.total/5)*5],["Tear-off to the deck, haul away and magnetic nail sweep","incl."],["Ice & water shield at eaves and valleys, synthetic underlayment","incl."],[`Pipe boots (${M.b15+M.b2+M.b3}), ridge vent, starter and ridge cap`,"incl."],[`Plywood replacement — up to ${M.ply} sheets`,"incl."]]
+    :j.scope.map((s,i)=>[s,i===0?j.price:"incl."]);
+  $("#sheet").innerHTML=`
+    <div class="sheet-head"><h3>${t("proposal")} #${j.id}</h3><button class="x-btn" onclick="closeSheet()" aria-label="close">×</button></div>
+    <div class="doc">
+      <div class="dh">
+        <div><div class="dn">H <span>&amp;</span> L ROOFERS</div><div class="dt">HONEST &amp; LOYAL · VIRGINIA<br>{Company Business Address} · {Company Business Phone Number}<br>{Company Legal Name} · License {Company License Number}</div></div>
+        <div style="text-align:right"><div style="font-weight:800;font-size:15px">PROPOSAL #${j.id}</div><div class="dt">${t("date")}: ${TODAY.toLocaleDateString("en-US")}</div></div>
+      </div>
+      <h5>${t("proposalFor")}</h5>
+      <div><b>${esc(j.cust)}</b><br>${esc(j.addr)}, ${esc(j.city)}<br>${j.phone}${j.email?" · "+j.email:""}</div>
+      <h5>${t("scopeLines")}</h5>
+      <table>${lines.map(l=>`<tr><td>${esc(l[0])}</td><td class="r">${typeof l[1]==="number"?money(l[1]):l[1]}</td></tr>`).join("")}
+        <tr class="total"><td>${t("total")}</td><td class="r">${money(total)}</td></tr></table>
+      <h5>${t("terms")}</h5>
+      <div style="color:#4a5363">${t("termsText")}</div>
+      <div class="sig"><div>${t("accept")} — signature / date</div><div>${t("hlSign")} — signature / date</div></div>
+    </div>
+    <div class="btns" style="justify-content:center;margin-top:14px">
+      <button class="btn primary" onclick="toast(t('emailSent'));closeSheet()">${ICONS.mail}${t("sendEmail")}</button>
+      <button class="btn" onclick="toast('PDF (demo)')">${ICONS.doc}${t("print")}</button>
+    </div>`;
+  $("#scrim").classList.add("open");
+}
+function closeSheet(){$("#scrim").classList.remove("open")}
+$("#scrim").addEventListener("click",e=>{if(e.target.id==="scrim")closeSheet()});
+
+/* ---------- router ---------- */
+function render(){
+  const h=(location.hash||"#today").slice(1);
+  const [name,arg]=h.split("/");
+  if(ROLE==="crew"&&["invoiced","paid","proposal"].includes(JOB_FILTER))JOB_FILTER="all";
+  renderNav(TABS.includes(name)?name:(name==="job"?"jobs":"today"));
+  const v=$("#view");
+  v.innerHTML = name==="jobs"?viewJobs(): name==="job"?viewJob(arg): name==="measure"?viewMeasure(): name==="schedule"?viewSchedule(): name==="search"?viewSearch(): viewToday();
+  document.querySelectorAll("[data-i18n]").forEach(el=>el.textContent=t(el.dataset.i18n));
+  document.documentElement.lang=LANG;
+  if(name==="search"){const q=$("#q");q&&q.focus();}
+}
+window.addEventListener("hashchange",()=>{closeSheet();render();window.scrollTo(0,0)});
+$("#langSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;LANG=b.dataset.lang;document.querySelectorAll("#langSeg button").forEach(x=>x.classList.toggle("on",x===b));render()});
+$("#roleSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;ROLE=b.dataset.role;document.body.classList.toggle("crew",ROLE==="crew");document.querySelectorAll("#roleSeg button").forEach(x=>x.classList.toggle("on",x===b));render()});
+render();
+</script>
+</body>
+</html>
