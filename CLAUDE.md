@@ -29,13 +29,13 @@ Your sole purpose is to execute your tasks with precision, anything other than t
 | `docs/decisions.md` | Answers to the open questions, with the changes they make to the breakdown. Wins over the breakdown snapshot |
 | `docs/data-review.md` | Counts and patterns from the Apple Notes export and Mac file list. No customer data or credentials |
 | `docs/project-breakdown.md` | The full plan: Salesforce concept mapping, the three apps, data model, leads, features, permissions, automations, pricing uploads, admin data editor, hosting and backups, roadmap, ideas, risks, open questions, sources |
-| `mockup/hl-roofers-mockup.html` | The current clickable mockup. One self-contained HTML file with made-up customers; opens in any browser. Tabs: Today, Jobs, Measure, Schedule, Search; English/Spanish and Office/Crew toggles |
+| `mockup/hl-roofers-mockup.html` | The current clickable mockup, built with Bootstrap 5.3.8 (embedded, so it opens offline). One self-contained HTML file with made-up customers. English/Spanish toggle and a "View as" switch for Admin, Office, Crew 1 and Crew 2. It is being built in the roadmap's phase order; `docs/decisions.md` ("Mockup status") says which phases are in. The file's own top comment explains its layout: lines 20–24 and 182–187 are the embedded Bootstrap copies, the rest is ours. The older non-Bootstrap mockup, with the parked Measure calculator, is in git history at commit `147043d` |
 
 ## What the user has decided
 
 - **Scope:** barebones Salesforce Field Service-style CRM with Admin, Office and Crew views. Website form lead capture; scheduling with nearby-slot suggestions; proposal and invoice PDFs; calendar, phone, text and navigation; crew updates; Apple Notes import into a customer "Details" field; search; lead lifecycle; simple reports and dashboard; permissions and permission sets; account, contact and opportunity management; lead assignment and routing; process automation.
 - **Not yet:** no Measure / calculator feature for now. The mockup's Measure tab is parked.
-- **Stack:** Python + Django + PostgreSQL; free and open source. A custom self-hosted app, not a Salesforce org. Front end: **Bootstrap**, once the build is approved (details in `docs/decisions.md`).
+- **Stack:** Python + Django + PostgreSQL; free and open source. A custom self-hosted app, not a Salesforce org. **Everything uses Bootstrap for its CSS**: the app once the build is approved, and every mockup (details in `docs/decisions.md`).
 - **Records:** Lead → Opportunity → Job. One signed proposal creates one Job; Change Orders on the Job; Warranty Jobs link to the original Job with no Opportunity. Details in `docs/decisions.md`.
 - **Runtime:** native Windows services on Windows 11 Pro (no Docker). Remote admin: paid Tailscale plan.
 - **Who codes:** the user reads code and SQL but is not an experienced developer. Claude writes plain, conventional Django and explains each change in plain English with steps to check it.
@@ -73,7 +73,7 @@ Resolved: headcount (8 permanent crew plus the owner and office; extra workers o
 
 ## Working conventions
 
-- Mockups are single, self-contained HTML files that work in any browser on any OS (the office uses a Mac; the user uses Windows).
+- Mockups are single, self-contained HTML files that work in any browser on any OS (the office uses a Mac; the user uses Windows). They are built with Bootstrap, embedded in the file so it opens offline. Custom CSS stays in one small block: the H & L colors and the few pieces Bootstrap lacks.
 - Mockups use made-up customers. Keep real customer data out of this folder. Never copy anything from the Apple Notes export or Mac file list into the repo except counts and patterns: they hold real customers, crew pay and passwords.
 - Before a name, address or note goes into a mockup, check it against the real notes and file list: none may match a real customer or crew member. The mockup's customers, crew, contractor, warranty company, house numbers and sample note are made up and were checked this way. Business details show as placeholders.
 - Map each feature to its Salesforce concept and cite Salesforce documentation (Help, Developers, Trailhead) where it applies.

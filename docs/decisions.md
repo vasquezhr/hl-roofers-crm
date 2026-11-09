@@ -22,9 +22,10 @@ The admin reads code and SQL but is not an experienced developer (some C#, HTML/
 
 ### Front end: Bootstrap (user decision, Nov 9, 2026)
 
-- **The app's pages use Bootstrap** once the build is approved. The admin knows HTML and Bootstrap, so the templates stay readable and editable for them.
-- Proposed: serve Bootstrap's CSS and JavaScript from the app's own files rather than a CDN; pin the version that's current when the build starts; set the H & L colors in one small stylesheet of our own. No build tools needed.
-- Open: whether the next mockup update uses Bootstrap too.
+- **Everything uses Bootstrap for its CSS:** the app's pages once the build is approved, and every mockup. The admin knows HTML and Bootstrap, so the pages stay readable and editable for them.
+- Mockups embed Bootstrap's files, so each one is still a single file that opens without internet.
+- Our own CSS is limited to one small stylesheet: the H & L colors, plus the few pieces Bootstrap doesn't have (the stage bar and the phone tab bar).
+- Proposed for the app: serve Bootstrap's CSS and JavaScript from the app's own files rather than a CDN, and pin the version that's current when the build starts. No build tools needed.
 
 ### Lead → Opportunity → Job
 
@@ -167,5 +168,25 @@ The user will start this next. It updates `mockup/hl-roofers-mockup.html`; it is
 - **Everywhere:** English/Spanish in every app; business details as placeholders; the parked Measure tab hidden; no Saturday work (Sunday still open; proposed: show Monday–Friday until the owners answer).
 - **From the breakdown:** add Accounts, Reports, Dashboard and Admin, and drop Measure.
 - **Data:** made-up names only. If the notes export and Mac file list are available, check every new name, address and note against them first.
-- **Open:** whether the mockup uses Bootstrap (embedded in the file so it still opens offline).
+- **Bootstrap:** the mockup is built with Bootstrap, embedded in the file so it still opens offline.
+- **Order:** built in the roadmap's phase order, starting with Phase 1 (customer records and search), with a working version saved after each phase.
+
+## Mockup status
+
+The Bootstrap mockup is `mockup/hl-roofers-mockup.html`. Each phase is tested in a browser (computer and phone size, English and Spanish, Office and Crew) before it is saved.
+
+| Roadmap phase | In the mockup | Status |
+| --- | --- | --- |
+| 1 · Customer records and search | Accounts (person or company) with contacts, properties and Details from imported notes; Opportunities and Jobs on one stage bar; a signed proposal creates the Job; warranty jobs; outside numbers; one search box; Office and Crew views; Call, Text, Directions | Built, Nov 9 |
+| 2 · Leads, proposals, invoices, pricing | — | Not yet |
+| 3 · Scheduling and crew | — | Not yet |
+| 4 · Reports, dashboard, automations, admin | — | Not yet |
+
+**Choices made in the mockup that the user should confirm:**
+
+- An Opportunity and the Job it becomes share one number (26-124). Proposal, job and invoice all carry it.
+- A job waiting for dates shows as "To schedule". The stage bar's "Signed" step is the current one until it is scheduled.
+- Warranty jobs get their own number and a short bar: Opened, Scheduled, In progress, Done.
+- Default job lengths when scheduling: repair, gutters, chimney, skylight 1 day; flat roof and replacement 2; siding 3.
+- Texts to a customer start in the customer's language (set on the account), not the language of the person using the app.
 
