@@ -178,7 +178,7 @@ The Bootstrap mockup is `mockup/hl-roofers-mockup.html`. Each phase is tested in
 | Roadmap phase | In the mockup | Status |
 | --- | --- | --- |
 | 1 · Customer records and search | Accounts (person or company) with contacts, properties and Details from imported notes; Opportunities and Jobs on one stage bar; a signed proposal creates the Job; warranty jobs; outside numbers; one search box; Office and Crew views; Call, Text, Directions | Built, Nov 9 |
-| 2 · Leads, proposals, invoices, pricing | — | Not yet |
+| 2 · Leads, proposals, invoices, pricing | Leads list and page; Convert creates the account, contact, property and opportunity, reuses an existing customer, and can add a request to that customer's open job; proposal builder with Price Book lines, the printed proposal, email, and the customer's Accept page; change orders; deposits, payments and balance due; invoice; crews record payments they collect; Price Book with upload review, full history and roll back; Company details that fill the placeholders | Built, Nov 9 |
 | 3 · Scheduling and crew | — | Not yet |
 | 4 · Reports, dashboard, automations, admin | — | Not yet |
 
@@ -189,4 +189,12 @@ The Bootstrap mockup is `mockup/hl-roofers-mockup.html`. Each phase is tested in
 - Warranty jobs get their own number and a short bar: Opened, Scheduled, In progress, Done.
 - Default job lengths when scheduling: repair, gutters, chimney, skylight 1 day; flat roof and replacement 2; siding 3.
 - Texts to a customer start in the customer's language (set on the account), not the language of the person using the app.
+- The first call or text to a new lead marks it Contacted.
+- When a returning customer with an open job sends a web request, Convert offers two choices: start a new opportunity, or add the request to that job.
+- Proposals and invoices follow the language of the screen. Open: should they follow the customer's language instead?
+- The terms printed on the proposal and invoice are sample wording.
+- The customer's Accept page asks for a typed name and records the date and time. Whether that is enough for H & L's contracts is the owners' call.
+- A payment recorded before the work starts is labeled a deposit. A payment that brings the balance to zero after the job is done marks it Paid.
+- Change orders are numbered per job (CO1, CO2) and count in the total only once signed. A negative amount takes work off.
+- The Price Book sits under Admin. The office reaches it from the proposal builder ("Add from the Price Book").
 

@@ -221,7 +221,10 @@ const I18N = {
       acctCreated: "Account created", oppCreated: "Opportunity created", proposalSent: "Proposal sent", signed: "Proposal signed", lost: "Marked lost",
       jobCreated: "Job created from the signed proposal", warrantyCreated: "Warranty job opened", warrantyOpened: "Warranty job #{id} opened",
       scheduled: "Put on the schedule", started: "Job started", done: "Marked done", invoiced: "Invoice sent", paid: "Paid in full",
-      refChanged: "Outside number changed" },
+      refChanged: "Outside number changed",
+      leadIn: "Request received from the website", unqualified: "Marked not a fit", converted: "Converted",
+      oppFromLead: "Opportunity created from a website lead", leadAttached: "Website request added: “{msg}”",
+      coSent: "Change order {id} sent for signature", coSigned: "Change order {id} signed", payment: "Payment recorded: {amount}" },
     accounts: { sub: "Customers and companies you work with", new: "New account", people: "People", companies: "Companies",
       counts: "Jobs: {jobs} · Open: {open}", since: "Customer since {y}", contacts: "Contacts", properties: "Properties",
       details: "Details", fromNotes: "Imported from Apple Notes", noDetails: "No notes for this customer.", type: "Type of account" },
@@ -230,14 +233,12 @@ const I18N = {
       newForCustomer: "New opportunity for this customer", inspection: "Inspection", noInspection: "No inspection booked yet.",
       proposal: "Proposal", source: "Where it came from", lostBecause: "Why it was lost", sentOn: "Sent {d}", signedOn: "signed {d}",
       noPrice: "No price yet.", whatFor: "What is it for?", created: "Opportunity #{id} created",
-      description: "What the proposal covers (one line each)", priceLabel: "Price",
-      proposalHint: "The printed proposal, the email and the customer's Accept page come with the next phase.",
-      markSent: "Mark as sent", sent: "Proposal marked as sent",
+      viewProposal: "View proposal", acceptPage: "Customer's Accept page",
       signAsk: "A signed proposal becomes job #{id} right away, with the same number.", howSigned: "How was it signed?",
       signConfirm: "Signed: create the job", jobCreated: "Job #{id} created", lostReason: "Reason" },
     jobs: { sub: "Signed work, from scheduling to paid" },
     job: { notScheduled: "Not scheduled yet", warranty: "Warranty", laborOnly: "Labor only",
-      schedule: "Schedule", start: "Start job", markDone: "Mark done", markInvoiced: "Mark invoice sent", markPaid: "Mark paid", newWarranty: "Warranty job",
+      schedule: "Schedule", start: "Start job", markDone: "Mark done", makeInvoice: "Create invoice", viewInvoice: "View invoice", newWarranty: "Warranty job",
       money: "Price and payments", warrantyNoCharge: "Warranty visit: no charge.", price: "Price", fromProposal: "from the signed proposal",
       crewAndDates: "Crew and dates", lead: "lead", extraWorkers: "Extra workers", when: "When", days: "{n} days", startsAt: "starts {t}",
       refs: "Numbers", ourNumber: "H & L number", outsideRef: "Outside number", editRef: "Change", refType: "Kind of number", refNumber: "Number",
@@ -247,13 +248,55 @@ const I18N = {
       scheduleHint: "Work days are booked as whole days. Saturdays are never offered.",
       warrantyExplain: "This opens a new warranty job linked to job #{id}. Job #{id} stays closed.", problem: "What is the problem?",
       warrantyMade: "Warranty job #{id} opened" },
-    today: { hello: "Good morning", proposalsOut: "Proposals out", toSchedule: "Jobs to schedule", inProgress: "Jobs in progress", unpaid: "Unpaid invoices",
+    today: { hello: "Good morning", newLeads: "New leads", callLead: "Call {name}: website request, {ago}", proposalsOut: "Proposals out", toSchedule: "Jobs to schedule", inProgress: "Jobs in progress", unpaid: "Unpaid invoices",
       work: "Today's work", nothing: "Nothing scheduled today.", attention: "Needs attention", allClear: "Nothing waiting.",
       followUp: "Follow up with {name}: proposal sent {n} days ago", scheduleJob: "Schedule job #{id} for {name}",
       unpaidSince: "{name}: invoice unpaid for {n} days" },
     search: { hint: "Customers, addresses, phone numbers, job numbers and old notes.", hintCrew: "Searches your crew's jobs.",
       ph: "Name, address, phone, job number…", none: "No matches." },
-    mine: { today: "Today", upcoming: "Coming up", finished: "Finished" }
+    mine: { today: "Today", upcoming: "Coming up", finished: "Finished" },
+    leads: { sub: "Requests from the website, waiting for someone to review them", returning: "Returning customer",
+      convert: "Convert", unfit: "Not a fit", addedToJob: "Added to job #{id}", unfitBecause: "Why it is not a fit",
+      isReturning: "This looks like a customer you already have:", hasOpenJob: "They have an open job:",
+      request: "What they asked for", received: "Received", contact: "Contact", language: "Language", assigned: "Assigned to",
+      routing: "Website requests go to the office. Backup: the owner.",
+      useExisting: "This will use the existing account for {name}. No duplicate is created.",
+      whatToDo: "What should happen?", modeNew: "Start a new opportunity", modeJob: "Add the request to job #{id}",
+      willCreate: "Convert creates all of this in one step:", mkAccount: "Account", mkContact: "Contact", mkProperty: "Property",
+      mkOpp: "An opportunity at the Inspection stage" },
+    unfit: { area: "Out of the service area", service: "Service not offered", noresponse: "No answer after 3 tries", shopping: "Only comparing prices", spam: "Spam or duplicate" },
+    langName: { en: "English", es: "Spanish" },
+    ago: { min: "{n} min ago", hr: "{n} h ago", day: "{n} days ago" },
+    docs: { license: "License", date: "Date", proposal: "Proposal", invoice: "Invoice", for: "Proposal for", terms: "Terms",
+      termsText: "Price valid for 30 days. Payment is due when the work is complete. (Sample wording: H & L sets the final terms.)",
+      custSign: "Customer signature / date", lineWhat: "What is included", lineAmount: "Amount", removeLine: "Remove line",
+      fromBook: "Add from the Price Book…", addLine: "Add line",
+      builderHint: "Leave the amount empty for lines already included in the price. Price Book lines use today's price, and the proposal keeps that price even if the list changes later.",
+      preview: "Preview", needPrice: "Add at least one line with a price.", edit: "Edit", pdf: "Download PDF", pdfDemo: "The real app downloads a PDF here.",
+      email: "Email to customer", emailAgain: "Email again", emailed: "Emailed to {email} (demo)",
+      acceptTitle: "What the customer sees", acceptExplain: "{name} opens the link in the email and sees this page. Accepting signs the proposal and creates the job.",
+      acceptLabel: "Accept this proposal", acceptName: "Type your full name", acceptBtn: "I accept", acceptNote: "The app records the name, the date and the time.",
+      perProposal: "Proposal #{id}: {type}", billTo: "Bill to", workAt: "Work done at",
+      invoiceTerms: "Payment is due when the work is complete. Thank you for your business.", sendInvoice: "Email invoice" },
+    money: { co: "Change order", cos: "Change orders", coMarkSigned: "Mark signed", coAdd: "Add change order",
+      coNote: "A change order counts in the total once the customer signs it.", payments: "Payments", balance: "Balance due", record: "Record payment",
+      coExplain: "Work added or removed after signing. It goes to the customer to review and sign.", coWhat: "What is changing?", coAmount: "Amount",
+      coMinus: "Use a minus sign to take work off, for example -250.", coSend: "Send for signature", coSentToast: "Change order sent to the customer (demo)",
+      amount: "Amount", method: "Paid by", checkNo: "Check number", recordedBy: "Recorded by {who}.", recorded: "Payment recorded" },
+    co: { sent: "Waiting for signature", signed: "Signed" },
+    pay: { deposit: "Deposit", payment: "Payment" },
+    method: { check: "Check", cash: "Cash", card: "Card", other: "Other" },
+    unit: { bundle: "bundle", roll: "roll", pail: "pail", each: "each", box: "box", sheet: "sheet" },
+    admin: { sub: "Settings and tools for the administrator" },
+    price: { title: "Price Book", desc: "Supplier prices from your spreadsheets, with the full history", sub: "Sample prices. Crews never see this page.",
+      upload: "Upload price file", item: "Item", unit: "Unit", cost: "Cost", price: "Selling price", changed: "Last change",
+      uploads: "Uploads", counts: "{a} new · {c} changed · {s} unchanged", rollback: "Roll back", rolledBack: "Rolled back", rollbackDone: "Upload rolled back",
+      pickHint: "The real app opens your files here and takes one Excel file per supplier and product line. These two sample files show how it works.",
+      check: "Check file", review: "Review before saving", newItems: "New items", changes: "Price changes", unchanged: "Unchanged: {n}",
+      notInFile: "Not in this file (kept): {n}", big: "over 10%", confirm: "Save upload", done: "Upload saved: {n} prices updated", nothing: "Nothing changed in this file." },
+    company: { title: "Company details", desc: "The name, license, address and phone printed on proposals and invoices",
+      sub: "Until these are filled in, documents show the placeholders.", legal: "Legal name", license: "Contractor license number",
+      address: "Business address", phone: "Business phone", logo: "Logo", logoHint: "The real app lets you upload the logo file here.", sample: "See a sample proposal" }
   },
 
   es: {
@@ -285,7 +328,10 @@ const I18N = {
       acctCreated: "Cuenta creada", oppCreated: "Oportunidad creada", proposalSent: "Propuesta enviada", signed: "Propuesta firmada", lost: "Marcada como perdida",
       jobCreated: "Trabajo creado al firmarse la propuesta", warrantyCreated: "Trabajo de garantía abierto", warrantyOpened: "Se abrió el trabajo de garantía #{id}",
       scheduled: "Puesto en la agenda", started: "Trabajo empezado", done: "Marcado como terminado", invoiced: "Factura enviada", paid: "Pagado por completo",
-      refChanged: "Número externo actualizado" },
+      refChanged: "Número externo actualizado",
+      leadIn: "Pedido recibido del sitio web", unqualified: "Marcado como no califica", converted: "Convertido",
+      oppFromLead: "Oportunidad creada desde un prospecto del sitio web", leadAttached: "Pedido del sitio web agregado: «{msg}»",
+      coSent: "Orden de cambio {id} enviada para firma", coSigned: "Orden de cambio {id} firmada", payment: "Pago registrado: {amount}" },
     accounts: { sub: "Clientes y compañías con las que trabaja", new: "Cuenta nueva", people: "Personas", companies: "Compañías",
       counts: "Trabajos: {jobs} · Abiertas: {open}", since: "Cliente desde {y}", contacts: "Contactos", properties: "Propiedades",
       details: "Detalles", fromNotes: "Importado de Notas de Apple", noDetails: "No hay notas de este cliente.", type: "Tipo de cuenta" },
@@ -294,14 +340,12 @@ const I18N = {
       newForCustomer: "Oportunidad nueva para este cliente", inspection: "Inspección", noInspection: "Todavía no hay inspección programada.",
       proposal: "Propuesta", source: "De dónde vino", lostBecause: "Por qué se perdió", sentOn: "Enviada el {d}", signedOn: "firmada el {d}",
       noPrice: "Todavía no tiene precio.", whatFor: "¿Para qué es?", created: "Oportunidad #{id} creada",
-      description: "Qué incluye la propuesta (una línea por cosa)", priceLabel: "Precio",
-      proposalHint: "La propuesta impresa, el correo y la página para que el cliente acepte llegan con la siguiente fase.",
-      markSent: "Marcar como enviada", sent: "Propuesta marcada como enviada",
+      viewProposal: "Ver propuesta", acceptPage: "Página del cliente para aceptar",
       signAsk: "Al firmarse, la propuesta se convierte de inmediato en el trabajo #{id}, con el mismo número.", howSigned: "¿Cómo se firmó?",
       signConfirm: "Firmada: crear el trabajo", jobCreated: "Trabajo #{id} creado", lostReason: "Motivo" },
     jobs: { sub: "Trabajo firmado, desde la programación hasta el pago" },
     job: { notScheduled: "Sin programar", warranty: "Garantía", laborOnly: "Solo mano de obra",
-      schedule: "Programar", start: "Empezar trabajo", markDone: "Marcar terminado", markInvoiced: "Marcar factura enviada", markPaid: "Marcar pagado", newWarranty: "Trabajo de garantía",
+      schedule: "Programar", start: "Empezar trabajo", markDone: "Marcar terminado", makeInvoice: "Crear factura", viewInvoice: "Ver factura", newWarranty: "Trabajo de garantía",
       money: "Precio y pagos", warrantyNoCharge: "Visita de garantía: sin costo.", price: "Precio", fromProposal: "de la propuesta firmada",
       crewAndDates: "Equipo y fechas", lead: "encargado", extraWorkers: "Trabajadores extra", when: "Cuándo", days: "{n} días", startsAt: "empieza a las {t}",
       refs: "Números", ourNumber: "Número de H & L", outsideRef: "Número externo", editRef: "Cambiar", refType: "Tipo de número", refNumber: "Número",
@@ -311,13 +355,55 @@ const I18N = {
       scheduleHint: "Los días de trabajo se reservan completos. Nunca se ofrecen sábados.",
       warrantyExplain: "Esto abre un trabajo de garantía nuevo, ligado al trabajo #{id}. El trabajo #{id} queda cerrado.", problem: "¿Cuál es el problema?",
       warrantyMade: "Trabajo de garantía #{id} abierto" },
-    today: { hello: "Buenos días", proposalsOut: "Propuestas enviadas", toSchedule: "Trabajos por programar", inProgress: "Trabajos en progreso", unpaid: "Facturas sin pagar",
+    today: { hello: "Buenos días", newLeads: "Prospectos nuevos", callLead: "Llamar a {name}: pedido del sitio web, {ago}", proposalsOut: "Propuestas enviadas", toSchedule: "Trabajos por programar", inProgress: "Trabajos en progreso", unpaid: "Facturas sin pagar",
       work: "Trabajo de hoy", nothing: "No hay nada programado hoy.", attention: "Requiere atención", allClear: "No hay nada pendiente.",
       followUp: "Dar seguimiento a {name}: propuesta enviada hace {n} días", scheduleJob: "Programar el trabajo #{id} de {name}",
       unpaidSince: "{name}: factura sin pagar desde hace {n} días" },
     search: { hint: "Clientes, direcciones, teléfonos, números de trabajo y notas viejas.", hintCrew: "Busca en los trabajos de su equipo.",
       ph: "Nombre, dirección, teléfono, número de trabajo…", none: "Sin resultados." },
-    mine: { today: "Hoy", upcoming: "Próximos", finished: "Terminados" }
+    mine: { today: "Hoy", upcoming: "Próximos", finished: "Terminados" },
+    leads: { sub: "Pedidos del sitio web, en espera de que alguien los revise", returning: "Cliente que regresa",
+      convert: "Convertir", unfit: "No califica", addedToJob: "Agregado al trabajo #{id}", unfitBecause: "Por qué no califica",
+      isReturning: "Parece ser un cliente que ya tiene:", hasOpenJob: "Tiene un trabajo abierto:",
+      request: "Lo que pidió", received: "Recibido", contact: "Contacto", language: "Idioma", assigned: "Asignado a",
+      routing: "Los pedidos del sitio web van a la oficina. Respaldo: el dueño.",
+      useExisting: "Se usará la cuenta que ya existe de {name}. No se crea un duplicado.",
+      whatToDo: "¿Qué se debe hacer?", modeNew: "Empezar una oportunidad nueva", modeJob: "Agregar el pedido al trabajo #{id}",
+      willCreate: "Convertir crea todo esto en un solo paso:", mkAccount: "Cuenta", mkContact: "Contacto", mkProperty: "Propiedad",
+      mkOpp: "Una oportunidad en la etapa de Inspección" },
+    unfit: { area: "Fuera del área de servicio", service: "Servicio que no se ofrece", noresponse: "No contestó después de 3 intentos", shopping: "Solo compara precios", spam: "Spam o duplicado" },
+    langName: { en: "Inglés", es: "Español" },
+    ago: { min: "hace {n} min", hr: "hace {n} h", day: "hace {n} días" },
+    docs: { license: "Licencia", date: "Fecha", proposal: "Propuesta", invoice: "Factura", for: "Propuesta para", terms: "Términos",
+      termsText: "Precio válido por 30 días. El pago se hace al terminar el trabajo. (Texto de ejemplo: H & L define los términos finales.)",
+      custSign: "Firma del cliente / fecha", lineWhat: "Qué incluye", lineAmount: "Monto", removeLine: "Quitar línea",
+      fromBook: "Agregar de la lista de precios…", addLine: "Agregar línea",
+      builderHint: "Deje el monto vacío en las líneas que ya están incluidas en el precio. Las líneas de la lista de precios usan el precio de hoy, y la propuesta conserva ese precio aunque la lista cambie después.",
+      preview: "Vista previa", needPrice: "Agregue al menos una línea con precio.", edit: "Editar", pdf: "Descargar PDF", pdfDemo: "La app real descarga un PDF aquí.",
+      email: "Enviar por correo al cliente", emailAgain: "Enviar de nuevo", emailed: "Enviado a {email} (demo)",
+      acceptTitle: "Lo que ve el cliente", acceptExplain: "{name} abre el enlace del correo y ve esta página. Al aceptar, la propuesta queda firmada y se crea el trabajo.",
+      acceptLabel: "Aceptar esta propuesta", acceptName: "Escriba su nombre completo", acceptBtn: "Acepto", acceptNote: "La app guarda el nombre, la fecha y la hora.",
+      perProposal: "Propuesta #{id}: {type}", billTo: "Facturar a", workAt: "Trabajo hecho en",
+      invoiceTerms: "El pago se hace al terminar el trabajo. Gracias por su preferencia.", sendInvoice: "Enviar factura por correo" },
+    money: { co: "Orden de cambio", cos: "Órdenes de cambio", coMarkSigned: "Marcar firmada", coAdd: "Agregar orden de cambio",
+      coNote: "Una orden de cambio cuenta en el total cuando el cliente la firma.", payments: "Pagos", balance: "Saldo pendiente", record: "Registrar pago",
+      coExplain: "Trabajo que se agrega o se quita después de firmar. Se envía al cliente para que lo revise y lo firme.", coWhat: "¿Qué cambia?", coAmount: "Monto",
+      coMinus: "Use el signo menos para quitar trabajo, por ejemplo -250.", coSend: "Enviar para firma", coSentToast: "Orden de cambio enviada al cliente (demo)",
+      amount: "Monto", method: "Forma de pago", checkNo: "Número de cheque", recordedBy: "Registrado por {who}.", recorded: "Pago registrado" },
+    co: { sent: "Esperando firma", signed: "Firmada" },
+    pay: { deposit: "Depósito", payment: "Pago" },
+    method: { check: "Cheque", cash: "Efectivo", card: "Tarjeta", other: "Otro" },
+    unit: { bundle: "bulto", roll: "rollo", pail: "cubeta", each: "pieza", box: "caja", sheet: "hoja" },
+    admin: { sub: "Ajustes y herramientas para el administrador" },
+    price: { title: "Lista de precios", desc: "Precios de proveedores de sus hojas de cálculo, con todo el historial", sub: "Precios de ejemplo. Los equipos nunca ven esta página.",
+      upload: "Subir archivo de precios", item: "Artículo", unit: "Unidad", cost: "Costo", price: "Precio de venta", changed: "Último cambio",
+      uploads: "Archivos subidos", counts: "{a} nuevos · {c} cambiados · {s} sin cambio", rollback: "Deshacer", rolledBack: "Deshecho", rollbackDone: "Se deshizo el archivo",
+      pickHint: "La app real abre sus archivos aquí y recibe un archivo de Excel por proveedor y línea de producto. Estos dos archivos de ejemplo muestran cómo funciona.",
+      check: "Revisar archivo", review: "Revise antes de guardar", newItems: "Artículos nuevos", changes: "Cambios de precio", unchanged: "Sin cambio: {n}",
+      notInFile: "No están en este archivo (se conservan): {n}", big: "más de 10%", confirm: "Guardar", done: "Archivo guardado: {n} precios actualizados", nothing: "Nada cambió en este archivo." },
+    company: { title: "Datos de la compañía", desc: "El nombre, la licencia, la dirección y el teléfono que se imprimen en propuestas y facturas",
+      sub: "Mientras no se llenen, los documentos muestran los marcadores.", legal: "Nombre legal", license: "Número de licencia de contratista",
+      address: "Dirección del negocio", phone: "Teléfono del negocio", logo: "Logotipo", logoHint: "La app real permite subir aquí el archivo del logotipo.", sample: "Ver una propuesta de ejemplo" }
   }
 };
 
@@ -383,7 +469,7 @@ const whoName = w => { const c = CREWS.find(x => x.id === w); return c ? crewNam
 // Each line stores a text key, so it shows in whichever language is selected.
 function addLog(rec, key, vars) { (rec.log = rec.log || []).unshift({ d: new Date(), w: me(), k: key, v: vars }); }
 function historyList(rec) {
-  const log = rec.log || [];
+  const log = (rec.log || []).slice().sort((a, b) => b.d - a.d);      // newest first
   if (!log.length) return `<div class="text-body-secondary small">${esc(t("noHistory"))}</div>`;
   return `<ul class="list-unstyled small mb-0">` + log.map(e =>
     `<li class="border-bottom py-1"><span class="text-body-secondary">${esc(fmtDay(e.d))} · ${esc(whoName(e.w))}</span> — ${esc(t(e.k, e.v))}</li>`).join("") + `</ul>`;
@@ -853,9 +939,11 @@ route("opp", {
     const cur = o.stage === "lost" ? -1 : o.stage === "won" ? (job ? PATH.indexOf(job.stage) : 2) : PATH.indexOf(o.stage);
     const lostBtn = `<button type="button" class="btn btn-outline-secondary" data-act="oppLost" data-id="${o.id}">${tt("opps.markLost")}</button>`;
     let actions = "";
+    const viewBtn = `<button type="button" class="btn btn-outline-secondary" data-act="oppView" data-id="${o.id}">${ic("doc")} ${tt("opps.viewProposal")}</button>`;
     if (o.stage === "inspection") actions = `<button type="button" class="btn btn-primary" data-act="oppProposal" data-id="${o.id}">${ic("doc")} ${tt("opps.makeProposal")}</button>` + lostBtn;
-    if (o.stage === "proposal") actions = `<button type="button" class="btn btn-primary" data-act="oppSign" data-id="${o.id}">${ic("check")} ${tt("opps.markSigned")}</button>` + lostBtn;
-    if (o.stage === "won" && job) actions = `<a class="btn btn-primary" href="#job/${job.id}">${ic("jobs")} ${tt("opps.openJob", { id: job.id })}</a>`;
+    if (o.stage === "proposal") actions = `<button type="button" class="btn btn-primary" data-act="oppSign" data-id="${o.id}">${ic("check")} ${tt("opps.markSigned")}</button>` + viewBtn +
+      `<button type="button" class="btn btn-outline-secondary" data-act="oppAccept" data-id="${o.id}">${ic("link")} ${tt("opps.acceptPage")}</button>` + lostBtn;
+    if (o.stage === "won") actions = (job ? `<a class="btn btn-primary" href="#job/${job.id}">${ic("jobs")} ${tt("opps.openJob", { id: job.id })}</a>` : "") + viewBtn;
     if (o.stage === "lost") actions = `<button type="button" class="btn btn-outline-primary" data-act="newOpp" data-acct="${a.id}">${ic("plus")} ${tt("opps.newForCustomer")}</button>`;
     const insp = o.insp ? `<div class="fw-semibold">${esc(fmtDay(o.insp.day))} · ${fmtTime(o.insp.time)}</div>` : `<div class="small text-body-secondary">${tt("opps.noInspection")}</div>`;
     return backLink("#opps", t("nav.opps")) +
@@ -888,24 +976,7 @@ ACT.saveOpp = d => {
   closeModal(); toast(t("opps.created", { id: o.id })); go("#opp/" + o.id);
 };
 
-/* Phase 1 keeps the proposal simple: enter the price and mark it sent.
-   The printed proposal, e-mail and customer Accept page come with Phase 2. */
-ACT.oppProposal = d => {
-  const o = oppOf(d.id);
-  openModal(modalShell(tt("opps.makeProposal"),
-    field(t("opps.description"), `<textarea class="form-control" id="opDesc" rows="3">${esc(o.lines.map(l => l[0]).join("\n"))}</textarea>`) +
-    field(t("opps.priceLabel"), `<div class="input-group"><span class="input-group-text">$</span><input class="form-control" id="opTotal" inputmode="decimal" value="${o.total || ""}"></div>`) +
-    `<div class="form-text">${tt("opps.proposalHint")}</div>`,
-    cancelBtn() + `<button type="button" class="btn btn-primary" data-act="saveProposal" data-id="${o.id}">${tt("opps.markSent")}</button>`));
-};
-ACT.saveProposal = d => {
-  const o = oppOf(d.id), total = parseFloat(val("opTotal").replace(/[^0-9.]/g, ""));
-  if (!(total > 0)) { $("#opTotal").classList.add("is-invalid"); return; }
-  const lines = val("opDesc").split("\n").map(s => s.trim()).filter(Boolean);
-  o.lines = (lines.length ? lines : [t("type." + o.type)]).map((s, i) => [s, i === 0 ? total : null]);
-  o.total = total; o.stage = "proposal"; o.sentOn = new Date(); addLog(o, "log.proposalSent");
-  closeModal(); toast(t("opps.sent")); render();
-};
+/* The proposal itself (building it, emailing it, the customer's Accept page) is in the DOCUMENTS part. */
 
 // A signed proposal turns into a Job automatically. The Job keeps the same number.
 ACT.oppSign = d => {
@@ -963,16 +1034,15 @@ function jobActions(j) {
   if (j.stage === "signed" && !isCrew()) out.push(b("jobSchedule", "schedule", t("job.schedule")));
   if (j.stage === "scheduled") out.push(b("jobStage", "check", t("job.start"), 'data-to="inprogress"'));
   if (j.stage === "inprogress") out.push(b("jobStage", "check", t("job.markDone"), 'data-to="done"'));
-  if (j.stage === "done" && !isCrew() && j.type !== "warranty") out.push(b("jobStage", "mail", t("job.markInvoiced"), 'data-to="invoiced"'));
-  if (j.stage === "invoiced" && !isCrew()) out.push(b("jobStage", "dollar", t("job.markPaid"), 'data-to="paid"'));
-  if (jobDone(j) && !isCrew() && j.type !== "warranty") out.push(b("jobWarranty", "shield", t("job.newWarranty"), "", "btn-outline-secondary"));
+  if (j.type !== "warranty") {
+    if (j.stage === "done" && !isCrew()) out.push(b("jobInvoice", "mail", t("job.makeInvoice")));
+    if (balance(j) > 0 && (j.stage === "invoiced" || (isCrew() && j.stage === "done"))) out.push(b("payAdd", "dollar", t("money.record")));
+    if (j.invoice) out.push(b("jobInvoice", "doc", t("job.viewInvoice"), "", "btn-outline-secondary"));
+    if (jobDone(j) && !isCrew()) out.push(b("jobWarranty", "shield", t("job.newWarranty"), "", "btn-outline-secondary"));
+  }
   return out.join("");
 }
-// what the job costs the customer. Crews see this on their own jobs; they never see H & L's costs or margin.
-function jobMoneyCard(j) {
-  if (j.type === "warranty") return section(tt("job.money"), `<div class="small text-body-secondary">${tt("job.warrantyNoCharge")}</div>`);
-  return section(tt("job.money"), dl([[tt("job.price"), `<span class="fw-semibold">${money(j.price)}</span> <span class="text-body-secondary">· ${tt("job.fromProposal")}</span>`]]));
-}
+/* The "Price and payments" box on a job is in the MONEY part. */
 
 route("job", {
   roles: ["admin", "office", "crew"], tab: () => (isCrew() ? "myjobs" : "jobs"),
@@ -1180,6 +1250,498 @@ route("myjobs", {
         (list.length ? listBox(list.map(jobRow).join("")) : `<div class="small text-body-secondary mb-3">${tt("none")}</div>`)).join("");
   }
 });
+
+/* =====================================================================
+   LEADS. A request from the website arrives here. Someone reviews it,
+   then Convert creates the customer (account, contact, property) and an
+   opportunity in one step. Calls and texts never create anything.
+   ===================================================================== */
+const hoursAgo = n => new Date(Date.now() - n * 3600e3);
+LEADS.push(
+  { id: "L-311", name: "Mina Seo", phone: "(804) 555-0174", email: "mseo@example.com", addr: "3214 Broad St Rd", city: "Short Pump VA 23233", lat: 37.6545, lng: -77.6124,
+    type: "inspection", lang: "en", src: "web", status: "new", owner: "office", got: hoursAgo(3),
+    msg: "I think the wind took some shingles off the back of the house. Can someone take a look?" },
+  { id: "L-310", name: "Naomi Iturralde", phone: "(804) 555-0136", email: "niturralde@example.com", addr: "4417 Forest Hill Ave", city: "Richmond VA 23225", lat: 37.5215, lng: -77.4885,
+    type: "repair", lang: "es", src: "web", status: "contacted", owner: "office", got: hoursAgo(27), firstContact: hoursAgo(25),
+    msg: "Hay una gotera cerca de la chimenea cuando llueve fuerte. ¿Pueden venir a verla?" },
+  { id: "L-309", name: "Terrence Oakes", phone: "(804) 555-0127", email: "toakes@example.com", addr: "1512 N 26th St", city: "Richmond VA 23223", lat: 37.5326, lng: -77.4172,
+    type: "gutters", lang: "en", src: "web", status: "new", owner: "office", got: hoursAgo(20),
+    msg: "While you are here for the repair, can you look at the front gutters? They overflow when it rains." },
+  { id: "L-305", name: "Desmond Farrow", phone: "(757) 555-0142", email: "dfarrow@example.com", addr: "1320 Colley Ave", city: "Norfolk VA 23517", lat: 36.866, lng: -76.301,
+    type: "replacement", lang: "en", src: "web", status: "unqualified", reason: "area", owner: "office", got: hoursAgo(150),
+    msg: "Looking for a quote on a full roof replacement." }
+);
+LEADS.forEach(l => {
+  if (l.status === "unqualified") seed(l, hoursAgo(140), "office", "log.unqualified");
+  if (l.firstContact) seed(l, l.firstContact, "office", "log.call");
+  seed(l, l.got, "office", "log.leadIn");
+});
+
+const digitsOf = s => String(s || "").replace(/\D/g, "");
+// does this lead belong to a customer we already have? (same phone, email or street address)
+const leadMatch = l => ACCOUNTS.find(a => a.contacts.some(c => (digitsOf(c.phone) && digitsOf(c.phone) === digitsOf(l.phone)) || (c.email && c.email === l.email)) || a.props.some(p => p.addr.toLowerCase() === l.addr.toLowerCase()));
+const openJobFor = a => JOBS.find(j => j.acct === a.id && j.stage !== "paid" && j.type !== "warranty");
+function timeAgo(d) {
+  const mins = Math.max(1, Math.round((Date.now() - d) / 60000));
+  return mins < 60 ? t("ago.min", { n: mins }) : mins < 60 * 24 ? t("ago.hr", { n: Math.round(mins / 60) }) : t("ago.day", { n: Math.round(mins / 1440) });
+}
+const leadOpen = l => l.status === "new" || l.status === "contacted";
+const returning = l => (leadMatch(l) && l.status !== "converted" ? " " + badge(t("leads.returning"), "primary") : "");
+function leadRow(l) {
+  return recRow("#lead/" + l.id, `${tt("type." + l.type)} · ${tt("src." + l.src)} · ${esc(timeAgo(l.got))}`, esc(l.name) + returning(l), esc(l.addr + ", " + l.city), stageBadge(l.status));
+}
+
+route("leads", {
+  roles: ["admin", "office"], icon: "leads",
+  render() {
+    const f = S.f.leads, pass = (l, k) => k === "all" || (k === "open" ? leadOpen(l) : l.status === k), n = k => LEADS.filter(l => pass(l, k)).length;
+    const list = LEADS.filter(l => pass(l, f)).sort((a, b) => b.got - a.got);
+    return pageHead(tt("nav.leads"), tt("leads.sub")) +
+      pills("leads", f, [["open", t("open"), n("open")], ["new", t("stage.new"), n("new")], ["contacted", t("stage.contacted"), n("contacted")],
+        ["converted", t("stage.converted"), n("converted")], ["unqualified", t("stage.unqualified"), n("unqualified")], ["all", t("all"), n("all")]]) +
+      (list.length ? listBox(list.map(leadRow).join("")) : empty(t("none")));
+  }
+});
+
+route("lead", {
+  roles: ["admin", "office"], tab: "leads",
+  render(id) {
+    const l = LEADS.find(x => x.id === id); if (!l) return empty(t("notFound"));
+    const m = l.status === "converted" ? null : leadMatch(l), job = m ? openJobFor(m) : null;
+    const steps = ["new", "contacted", "converted"], cur = l.status === "unqualified" ? -1 : steps.indexOf(l.status);
+    const actions = leadOpen(l)
+      ? `<button type="button" class="btn btn-primary" data-act="leadConvert" data-id="${l.id}">${ic("check")} ${tt("leads.convert")}</button>` +
+        `<button type="button" class="btn btn-outline-secondary" data-act="leadUnfit" data-id="${l.id}">${tt("leads.unfit")}</button>`
+      : l.opp ? `<a class="btn btn-primary" href="#opp/${l.opp}">${ic("opps")} ${tt("job.itsOpp", { id: l.opp })}</a>`
+      : l.job ? `<a class="btn btn-primary" href="#job/${l.job}">${ic("jobs")} ${tt("leads.addedToJob", { id: l.job })}</a>` : "";
+    return backLink("#leads", t("nav.leads")) +
+      pageHead(esc(l.name), `${tt("type." + l.type)} · ${tt("src." + l.src)} · ${esc(timeAgo(l.got))}`, stageBadge(l.status)) +
+      stageBar(steps, cur) +
+      (l.status === "unqualified" ? `<div class="alert alert-secondary py-2 small">${tt("leads.unfitBecause")}: ${tt("unfit." + l.reason)}</div>` : "") +
+      (m ? `<div class="alert alert-primary py-2 small mb-2">${ic("user")} ${tt("leads.isReturning")} <a class="alert-link" href="#account/${m.id}">${esc(m.name)}</a>.` +
+        (job ? ` ${tt("leads.hasOpenJob")} <a class="alert-link" href="#job/${job.id}">#${job.id}</a>.` : "") + `</div>` : "") +
+      `<div class="d-flex flex-wrap gap-2 mb-3">${actions}</div>` +
+      (leadOpen(l) ? `<div class="mb-3">${contactBtns({ phone: l.phone, first: l.name.split(" ")[0], lang: l.lang, place: l, kind: "lead", id: l.id })}</div>` : "") +
+      `<div class="row g-3"><div class="col-lg-6">` +
+      section(tt("leads.request"), `<blockquote class="border-start border-3 border-primary ps-3 mb-2">${esc(l.msg)}</blockquote>` +
+        dl([[tt("jobType"), tt("type." + l.type)], [tt("leads.received"), esc(fmtDay(l.got)) + " · " + esc(timeAgo(l.got))], [tt("opps.source"), tt("src." + l.src)]])) +
+      `</div><div class="col-lg-6">` +
+      section(tt("leads.contact"), dl([[tt("phone"), `<a href="${telHref(l.phone)}">${esc(l.phone)}</a>`], [tt("email"), `<a href="mailto:${esc(l.email)}">${esc(l.email)}</a>`],
+        [tt("property"), `${esc(l.addr)}<br><span class="text-body-secondary">${esc(l.city)}</span>`], [tt("leads.language"), tt("langName." + l.lang)]])) +
+      section(tt("leads.assigned"), `<div class="small"><span class="fw-semibold">${esc(whoName(l.owner))}</span><br><span class="text-body-secondary">${tt("leads.routing")}</span></div>`) +
+      `</div></div>` + section(tt("history"), historyList(l));
+  }
+});
+// The first call or text to a new lead marks it Contacted.
+function onTouch(kind, rec, how) {
+  if (kind === "lead" && rec.status === "new" && how !== "nav") { rec.status = "contacted"; rec.firstContact = new Date(); }
+}
+
+/* Convert: one step creates the customer and the opportunity. */
+ACT.leadConvert = d => {
+  const l = LEADS.find(x => x.id === d.id), m = leadMatch(l), job = m ? openJobFor(m) : null;
+  const makes = m
+    ? `<div class="alert alert-primary py-2 small">${tt("leads.useExisting", { name: m.name })}</div>` +
+      (job ? field(t("leads.whatToDo"),
+        `<div class="form-check"><input class="form-check-input" type="radio" name="lcMode" id="lcNew" value="new" checked><label class="form-check-label" for="lcNew">${tt("leads.modeNew")}</label></div>` +
+        `<div class="form-check"><input class="form-check-input" type="radio" name="lcMode" id="lcJob" value="${job.id}"><label class="form-check-label" for="lcJob">${tt("leads.modeJob", { id: job.id })}</label></div>`) : "")
+    : `<p class="small mb-2">${tt("leads.willCreate")}</p><ul class="small">` +
+      `<li>${tt("leads.mkAccount")}: <span class="fw-semibold">${esc(l.name)}</span></li><li>${tt("leads.mkContact")}: ${esc(l.phone)}</li>` +
+      `<li>${tt("leads.mkProperty")}: ${esc(l.addr + ", " + l.city)}</li><li>${tt("leads.mkOpp")}</li></ul>`;
+  openModal(modalShell(tt("leads.convert"), makes +
+    field(t("jobType"), `<select class="form-select" id="lcType">${typeOptions(l.type)}</select>`),
+    cancelBtn() + `<button type="button" class="btn btn-primary" data-act="confirmConvert" data-id="${l.id}">${ic("check")} ${tt("leads.convert")}</button>`));
+};
+ACT.confirmConvert = d => {
+  const l = LEADS.find(x => x.id === d.id), type = val("lcType"), picked = document.querySelector('input[name="lcMode"]:checked');
+  let a = leadMatch(l);
+  if (picked && picked.value !== "new") {                    // add the request to the open job instead
+    const j = jobOf(picked.value);
+    addLog(j, "log.leadAttached", { msg: l.msg }); l.status = "converted"; l.job = j.id; addLog(l, "log.converted");
+    closeModal(); toast(t("leads.addedToJob", { id: j.id })); go("#job/" + j.id); return;
+  }
+  if (!a) {
+    const n = ACCOUNTS.length + 1;
+    a = { id: "A" + n, name: l.name, type: "person", kind: "homeowner", lang: l.lang, since: TODAY.getFullYear(),
+      contacts: [{ name: l.name, role: "owner", phone: l.phone, email: l.email }],
+      props: [{ id: "P" + n, addr: l.addr, city: l.city, lat: l.lat, lng: l.lng }], details: [] };
+    ACCOUNTS.push(a); addLog(a, "log.acctCreated");
+  }
+  const p = a.props.find(x => x.addr.toLowerCase() === l.addr.toLowerCase()) || a.props[0];
+  const o = { id: nextNumber(), acct: a.id, prop: p.id, type, stage: "inspection", src: l.src, lead: l.id, created: new Date(), lines: [[l.msg, null]], total: 0 };
+  OPPS.unshift(o); addLog(o, "log.oppFromLead");
+  l.status = "converted"; l.opp = o.id; addLog(l, "log.converted");
+  closeModal(); toast(t("opps.created", { id: o.id })); go("#opp/" + o.id);
+};
+ACT.leadUnfit = d => openModal(modalShell(tt("leads.unfit"),
+  field(t("opps.lostReason"), `<select class="form-select" id="luWhy">${["area", "service", "noresponse", "shopping", "spam"].map(k => `<option value="${k}">${tt("unfit." + k)}</option>`).join("")}</select>`),
+  cancelBtn() + `<button type="button" class="btn btn-primary" data-act="confirmUnfit" data-id="${d.id}">${tt("save")}</button>`));
+ACT.confirmUnfit = d => { const l = LEADS.find(x => x.id === d.id); l.status = "unqualified"; l.reason = val("luWhy"); addLog(l, "log.unqualified"); closeModal(); toast(t("saved")); render(); };
+
+/* Leads also show on Today and in Search. */
+TILES.unshift(() => ({ v: LEADS.filter(l => l.status === "new").length, l: t("today.newLeads"), to: "#leads", f: ["leads", "new"] }));
+ATTENTION.unshift(() => LEADS.filter(l => l.status === "new" && Date.now() - l.got > 2 * 3600e3)
+  .map(l => ({ icon: "phone", href: "#lead/" + l.id, text: t("today.callLead", { name: l.name, ago: timeAgo(l.got) }) })));
+SEARCHERS.splice(1, 0, { title: "nav.leads", roles: ["admin", "office"],
+  find: hit => LEADS.filter(l => hit(l.name, l.phone, l.email, l.addr, l.city, l.msg)),
+  row: (l, hl) => recRow("#lead/" + l.id, hl(t("type." + l.type)) + " · " + esc(timeAgo(l.got)), hl(l.name), hl(l.addr + ", " + l.city) + " · " + hl(l.phone), stageBadge(l.status)) });
+
+/* =====================================================================
+   DOCUMENTS: the proposal and the invoice, as they would print or email.
+   Business details show as placeholders until Admin fills them in.
+   ===================================================================== */
+const CO_BLANK = { legal: "{Company Legal Name}", license: "{Company License Number}", address: "{Company Business Address}", phone: "{Company Business Phone Number}" };
+const co = k => S.company[k] || CO_BLANK[k];
+
+// the paper: always white, even when the screen is in dark mode
+const docWrap = html => `<div class="card shadow-sm" data-bs-theme="light"><div class="card-body p-3 p-sm-4">${html}</div></div>`;
+const docHead = (title, num, date) =>
+  `<div class="d-flex flex-wrap justify-content-between gap-2 border-bottom border-3 border-dark pb-2 mb-3">` +
+  `<div><div class="fs-5 fw-bolder">H <span class="text-primary">&amp;</span> L ROOFERS</div>` +
+  `<div class="small text-body-secondary">${esc(co("legal"))} · ${tt("docs.license")} ${esc(co("license"))}<br>${esc(co("address"))} · ${esc(co("phone"))}</div></div>` +
+  `<div class="text-sm-end"><div class="fw-bold text-uppercase">${esc(title)} #${esc(num)}</div><div class="small text-body-secondary">${tt("docs.date")}: ${esc(fmtDate(date))}</div></div></div>`;
+const docLabel = text => `<div class="small text-uppercase text-body-secondary fw-semibold">${esc(text)}</div>`;
+const signedMoney = n => (n < 0 ? "−" + money(-n) : money(n));
+function docLines(lines, totals) {
+  return `<table class="table table-sm mb-0"><tbody>` +
+    lines.map(l => `<tr><td>${esc(l[0])}</td><td class="text-end text-nowrap">${l[1] == null ? tt("included") : signedMoney(l[1])}</td></tr>`).join("") +
+    totals.map((r, i) => `<tr class="${i === totals.length - 1 ? "fw-bold fs-6" : ""}"><td class="${i === 0 ? "border-top border-dark" : ""}">${esc(r[0])}</td><td class="text-end text-nowrap${i === 0 ? " border-top border-dark" : ""}">${signedMoney(r[1])}</td></tr>`).join("") +
+    `</tbody></table>`;
+}
+ACT.pdfDemo = () => toast(t("docs.pdfDemo"));
+
+/* ------------------------------ PROPOSAL ------------------------------ */
+// Step 1: build it. Lines can be typed in or pulled from the Price Book at today's price.
+let DRAFT = null;
+const draftTotal = () => DRAFT.lines.reduce((s, l) => s + (Number(l[1]) || 0), 0);
+ACT.oppProposal = d => {
+  const o = oppOf(d.id);
+  DRAFT = { id: o.id, lines: o.lines.map(l => [l[0], l[1]]) };
+  if (!DRAFT.lines.length) DRAFT.lines.push(["", null]);
+  showBuilder();
+};
+function showBuilder() {
+  const o = oppOf(DRAFT.id);
+  const rows = DRAFT.lines.map((l, i) =>
+    `<div class="row g-2 mb-2"><div class="col"><input class="form-control form-control-sm" value="${esc(l[0])}" data-input="draftEdit" data-i="${i}" data-k="0" aria-label="${tt("docs.lineWhat")}"></div>` +
+    `<div class="col-4 col-sm-3"><div class="input-group input-group-sm"><span class="input-group-text">$</span><input class="form-control" inputmode="decimal" value="${l[1] ?? ""}" placeholder="${tt("included")}" data-input="draftEdit" data-i="${i}" data-k="1" aria-label="${tt("docs.lineAmount")}"></div></div>` +
+    `<div class="col-auto"><button type="button" class="btn btn-sm btn-outline-secondary" data-act="draftDel" data-i="${i}" aria-label="${tt("docs.removeLine")}">×</button></div></div>`).join("");
+  const book = `<select class="form-select form-select-sm w-auto" data-change="draftFromBook" aria-label="${tt("docs.fromBook")}"><option value="">${tt("docs.fromBook")}</option>` +
+    PRICE.map(it => `<option value="${it.code}">${esc(it.name)} · ${money(it.price)}/${tt("unit." + it.unit)}</option>`).join("") + `</select>`;
+  openModal(modalShell(`${tt("opps.proposal")} #${o.id}`,
+    `<p class="small text-body-secondary">${esc(acct(o.acct).name)} · ${esc(addrLine(placeOf(o)))}</p>` +
+    `<div class="row g-2 small fw-semibold text-body-secondary mb-1"><div class="col">${tt("docs.lineWhat")}</div><div class="col-4 col-sm-3">${tt("docs.lineAmount")}</div><div class="col-auto invisible"><span class="btn btn-sm">×</span></div></div>` + rows +
+    `<div class="d-flex flex-wrap gap-2 align-items-center mt-2"><button type="button" class="btn btn-sm btn-outline-secondary" data-act="draftAdd">${ic("plus")} ${tt("docs.addLine")}</button>${book}` +
+    `<div class="ms-auto fw-bold">${tt("total")}: <span id="draftTotal">${money(draftTotal())}</span></div></div>` +
+    `<div class="form-text mt-2">${tt("docs.builderHint")}</div>`,
+    cancelBtn() + `<button type="button" class="btn btn-primary" data-act="draftPreview">${tt("docs.preview")}</button>`), "lg");
+}
+ACT.draftEdit = (d, el) => {
+  const line = DRAFT.lines[+d.i];
+  if (d.k === "0") line[0] = el.value; else { const n = parseFloat(el.value.replace(/[^0-9.]/g, "")); line[1] = isNaN(n) ? null : n; }
+  $("#draftTotal").textContent = money(draftTotal());
+};
+ACT.draftAdd = () => { DRAFT.lines.push(["", null]); showBuilder(); };
+ACT.draftDel = d => { DRAFT.lines.splice(+d.i, 1); showBuilder(); };
+ACT.draftFromBook = (d, el) => { const it = PRICE.find(x => x.code === el.value); if (it) { DRAFT.lines.push([it.name + " (" + t("unit." + it.unit) + ")", it.price]); showBuilder(); } };
+ACT.draftPreview = () => {
+  const o = oppOf(DRAFT.id), lines = DRAFT.lines.filter(l => l[0].trim());
+  if (!lines.length || !(draftTotal() > 0)) { toast(t("docs.needPrice")); return; }
+  o.lines = lines.map(l => [l[0].trim(), l[1]]); o.total = draftTotal();
+  showProposal(o);
+};
+
+// Step 2: the proposal as the customer gets it
+function proposalBody(o) {
+  const a = acct(o.acct), p = placeOf(o), c = a.contacts[0];
+  return docHead(t("docs.proposal"), o.id, o.sentOn || new Date()) +
+    docLabel(t("docs.for")) + `<div class="mb-3"><span class="fw-semibold">${esc(a.name)}</span><br>${esc(addrLine(p))}<br>${esc(c.phone)}${c.email ? " · " + esc(c.email) : ""}</div>` +
+    docLines(o.lines, [[t("total"), o.total]]) +
+    `<div class="mt-3">${docLabel(t("docs.terms"))}<div class="small">${tt("docs.termsText")}</div></div>`;
+}
+function showProposal(o) {
+  const canSend = oppOpen(o), email = acct(o.acct).contacts[0].email;
+  const doc = docWrap(proposalBody(o) +
+    `<div class="row g-4 mt-3 small text-body-secondary"><div class="col-6"><div class="border-top border-secondary pt-1">${tt("docs.custSign")}${o.signedBy ? ": " + esc(o.signedBy) : ""}</div></div>` +
+    `<div class="col-6"><div class="border-top border-secondary pt-1">${esc(co("legal"))}</div></div></div>`);
+  openModal(modalShell(`${tt("opps.proposal")} #${o.id}`, doc,
+    (canSend ? `<button type="button" class="btn btn-outline-secondary" data-act="oppProposal" data-id="${o.id}">${ic("edit")} ${tt("docs.edit")}</button>` : "") +
+    `<button type="button" class="btn btn-outline-secondary" data-act="pdfDemo">${ic("download")} ${tt("docs.pdf")}</button>` +
+    (canSend ? `<button type="button" class="btn btn-primary" data-act="proposalSend" data-id="${o.id}"${email ? "" : " disabled"}>${ic("mail")} ${tt(o.stage === "proposal" ? "docs.emailAgain" : "docs.email")}</button>` : "")), "lg");
+}
+ACT.oppView = d => showProposal(oppOf(d.id));
+ACT.proposalSend = d => {
+  const o = oppOf(d.id);
+  o.stage = "proposal"; o.sentOn = new Date(); addLog(o, "log.proposalSent");
+  closeModal(); toast(t("docs.emailed", { email: acct(o.acct).contacts[0].email })); render();
+};
+
+// Step 3: what the customer sees when they tap the link in the email. Accepting signs the proposal.
+ACT.oppAccept = d => {
+  const o = oppOf(d.id), a = acct(o.acct);
+  openModal(modalShell(tt("docs.acceptTitle"),
+    `<div class="alert alert-info py-2 small">${tt("docs.acceptExplain", { name: a.name })}</div>` + docWrap(proposalBody(o) +
+      `<div class="mt-3">${docLabel(t("docs.acceptLabel"))}</div>` +
+      `<input class="form-control my-2" id="accName" placeholder="${tt("docs.acceptName")}" autocomplete="off">` +
+      `<button type="button" class="btn btn-primary w-100" data-act="acceptConfirm" data-id="${o.id}">${ic("check")} ${tt("docs.acceptBtn")}</button>` +
+      `<div class="form-text">${tt("docs.acceptNote")}</div>`), ""), "lg");
+};
+ACT.acceptConfirm = d => {
+  const name = val("accName");
+  if (!name) { $("#accName").classList.add("is-invalid"); return; }
+  const o = oppOf(d.id); o.signedBy = name;
+  const j = signOpp(o, "link");
+  closeModal(); toast(t("opps.jobCreated", { id: j.id })); go("#job/" + j.id);
+};
+
+/* ------------------------------ INVOICE ------------------------------ */
+const payLabel = x => `${fmtDate(x.d)} · ${t("pay." + x.kind)} · ${t("method." + x.method)}${x.num ? " #" + x.num : ""}`;
+function invoiceLines(j) {
+  const out = [[t("docs.perProposal", { id: j.id, type: t("type." + j.type) }), j.price]];
+  (j.cos || []).filter(c => c.status === "signed").forEach(c => out.push([t("money.co") + " " + c.id + ": " + c.text, c.amount]));
+  return out;
+}
+function showInvoice(j) {
+  const a = acct(j.acct), p = placeOf(j), c = a.contacts[0], pays = j.payments || [];
+  const totals = [[t("total"), jobTotal(j)], ...pays.map(x => [payLabel(x), -x.amount]), [t("money.balance"), balance(j)]];
+  const doc = docWrap(docHead(t("docs.invoice"), j.id, j.invoice ? j.invoice.d : new Date()) +
+    `<div class="row g-3 mb-3"><div class="col-sm-6">${docLabel(t("docs.billTo"))}<span class="fw-semibold">${esc(a.name)}</span><br>${esc(c.phone)}${c.email ? "<br>" + esc(c.email) : ""}</div>` +
+    `<div class="col-sm-6">${docLabel(t("docs.workAt"))}${esc(addrLine(p))}${p.site ? "<br>" + esc(p.site.name) : ""}${j.ref ? "<br>" + tt("ref." + j.ref.type) + " " + esc(j.ref.num) : ""}</div></div>` +
+    docLines(invoiceLines(j), totals) +
+    `<div class="mt-3">${docLabel(t("docs.terms"))}<div class="small">${tt("docs.invoiceTerms")}</div></div>`);
+  const canSend = !isCrew() && !j.invoice && j.stage === "done";
+  openModal(modalShell(`${tt("docs.invoice")} #${j.id}`, doc,
+    `<button type="button" class="btn btn-outline-secondary" data-act="pdfDemo">${ic("download")} ${tt("docs.pdf")}</button>` +
+    (canSend ? `<button type="button" class="btn btn-primary" data-act="invoiceSend" data-id="${j.id}">${ic("mail")} ${tt("docs.sendInvoice")}</button>` : "") +
+    (!canSend && balance(j) > 0 ? `<button type="button" class="btn btn-primary" data-act="payAdd" data-id="${j.id}">${ic("dollar")} ${tt("money.record")}</button>` : "")), "lg");
+}
+ACT.jobInvoice = d => showInvoice(jobOf(d.id));
+ACT.invoiceSend = d => {
+  const j = jobOf(d.id);
+  j.invoice = { d: new Date() }; j.stage = "invoiced"; addLog(j, "log.invoiced");
+  if (balance(j) <= 0) { j.stage = "paid"; addLog(j, "log.paid"); }
+  closeModal(); toast(t("docs.emailed", { email: acct(j.acct).contacts[0].email })); render();
+};
+
+/* =====================================================================
+   MONEY ON A JOB: price, change orders, deposits and payments, balance.
+   A crew sees all of this on its own jobs and can record a payment it
+   collects. It never sees H & L's costs or margin.
+   ===================================================================== */
+
+/* ---------- starting sample money ---------- */
+jobOf("26-112").cos = [{ id: "CO1", text: "Replace 6 more sheets of rotted plywood found at tear-off", amount: 390, status: "sent", d: wd(-1) }];
+seed(jobOf("26-112"), wd(-1), "office", "log.coSent", { id: "CO1" });
+jobOf("26-104").payments = [{ d: ago(5), amount: 1500, method: "check", num: "2217", kind: "deposit", w: "office" }];
+seed(jobOf("26-104"), ago(5), "office", "log.payment", { amount: "$1,500" });
+Object.assign(jobOf("26-101"), { invoice: { d: ago(13) }, payments: [{ d: ago(12), amount: 1850, method: "check", num: "1048", kind: "payment", w: "office" }] });
+jobOf("26-099").invoice = { d: ago(6) };
+jobOf("26-095").invoice = { d: ago(9) };
+["26-101", "26-099", "26-095"].forEach(id => { const j = jobOf(id); j.log.unshift({ d: j.invoice.d, w: "office", k: "log.invoiced" }); });
+jobOf("26-101").log.unshift({ d: ago(12), w: "office", k: "log.paid" });
+
+// an office user can take a payment at any point (a deposit before the work); a crew can once the work has started
+const canTakePayment = j => balance(j) > 0 && (isCrew() ? ["inprogress", "done", "invoiced"].includes(j.stage) : j.stage !== "paid");
+
+function jobMoneyCard(j) {
+  if (j.type === "warranty") return section(tt("job.money"), `<div class="small text-body-secondary">${tt("job.warrantyNoCharge")}</div>`);
+  const cos = j.cos || [], pays = j.payments || [], office = !isCrew();
+  const row = (label, amount, cls) => `<div class="d-flex justify-content-between gap-3 ${cls || ""}"><span>${label}</span><span class="text-nowrap">${amount}</span></div>`;
+  const head = text => `<div class="small text-uppercase text-body-secondary fw-semibold mt-3 mb-1">${esc(text)}</div>`;
+  let h = row(`${tt("job.price")} <span class="text-body-secondary">· ${tt("job.fromProposal")}</span>`, money(j.price));
+  if (cos.length || office) {
+    h += head(t("money.cos"));
+    h += cos.map(c => `<div class="d-flex gap-3 align-items-start border-top py-1"><div class="flex-grow-1 hl-minw0"><span class="fw-semibold">${c.id}</span> · ${esc(c.text)}<br>` +
+      badge(t("co." + c.status), c.status === "signed" ? "success" : "warning") +
+      (c.status === "sent" && office ? ` <button type="button" class="btn btn-sm btn-link p-0 align-baseline" data-act="coSign" data-id="${j.id}" data-co="${c.id}">${tt("money.coMarkSigned")}</button>` : "") +
+      `</div><div class="text-nowrap${c.status === "signed" ? "" : " text-body-secondary"}">${signedMoney(c.amount)}</div></div>`).join("");
+    if (!cos.length) h += `<div class="text-body-secondary">${tt("none")}</div>`;
+    if (office && j.stage !== "paid") h += `<button type="button" class="btn btn-outline-secondary btn-sm mt-2" data-act="coAdd" data-id="${j.id}">${ic("plus")} ${tt("money.coAdd")}</button>`;
+  }
+  h += row(tt("total"), money(jobTotal(j)), "fw-bold border-top mt-3 pt-2");
+  if (cos.some(c => c.status === "sent")) h += `<div class="text-body-secondary">${tt("money.coNote")}</div>`;
+  if (pays.length) h += head(t("money.payments")) + pays.map(x => row(`${esc(payLabel(x))} <span class="text-body-secondary">· ${esc(whoName(x.w))}</span>`, "−" + money(x.amount))).join("");
+  h += row(tt("money.balance"), money(balance(j)), "fw-bold fs-5 border-top mt-3 pt-2" + (balance(j) > 0 ? "" : " text-success"));
+  const btns = (canTakePayment(j) ? `<button type="button" class="btn btn-primary btn-sm" data-act="payAdd" data-id="${j.id}">${ic("dollar")} ${tt("money.record")}</button>` : "") +
+    (j.invoice ? `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="jobInvoice" data-id="${j.id}">${ic("doc")} ${tt("job.viewInvoice")}</button>` : "");
+  return section(tt("job.money"), `<div class="small">${h}</div>` + (btns ? `<div class="d-flex flex-wrap gap-2 mt-3">${btns}</div>` : ""));
+}
+
+/* ---------- change orders: work added or removed after signing ---------- */
+ACT.coAdd = d => openModal(modalShell(tt("money.coAdd"),
+  `<p class="small text-body-secondary">${tt("money.coExplain")}</p>` +
+  field(t("money.coWhat"), `<textarea class="form-control" id="coText" rows="2"></textarea>`) +
+  field(t("money.coAmount"), `<div class="input-group"><span class="input-group-text">$</span><input class="form-control" id="coAmt" inputmode="decimal"></div><div class="form-text">${tt("money.coMinus")}</div>`),
+  cancelBtn() + `<button type="button" class="btn btn-primary" data-act="coSave" data-id="${d.id}">${ic("mail")} ${tt("money.coSend")}</button>`));
+ACT.coSave = d => {
+  const j = jobOf(d.id), text = val("coText"), amount = parseFloat(val("coAmt").replace(/[^0-9.\-]/g, ""));
+  if (!text) { $("#coText").classList.add("is-invalid"); return; }
+  if (isNaN(amount)) { $("#coAmt").classList.add("is-invalid"); return; }
+  j.cos = j.cos || [];
+  const c = { id: "CO" + (j.cos.length + 1), text, amount, status: "sent", d: new Date() };
+  j.cos.push(c); addLog(j, "log.coSent", { id: c.id });
+  closeModal(); toast(t("money.coSentToast")); render();
+};
+ACT.coSign = d => { const j = jobOf(d.id), c = j.cos.find(x => x.id === d.co); c.status = "signed"; addLog(j, "log.coSigned", { id: c.id }); toast(t("log.coSigned", { id: c.id })); render(); };
+
+/* ---------- payments ---------- */
+ACT.payAdd = d => {
+  const j = jobOf(d.id);
+  openModal(modalShell(tt("money.record"),
+    `<p class="small text-body-secondary">#${j.id} · ${esc(acct(j.acct).name)} · ${tt("money.balance")}: <span class="fw-semibold">${money(balance(j))}</span></p>` +
+    `<div class="row g-2"><div class="col-6">${field(t("money.amount"), `<div class="input-group"><span class="input-group-text">$</span><input class="form-control" id="payAmt" inputmode="decimal" value="${balance(j)}"></div>`)}</div>` +
+    `<div class="col-6">${field(t("money.method"), `<select class="form-select" id="payHow">${["check", "cash", "card", "other"].map(k => `<option value="${k}">${tt("method." + k)}</option>`).join("")}</select>`)}</div></div>` +
+    field(t("money.checkNo"), `<input class="form-control" id="payNum" inputmode="numeric" autocomplete="off">`) +
+    `<div class="form-text">${tt("money.recordedBy", { who: whoName(me()) })}</div>`,
+    cancelBtn() + `<button type="button" class="btn btn-primary" data-act="paySave" data-id="${j.id}">${ic("check")} ${tt("money.record")}</button>`));
+};
+ACT.paySave = d => {
+  const j = jobOf(d.id), amount = parseFloat(val("payAmt").replace(/[^0-9.]/g, ""));
+  if (!(amount > 0)) { $("#payAmt").classList.add("is-invalid"); return; }
+  j.payments = j.payments || [];
+  j.payments.push({ d: new Date(), amount, method: val("payHow"), num: val("payNum"), kind: ["signed", "scheduled"].includes(j.stage) ? "deposit" : "payment", w: me() });
+  addLog(j, "log.payment", { amount: money(amount) });
+  if (balance(j) <= 0 && ["done", "invoiced"].includes(j.stage)) { j.stage = "paid"; addLog(j, "log.paid"); }
+  closeModal(); toast(t("money.recorded")); render();
+};
+
+/* =====================================================================
+   ADMIN: the hub page, the Price Book and Company details.
+   Later parts of the script add more admin pages to the hub.
+   ===================================================================== */
+const ADMIN_PAGES = [];     // each page: {id, icon, title, desc, render}
+route("admin", {
+  roles: ["admin"], icon: "admin",
+  render(arg) {
+    const pg = ADMIN_PAGES.find(p => p.id === arg);
+    if (pg) return backLink("#admin", t("nav.admin")) + pg.render();
+    return pageHead(tt("nav.admin"), tt("admin.sub")) + `<div class="row row-cols-1 row-cols-md-2 g-3">` + ADMIN_PAGES.map(p =>
+      `<div class="col"><a class="card h-100 shadow-sm text-decoration-none" href="#admin/${p.id}"><div class="card-body d-flex gap-3 align-items-start">` +
+      `<span class="text-primary fs-4 lh-1">${ic(p.icon)}</span><div><div class="fw-semibold">${tt(p.title)}</div><div class="small text-body-secondary">${tt(p.desc)}</div></div></div></a></div>`).join("") + `</div>`;
+  }
+});
+
+/* ------------------------------ PRICE BOOK ------------------------------ */
+// Sample prices only. Every upload adds a new line of history; nothing is ever overwritten.
+const PRICE = [
+  ["GAF-HDZ", "GAF Timberline HDZ shingles", "bundle", "ABC Supply", "GAF HDZ", [[120, 35.5, 43], [60, 36.75, 44.5], [12, 38.25, 46]]],
+  ["GAF-RDG", "GAF Seal-A-Ridge ridge cap", "bundle", "ABC Supply", "GAF HDZ", [[120, 59, 71], [12, 62, 75]]],
+  ["GAF-STR", "GAF Pro-Start starter strip", "bundle", "ABC Supply", "GAF HDZ", [[120, 55, 66]]],
+  ["GAF-IWS", "GAF WeatherWatch ice & water shield", "roll", "ABC Supply", "GAF HDZ", [[120, 92, 110], [60, 95, 114]]],
+  ["GAF-FLT", "GAF FeltBuster synthetic underlayment", "roll", "ABC Supply", "GAF HDZ", [[120, 110, 132]]],
+  ["TPO-60", "TPO membrane, 60 mil, 10 ft × 100 ft", "roll", "ABC Supply", "TPO", [[90, 760, 912], [30, 780, 935]]],
+  ["TPO-ADH", "TPO bonding adhesive, 5 gal", "pail", "ABC Supply", "TPO", [[90, 165, 198]]],
+  ["IKO-DYN", "IKO Dynasty shingles", "bundle", "RSG", "IKO", [[100, 33.5, 40.5], [40, 34.75, 42]]],
+  ["IKO-RDG", "IKO UltraHP ridge cap", "bundle", "RSG", "IKO", [[100, 58, 70]]],
+  ["ACC-BT15", "Pipe boot, 1½″", "each", "Liberty Roofing Center", "Accessories", [[75, 14, 22]]],
+  ["ACC-NAIL", "Coil nails, 1¼″", "box", "Liberty Roofing Center", "Accessories", [[75, 46, 56], [20, 48, 58]]],
+  ["ACC-OSB", "OSB sheathing, 7/16″, 4 × 8", "sheet", "Liberty Roofing Center", "Accessories", [[75, 15.25, 23], [20, 16.5, 24]]]
+].map(([code, name, unit, supplier, line, hist]) => {
+  const it = { code, name, unit, supplier, line, hist: hist.map(([daysAgo, cost, price]) => ({ d: ago(daysAgo), cost, price, up: null })) };
+  return syncItem(it);
+});
+function syncItem(it) { const last = it.hist[it.hist.length - 1]; it.cost = last.cost; it.price = last.price; it.changed = last.d; return it; }
+const UPLOADS = [
+  { id: "U-014", file: "ABC - GAF HDZ.xlsx", supplier: "ABC Supply", d: ago(12), w: "office", added: 0, changed: 2, same: 3 },
+  { id: "U-013", file: "Liberty - Accessories.xlsx", supplier: "Liberty Roofing Center", d: ago(20), w: "office", added: 0, changed: 2, same: 1 }
+];
+// the two sample files the demo can "upload"
+const INCOMING = {
+  abc: { file: "ABC - GAF HDZ (November).xlsx", supplier: "ABC Supply", line: "GAF HDZ", rows: [
+    { code: "GAF-HDZ", cost: 39.4, price: 47.5 }, { code: "GAF-RDG", cost: 62, price: 75 }, { code: "GAF-STR", cost: 61.5, price: 73 },
+    { code: "GAF-IWS", cost: 95, price: 114 }, { code: "GAF-FLT", cost: 112, price: 134 },
+    { code: "GAF-CBR", name: "GAF Cobra ridge vent, 4 ft", unit: "each", cost: 9.8, price: 14 }] },
+  rsg: { file: "RSG - IKO (November).xlsx", supplier: "RSG", line: "IKO", rows: [{ code: "IKO-DYN", cost: 36.1, price: 43.5 }, { code: "IKO-RDG", cost: 58, price: 70 }] }
+};
+const pct = (a, b) => (a ? Math.round((b - a) / a * 1000) / 10 : 0);
+const pctText = n => (n > 0 ? "+" : "") + n + "%";
+
+ADMIN_PAGES.push({
+  id: "pricebook", icon: "dollar", title: "price.title", desc: "price.desc",
+  render() {
+    const f = S.f.price || "all", sup = [...new Set(PRICE.map(i => i.supplier))];
+    const list = PRICE.filter(i => f === "all" || i.supplier === f);
+    const last = UPLOADS.find(u => !u.rolled);
+    return pageHead(tt("price.title"), tt("price.sub"), `<button type="button" class="btn btn-primary btn-sm text-nowrap" data-act="priceUpload">${ic("upload")} ${tt("price.upload")}</button>`) +
+      pills("price", f, [["all", t("all"), PRICE.length], ...sup.map(s => [s, s, PRICE.filter(i => i.supplier === s).length])]) +
+      `<div class="card shadow-sm mb-3"><div class="table-responsive"><table class="table table-hover table-sm align-middle small mb-0">` +
+      `<thead><tr><th class="ps-3">${tt("price.item")}</th><th>${tt("price.unit")}</th><th class="text-end">${tt("price.cost")}</th><th class="text-end">${tt("price.price")}</th><th class="text-end pe-3">${tt("price.changed")}</th></tr></thead><tbody>` +
+      list.map(i => `<tr role="button" data-act="priceHist" data-code="${i.code}"><td class="ps-3"><span class="fw-semibold">${esc(i.name)}</span><br><span class="text-body-secondary">${esc(i.supplier)} · ${esc(i.line)}</span></td>` +
+        `<td>${tt("unit." + i.unit)}</td><td class="text-end">${money(i.cost)}</td><td class="text-end">${money(i.price)}</td><td class="text-end pe-3 text-nowrap">${esc(fmtDate(i.changed))}</td></tr>`).join("") +
+      `</tbody></table></div></div>` +
+      `<h2 class="h6 mt-4 mb-2">${tt("price.uploads")}</h2><div class="list-group shadow-sm">` + UPLOADS.map(u =>
+        `<div class="list-group-item d-flex gap-2 align-items-start"><div class="flex-grow-1 hl-minw0"><div class="fw-semibold text-truncate">${esc(u.file)}</div>` +
+        `<div class="small text-body-secondary">${esc(u.supplier)} · ${esc(fmtDate(u.d))} · ${esc(whoName(u.w))} · ${tt("price.counts", { a: u.added, c: u.changed, s: u.same })}</div></div>` +
+        (u.rolled ? badge(t("price.rolledBack"), "secondary") : u === last && u.live ? `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="priceRollback" data-id="${u.id}">${ic("undo")} ${tt("price.rollback")}</button>` : "") + `</div>`).join("") + `</div>`;
+  }
+});
+ACT.priceHist = d => {
+  const it = PRICE.find(x => x.code === d.code);
+  openModal(modalShell(esc(it.name), `<p class="small text-body-secondary">${esc(it.supplier)} · ${esc(it.line)} · ${tt("unit." + it.unit)}</p>` +
+    `<table class="table table-sm small mb-0"><thead><tr><th>${tt("docs.date")}</th><th class="text-end">${tt("price.cost")}</th><th class="text-end">${tt("price.price")}</th><th class="text-end">%</th></tr></thead><tbody>` +
+    it.hist.map((h, i) => { const p = i ? pct(it.hist[i - 1].cost, h.cost) : 0;
+      return `<tr><td>${esc(fmtDate(h.d))}</td><td class="text-end">${money(h.cost)}</td><td class="text-end">${money(h.price)}</td><td class="text-end${p > 10 ? " text-danger fw-semibold" : ""}">${i ? pctText(p) : "—"}</td></tr>`; }).reverse().join("") +
+    `</tbody></table>`, ""));
+};
+
+// Upload, step 1: pick the file
+ACT.priceUpload = () => openModal(modalShell(tt("price.upload"),
+  `<p class="small text-body-secondary">${tt("price.pickHint")}</p>` + Object.entries(INCOMING).map(([k, f], i) =>
+    `<div class="form-check mb-2"><input class="form-check-input" type="radio" name="pfile" id="pf_${k}" value="${k}"${i ? "" : " checked"}><label class="form-check-label" for="pf_${k}"><span class="fw-semibold">${esc(f.file)}</span><br><span class="small text-body-secondary">${esc(f.supplier)} · ${esc(f.line)}</span></label></div>`).join(""),
+  cancelBtn() + `<button type="button" class="btn btn-primary" data-act="priceCheck">${tt("price.check")}</button>`));
+function priceDiff(key) {
+  const f = INCOMING[key], added = [], changed = [], same = [];
+  f.rows.forEach(r => { const it = PRICE.find(x => x.code === r.code);
+    if (!it) added.push(r); else if (it.cost !== r.cost || it.price !== r.price) changed.push({ it, r, p: pct(it.cost, r.cost) }); else same.push(r); });
+  const missing = PRICE.filter(i => i.supplier === f.supplier && i.line === f.line && !f.rows.some(r => r.code === i.code));
+  return { f, added, changed, same, missing };
+}
+// Upload, step 2: review what would change before anything is saved
+ACT.priceCheck = () => {
+  const key = document.querySelector('input[name="pfile"]:checked').value, x = priceDiff(key);
+  const nothing = !x.added.length && !x.changed.length;
+  openModal(modalShell(tt("price.review"),
+    `<p class="small text-body-secondary">${esc(x.f.file)}</p>` + (nothing ? `<div class="alert alert-secondary py-2 small">${tt("price.nothing")}</div>` : "") +
+    (x.changed.length ? `<h3 class="h6">${tt("price.changes")}</h3><table class="table table-sm small"><tbody>` + x.changed.map(c =>
+      `<tr><td>${esc(c.it.name)}</td><td class="text-end text-nowrap">${money(c.it.cost)} → <span class="fw-semibold">${money(c.r.cost)}</span></td>` +
+      `<td class="text-end text-nowrap">${pctText(c.p)}${Math.abs(c.p) > 10 ? " " + badge(t("price.big"), "danger") : ""}</td></tr>`).join("") + `</tbody></table>` : "") +
+    (x.added.length ? `<h3 class="h6">${tt("price.newItems")}</h3><table class="table table-sm small"><tbody>` + x.added.map(r =>
+      `<tr><td>${esc(r.name)}</td><td class="text-end text-nowrap">${money(r.cost)} / ${money(r.price)}</td></tr>`).join("") + `</tbody></table>` : "") +
+    `<div class="small text-body-secondary">${tt("price.unchanged", { n: x.same.length })} · ${tt("price.notInFile", { n: x.missing.length })}</div>`,
+    cancelBtn() + (nothing ? "" : `<button type="button" class="btn btn-primary" data-act="priceConfirm" data-key="${key}">${ic("check")} ${tt("price.confirm")}</button>`)));
+};
+ACT.priceConfirm = d => {
+  const x = priceDiff(d.key), id = "U-0" + (parseInt(UPLOADS[0].id.slice(2), 10) + 1), now = new Date();
+  x.changed.forEach(c => { c.it.hist.push({ d: now, cost: c.r.cost, price: c.r.price, up: id }); syncItem(c.it); });
+  x.added.forEach(r => PRICE.push(syncItem({ code: r.code, name: r.name, unit: r.unit, supplier: x.f.supplier, line: x.f.line, addedBy: id, hist: [{ d: now, cost: r.cost, price: r.price, up: id }] })));
+  UPLOADS.unshift({ id, file: x.f.file, supplier: x.f.supplier, d: now, w: me(), added: x.added.length, changed: x.changed.length, same: x.same.length, live: true });
+  closeModal(); toast(t("price.done", { n: x.added.length + x.changed.length })); render();
+};
+// Made a mistake? Rolling back removes that upload's prices. The list still shows that it happened.
+ACT.priceRollback = d => {
+  const u = UPLOADS.find(x => x.id === d.id);
+  for (let i = PRICE.length - 1; i >= 0; i--) {
+    const it = PRICE[i];
+    if (it.addedBy === u.id) { PRICE.splice(i, 1); continue; }
+    it.hist = it.hist.filter(h => h.up !== u.id); syncItem(it);
+  }
+  u.rolled = true; toast(t("price.rollbackDone")); render();
+};
+
+/* ------------------------------ COMPANY DETAILS ------------------------------ */
+ADMIN_PAGES.push({
+  id: "company", icon: "building", title: "company.title", desc: "company.desc",
+  render() {
+    const f = k => field(t("company." + k), `<input class="form-control" id="co_${k}" value="${esc(S.company[k])}" placeholder="${esc(CO_BLANK[k])}" autocomplete="off">`);
+    return pageHead(tt("company.title"), tt("company.sub")) +
+      section("", `<div class="row g-2"><div class="col-md-6">${f("legal")}</div><div class="col-md-6">${f("license")}</div><div class="col-md-6">${f("address")}</div><div class="col-md-6">${f("phone")}</div></div>` +
+        field(t("company.logo"), `<div class="border rounded bg-body-tertiary text-body-secondary small p-3">${tt("company.logoHint")}</div>`) +
+        `<div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-primary" data-act="companySave">${tt("save")}</button>` +
+        `<button type="button" class="btn btn-outline-secondary" data-act="companySample">${ic("doc")} ${tt("company.sample")}</button></div>`);
+  }
+});
+ACT.companySave = () => { Object.keys(CO_BLANK).forEach(k => { S.company[k] = val("co_" + k); }); toast(t("saved")); render(); };
+ACT.companySample = () => { Object.keys(CO_BLANK).forEach(k => { S.company[k] = val("co_" + k); }); showProposal(oppOf("26-112")); };
 
 /* ---------- start: show the first screen ---------- */
 render();
