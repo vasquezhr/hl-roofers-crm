@@ -4,9 +4,10 @@ A small, self-hosted CRM for H & L Roofers, a roofing business in Virginia that 
 
 ## Start here
 
-**Status (as of Nov 8, 2026): the project breakdown is ready.** It is in `docs/project-breakdown.md`.
+**Status (as of Nov 9, 2026): the five architecture questions are answered.** Answers and their effect on the plan are in `docs/decisions.md`; the plan is in `docs/project-breakdown.md`.
 
-- The next step is the user's answers to the **Open questions** at the end of the breakdown. Do not start building until the user says to.
+- The next step is the rest of the **Open questions** at the end of the breakdown (business details, integrations and data, backups). Do not start building until the user says to.
+- `docs/decisions.md` overrides the breakdown snapshot wherever they differ.
 - Brainstorming and business analysis continue in claude.ai. The living breakdown is https://claude.ai/artifact/38SrB7koDPwexSADPnmDGj. The copy in `docs/` is a snapshot. If the user says the breakdown changed, ask for a fresh export instead of assuming what changed.
 - When the user's message conflicts with the snapshot, the user's message wins.
 
@@ -24,6 +25,7 @@ Your sole purpose is to execute your tasks with precision, anything other than t
 
 | Path | What it is |
 | --- | --- |
+| `docs/decisions.md` | Answers to the open questions, with the changes they make to the breakdown. Wins over the breakdown snapshot |
 | `docs/project-breakdown.md` | The full plan: Salesforce concept mapping, the three apps, data model, leads, features, permissions, automations, pricing uploads, admin data editor, hosting and backups, roadmap, ideas, risks, open questions, sources |
 | `mockup/hl-roofers-mockup.html` | The current clickable mockup. One self-contained HTML file with made-up customers; opens in any browser. Tabs: Today, Jobs, Measure, Schedule, Search; English/Spanish and Office/Crew toggles |
 
@@ -31,7 +33,10 @@ Your sole purpose is to execute your tasks with precision, anything other than t
 
 - **Scope:** barebones Salesforce Field Service-style CRM with Admin, Office and Crew views. Website form lead capture; scheduling with nearby-slot suggestions; proposal and invoice PDFs; calendar, phone, text and navigation; crew updates; Apple Notes import into a customer "Details" field; search; lead lifecycle; simple reports and dashboard; permissions and permission sets; account, contact and opportunity management; lead assignment and routing; process automation.
 - **Not yet:** no Measure / calculator feature for now. The mockup's Measure tab is parked.
-- **Stack:** Python + Django + PostgreSQL; free and open source.
+- **Stack:** Python + Django + PostgreSQL; free and open source. A custom self-hosted app, not a Salesforce org.
+- **Records:** Lead → Opportunity → Job. One signed proposal creates one Job; Change Orders on the Job; Warranty Jobs link to the original Job with no Opportunity. Details in `docs/decisions.md`.
+- **Runtime:** native Windows services on Windows 11 Pro (no Docker). Remote admin: paid Tailscale plan.
+- **Who codes:** the user reads code and SQL but is not an experienced developer. Claude writes plain, conventional Django and explains each change in plain English with steps to check it.
 - **Users:** the office uses Safari on a Mac (Add to Dock), with nothing installed on the Mac. Crew use phone browsers.
 - **Pricing:** owners upload a pricing spreadsheet. Every upload is a new entry, and the full price history is kept for insight.
 - **Admin page:** edits fields that write to the database, single or bulk, only after a confirmation.
@@ -44,17 +49,15 @@ Your sole purpose is to execute your tasks with precision, anything other than t
 
 These are recommendations only. Treat them as open until the user answers.
 
-- Run everything as **native Windows services** rather than Docker. The user earlier planned Docker Compose, then native Windows, and has since said he is open to Docker if simpler.
-- One **Job** record that covers both Opportunity and Work Order.
-- Server on **Windows 11 Pro**: Home cannot host incoming RDP.
-- Remote access: a **paid Tailscale plan** (the free Personal plan is for non-commercial use) **or Cloudflare Zero Trust** (free up to 50 users).
 - Backup tooling: restic to a Storage Spaces two-way mirror and to OneDrive (via rclone), plus a plain-folder copy to USB. The user's earlier plan (restic to USB, his homelab and optionally Backblaze B2) may or may not be replaced.
+- The three simplicity safeguards for Lead → Opportunity → Job listed in `docs/decisions.md`.
 
 ## Known conflicts — ask, never pick one
 
 - **Legal name:** "H & L Roofers, Inc." and "H & L Roofers, LLC" both appear.
-- **Headcount:** about 20 employees in one note; about 8 permanent, up to 12 per job, in another.
-- **Docker vs native Windows services:** see above.
+- **Contractor work:** the breakdown and mockup assume H & L does labor-only work for other roofing companies. Unconfirmed; the user will ask the owners.
+
+Resolved: headcount (about 20 at most, 12 permanent crew) and Docker vs. native (native). See `docs/decisions.md`.
 
 ## People
 
