@@ -156,3 +156,16 @@ The admin doesn't have these. The doc now says where they are on the office Mac:
 - one proposal (Desktop › 1 › 2026, or a year folder under Desktop › 1 › 1. PAST YEARS)
 - one invoice sent to a customer (location unknown)
 - the logo
+
+## Next mockup update (brief, Nov 9, 2026)
+
+The user will start this next. It updates `mockup/hl-roofers-mockup.html`; it is still a mockup, not the app.
+
+- **Records:** Leads tab with Convert (creates Account, Contact, Property and Opportunity); Opportunities (Inspection, Proposal Sent, Won or Lost with a reason); a Job created automatically when the proposal is signed; one stage bar from Inspection to Paid. Change Orders on a Job; Warranty Jobs linked to the original Job.
+- **Accounts:** person or company. Contractor accounts send labor-only work. Every Job shows H & L's number and an optional outside reference (claim, PO or work order).
+- **Crew view:** only their crew's jobs (shared crew login). On those jobs: price, change orders, deposits, invoice, balance due, and recording a payment they collect. Never costs, margins, reports or dashboard totals. Extra workers are listed on the job.
+- **Everywhere:** English/Spanish in every app; business details as placeholders; the parked Measure tab hidden; no Saturday work (Sunday still open; proposed: show Monday–Friday until the owners answer).
+- **From the breakdown:** add Accounts, Reports, Dashboard and Admin, and drop Measure.
+- **Data:** made-up names only. If the notes export and Mac file list are available, check every new name, address and note against them first.
+- **Open:** whether the mockup uses Bootstrap (embedded in the file so it still opens offline).
+

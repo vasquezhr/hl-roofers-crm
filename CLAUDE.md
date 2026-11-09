@@ -6,7 +6,8 @@ A small, self-hosted CRM for H & L Roofers, a roofing business in Virginia that 
 
 **Status (as of Nov 9, 2026): the owners' answers are in** (`docs/decisions.md`, "Owner answers"). Answers the owners left to Claude were inferred from their Apple Notes and Mac file list (`docs/data-review.md`) and confirmed in the owner checklist as correct for now, subject to change. The checklist is a Claude Doc: https://claude.ai/artifact/Gecymk9Uy4LjQdDdhWWo5o. The plan is in `docs/project-breakdown.md`.
 
-- Still waiting on: Sundays and Friday hours, and the samples (a supplier price file, a proposal, an invoice, the logo). Do not start building until the user says to.
+- **Next step: the full mockup update.** The brief is in `docs/decisions.md`, "Next mockup update". Do not start building the app until the user says to.
+- Deferred by the user, not blocking: Sundays and Friday hours, and the samples (a supplier price file, a proposal, an invoice, the logo).
 - `docs/decisions.md` overrides the breakdown snapshot wherever they differ.
 - Brainstorming and business analysis continue in claude.ai. The living breakdown is https://claude.ai/artifact/38SrB7koDPwexSADPnmDGj. The copy in `docs/` is a snapshot. If the user says the breakdown changed, ask for a fresh export instead of assuming what changed.
 - When the user's message conflicts with the snapshot, the user's message wins.
