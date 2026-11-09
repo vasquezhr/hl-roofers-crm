@@ -4,9 +4,9 @@ A small, self-hosted CRM for H & L Roofers, a roofing business in Virginia that 
 
 ## Start here
 
-**Status (as of Nov 9, 2026): the owners' answers are in** (`docs/decisions.md`, "Owner answers"). Answers the owners left to Claude were inferred from their Apple Notes and Mac file list (`docs/data-review.md`) and wait for confirmation in the "Please confirm" section of the owner checklist, a Claude Doc: https://claude.ai/artifact/Gecymk9Uy4LjQdDdhWWo5o. The plan is in `docs/project-breakdown.md`.
+**Status (as of Nov 9, 2026): the owners' answers are in** (`docs/decisions.md`, "Owner answers"). Answers the owners left to Claude were inferred from their Apple Notes and Mac file list (`docs/data-review.md`) and confirmed in the owner checklist as correct for now, subject to change. The checklist is a Claude Doc: https://claude.ai/artifact/Gecymk9Uy4LjQdDdhWWo5o. The plan is in `docs/project-breakdown.md`.
 
-- Still waiting on: those confirmations, Sundays and Friday hours, and the samples (a supplier price file, a proposal, an invoice, the logo). Do not start building until the user says to.
+- Still waiting on: Sundays and Friday hours, and the samples (a supplier price file, a proposal, an invoice, the logo). Do not start building until the user says to.
 - `docs/decisions.md` overrides the breakdown snapshot wherever they differ.
 - Brainstorming and business analysis continue in claude.ai. The living breakdown is https://claude.ai/artifact/38SrB7koDPwexSADPnmDGj. The copy in `docs/` is a snapshot. If the user says the breakdown changed, ask for a fresh export instead of assuming what changed.
 - When the user's message conflicts with the snapshot, the user's message wins.
@@ -41,7 +41,7 @@ Your sole purpose is to execute your tasks with precision, anything other than t
 - **Users:** the office uses Safari on a Mac (Add to Dock), with nothing installed on the Mac. Crew use phone browsers.
 - **Mac and Apple first:** the business runs on Apple devices, so every feature must work on macOS and Apple devices (Safari on Mac and iPhone). Only the server and the user's PC run Windows.
 - **Pricing:** owners upload pricing spreadsheets: Excel, one file per supplier and product line, showing cost and selling price. Every upload is a new entry, and the full price history is kept for insight.
-- **Logins:** admin, office (including the owner) and crew leads. Crew logins are shared accounts per crew, not personal. Extra workers (up to about 12) get no login but are recorded on each job. Crew see only jobs scheduled to them, as a permission that can change later. On those jobs they see everything needed to finish the job, money included (price, change orders, deposits). This overrides the breakdown's "crew never see money" rule; the mockup's Crew view still hides prices and must change.
+- **Logins:** admin, office (including the owner) and crew leads. Crew logins are shared accounts per crew, not personal. Extra workers (up to about 12) get no login but are recorded on each job. Crew see only jobs scheduled to them, as a permission that can change later. On those jobs they see everything needed to finish the job, money included: price, change orders, deposits, the invoice and balance due, and they can record a payment they collect. Never H & L's costs, margins or back-end financial data. This overrides the breakdown's "crew never see money" rule; the mockup's Crew view still hides prices and must change.
 - **Bilingual everywhere:** everyone uses Spanish, so every app has the English/Spanish toggle.
 - **Business details** (legal name, license number, address, phone) are settings shown as placeholders like {Company Legal Name} until filled in.
 - **No Saturday work** (the owners are Seventh-day Adventists). Crew phones are iPhones.
@@ -62,13 +62,11 @@ These are recommendations only. Treat them as open until the user answers.
 ## Known conflicts — ask, never pick one
 
 - **Legal name:** "H & L Roofers, Inc." and "H & L Roofers, LLC" both appear. Not blocking: it's a placeholder setting. The evidence leans toward LLC, but it's unconfirmed.
-- **Contractor work:** the notes show H & L does labor-only work for other roofing companies. The proposed flow is waiting for the owners' confirmation.
-
-Resolved: headcount (8 permanent crew plus the owner and office; extra workers on bigger jobs) and Docker vs. native (native). See `docs/decisions.md`.
+Resolved: headcount (8 permanent crew plus the owner and office; extra workers on bigger jobs), Docker vs. native (native) and contractor work (H & L does labor-only work for other roofing companies; the flow is confirmed for now). See `docs/decisions.md`.
 
 ## People
 
-- The business owners' daughter runs the business and is the user's main contact.
+- The business owners' daughter, Glenda, runs the business (books, payments, contacts, appointment setting) and is the user's main contact.
 - Her father (the dad) and the crew will use the app too.
 - The user (the person you're working with) is the admin and is doing this as IT help for friends.
 
@@ -76,6 +74,6 @@ Resolved: headcount (8 permanent crew plus the owner and office; extra workers o
 
 - Mockups are single, self-contained HTML files that work in any browser on any OS (the office uses a Mac; the user uses Windows).
 - Mockups use made-up customers. Keep real customer data out of this folder. Never copy anything from the Apple Notes export or Mac file list into the repo except counts and patterns: they hold real customers, crew pay and passwords.
-- Before a name, address or note goes into a mockup, check it against the real notes and file list: none may match a real customer or crew member.
+- Before a name, address or note goes into a mockup, check it against the real notes and file list: none may match a real customer or crew member. The mockup's customers, crew, contractor, warranty company, house numbers and sample note are made up and were checked this way. Business details show as placeholders.
 - Map each feature to its Salesforce concept and cite Salesforce documentation (Help, Developers, Trailhead) where it applies.
 - Keep the English/Spanish toggle and the Office/Crew view split from the current mockup unless the user says otherwise.

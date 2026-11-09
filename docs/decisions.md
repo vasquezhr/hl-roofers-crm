@@ -85,7 +85,7 @@ The business runs on Apple devices, so **every feature must work on macOS and Ap
 
 ## Owner answers (Nov 9, 2026)
 
-From the owner checklist, **H & L Roofers: Questions Before We Build** (https://claude.ai/artifact/Gecymk9Uy4LjQdDdhWWo5o), filled in by the admin with the daughter. Where an answer said to work it out from the notes, the result is marked **inferred**. It comes from `data-review.md` and waits for the owners to confirm it in the doc's "Please confirm" section.
+From the owner checklist, **H & L Roofers: Questions Before We Build** (https://claude.ai/artifact/Gecymk9Uy4LjQdDdhWWo5o), filled in by the admin with the daughter. Where an answer said to work it out from the notes, the result is marked **inferred**. It comes from `data-review.md`. All eight inferred items were confirmed in the doc's "Please confirm" section as "correct for now, subject to change" (Nov 9).
 
 ### Business details
 
@@ -94,7 +94,7 @@ From the owner checklist, **H & L Roofers: Questions Before We Build** (https://
 
 ### People and logins
 
-- **Office:** Glenda runs everything: books, payments, contacts, appointment setting. The Apple Notes are mostly her work.
+- **Office:** Glenda, the owners' daughter and the admin's main contact, runs everything: books, payments, contacts, appointment setting. The Apple Notes are mostly her work.
 - **Logins:** admin, office (including the owner) and crew leads. **Crew logins are shared accounts per crew, not personal.** So the history shows which crew account made a change, not which person.
 - **Extra workers:** up to about 12 beyond the 8 permanent crew. They get no login, but each job records who worked on it.
 - **Crew phones:** iPhones. Crew get job details by text and calls today, and maybe a group chat (possibly run by the dad).
@@ -107,7 +107,8 @@ This overrides two rules in the breakdown: the Search section ("Crew results are
 
 - On the jobs scheduled to them, crew see **everything needed to finish the job, money included**: the job price, price changes (Change Orders) and deposits.
 - Crew search still covers only their own jobs, but it now shows those jobs' prices.
-- Still to confirm with the user: whether crew also see the invoice and balance due, record payments they collect, or see H & L's costs and margin.
+- Crew also see the **invoice and balance due**, and can **record a payment they collect** at the end of the job (a check or another method).
+- Crew **never** see H & L's costs, margins, or back-end and financial data: price book costs, reports, dashboard totals. The rule is only what's needed to complete the job.
 - Not changed by this decision: crew still don't see leads, other crews' jobs, reports or the dashboard.
 - The current mockup hides all prices in the Crew view. The next mockup update shows them on the crew's own jobs.
 
@@ -117,7 +118,7 @@ This overrides two rules in the breakdown: the Search section ("Crew results are
 - **No Saturdays:** the owners are Seventh-day Adventists. Still open (added to the doc): Sundays, and how late on Fridays. The current mockup's week runs Monday–Saturday and will need to change.
 - **Appointment times (inferred):** no set slots; inspections and estimates any hour from 9 am to 4 pm, 1 hour long; work days booked as whole days.
 - **Job lengths (inferred):** starting defaults of 1 day for repairs, 1–2 for flat roofs, 2 for replacements, 3–5 for siding, changed per job.
-- **Work order numbers:** "should exist and attach to Jobs." Inferred from the notes: home-warranty claim numbers and PO numbers. So each Job gets an optional **outside reference number** (claim, PO or work order) alongside its own Job number. Confirm that's what was meant.
+- **Work order numbers:** "should exist and attach to Jobs." Inferred from the notes: home-warranty claim numbers and PO numbers. **Both, confirmed by the user:** every Job has H & L's own number (like 26-112) and an optional **outside reference number** (claim, PO or work order).
 - **Subcontract work (inferred, strong evidence):** a roofing company sends work often (52 notes, 2020–2026), mostly labor only, with them ordering materials. Another contractor sent labor-only jobs in 2026. Proposed flow: Opportunity (price sent to the contractor) → Won on their OK or PO → Job.
 
 ### Prices, proposals and invoices
