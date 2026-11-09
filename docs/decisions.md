@@ -20,6 +20,12 @@ The admin reads code and SQL but is not an experienced developer (some C#, HTML/
 - Plain, conventional Django: server-rendered templates, minimal JavaScript, no front-end framework. Use Django's built-in admin where it covers the Admin data editor.
 - A written runbook (restart, restore, update) so the server can be run without writing code.
 
+### Front end: Bootstrap (user decision, Nov 9, 2026)
+
+- **The app's pages use Bootstrap** once the build is approved. The admin knows HTML and Bootstrap, so the templates stay readable and editable for them.
+- Proposed: serve Bootstrap's CSS and JavaScript from the app's own files rather than a CDN; pin the version that's current when the build starts; set the H & L colors in one small stylesheet of our own. No build tools needed.
+- Open: whether the next mockup update uses Bootstrap too.
+
 ### Lead → Opportunity → Job
 
 | Record | Starts when | Stages | Ends |

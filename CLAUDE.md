@@ -34,7 +34,7 @@ Your sole purpose is to execute your tasks with precision, anything other than t
 
 - **Scope:** barebones Salesforce Field Service-style CRM with Admin, Office and Crew views. Website form lead capture; scheduling with nearby-slot suggestions; proposal and invoice PDFs; calendar, phone, text and navigation; crew updates; Apple Notes import into a customer "Details" field; search; lead lifecycle; simple reports and dashboard; permissions and permission sets; account, contact and opportunity management; lead assignment and routing; process automation.
 - **Not yet:** no Measure / calculator feature for now. The mockup's Measure tab is parked.
-- **Stack:** Python + Django + PostgreSQL; free and open source. A custom self-hosted app, not a Salesforce org.
+- **Stack:** Python + Django + PostgreSQL; free and open source. A custom self-hosted app, not a Salesforce org. Front end: **Bootstrap**, once the build is approved (details in `docs/decisions.md`).
 - **Records:** Lead → Opportunity → Job. One signed proposal creates one Job; Change Orders on the Job; Warranty Jobs link to the original Job with no Opportunity. Details in `docs/decisions.md`.
 - **Runtime:** native Windows services on Windows 11 Pro (no Docker). Remote admin: paid Tailscale plan.
 - **Who codes:** the user reads code and SQL but is not an experienced developer. Claude writes plain, conventional Django and explains each change in plain English with steps to check it.
