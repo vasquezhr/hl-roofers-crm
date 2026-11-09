@@ -48,7 +48,7 @@ Proposed safeguards to keep this simple (from Claude; confirm when the screens a
 
 ### Headcount
 
-About **20 people at most**, including the office and the owner; **12 permanent** crew when not on large jobs. Replaces the two conflicting figures in the notes.
+**8 permanent crew**, plus the owner and the office staff. Extra workers help on bigger jobs. This matches the notes' "about 8 permanent, up to 12 per job"; the "about 20 employees" figure is not confirmed. The office headcount and the most extra workers at once are asked in the owner checklist.
 
 ### Server hardware (not bought yet)
 
@@ -61,7 +61,28 @@ Check before buying:
 - **Wired Ethernet** for the server; **at least 3 USB 3 ports** (two mirrored backup SSDs plus the USB drive).
 - A small **UPS** for the server, modem and router (already in the plan).
 
-## Open: for the owners
+## Mac and Apple first (Nov 9, 2026)
 
-- **Contractor work:** does H & L ever work as a subcontractor for other roofing companies (e.g. labor-only jobs where the other company supplies materials)? If so, how does that work start? The breakdown and mockup assume it, but it hasn't been confirmed.
-- The **Business details** questions in the breakdown (legal name, users per profile, crew phones, crew visibility, lead routing, scheduling, insurance work).
+The business runs on Apple devices, so **every feature must work on macOS and Apple devices**. Only the server and the admin's PC run Windows. What this means so far:
+
+- The office uses Safari on the Mac (Add to Dock), with nothing installed on the Mac.
+- The USB backup drive must open on the Mac (see Backups).
+- Price uploads must work with whatever app the pricing sheet lives in. The owner checklist asks whether that's Numbers, Excel or Google Sheets.
+- Each later feature is checked on Safari (Mac and iPhone): calendar feeds, directions, call and text buttons, PDFs.
+
+## Integrations and backups (Nov 9, 2026)
+
+**Website:** built with **Lovable**, going by the "Edit with Lovable" badge the admin saw on the site. This session couldn't reach the site to check further. Lovable sites can be edited, so the form can link to or post to the app (options 1 and 2 in the breakdown) once we have the Lovable login. Who has that login, where form requests go today, and where the domain was bought are in the owner checklist. When DNS moves to Cloudflare, copy the website's existing records exactly and check that the site still loads.
+
+**Email:** the business's main email is **gh.handlroofers@gmail.com** (per the daughter). There may be no email on handlroofers.com; that isn't confirmed. Proposals and invoices would send from the Gmail address unless the owners want an @handlroofers.com mailbox (asked in the checklist; it costs a monthly fee). Sending from Gmail needs a one-time approval on that Google account, set up in Phase 2. The breakdown's SPF/DKIM step applies only if they move to a domain address.
+
+**Backups:**
+
+- **Destinations are final:** mirrored external SSDs, OneDrive, and a USB drive. The homelab and Backblaze B2 copies from the earlier plan are **dropped**.
+- **USB drive: no encryption for now** (the admin may add it later). Format it **exFAT**, which both Windows (writing) and the office Mac (reading) support.
+- The tooling (restic, rclone, Storage Spaces) is still a proposal. Note that restic always encrypts its backups, so the SSD and OneDrive copies are encrypted either way. Store its password safely: without it those backups cannot be restored.
+- Which Microsoft account holds OneDrive is asked in the owner checklist.
+
+## Open: owner checklist
+
+The questions only the owners can answer are in a shareable doc for the daughter: **H & L Roofers: Questions Before We Build** (https://claude.ai/artifact/Gecymk9Uy4LjQdDdhWWo5o). It covers business details, people and logins, work and scheduling (including insurance and subcontract work), prices, Apple Notes, website/email/OneDrive, and the samples to send. Record the answers here when they come back.

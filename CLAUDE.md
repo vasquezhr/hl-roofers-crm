@@ -4,9 +4,9 @@ A small, self-hosted CRM for H & L Roofers, a roofing business in Virginia that 
 
 ## Start here
 
-**Status (as of Nov 9, 2026): the five architecture questions are answered.** Answers and their effect on the plan are in `docs/decisions.md`; the plan is in `docs/project-breakdown.md`.
+**Status (as of Nov 9, 2026): every open question the user could answer is settled.** Answers and their effect on the plan are in `docs/decisions.md`; the plan is in `docs/project-breakdown.md`. The rest are in the owner checklist for the daughter, a Claude Doc: https://claude.ai/artifact/Gecymk9Uy4LjQdDdhWWo5o
 
-- The next step is the rest of the **Open questions** at the end of the breakdown (business details, integrations and data, backups). Do not start building until the user says to.
+- The next step is the owners' answers and samples. Record them in `docs/decisions.md`. Do not start building until the user says to.
 - `docs/decisions.md` overrides the breakdown snapshot wherever they differ.
 - Brainstorming and business analysis continue in claude.ai. The living breakdown is https://claude.ai/artifact/38SrB7koDPwexSADPnmDGj. The copy in `docs/` is a snapshot. If the user says the breakdown changed, ask for a fresh export instead of assuming what changed.
 - When the user's message conflicts with the snapshot, the user's message wins.
@@ -38,10 +38,12 @@ Your sole purpose is to execute your tasks with precision, anything other than t
 - **Runtime:** native Windows services on Windows 11 Pro (no Docker). Remote admin: paid Tailscale plan.
 - **Who codes:** the user reads code and SQL but is not an experienced developer. Claude writes plain, conventional Django and explains each change in plain English with steps to check it.
 - **Users:** the office uses Safari on a Mac (Add to Dock), with nothing installed on the Mac. Crew use phone browsers.
+- **Mac and Apple first:** the business runs on Apple devices, so every feature must work on macOS and Apple devices (Safari on Mac and iPhone). Only the server and the user's PC run Windows.
 - **Pricing:** owners upload a pricing spreadsheet. Every upload is a new entry, and the full price history is kept for insight.
 - **Admin page:** edits fields that write to the database, single or bulk, only after a confirmation.
 - **Hosting:** a small server the user will build and set up at the business owners' home, likely running Windows. The user manages it by RDP from his Windows desktop over Tailscale. Staff reach the app through Cloudflare Tunnel at app.handlroofers.com (DNS moving to Cloudflare; needs the registrar login).
-- **Backups:** daily, to OneDrive, external SSDs in RAID, and a USB drive. The USB holds quick-access files such as photos and invoices.
+- **Backups:** daily, to OneDrive, mirrored external SSDs, and a USB drive. The USB holds quick-access files such as photos and invoices, unencrypted and formatted exFAT so the Mac can open it. The homelab and Backblaze B2 copies from the earlier plan are dropped.
+- **Website and email:** the website is built with Lovable (per its "Edit with Lovable" badge). The business's main email is gh.handlroofers@gmail.com.
 - **Apple Notes:** the business has 2,000+ notes in Apple Notes (iCloud) to import.
 - **Automation idea:** the user has considered Hermes agents for emailed weekly/monthly reports, database updates and daily file organizing.
 
@@ -49,15 +51,15 @@ Your sole purpose is to execute your tasks with precision, anything other than t
 
 These are recommendations only. Treat them as open until the user answers.
 
-- Backup tooling: restic to a Storage Spaces two-way mirror and to OneDrive (via rclone), plus a plain-folder copy to USB. The user's earlier plan (restic to USB, his homelab and optionally Backblaze B2) may or may not be replaced.
+- Backup tooling: restic to a Storage Spaces two-way mirror and to OneDrive (via rclone), plus a plain-folder copy to USB. The destinations are decided; the tools are not.
 - The three simplicity safeguards for Lead → Opportunity → Job listed in `docs/decisions.md`.
 
 ## Known conflicts — ask, never pick one
 
 - **Legal name:** "H & L Roofers, Inc." and "H & L Roofers, LLC" both appear.
-- **Contractor work:** the breakdown and mockup assume H & L does labor-only work for other roofing companies. Unconfirmed; the user will ask the owners.
+- **Contractor work:** the breakdown and mockup assume H & L does labor-only work for other roofing companies. Unconfirmed; asked in the owner checklist.
 
-Resolved: headcount (about 20 at most, 12 permanent crew) and Docker vs. native (native). See `docs/decisions.md`.
+Resolved: headcount (8 permanent crew plus the owner and office; extra workers on bigger jobs) and Docker vs. native (native). See `docs/decisions.md`.
 
 ## People
 
