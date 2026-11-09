@@ -83,6 +83,59 @@ The business runs on Apple devices, so **every feature must work on macOS and Ap
 - The tooling (restic, rclone, Storage Spaces) is still a proposal. Note that restic always encrypts its backups, so the SSD and OneDrive copies are encrypted either way. Store its password safely: without it those backups cannot be restored.
 - Which Microsoft account holds OneDrive is asked in the owner checklist.
 
-## Open: owner checklist
+## Owner answers (Nov 9, 2026)
 
-The questions only the owners can answer are in a shareable doc for the daughter: **H & L Roofers: Questions Before We Build** (https://claude.ai/artifact/Gecymk9Uy4LjQdDdhWWo5o). It covers business details, people and logins, work and scheduling (including insurance and subcontract work), prices, Apple Notes, website/email/OneDrive, and the samples to send. Record the answers here when they come back.
+From the owner checklist, **H & L Roofers: Questions Before We Build** (https://claude.ai/artifact/Gecymk9Uy4LjQdDdhWWo5o), filled in by the admin with the daughter. Where an answer said to work it out from the notes, the result is marked **inferred**. It comes from `data-review.md` and waits for the owners to confirm it in the doc's "Please confirm" section.
+
+### Business details
+
+- Legal name, license number, address and phone are **settings with placeholders**: {Company Legal Name}, {Company License Number}, {Company Business Address}, {Company Business Phone Number}. They're filled in later; mockups show the placeholders.
+- The evidence leans toward LLC: a Desktop folder is named "H&L ROOFERS LLC", and several business account names include "llc". The name stays a placeholder until the owners confirm it.
+
+### People and logins
+
+- **Office:** Glenda runs everything: books, payments, contacts, appointment setting. The Apple Notes are mostly her work.
+- **Logins:** admin, office (including the owner) and crew leads. **Crew logins are shared accounts per crew, not personal.** So the history shows which crew account made a change, not which person.
+- **Extra workers:** up to about 12 beyond the 8 permanent crew. They get no login, but each job records who worked on it.
+- **Crew phones:** iPhones. Crew get job details by text and calls today, and maybe a group chat (possibly run by the dad).
+- **Spanish: everyone.** The whole app is bilingual, with the English/Spanish toggle in every app, not just Crew. Still open: which language proposals and invoices use.
+- **Crew visibility:** only jobs scheduled to their crew. Build it as a permission so it can change later.
+
+### Work and scheduling
+
+- **New website requests:** the office handles them. Backups: the dad, and her brother.
+- **No Saturdays:** the owners are Seventh-day Adventists. Still open (added to the doc): Sundays, and how late on Fridays. The current mockup's week runs Monday–Saturday and will need to change.
+- **Appointment times (inferred):** no set slots; inspections and estimates any hour from 9 am to 4 pm, 1 hour long; work days booked as whole days.
+- **Job lengths (inferred):** starting defaults of 1 day for repairs, 1–2 for flat roofs, 2 for replacements, 3–5 for siding, changed per job.
+- **Work order numbers:** "should exist and attach to Jobs." Inferred from the notes: home-warranty claim numbers and PO numbers. So each Job gets an optional **outside reference number** (claim, PO or work order) alongside its own Job number. Confirm that's what was meant.
+- **Subcontract work (inferred, strong evidence):** a roofing company sends work often (52 notes, 2020–2026), mostly labor only, with them ordering materials. Another contractor sent labor-only jobs in 2026. Proposed flow: Opportunity (price sent to the contractor) → Won on their OK or PO → Job.
+
+### Prices, proposals and invoices
+
+- **Pricing:** kept in Excel, showing both supplier cost and selling price; prices change often. Suppliers (inferred from the Cost of Materials folder): ABC Supply, Liberty Roofing Center, RSG, Virginia Slate, Roofing and Supply, Superior Distribution. Kept as **one Excel file per supplier and product line**, not one sheet.
+- **Deposits (inferred):** none found, so none by default; optional on a proposal.
+- **Payment (inferred):** terms aren't recorded anywhere; about 910 scanned checks suggest most customers pay by check. Proposed: due on completion by default, and each payment records its method and check number.
+- **Sales tax (inferred):** tax appears only on purchased materials, included in the material cost. Proposed: no sales tax line on invoices.
+- **Signing:** proposals are emailed for signature, and sometimes signed on paper. An emailed "Accept" link is wanted, but DocuSign's cost is a concern. Proposed: a simple Accept link built into the app, where the customer types their name and accepts and the app records when. No per-use fee. Whether that's enough for their contracts is the owners' call.
+
+### Apple Notes
+
+- Some notes are personal. The notes are on the office Mac, in one iCloud account. Folders: Notes, plus 2018, 2019 and 2020 folders and a few small ones.
+- **The export contains passwords:** a "Passwords and accounts" folder, plus credential-looking notes in other folders. The import must skip them (see `data-review.md`).
+
+### Website, email and backups
+
+- **Lovable login:** probably her brother.
+- **Website form requests are not arriving today.** The daughter says they're working on it.
+- **Domain registrar:** unknown.
+- **Email:** proposals and invoices go from gh.handlroofers@gmail.com for now; a domain address may come later.
+- **OneDrive:** no paid Microsoft account yet; the admin will set one up.
+
+### Samples still needed
+
+The admin doesn't have these. The doc now says where they are on the office Mac:
+
+- one or two supplier price files (Desktop › 1 › Cost of Materials)
+- one proposal (Desktop › 1 › 2026, or a year folder under Desktop › 1 › 1. PAST YEARS)
+- one invoice sent to a customer (location unknown)
+- the logo

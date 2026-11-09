@@ -4,9 +4,9 @@ A small, self-hosted CRM for H & L Roofers, a roofing business in Virginia that 
 
 ## Start here
 
-**Status (as of Nov 9, 2026): every open question the user could answer is settled.** Answers and their effect on the plan are in `docs/decisions.md`; the plan is in `docs/project-breakdown.md`. The rest are in the owner checklist for the daughter, a Claude Doc: https://claude.ai/artifact/Gecymk9Uy4LjQdDdhWWo5o
+**Status (as of Nov 9, 2026): the owners' answers are in** (`docs/decisions.md`, "Owner answers"). Answers the owners left to Claude were inferred from their Apple Notes and Mac file list (`docs/data-review.md`) and wait for confirmation in the "Please confirm" section of the owner checklist, a Claude Doc: https://claude.ai/artifact/Gecymk9Uy4LjQdDdhWWo5o. The plan is in `docs/project-breakdown.md`.
 
-- The next step is the owners' answers and samples. Record them in `docs/decisions.md`. Do not start building until the user says to.
+- Still waiting on: those confirmations, Sundays and Friday hours, and the samples (a supplier price file, a proposal, an invoice, the logo). Do not start building until the user says to.
 - `docs/decisions.md` overrides the breakdown snapshot wherever they differ.
 - Brainstorming and business analysis continue in claude.ai. The living breakdown is https://claude.ai/artifact/38SrB7koDPwexSADPnmDGj. The copy in `docs/` is a snapshot. If the user says the breakdown changed, ask for a fresh export instead of assuming what changed.
 - When the user's message conflicts with the snapshot, the user's message wins.
@@ -26,6 +26,7 @@ Your sole purpose is to execute your tasks with precision, anything other than t
 | Path | What it is |
 | --- | --- |
 | `docs/decisions.md` | Answers to the open questions, with the changes they make to the breakdown. Wins over the breakdown snapshot |
+| `docs/data-review.md` | Counts and patterns from the Apple Notes export and Mac file list. No customer data or credentials |
 | `docs/project-breakdown.md` | The full plan: Salesforce concept mapping, the three apps, data model, leads, features, permissions, automations, pricing uploads, admin data editor, hosting and backups, roadmap, ideas, risks, open questions, sources |
 | `mockup/hl-roofers-mockup.html` | The current clickable mockup. One self-contained HTML file with made-up customers; opens in any browser. Tabs: Today, Jobs, Measure, Schedule, Search; English/Spanish and Office/Crew toggles |
 
@@ -39,7 +40,11 @@ Your sole purpose is to execute your tasks with precision, anything other than t
 - **Who codes:** the user reads code and SQL but is not an experienced developer. Claude writes plain, conventional Django and explains each change in plain English with steps to check it.
 - **Users:** the office uses Safari on a Mac (Add to Dock), with nothing installed on the Mac. Crew use phone browsers.
 - **Mac and Apple first:** the business runs on Apple devices, so every feature must work on macOS and Apple devices (Safari on Mac and iPhone). Only the server and the user's PC run Windows.
-- **Pricing:** owners upload a pricing spreadsheet. Every upload is a new entry, and the full price history is kept for insight.
+- **Pricing:** owners upload pricing spreadsheets: Excel, one file per supplier and product line, showing cost and selling price. Every upload is a new entry, and the full price history is kept for insight.
+- **Logins:** admin, office (including the owner) and crew leads. Crew logins are shared accounts per crew, not personal. Extra workers (up to about 12) get no login but are recorded on each job. Crew see only jobs scheduled to them, as a permission that can change later.
+- **Bilingual everywhere:** everyone uses Spanish, so every app has the English/Spanish toggle.
+- **Business details** (legal name, license number, address, phone) are settings shown as placeholders like {Company Legal Name} until filled in.
+- **No Saturday work** (the owners are Seventh-day Adventists). Crew phones are iPhones.
 - **Admin page:** edits fields that write to the database, single or bulk, only after a confirmation.
 - **Hosting:** a small server the user will build and set up at the business owners' home, likely running Windows. The user manages it by RDP from his Windows desktop over Tailscale. Staff reach the app through Cloudflare Tunnel at app.handlroofers.com (DNS moving to Cloudflare; needs the registrar login).
 - **Backups:** daily, to OneDrive, mirrored external SSDs, and a USB drive. The USB holds quick-access files such as photos and invoices, unencrypted and formatted exFAT so the Mac can open it. The homelab and Backblaze B2 copies from the earlier plan are dropped.
@@ -56,8 +61,8 @@ These are recommendations only. Treat them as open until the user answers.
 
 ## Known conflicts — ask, never pick one
 
-- **Legal name:** "H & L Roofers, Inc." and "H & L Roofers, LLC" both appear.
-- **Contractor work:** the breakdown and mockup assume H & L does labor-only work for other roofing companies. Unconfirmed; asked in the owner checklist.
+- **Legal name:** "H & L Roofers, Inc." and "H & L Roofers, LLC" both appear. Not blocking: it's a placeholder setting. The evidence leans toward LLC, but it's unconfirmed.
+- **Contractor work:** the notes show H & L does labor-only work for other roofing companies. The proposed flow is waiting for the owners' confirmation.
 
 Resolved: headcount (8 permanent crew plus the owner and office; extra workers on bigger jobs) and Docker vs. native (native). See `docs/decisions.md`.
 
@@ -70,6 +75,7 @@ Resolved: headcount (8 permanent crew plus the owner and office; extra workers o
 ## Working conventions
 
 - Mockups are single, self-contained HTML files that work in any browser on any OS (the office uses a Mac; the user uses Windows).
-- Mockups use made-up customers, as the current one does. Keep real customer data out of this folder.
+- Mockups use made-up customers. Keep real customer data out of this folder. Never copy anything from the Apple Notes export or Mac file list into the repo except counts and patterns: they hold real customers, crew pay and passwords.
+- Before a name, address or note goes into a mockup, check it against the real notes and file list: none may match a real customer or crew member.
 - Map each feature to its Salesforce concept and cite Salesforce documentation (Help, Developers, Trailhead) where it applies.
 - Keep the English/Spanish toggle and the Office/Crew view split from the current mockup unless the user says otherwise.
