@@ -101,6 +101,16 @@ From the owner checklist, **H & L Roofers: Questions Before We Build** (https://
 - **Spanish: everyone.** The whole app is bilingual, with the English/Spanish toggle in every app, not just Crew. Still open: which language proposals and invoices use.
 - **Crew visibility:** only jobs scheduled to their crew. Build it as a permission so it can change later.
 
+### Crew see job money (user decision, Nov 9, 2026)
+
+This overrides two rules in the breakdown: the Search section ("Crew results are limited to their jobs and never show money") and the Crew profile ("Cannot: see prices, totals, invoices… anywhere, including search and PDFs").
+
+- On the jobs scheduled to them, crew see **everything needed to finish the job, money included**: the job price, price changes (Change Orders) and deposits.
+- Crew search still covers only their own jobs, but it now shows those jobs' prices.
+- Still to confirm with the user: whether crew also see the invoice and balance due, record payments they collect, or see H & L's costs and margin.
+- Not changed by this decision: crew still don't see leads, other crews' jobs, reports or the dashboard.
+- The current mockup hides all prices in the Crew view. The next mockup update shows them on the crew's own jobs.
+
 ### Work and scheduling
 
 - **New website requests:** the office handles them. Backups: the dad, and her brother.

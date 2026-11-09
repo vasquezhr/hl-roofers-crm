@@ -41,7 +41,7 @@ Your sole purpose is to execute your tasks with precision, anything other than t
 - **Users:** the office uses Safari on a Mac (Add to Dock), with nothing installed on the Mac. Crew use phone browsers.
 - **Mac and Apple first:** the business runs on Apple devices, so every feature must work on macOS and Apple devices (Safari on Mac and iPhone). Only the server and the user's PC run Windows.
 - **Pricing:** owners upload pricing spreadsheets: Excel, one file per supplier and product line, showing cost and selling price. Every upload is a new entry, and the full price history is kept for insight.
-- **Logins:** admin, office (including the owner) and crew leads. Crew logins are shared accounts per crew, not personal. Extra workers (up to about 12) get no login but are recorded on each job. Crew see only jobs scheduled to them, as a permission that can change later.
+- **Logins:** admin, office (including the owner) and crew leads. Crew logins are shared accounts per crew, not personal. Extra workers (up to about 12) get no login but are recorded on each job. Crew see only jobs scheduled to them, as a permission that can change later. On those jobs they see everything needed to finish the job, money included (price, change orders, deposits). This overrides the breakdown's "crew never see money" rule; the mockup's Crew view still hides prices and must change.
 - **Bilingual everywhere:** everyone uses Spanish, so every app has the English/Spanish toggle.
 - **Business details** (legal name, license number, address, phone) are settings shown as placeholders like {Company Legal Name} until filled in.
 - **No Saturday work** (the owners are Seventh-day Adventists). Crew phones are iPhones.
