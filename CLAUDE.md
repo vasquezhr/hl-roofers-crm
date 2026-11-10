@@ -6,7 +6,8 @@ A small, self-hosted CRM for H & L Roofers, a roofing business in Virginia that 
 
 **Status (as of Nov 9, 2026): the owners' answers are in** (`docs/decisions.md`, "Owner answers"). Answers the owners left to Claude were inferred from their Apple Notes and Mac file list (`docs/data-review.md`) and confirmed in the owner checklist as correct for now, subject to change. The checklist is a Claude Doc: https://claude.ai/artifact/Gecymk9Uy4LjQdDdhWWo5o. The plan is in `docs/project-breakdown.md`.
 
-- **Next step: the full mockup update.** The brief is in `docs/decisions.md`, "Next mockup update". Do not start building the app until the user says to.
+- **The Bootstrap mockup now covers all four roadmap phases** (Nov 10, 2026). `docs/decisions.md`, "Mockup status", lists what is in it and the choices made in it that the user still needs to confirm.
+- **Next step: the user's and the owners' review of the mockup.** Do not start building the app until the user clearly says to. On Nov 9 the user wrote "build out Phase 1 of the model"; that was read as the mockup, and whether it meant the Django app is an open question to settle first.
 - Deferred by the user, not blocking: Sundays and Friday hours, and the samples (a supplier price file, a proposal, an invoice, the logo).
 - `docs/decisions.md` overrides the breakdown snapshot wherever they differ.
 - Brainstorming and business analysis continue in claude.ai. The living breakdown is https://claude.ai/artifact/38SrB7koDPwexSADPnmDGj. The copy in `docs/` is a snapshot. If the user says the breakdown changed, ask for a fresh export instead of assuming what changed.
@@ -29,7 +30,8 @@ Your sole purpose is to execute your tasks with precision, anything other than t
 | `docs/decisions.md` | Answers to the open questions, with the changes they make to the breakdown. Wins over the breakdown snapshot |
 | `docs/data-review.md` | Counts and patterns from the Apple Notes export and Mac file list. No customer data or credentials |
 | `docs/project-breakdown.md` | The full plan: Salesforce concept mapping, the three apps, data model, leads, features, permissions, automations, pricing uploads, admin data editor, hosting and backups, roadmap, ideas, risks, open questions, sources |
-| `mockup/hl-roofers-mockup.html` | The current clickable mockup, built with Bootstrap 5.3.8 (embedded, so it opens offline). One self-contained HTML file with made-up customers. English/Spanish toggle and a "View as" switch for Admin, Office, Crew 1 and Crew 2. It is being built in the roadmap's phase order; `docs/decisions.md` ("Mockup status") says which phases are in. The file's own top comment explains its layout: lines 20–24 and 182–187 are the embedded Bootstrap copies, the rest is ours. The older non-Bootstrap mockup, with the parked Measure calculator, is in git history at commit `147043d` |
+| `mockup/hl-roofers-mockup.html` | The current clickable mockup, built with Bootstrap 5.3.8 (embedded, so it opens offline). One self-contained HTML file with made-up customers. English/Spanish toggle and a "View as" switch for Admin, Office, Crew 1 and Crew 2. All four roadmap phases are in; see `docs/decisions.md`, "Mockup status". The file's own top comment explains its layout: lines 20–24 and 189–194 are the embedded Bootstrap copies; our stylesheet is lines 25–125 and our script starts at line 195. Edit the file directly; there is no build step. The older non-Bootstrap mockup, with the parked Measure calculator, is in git history at commit `147043d` |
+| `mockup/tests/mockup-test.js` | A browser test that clicks through every flow in the mockup (needs Node.js and Playwright). Run it after any change to the mockup |
 
 ## What the user has decided
 
@@ -42,7 +44,7 @@ Your sole purpose is to execute your tasks with precision, anything other than t
 - **Users:** the office uses Safari on a Mac (Add to Dock), with nothing installed on the Mac. Crew use phone browsers.
 - **Mac and Apple first:** the business runs on Apple devices, so every feature must work on macOS and Apple devices (Safari on Mac and iPhone). Only the server and the user's PC run Windows.
 - **Pricing:** owners upload pricing spreadsheets: Excel, one file per supplier and product line, showing cost and selling price. Every upload is a new entry, and the full price history is kept for insight.
-- **Logins:** admin, office (including the owner) and crew leads. Crew logins are shared accounts per crew, not personal. Extra workers (up to about 12) get no login but are recorded on each job. Crew see only jobs scheduled to them, as a permission that can change later. On those jobs they see everything needed to finish the job, money included: price, change orders, deposits, the invoice and balance due, and they can record a payment they collect. Never H & L's costs, margins or back-end financial data. This overrides the breakdown's "crew never see money" rule; the mockup's Crew view still hides prices and must change.
+- **Logins:** admin, office (including the owner) and crew leads. Crew logins are shared accounts per crew, not personal. Extra workers (up to about 12) get no login but are recorded on each job. Crew see only jobs scheduled to them, as a permission that can change later. On those jobs they see everything needed to finish the job, money included: price, change orders, deposits, the invoice and balance due, and they can record a payment they collect. Never H & L's costs, margins or back-end financial data. This overrides the breakdown's "crew never see money" rule, and the mockup shows it.
 - **Bilingual everywhere:** everyone uses Spanish, so every app has the English/Spanish toggle.
 - **Business details** (legal name, license number, address, phone) are settings shown as placeholders like {Company Legal Name} until filled in.
 - **No Saturday work** (the owners are Seventh-day Adventists). Crew phones are iPhones.
@@ -77,4 +79,4 @@ Resolved: headcount (8 permanent crew plus the owner and office; extra workers o
 - Mockups use made-up customers. Keep real customer data out of this folder. Never copy anything from the Apple Notes export or Mac file list into the repo except counts and patterns: they hold real customers, crew pay and passwords.
 - Before a name, address or note goes into a mockup, check it against the real notes and file list: none may match a real customer or crew member. The mockup's customers, crew, contractor, warranty company, house numbers and sample note are made up and were checked this way. Business details show as placeholders.
 - Map each feature to its Salesforce concept and cite Salesforce documentation (Help, Developers, Trailhead) where it applies.
-- Keep the English/Spanish toggle and the Office/Crew view split from the current mockup unless the user says otherwise.
+- Keep the English/Spanish toggle and the "View as" switch (Admin, Office, Crew 1, Crew 2) in the mockup unless the user says otherwise. Every label needs both languages.

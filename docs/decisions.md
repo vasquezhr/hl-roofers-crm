@@ -180,7 +180,7 @@ The Bootstrap mockup is `mockup/hl-roofers-mockup.html`. Each phase is tested in
 | 1 · Customer records and search | Accounts (person or company) with contacts, properties and Details from imported notes; Opportunities and Jobs on one stage bar; a signed proposal creates the Job; warranty jobs; outside numbers; one search box; Office and Crew views; Call, Text, Directions | Built, Nov 9 |
 | 2 · Leads, proposals, invoices, pricing | Leads list and page; Convert creates the account, contact, property and opportunity, reuses an existing customer, and can add a request to that customer's open job; proposal builder with Price Book lines, the printed proposal, email, and the customer's Accept page; change orders; deposits, payments and balance due; invoice; crews record payments they collect; Price Book with upload review, full history and roll back; Company details that fill the placeholders | Built, Nov 9 |
 | 3 · Scheduling and crew | Week calendar of five work days with a filter per crew; suggested inspection times ranked by distance to that day's other stops, with a small map; suggested start days for a job when the crew is free; booking from a suggestion; "Changed" notice with Notify crew and the crew's Got it; extra workers recorded on a job; the crew's My Day; calendar feed link | Built, Nov 10 |
-| 4 · Reports, dashboard, automations, admin | — | Not yet |
+| 4 · Reports, dashboard, automations, admin | Admin dashboard with tiles and two charts; eight reports with a date range and a real spreadsheet export; ten automations with on/off switches; users, profiles and permission sets; the Apple Notes import review queue; the data editor with held changes, review, a change log and undo; system status | Built, Nov 10 |
 
 **Choices made in the mockup that the user should confirm:**
 
@@ -203,4 +203,12 @@ The Bootstrap mockup is `mockup/hl-roofers-mockup.html`. Each phase is tested in
 - Changing the dates or crew of a job that is already scheduled raises a "Changed" notice. The office can text the crew lead from it; the crew taps Got it; the office then sees "Seen by".
 - Extra workers can be added or removed on a job by the office or by the crew, until the job is done.
 - The crew's My Day lists today's stops with who is on the job, the balance due, and Start, Mark done and Record payment.
+- The administrator lands on a Dashboard; the office lands on Today and finds the charts under Reports.
+- The breakdown's "View Financials" permission set is renamed "View Costs and Margins", because crews now see job prices by default.
+- The login rule is split: the office and the admin have one login per person; each crew shares one login.
+- "Proposal follow-up" uses the breakdown's 7 days. All the automation delays are the breakdown's proposed defaults.
+- The import page shows the real size of the notes export (2,609 notes, about 135 set aside as logins or passwords). Its five sample notes are made up.
+- The dashboard and report numbers are samples. Unpaid invoices and price changes are worked out from the mockup's own records.
+
+**What was and wasn't checked:** every flow passes the browser test in Chromium at computer and phone size, in English and Spanish, as Admin, Office and both crews. It has **not** been opened in Safari on a Mac or iPhone, which is what the business uses. That check is still to do.
 

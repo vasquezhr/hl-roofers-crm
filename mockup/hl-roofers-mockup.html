@@ -33,6 +33,7 @@
 :root {
   --hl-navy: #1f3a5f;                 /* top bar */
   --hl-accent: #b05a22;               /* buttons and highlights */
+  --hl-chart: #b05a22;                /* chart bars; checked for contrast on the light and dark themes */
 }
 [data-bs-theme=light] {
   --bs-primary: #b05a22;
@@ -49,6 +50,7 @@
   --bs-focus-ring-color: rgba(176, 90, 34, .25);
 }
 [data-bs-theme=dark] {
+  --hl-chart: #cf7a40;
   --bs-primary: #e08a4c;
   --bs-primary-rgb: 224, 138, 76;
   --bs-primary-text-emphasis: #f0b07f;
@@ -84,6 +86,7 @@
 .hl-side .nav, .hl-tabbar .nav { --bs-nav-link-color: var(--bs-body-color); --bs-nav-link-hover-color: var(--bs-primary); }
 .list-group { --bs-list-group-active-bg: #b05a22; --bs-list-group-active-border-color: #b05a22; }
 .dropdown-menu { --bs-dropdown-link-active-bg: #b05a22; }
+.progress { --bs-progress-bar-bg: var(--hl-chart); }
 .form-check-input:checked { background-color: #b05a22; border-color: #b05a22; }
 .form-control:focus, .form-select:focus, .form-check-input:focus {
   border-color: #d9a57f; box-shadow: 0 0 0 .25rem rgba(176, 90, 34, .25);
@@ -108,6 +111,10 @@
 .hl-tabbar .hl-ic, .hl-side .hl-ic { width: 1.35rem; height: 1.35rem; }
 /* notes keep their line breaks */
 .hl-pre { white-space: pre-wrap; }
+/* chart columns: the bar lightens when it is pointed at or focused */
+.hl-mark { fill: var(--hl-chart); pointer-events: none; }
+.hl-hit { fill: transparent; outline: none; }
+.hl-hit:hover + .hl-mark, .hl-hit:focus + .hl-mark { opacity: .7; }
 /* stage bar: one step per stage, from Inspection to Paid */
 .hl-stage { display: flex; gap: .25rem; overflow-x: auto; }
 .hl-stage > div { flex: 1; min-width: 4.4rem; text-align: center; font-size: .68rem; font-weight: 700; color: var(--bs-secondary-color); }
@@ -226,7 +233,7 @@ const I18N = {
       oppFromLead: "Opportunity created from a website lead", leadAttached: "Website request added: “{msg}”",
       coSent: "Change order {id} sent for signature", coSigned: "Change order {id} signed", payment: "Payment recorded: {amount}",
       inspBooked: "Inspection booked: {when}", changed: "Dates changed (before: {was})", notified: "Crew notified by text", gotIt: "Crew confirmed the change",
-      workerAdded: "Extra worker added: {name}", workerRemoved: "Extra worker removed: {name}" },
+      workerAdded: "Extra worker added: {name}", workerRemoved: "Extra worker removed: {name}", noteImported: "Note imported from Apple Notes" },
     accounts: { sub: "Customers and companies you work with", new: "New account", people: "People", companies: "Companies",
       counts: "Jobs: {jobs} · Open: {open}", since: "Customer since {y}", contacts: "Contacts", properties: "Properties",
       details: "Details", fromNotes: "Imported from Apple Notes", noDetails: "No notes for this customer.", type: "Type of account" },
@@ -303,6 +310,73 @@ const I18N = {
     method: { check: "Check", cash: "Cash", card: "Card", other: "Other" },
     unit: { bundle: "bundle", roll: "roll", pail: "pail", each: "each", box: "box", sheet: "sheet" },
     admin: { sub: "Settings and tools for the administrator" },
+    reports: { sub: "Sample numbers. Every chart has its table, and every report exports to a spreadsheet.",
+      revChart: "Revenue by month, last six months", leadChart: "Leads by source, last 90 days", seeNumbers: "See the numbers",
+      leadTip: "{n} leads · {c} converted ({p})", list: "Ready-made reports", sample: "These are sample numbers for the demo.",
+      export: "Export", exported: "Spreadsheet file downloaded", asOfToday: "As of today.", noRows: "Nothing in this period.",
+      rangeM: "This month", rangeQ: "Last 3 months", rangeY: "This year", age0: "0–30 days", age31: "31–60 days", age60: "over 60 days",
+      cSource: "Source", cLeads: "Leads", cConverted: "Converted", cRate: "Rate", cMonth: "Month", cMedian: "Typical time to first contact", cWithin2h: "Within 2 hours",
+      cType: "Type of work", cSent: "Proposals sent", cSigned: "Signed", cOther: "Other", cInvoice: "Invoice", cAge: "Age", cJobsDone: "Jobs finished", cWorkDays: "Work days",
+      cValue: "Value", cSupplier: "Supplier", cBefore: "Before", cNow: "Now", cChange: "Change",
+      leadsBySource: "Leads by source", leadsBySourceD: "Which sources actually bring work",
+      responseTime: "Lead response time", responseTimeD: "From the request arriving to the first call or text",
+      closeRate: "Close rate", closeRateD: "Proposals signed against proposals sent, by type of work",
+      revenue: "Revenue by month", revenueD: "By month and type of work",
+      unpaid: "Unpaid invoices", unpaidD: "Open balances by how old the invoice is",
+      jobsPerCrew: "Jobs finished per crew", jobsPerCrewD: "Finished jobs and work days for each crew",
+      lostReasons: "Lost reasons", lostReasonsD: "Why opportunities were lost, and what they were worth",
+      priceChanges: "Price changes", priceChangesD: "Supplier costs that moved, biggest first, from the Price Book history" },
+    dash: { revLast: "Revenue in {month}", vs: "vs. {month}", jobsWeek: "Jobs this week", inspections: "Inspections open" },
+    status: { title: "System status", desc: "Backups, the server and the last price upload", sub: "A quick check that the app and its backups are healthy.",
+      ok: "OK", backup: "Nightly backup", backupWhen: "Last run: today, 1:12 am", priceUpload: "Last price upload", more: "More",
+      ssd: "Mirrored SSDs", ssdD: "Full history, kept at the office", cloud: "OneDrive", cloudD: "Full history, kept away from the building",
+      usb: "USB drive", usbD: "Photos and invoices as plain files the Mac can open", restore: "Last test restore: {d}", runNow: "Back up now", started: "Backup started (demo)",
+      app: "The app", address: "Address", server: "Server", serverD: "Windows 11 Pro", users: "Logins", records: "Records", recordsD: "{a} accounts · {j} jobs · {l} leads" },
+    users: { title: "Users and permissions", desc: "Who can sign in, their profile and their add-on permission sets", sub: "Each login has one profile. Permission sets add to it.",
+      shared: "shared login", n_admin: "Admin", n_office: "Office", n_owner: "Owner", user: "Login", profile: "Profile", sets: "Permission sets", everything: "Everything",
+      profiles: "What each profile allows", sees: "Can see", does: "Can do", cannot: "Cannot",
+      adminSees: "Everything", adminDoes: "Everything, plus users, permission sets, automations, imports and the data editor", adminCannot: "—",
+      officeSees: "All leads, accounts, opportunities, jobs, the schedule, proposals, invoices and reports",
+      officeDoes: "Create and edit records, convert leads, book, send proposals and invoices, record payments", officeCannot: "Manage users, change settings, delete records",
+      crewSees: "Only the jobs scheduled to their crew, with everything needed to finish them: customer, scope, photos, price, change orders, deposits, invoice and balance due",
+      crewDoes: "Call, text, get directions, start and finish a job, note extra workers, add photos, record a payment they collect, confirm changes",
+      crewCannot: "See H & L's costs or margins, the Price Book, leads, other crews' jobs, reports or the dashboard",
+      rules: "Rules for every login", rule1: "The office and the admin each have their own login, so the history shows who changed what.",
+      rule2: "Each crew shares one login. The history shows the crew, not the person.", rule3: "Deleted records go to a recycle bin for 30 days. Only the admin empties it.",
+      rule4: "A crew's phone stays signed in for 30 days, so nobody types a password on a roof." },
+    role3: { admin: "Admin", office: "Office", crew: "Crew" },
+    pset: { priceBook: "Manage Price Book", billing: "Billing", dataEditor: "Data Editor", crewLead: "Crew Lead", costs: "View Costs and Margins", inspector: "Inspector" },
+    psetD: { priceBook: "Upload price files, see and export the price history", billing: "Create and send invoices, record and correct payments",
+      dataEditor: "Use the data editor for single and bulk changes", crewLead: "See the whole crew's schedule, mark a job done, add notes to the scope",
+      costs: "See supplier costs and H & L's margin. For someone who prices jobs", inspector: "See inspections nobody has taken and book them" },
+    auto: { title: "Automations", desc: "Ready-made automations with an on/off switch", sub: "Each one does one job. Turn it on or off; nothing to draw or program.",
+      always: "Always on", off: "Off", history: "What ran lately", turnedOn: "Turned on", turnedOff: "Turned off",
+      h1: "Mina Seo's request was assigned to the office", h2: "Job #26-104 was marked Changed and the crew text was prepared",
+      h3: "“Follow up with Anjali Raman” was added to Today", h4: "The weekly summary was emailed to the owners",
+      route: "Route new lead", routeD: "When a lead arrives: applies the routing rules and tells the person it was assigned to.",
+      remind: "Uncontacted lead reminder", remindD: "A lead still New after 2 business hours: reminds the office. After 1 day: alerts the owner.",
+      convert: "Convert lead", convertD: "The Convert button: creates the account, contact, property and opportunity in one step.",
+      followUp: "Proposal follow-up", followUpD: "A proposal with no answer after 7 days: adds “Follow up with…” to Today.",
+      signed: "Proposal signed", signedD: "When a proposal is signed: creates the job with the same number and adds “Schedule this job” to Today.",
+      changed: "Appointment changed", changedD: "When the dates or crew of a scheduled job change: marks it Changed and prepares the text for the crew.",
+      jobDone: "Job done", jobDoneD: "When a job is marked done: drafts the invoice from the signed proposal and its change orders, and tells whoever does billing.",
+      overdue: "Invoice overdue", overdueD: "15 and 30 days after an invoice is sent: puts it on the overdue list. The reminder email to the customer is off.",
+      review: "Review request", reviewD: "When an invoice is paid: sends a thank-you email with the Google review link. Off until the wording is approved.",
+      weekly: "Weekly summary", weeklyD: "Monday morning: emails the owners last week's leads, jobs, revenue and unpaid total." },
+    imp: { title: "Apple Notes import", desc: "Move ten years of notes into each customer's Details, with a review step",
+      sub: "The app reads each note and proposes the customer it belongs to. Nothing is added until someone accepts it.",
+      read: "Notes read", matched: "Matched to a customer", review: "To review", aside: "Set aside: logins and passwords",
+      asideNote: "Notes that look like logins or passwords are set aside automatically. They are never imported and never shown here.",
+      queue: "Review queue", left: "{n} of {of} left in this sample", acceptAll: "Accept all matches",
+      pNew: "Create a new account", pMatch: "Add to", byPhone: "same phone number", pNone: "No customer found. Keep it as an unlinked note, still searchable.",
+      pPersonal: "Looks personal. Suggested: skip.", accept: "Accept", skip: "Skip", keep: "Keep unlinked",
+      did_accept: "Added to the customer's Details", did_skip: "Skipped", did_keep: "Kept as an unlinked note" },
+    ed: { title: "Data editor", desc: "Change fields in the database, one or several at a time, with a review before anything is saved",
+      sub: "Changes are held, not saved, until you review and confirm them. Every change is logged and can be undone.",
+      review: "Review {n} changes", fix: "Fix the fields in red first. A phone number needs 10 digits and a name cannot be empty.",
+      discard: "Discard the held changes", audit: "Change log", setLine: "{n} changes", undone: "Undone", undo: "Undo", noAudit: "No changes yet.",
+      reviewHint: "Nothing has been saved yet. Check each change, then confirm.", record: "Record", field: "Field", old: "Before", new: "After",
+      reason: "Reason (optional)", confirm: "Confirm {n} changes", saved: "{n} changes saved" },
     price: { title: "Price Book", desc: "Supplier prices from your spreadsheets, with the full history", sub: "Sample prices. Crews never see this page.",
       upload: "Upload price file", item: "Item", unit: "Unit", cost: "Cost", price: "Selling price", changed: "Last change",
       uploads: "Uploads", counts: "{a} new · {c} changed · {s} unchanged", rollback: "Roll back", rolledBack: "Rolled back", rollbackDone: "Upload rolled back",
@@ -348,7 +422,7 @@ const I18N = {
       oppFromLead: "Oportunidad creada desde un prospecto del sitio web", leadAttached: "Pedido del sitio web agregado: «{msg}»",
       coSent: "Orden de cambio {id} enviada para firma", coSigned: "Orden de cambio {id} firmada", payment: "Pago registrado: {amount}",
       inspBooked: "Inspección agendada: {when}", changed: "Fechas cambiadas (antes: {was})", notified: "Se avisó al equipo por mensaje", gotIt: "El equipo confirmó el cambio",
-      workerAdded: "Trabajador extra agregado: {name}", workerRemoved: "Trabajador extra quitado: {name}" },
+      workerAdded: "Trabajador extra agregado: {name}", workerRemoved: "Trabajador extra quitado: {name}", noteImported: "Nota importada de Notas de Apple" },
     accounts: { sub: "Clientes y compañías con las que trabaja", new: "Cuenta nueva", people: "Personas", companies: "Compañías",
       counts: "Trabajos: {jobs} · Abiertas: {open}", since: "Cliente desde {y}", contacts: "Contactos", properties: "Propiedades",
       details: "Detalles", fromNotes: "Importado de Notas de Apple", noDetails: "No hay notas de este cliente.", type: "Tipo de cuenta" },
@@ -425,6 +499,73 @@ const I18N = {
     method: { check: "Cheque", cash: "Efectivo", card: "Tarjeta", other: "Otro" },
     unit: { bundle: "bulto", roll: "rollo", pail: "cubeta", each: "pieza", box: "caja", sheet: "hoja" },
     admin: { sub: "Ajustes y herramientas para el administrador" },
+    reports: { sub: "Números de ejemplo. Cada gráfica tiene su tabla y cada reporte se exporta a una hoja de cálculo.",
+      revChart: "Ingresos por mes, últimos seis meses", leadChart: "Prospectos por origen, últimos 90 días", seeNumbers: "Ver los números",
+      leadTip: "{n} prospectos · {c} convertidos ({p})", list: "Reportes listos", sample: "Estos son números de ejemplo para la demostración.",
+      export: "Exportar", exported: "Archivo de hoja de cálculo descargado", asOfToday: "Al día de hoy.", noRows: "No hay nada en este periodo.",
+      rangeM: "Este mes", rangeQ: "Últimos 3 meses", rangeY: "Este año", age0: "0 a 30 días", age31: "31 a 60 días", age60: "más de 60 días",
+      cSource: "Origen", cLeads: "Prospectos", cConverted: "Convertidos", cRate: "Porcentaje", cMonth: "Mes", cMedian: "Tiempo típico al primer contacto", cWithin2h: "En menos de 2 horas",
+      cType: "Tipo de trabajo", cSent: "Propuestas enviadas", cSigned: "Firmadas", cOther: "Otros", cInvoice: "Factura", cAge: "Antigüedad", cJobsDone: "Trabajos terminados", cWorkDays: "Días de trabajo",
+      cValue: "Valor", cSupplier: "Proveedor", cBefore: "Antes", cNow: "Ahora", cChange: "Cambio",
+      leadsBySource: "Prospectos por origen", leadsBySourceD: "Qué orígenes de verdad traen trabajo",
+      responseTime: "Tiempo de respuesta a prospectos", responseTimeD: "Desde que llega el pedido hasta la primera llamada o mensaje",
+      closeRate: "Tasa de cierre", closeRateD: "Propuestas firmadas contra propuestas enviadas, por tipo de trabajo",
+      revenue: "Ingresos por mes", revenueD: "Por mes y tipo de trabajo",
+      unpaid: "Facturas sin pagar", unpaidD: "Saldos pendientes según la antigüedad de la factura",
+      jobsPerCrew: "Trabajos terminados por equipo", jobsPerCrewD: "Trabajos terminados y días de trabajo de cada equipo",
+      lostReasons: "Motivos de pérdida", lostReasonsD: "Por qué se perdieron oportunidades y cuánto valían",
+      priceChanges: "Cambios de precio", priceChangesD: "Costos de proveedores que cambiaron, los mayores primero, según el historial de la lista de precios" },
+    dash: { revLast: "Ingresos de {month}", vs: "contra {month}", jobsWeek: "Trabajos esta semana", inspections: "Inspecciones abiertas" },
+    status: { title: "Estado del sistema", desc: "Respaldos, el servidor y el último archivo de precios", sub: "Una revisión rápida de que la app y sus respaldos están bien.",
+      ok: "Bien", backup: "Respaldo nocturno", backupWhen: "Última vez: hoy, 1:12 am", priceUpload: "Último archivo de precios", more: "Más",
+      ssd: "Discos SSD en espejo", ssdD: "Historial completo, guardado en la oficina", cloud: "OneDrive", cloudD: "Historial completo, guardado fuera del edificio",
+      usb: "Memoria USB", usbD: "Fotos y facturas como archivos que la Mac puede abrir", restore: "Última prueba de restauración: {d}", runNow: "Respaldar ahora", started: "Respaldo iniciado (demo)",
+      app: "La app", address: "Dirección web", server: "Servidor", serverD: "Windows 11 Pro", users: "Usuarios", records: "Registros", recordsD: "{a} cuentas · {j} trabajos · {l} prospectos" },
+    users: { title: "Usuarios y permisos", desc: "Quién puede entrar, su perfil y sus permisos adicionales", sub: "Cada usuario tiene un perfil. Los permisos adicionales se suman.",
+      shared: "usuario compartido", n_admin: "Administrador", n_office: "Oficina", n_owner: "Dueño", user: "Usuario", profile: "Perfil", sets: "Permisos adicionales", everything: "Todo",
+      profiles: "Qué permite cada perfil", sees: "Puede ver", does: "Puede hacer", cannot: "No puede",
+      adminSees: "Todo", adminDoes: "Todo, además de usuarios, permisos, automatizaciones, importaciones y el editor de datos", adminCannot: "—",
+      officeSees: "Todos los prospectos, cuentas, oportunidades, trabajos, la agenda, propuestas, facturas y reportes",
+      officeDoes: "Crear y editar registros, convertir prospectos, agendar, enviar propuestas y facturas, registrar pagos", officeCannot: "Administrar usuarios, cambiar ajustes, borrar registros",
+      crewSees: "Solo los trabajos programados para su equipo, con todo lo necesario para terminarlos: cliente, trabajo a realizar, fotos, precio, órdenes de cambio, depósitos, factura y saldo pendiente",
+      crewDoes: "Llamar, enviar mensajes, ver la ruta, empezar y terminar un trabajo, anotar trabajadores extra, agregar fotos, registrar un pago que cobren, confirmar cambios",
+      crewCannot: "Ver los costos o márgenes de H & L, la lista de precios, prospectos, trabajos de otros equipos, reportes o el panel",
+      rules: "Reglas para todos los usuarios", rule1: "La oficina y el administrador tienen cada quien su usuario, así el historial muestra quién cambió qué.",
+      rule2: "Cada equipo comparte un usuario. El historial muestra el equipo, no la persona.", rule3: "Los registros borrados van a una papelera por 30 días. Solo el administrador la vacía.",
+      rule4: "El teléfono de un equipo queda con la sesión abierta 30 días, así nadie escribe una contraseña en un techo." },
+    role3: { admin: "Administrador", office: "Oficina", crew: "Equipo" },
+    pset: { priceBook: "Administrar lista de precios", billing: "Facturación", dataEditor: "Editor de datos", crewLead: "Encargado de equipo", costs: "Ver costos y márgenes", inspector: "Inspector" },
+    psetD: { priceBook: "Subir archivos de precios, ver y exportar el historial de precios", billing: "Crear y enviar facturas, registrar y corregir pagos",
+      dataEditor: "Usar el editor de datos para cambios individuales y en grupo", crewLead: "Ver la agenda de todo el equipo, marcar un trabajo como terminado, agregar notas al trabajo",
+      costs: "Ver los costos de proveedores y el margen de H & L. Para quien pone precio a los trabajos", inspector: "Ver inspecciones que nadie ha tomado y agendarlas" },
+    auto: { title: "Automatizaciones", desc: "Automatizaciones listas, con interruptor de encendido y apagado", sub: "Cada una hace una sola tarea. Se enciende o se apaga; no hay nada que dibujar ni programar.",
+      always: "Siempre encendida", off: "Apagada", history: "Lo que se ejecutó últimamente", turnedOn: "Encendida", turnedOff: "Apagada",
+      h1: "El pedido de Mina Seo se asignó a la oficina", h2: "El trabajo #26-104 se marcó como Cambió y se preparó el mensaje para el equipo",
+      h3: "Se agregó «Dar seguimiento a Anjali Raman» a Hoy", h4: "Se envió por correo el resumen semanal a los dueños",
+      route: "Asignar prospecto nuevo", routeD: "Cuando llega un prospecto: aplica las reglas de asignación y avisa a quien le tocó.",
+      remind: "Recordatorio de prospecto sin contactar", remindD: "Un prospecto que sigue Nuevo después de 2 horas hábiles: le recuerda a la oficina. Después de 1 día: avisa al dueño.",
+      convert: "Convertir prospecto", convertD: "El botón Convertir: crea la cuenta, el contacto, la propiedad y la oportunidad en un solo paso.",
+      followUp: "Seguimiento de propuesta", followUpD: "Una propuesta sin respuesta después de 7 días: agrega «Dar seguimiento a…» a Hoy.",
+      signed: "Propuesta firmada", signedD: "Cuando se firma una propuesta: crea el trabajo con el mismo número y agrega «Programar este trabajo» a Hoy.",
+      changed: "Cita cambiada", changedD: "Cuando cambian las fechas o el equipo de un trabajo programado: lo marca como Cambió y prepara el mensaje para el equipo.",
+      jobDone: "Trabajo terminado", jobDoneD: "Cuando un trabajo se marca como terminado: prepara la factura con la propuesta firmada y sus órdenes de cambio, y avisa a quien factura.",
+      overdue: "Factura vencida", overdueD: "A los 15 y 30 días de enviada una factura: la pone en la lista de vencidas. El correo de recordatorio al cliente está apagado.",
+      review: "Pedir reseña", reviewD: "Cuando se paga una factura: envía un correo de agradecimiento con el enlace para la reseña en Google. Apagada hasta que se apruebe el texto.",
+      weekly: "Resumen semanal", weeklyD: "Lunes por la mañana: envía a los dueños por correo los prospectos, trabajos, ingresos y el total sin pagar de la semana pasada." },
+    imp: { title: "Importar Notas de Apple", desc: "Pasar diez años de notas a los Detalles de cada cliente, con un paso de revisión",
+      sub: "La app lee cada nota y propone a qué cliente pertenece. Nada se agrega hasta que alguien lo acepta.",
+      read: "Notas leídas", matched: "Con cliente propuesto", review: "Por revisar", aside: "Apartadas: usuarios y contraseñas",
+      asideNote: "Las notas que parecen usuarios o contraseñas se apartan automáticamente. Nunca se importan ni se muestran aquí.",
+      queue: "Cola de revisión", left: "quedan {n} de {of} en este ejemplo", acceptAll: "Aceptar todas las propuestas",
+      pNew: "Crear una cuenta nueva", pMatch: "Agregar a", byPhone: "mismo teléfono", pNone: "No se encontró cliente. Se puede guardar como nota sin cliente, que igual se puede buscar.",
+      pPersonal: "Parece personal. Sugerencia: omitir.", accept: "Aceptar", skip: "Omitir", keep: "Guardar sin cliente",
+      did_accept: "Agregada a los Detalles del cliente", did_skip: "Omitida", did_keep: "Guardada sin cliente" },
+    ed: { title: "Editor de datos", desc: "Cambiar campos de la base de datos, uno o varios a la vez, con una revisión antes de guardar",
+      sub: "Los cambios quedan en espera, sin guardarse, hasta que los revise y confirme. Cada cambio queda registrado y se puede deshacer.",
+      review: "Revisar {n} cambios", fix: "Primero corrija los campos en rojo. Un teléfono necesita 10 dígitos y el nombre no puede quedar vacío.",
+      discard: "Descartar los cambios en espera", audit: "Registro de cambios", setLine: "{n} cambios", undone: "Deshecho", undo: "Deshacer", noAudit: "Todavía no hay cambios.",
+      reviewHint: "Todavía no se ha guardado nada. Revise cada cambio y luego confirme.", record: "Registro", field: "Campo", old: "Antes", new: "Después",
+      reason: "Motivo (opcional)", confirm: "Confirmar {n} cambios", saved: "{n} cambios guardados" },
     price: { title: "Lista de precios", desc: "Precios de proveedores de sus hojas de cálculo, con todo el historial", sub: "Precios de ejemplo. Los equipos nunca ven esta página.",
       upload: "Subir archivo de precios", item: "Artículo", unit: "Unidad", cost: "Costo", price: "Precio de venta", changed: "Último cambio",
       uploads: "Archivos subidos", counts: "{a} nuevos · {c} cambiados · {s} sin cambio", rollback: "Deshacer", rolledBack: "Deshecho", rollbackDone: "Se deshizo el archivo",
@@ -620,6 +761,7 @@ function render() {
   let arg = decodeURIComponent(rest.join("/"));
   if (!allowed(name)) { name = tabsFor(S.role)[0]; arg = ""; history.replaceState(null, "", "#" + name); }
   const r = ROUTES[name];
+  document.querySelectorAll(".tooltip").forEach(el => el.remove());      // a tooltip left over from the last screen
   renderChrome(typeof r.tab === "function" ? r.tab() : (r.tab || name));
   $("#view").innerHTML = r.render(arg) + `<p class="text-center text-body-secondary small mt-4 mb-0">${tt("demo")}</p>`;
   document.documentElement.lang = S.lang;
@@ -756,7 +898,7 @@ const ACCOUNTS = [
 const OPPS = [
   { id: "26-124", acct: "A8", prop: "P8", type: "replacement", stage: "inspection", src: "referral", created: ago(2), insp: { day: wd(1), time: "10:00" },
     lines: [["Measure for a full roof replacement", null], ["Check attic ventilation", null]], total: 0 },
-  { id: "26-109", acct: "A4", prop: "P4", type: "gutters", stage: "proposal", src: "web", created: ago(8), sentOn: ago(3),
+  { id: "26-109", acct: "A4", prop: "P4", type: "gutters", stage: "proposal", src: "web", created: ago(12), sentOn: ago(8),
     lines: [["Remove old gutters", 2340], ["Install 6″ seamless aluminum gutters, 142 ft", null], ["Gutter guards on the front", null]], total: 2340 },
   { id: "26-125", acct: "A3", prop: "P3b", type: "repair", stage: "proposal", src: "contractor", created: ago(2), sentOn: ago(1), laborOnly: false,
     lines: [["Gutter cleaning and minor shingle repair", 875]], total: 875 },
@@ -1200,14 +1342,14 @@ const TILES = [
   () => ({ v: JOBS.filter(j => j.stage === "inprogress").length, l: t("today.inProgress"), to: "#jobs", f: ["jobs", "inprogress"] }),
   () => { const u = JOBS.filter(j => j.stage === "invoiced"); return { v: money(u.reduce((s, j) => s + balance(j), 0)), l: t("today.unpaid") + " · " + u.length, to: "#jobs", f: ["jobs", "invoiced"], alert: true }; }
 ];
-const tilesRow = () => `<div class="row row-cols-2 row-cols-md-4 g-2 mb-3">` + TILES.map(fn => fn()).map(x =>
+const tilesRow = () => `<div class="row row-cols-2 row-cols-md-5 g-2 mb-3">` + TILES.map(fn => fn()).map(x =>
   `<div class="col"><a href="${x.to}" class="card h-100 text-decoration-none shadow-sm" data-act="tile" data-name="${x.f[0]}" data-value="${x.f[1]}" data-to="${x.to}">` +
   `<div class="card-body p-3"><div class="fs-4 fw-bold${x.alert ? " text-danger" : ""}">${x.v}</div><div class="small text-body-secondary">${esc(x.l)}</div></div></a></div>`).join("") + `</div>`;
 ACT.tile = (d, el, e) => { e.preventDefault(); S.f[d.name] = d.value; go(d.to); };
 
 // things that need someone's attention. Later parts of the script add more.
 const ATTENTION = [
-  () => OPPS.filter(o => o.stage === "proposal" && daysSince(o.sentOn) >= 3).map(o => ({ icon: "mail", href: "#opp/" + o.id, text: t("today.followUp", { name: acct(o.acct).name, n: daysSince(o.sentOn) }) })),
+  () => OPPS.filter(o => o.stage === "proposal" && daysSince(o.sentOn) >= 7).map(o => ({ icon: "mail", href: "#opp/" + o.id, text: t("today.followUp", { name: acct(o.acct).name, n: daysSince(o.sentOn) }) })),
   () => JOBS.filter(j => j.stage === "signed").map(j => ({ icon: "schedule", href: "#job/" + j.id, text: t("today.scheduleJob", { id: j.id, name: acct(j.acct).name }) })),
   () => JOBS.filter(j => j.stage === "invoiced" && j.invoice && daysSince(j.invoice.d) >= 7).map(j => ({ icon: "dollar", href: "#job/" + j.id, text: t("today.unpaidSince", { name: acct(j.acct).name, n: daysSince(j.invoice.d) }) }))
 ];
@@ -1632,7 +1774,8 @@ route("admin", {
     return pageHead(tt("nav.admin"), tt("admin.sub")) + `<div class="row row-cols-1 row-cols-md-2 g-3">` + ADMIN_PAGES.map(p =>
       `<div class="col"><a class="card h-100 shadow-sm text-decoration-none" href="#admin/${p.id}"><div class="card-body d-flex gap-3 align-items-start">` +
       `<span class="text-primary fs-4 lh-1">${ic(p.icon)}</span><div><div class="fw-semibold">${tt(p.title)}</div><div class="small text-body-secondary">${tt(p.desc)}</div></div></div></a></div>`).join("") + `</div>`;
-  }
+  },
+  after(arg) { const pg = ADMIN_PAGES.find(p => p.id === arg); if (pg && pg.after) pg.after(); }
 });
 
 /* ------------------------------ PRICE BOOK ------------------------------ */
@@ -1922,7 +2065,7 @@ ATTENTION.push(() => JOBS.filter(j => j.changed && !j.changed.seen).map(j => ({ 
 function workersEditor(j) {
   const free = HELPERS.filter(h => !j.workers.includes(h));
   return `<div class="d-flex flex-wrap align-items-center gap-1">` + j.workers.map(w =>
-      `<span class="badge text-bg-secondary fw-normal d-inline-flex align-items-center gap-1">${esc(w)}<button type="button" class="btn-close btn-close-white" style="font-size:.55em" data-act="workerDel" data-id="${j.id}" data-w="${esc(w)}" aria-label="${tt("sched.removeWorker")}"></button></span>`).join("") +
+      `<span class="badge text-bg-secondary fw-normal d-inline-flex align-items-center gap-1">${esc(w)}<button type="button" class="btn btn-link btn-sm p-0 lh-1 text-reset text-decoration-none" data-act="workerDel" data-id="${j.id}" data-w="${esc(w)}" aria-label="${tt("sched.removeWorker")}">×</button></span>`).join("") +
     (free.length ? `<select class="form-select form-select-sm w-auto" data-change="workerAdd" data-id="${j.id}" aria-label="${tt("sched.addWorker")}"><option value="">+ ${tt("sched.addWorker")}</option>${free.map(h => `<option>${esc(h)}</option>`).join("")}</select>` : "") + `</div>`;
 }
 ACT.workerAdd = (d, el) => { if (!el.value) return; const j = jobOf(d.id); j.workers.push(el.value); addLog(j, "log.workerAdded", { name: el.value }); render(); };
@@ -1981,7 +2124,317 @@ route("myjobs", {
   }
 });
 
-/* ---------- start: show the first screen ---------- */
+/* =====================================================================
+   DASHBOARD AND REPORTS. The numbers are samples. Every chart has a
+   table behind it, and every report exports to a spreadsheet file.
+   Crews never see these screens.
+   ===================================================================== */
+
+/* ---------- sample numbers (made up) ---------- */
+const monthStart = n => new Date(TODAY.getFullYear(), TODAY.getMonth() - n, 1);        // the first of the month, n months back
+const fmtMonth = d => d.toLocaleDateString(loc(), { month: "long", year: "numeric" });
+// revenue for the last six complete months, oldest first: replacement, repair, gutters, siding, other
+const REV = [[16800, 9400, 4200, 3600, 2400], [17500, 10150, 4800, 3900, 2300], [19200, 11000, 5100, 4300, 1600],
+  [22400, 12300, 5600, 5200, 2400], [24800, 13100, 6400, 5400, 2600], [26300, 13900, 6700, 5600, 2600]]
+  .map((parts, i) => ({ d: monthStart(6 - i), parts, total: parts.reduce((a, b) => a + b, 0) }));
+const LEAD_SRC = [["web", 34, 19], ["referral", 18, 14], ["repeat", 11, 10], ["contractor", 9, 9], ["warranty", 6, 6]];   // source, leads, converted (last 90 days)
+
+/* ---------- charts ---------- */
+const compact = v => "$" + (v >= 1000 ? Math.round(v / 100) / 10 + "K" : v);
+const niceMax = v => { const p = Math.pow(10, Math.floor(Math.log10(v))); return [1, 1.5, 2, 3, 4, 5, 6, 8, 10].find(s => s >= v / p) * p; };
+// drawn at about the width it will show at, so the labels stay readable on a phone
+const chartWidth = () => (window.innerWidth >= 992 ? 450 : Math.max(280, Math.min(560, window.innerWidth - 66)));
+// columns: one amount per period. Only the newest and the highest column carry a number; the rest are on the axis and in the tooltip.
+function colChart(rows, label) {
+  const W = chartWidth(), H = 200, m = { l: 44, r: 8, t: 22, b: 24 }, top = Math.max(...rows.map(r => r.value)), max = niceMax(top);
+  const band = (W - m.l - m.r) / rows.length, bw = Math.min(24, band * 0.5), y0 = H - m.b, y = v => m.t + (y0 - m.t) * (1 - v / max);
+  const ink = 'font-size="11" fill="var(--bs-secondary-color)"';
+  let g = [0, max / 2, max].map(v => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--bs-border-color)"/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end" ${ink}>${compact(v)}</text>`).join("");
+  rows.forEach((r, i) => {
+    const x = m.l + band * i + (band - bw) / 2, yt = y(r.value), rad = Math.min(4, y0 - yt), hitTop = Math.max(0, yt - 16);
+    g += `<rect class="hl-hit" x="${m.l + band * i}" y="${hitTop}" width="${band}" height="${y0 - hitTop}" tabindex="0" data-bs-toggle="tooltip" data-bs-title="${esc(money(r.value) + " · " + r.tip)}"/>` +
+      `<path class="hl-mark" d="M${x},${y0}V${yt + rad}Q${x},${yt} ${x + rad},${yt}H${x + bw - rad}Q${x + bw},${yt} ${x + bw},${yt + rad}V${y0}Z"/>` +
+      `<text x="${x + bw / 2}" y="${y0 + 15}" text-anchor="middle" ${ink}>${esc(r.label)}</text>` +
+      (i === rows.length - 1 || r.value === top ? `<text x="${x + bw / 2}" y="${yt - 6}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--bs-body-color)">${compact(r.value)}</text>` : "");
+  });
+  return `<svg class="w-100" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">${g}</svg>`;
+}
+// ranked bars: one row per item, largest first, the number at the end of the bar (Bootstrap's progress bar)
+function rankBars(rows) {
+  const max = Math.max(...rows.map(r => r.value));
+  return rows.map(r => `<div class="row g-2 align-items-center small mb-2"><div class="col-6 col-sm-5 text-truncate">${esc(r.label)}</div><div class="col d-flex align-items-center gap-2">` +
+    `<div class="progress bg-transparent rounded-0" style="width:${Math.max(2, r.value / max * 82)}%" role="img" aria-label="${esc(r.label + ": " + r.value)}" tabindex="0" data-bs-toggle="tooltip" data-bs-title="${esc(r.tip)}">` +
+    `<div class="progress-bar rounded-end w-100"></div></div><span class="fw-semibold">${r.value}</span></div></div>`).join("");
+}
+const revChart = () => section(tt("reports.revChart"), colChart(REV.map(r => ({ label: r.d.toLocaleDateString(loc(), { month: "short" }), tip: fmtMonth(r.d), value: r.total })), t("reports.revChart")),
+  `<a class="small" href="#report/revenue">${tt("reports.seeNumbers")}</a>`);
+const leadChart = () => section(tt("reports.leadChart"), rankBars(LEAD_SRC.map(([k, n, c]) => ({ label: t("src." + k), value: n, tip: t("reports.leadTip", { n, c, p: pctOf(c, n) }) }))),
+  `<a class="small" href="#report/leadsBySource">${tt("reports.seeNumbers")}</a>`);
+const chartsRow = () => `<div class="row g-3"><div class="col-lg-6">${revChart()}</div><div class="col-lg-6">${leadChart()}</div></div>`;
+
+/* ---------- dashboard (the administrator's first screen) ---------- */
+route("dashboard", {
+  roles: ["admin"], icon: "dashboard",
+  render() {
+    const last = REV[5], prev = REV[4], p = pct(prev.total, last.total), week = JOBS.filter(j => j.days.some(d => d >= TODAY && d <= wd(4))).length;
+    const tile = (value, label, extra) => `<div class="col"><div class="card h-100 shadow-sm"><div class="card-body p-3"><div class="fs-4 fw-bold">${value}</div><div class="small text-body-secondary">${esc(label)}</div>${extra || ""}</div></div></div>`;
+    const up = UPLOADS.find(u => !u.rolled);
+    return pageHead(tt("nav.dashboard"), esc(fmtDay(TODAY))) + tilesRow() +
+      `<div class="row row-cols-1 row-cols-md-3 g-2 mb-3">` +
+      tile(money(last.total), t("dash.revLast", { month: fmtMonth(last.d) }), `<div class="small ${p >= 0 ? "text-success" : "text-danger"}">${p >= 0 ? "▲" : "▼"} ${pctText(p)} ${tt("dash.vs", { month: prev.d.toLocaleDateString(loc(), { month: "long" }) })}</div>`) +
+      tile(week, t("dash.jobsWeek")) + tile(OPPS.filter(o => o.stage === "inspection").length, t("dash.inspections")) + `</div>` +
+      chartsRow() +
+      section(tt("status.title"), dl([[tt("status.backup"), `${badge(t("status.ok"), "success")} ${tt("status.backupWhen")}`],
+        [tt("status.priceUpload"), up ? esc(up.file) + " · " + esc(fmtDate(up.d)) : tt("none")]]), `<a class="small" href="#admin/status">${tt("status.more")}</a>`) +
+      `<p class="small text-body-secondary">${tt("reports.sample")}</p>`;
+  }
+});
+
+/* ---------- reports ---------- */
+const RF = { m: 1, q: 3, y: 11 };          // how the sample numbers grow with the date range
+const pctOf = (a, b) => (b ? Math.round(a / b * 100) + "%" : "—");
+const ageBucket = n => t(n <= 30 ? "reports.age0" : n <= 60 ? "reports.age31" : "reports.age60");
+const REPORTS = [
+  { id: "leadsBySource", cols: ["reports.cSource", "reports.cLeads", "reports.cConverted", "reports.cRate"],
+    rows: f => [["web", 12, 7], ["referral", 6, 5], ["repeat", 4, 4], ["contractor", 3, 3], ["warranty", 2, 2]].map(([k, a, b]) => [t("src." + k), a * RF[f], b * RF[f], pctOf(b, a)]) },
+  { id: "responseTime", cols: ["reports.cMonth", "reports.cLeads", "reports.cMedian", "reports.cWithin2h"],
+    rows: f => [[27, "1 h 40 min", 74], [31, "2 h 05 min", 68], [24, "1 h 10 min", 79], [29, "3 h 20 min", 55], [22, "2 h 30 min", 64], [26, "1 h 55 min", 69]]
+      .slice(0, f === "m" ? 1 : f === "q" ? 3 : 6).map(([n, med, w], i) => [fmtMonth(monthStart(i + 1)), n, med, w + "%"]) },
+  { id: "closeRate", cols: ["reports.cType", "reports.cSent", "reports.cSigned", "reports.cRate"],
+    rows: f => [["replacement", 6, 3], ["repair", 14, 11], ["gutters", 5, 3], ["tpo", 2, 1], ["siding", 3, 2]].map(([k, a, b]) => [t("type." + k), a * RF[f], b * RF[f], pctOf(b, a)]) },
+  { id: "revenue", total: true, cols: ["reports.cMonth", "type.replacement", "type.repair", "type.gutters", "type.siding", "reports.cOther", "total"],
+    rows: f => { const list = REV.slice(f === "m" ? -1 : f === "q" ? -3 : 0).reverse(), sum = i => list.reduce((s, r) => s + r.parts[i], 0);
+      return [...list.map(r => [fmtMonth(r.d), ...r.parts.map(money), money(r.total)]), [t("total"), ...[0, 1, 2, 3, 4].map(i => money(sum(i))), money(list.reduce((s, r) => s + r.total, 0))]]; } },
+  { id: "unpaid", live: true, total: true, cols: ["customer", "reports.cInvoice", "reports.cSent", "reports.cAge", "money.balance"],
+    rows: () => { const u = JOBS.filter(j => j.stage === "invoiced" && balance(j) > 0).sort((a, b) => a.invoice.d - b.invoice.d);
+      return [...u.map(j => [acct(j.acct).name, "#" + j.id, fmtDate(j.invoice.d), ageBucket(daysSince(j.invoice.d)), money(balance(j))]), [t("total"), "", "", "", money(u.reduce((s, j) => s + balance(j), 0))]]; } },
+  { id: "jobsPerCrew", cols: ["crew", "reports.cJobsDone", "reports.cWorkDays"],
+    rows: f => CREWS.map((c, i) => [crewName(c) + " · " + c.lead, [9, 12][i] * RF[f], [19, 17][i] * RF[f]]) },
+  { id: "lostReasons", cols: ["opps.lostReason", "nav.opps", "reports.cValue"],
+    rows: f => [["price", 3, 24600], ["timing", 2, 9300], ["noresponse", 2, 4150], ["other", 1, 1200]].map(([k, n, v]) => [t("lost." + k), n * RF[f], money(v * RF[f])]) },
+  { id: "priceChanges", cols: ["price.item", "reports.cSupplier", "reports.cBefore", "reports.cNow", "reports.cChange"],
+    rows: f => { const from = ago({ m: 30, q: 90, y: 365 }[f]);
+      return PRICE.map(it => { const before = [...it.hist].reverse().find(h => h.d <= from) || it.hist[0]; return { it, before: before.cost, p: pct(before.cost, it.cost) }; })
+        .filter(x => x.p !== 0).sort((a, b) => Math.abs(b.p) - Math.abs(a.p)).map(x => [x.it.name, x.it.supplier, money(x.before), money(x.it.cost), pctText(x.p)]); } }
+];
+const reportRange = () => S.f.range || "q";
+
+route("reports", {
+  roles: ["admin", "office"], icon: "reports",
+  render() {
+    return pageHead(tt("nav.reports"), tt("reports.sub")) + chartsRow() +
+      `<h2 class="h6 mt-2 mb-2">${tt("reports.list")}</h2><div class="list-group shadow-sm mb-3">` + REPORTS.map(r =>
+        `<a class="list-group-item list-group-item-action d-flex align-items-center gap-2" href="#report/${r.id}"><div class="flex-grow-1"><div class="fw-semibold">${tt("reports." + r.id)}</div><div class="small text-body-secondary">${tt("reports." + r.id + "D")}</div></div><span class="text-body-secondary">›</span></a>`).join("") +
+      `</div><p class="small text-body-secondary">${tt("reports.sample")}</p>`;
+  }
+});
+route("report", {
+  roles: ["admin", "office"], tab: "reports",
+  render(id) {
+    const r = REPORTS.find(x => x.id === id); if (!r) return empty(t("notFound"));
+    const rows = r.rows(reportRange());
+    return backLink("#reports", t("nav.reports")) +
+      pageHead(tt("reports." + r.id), tt("reports." + r.id + "D"), `<button type="button" class="btn btn-outline-secondary btn-sm text-nowrap" data-act="csv" data-id="${r.id}">${ic("download")} ${tt("reports.export")}</button>`) +
+      (r.live ? `<p class="small text-body-secondary">${tt("reports.asOfToday")}</p>` : pills("range", reportRange(), [["m", t("reports.rangeM")], ["q", t("reports.rangeQ")], ["y", t("reports.rangeY")]])) +
+      `<div class="card shadow-sm mb-3"><div class="table-responsive"><table class="table table-sm table-striped align-middle small mb-0"><thead><tr>` +
+      r.cols.map((c, i) => `<th class="${i ? "text-end" : "ps-3"}${i === r.cols.length - 1 ? " pe-3" : ""}">${tt(c)}</th>`).join("") + `</tr></thead><tbody>` +
+      (rows.length ? rows.map((row, n) => `<tr class="${r.total && n === rows.length - 1 ? "fw-bold" : ""}">` + row.map((c, i) => `<td class="${i ? "text-end text-nowrap" : "ps-3"}${i === row.length - 1 ? " pe-3" : ""}">${esc(c)}</td>`).join("") + `</tr>`).join("")
+        : `<tr><td colspan="${r.cols.length}" class="text-center text-body-secondary py-3">${tt("reports.noRows")}</td></tr>`) +
+      `</tbody></table></div></div><p class="small text-body-secondary">${tt("reports.sample")}</p>`;
+  }
+});
+// Export: a real .csv file that Excel and Numbers open
+ACT.csv = d => {
+  const r = REPORTS.find(x => x.id === d.id), cell = c => { const s = String(c); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const text = "﻿" + [r.cols.map(c => t(c)), ...r.rows(reportRange())].map(row => row.map(cell).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" })); a.download = "h-and-l-" + r.id + ".csv";
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast(t("reports.exported"));
+};
+
+/* =====================================================================
+   ADMIN PAGES: users and permission sets, automations, the Apple Notes
+   import queue, the data editor and system status.
+   ===================================================================== */
+
+/* ------------------------------ USERS AND PERMISSIONS ------------------------------ */
+// One profile per user sets the baseline. Permission sets are add-ons.
+const PSETS = ["priceBook", "billing", "dataEditor", "crewLead", "costs", "inspector"];
+const USERS = [
+  { id: "admin", profile: "admin", sets: [] },
+  { id: "office", profile: "office", sets: ["billing", "priceBook"] },
+  { id: "owner", profile: "office", sets: ["billing", "priceBook", "dataEditor", "inspector"] },
+  { id: "c1", profile: "crew", sets: ["crewLead"] },
+  { id: "c2", profile: "crew", sets: ["crewLead"] }
+];
+const userName = u => (CREWS.some(c => c.id === u.id) ? crewName(crewOf(u.id)) + " · " + tt("users.shared") : tt("users.n_" + u.id));
+ADMIN_PAGES.push({
+  id: "users", icon: "accounts", title: "users.title", desc: "users.desc",
+  render() {
+    const prof = p => section(tt("role3." + p), dl([[tt("users.sees"), tt("users." + p + "Sees")], [tt("users.does"), tt("users." + p + "Does")], [tt("users.cannot"), tt("users." + p + "Cannot")]]));
+    return pageHead(tt("users.title"), tt("users.sub")) +
+      `<div class="card shadow-sm mb-3"><div class="table-responsive"><table class="table align-middle small mb-0"><thead><tr><th class="ps-3">${tt("users.user")}</th><th>${tt("users.profile")}</th><th>${tt("users.sets")}</th><th></th></tr></thead><tbody>` +
+      USERS.map(u => `<tr><td class="ps-3 fw-semibold">${userName(u)}</td><td>${badge(t("role3." + u.profile), u.profile === "admin" ? "primary" : "secondary")}</td>` +
+        `<td>${u.profile === "admin" ? `<span class="text-body-secondary">${tt("users.everything")}</span>` : u.sets.map(s => badge(t("pset." + s), "info")).join(" ") || `<span class="text-body-secondary">${tt("none")}</span>`}</td>` +
+        `<td class="text-end pe-3">${u.profile === "admin" ? "" : `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="userEdit" data-id="${u.id}">${ic("edit")} ${tt("docs.edit")}</button>`}</td></tr>`).join("") +
+      `</tbody></table></div></div>` +
+      `<h2 class="h6 mt-4 mb-2">${tt("users.profiles")}</h2><div class="row g-3"><div class="col-lg-4">${prof("admin")}</div><div class="col-lg-4">${prof("office")}</div><div class="col-lg-4">${prof("crew")}</div></div>` +
+      section(tt("users.rules"), `<ul class="small mb-0 ps-3"><li>${tt("users.rule1")}</li><li>${tt("users.rule2")}</li><li>${tt("users.rule3")}</li><li>${tt("users.rule4")}</li></ul>`);
+  }
+});
+ACT.userEdit = d => {
+  const u = USERS.find(x => x.id === d.id);
+  openModal(modalShell(userName(u), `<p class="small text-body-secondary">${tt("users.profile")}: ${tt("role3." + u.profile)}</p>` + PSETS.map(s =>
+    `<div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" role="switch" id="ps_${s}"${u.sets.includes(s) ? " checked" : ""}>` +
+    `<label class="form-check-label" for="ps_${s}"><span class="fw-semibold">${tt("pset." + s)}</span><br><span class="small text-body-secondary">${tt("psetD." + s)}</span></label></div>`).join(""),
+    cancelBtn() + `<button type="button" class="btn btn-primary" data-act="userSave" data-id="${u.id}">${tt("save")}</button>`));
+};
+ACT.userSave = d => { const u = USERS.find(x => x.id === d.id); u.sets = PSETS.filter(s => document.getElementById("ps_" + s).checked); closeModal(); toast(t("saved")); render(); };
+
+/* ------------------------------ AUTOMATIONS ------------------------------ */
+// Ready-made automations with an on/off switch. "always" cannot be turned off.
+const AUTOS = [
+  { id: "route", on: true }, { id: "remind", on: true }, { id: "convert", on: "always" }, { id: "followUp", on: true }, { id: "signed", on: "always" },
+  { id: "changed", on: true }, { id: "jobDone", on: true }, { id: "overdue", on: true }, { id: "review", on: false }, { id: "weekly", on: true }
+];
+ADMIN_PAGES.push({
+  id: "automations", icon: "bell", title: "auto.title", desc: "auto.desc",
+  render() {
+    return pageHead(tt("auto.title"), tt("auto.sub")) + `<div class="list-group shadow-sm mb-3">` + AUTOS.map(a =>
+      `<div class="list-group-item d-flex gap-3 align-items-start"><div class="form-check form-switch mt-1"><input class="form-check-input" type="checkbox" role="switch" id="au_${a.id}"${a.on ? " checked" : ""}${a.on === "always" ? " disabled" : ""} data-change="autoToggle" data-id="${a.id}" aria-label="${tt("auto." + a.id)}"></div>` +
+      `<div class="flex-grow-1"><label class="fw-semibold" for="au_${a.id}">${tt("auto." + a.id)}</label> ${a.on === "always" ? badge(t("auto.always"), "secondary") : a.on ? "" : badge(t("auto.off"), "secondary")}` +
+      `<div class="small text-body-secondary">${tt("auto." + a.id + "D")}</div></div></div>`).join("") + `</div>` +
+      section(tt("auto.history"), `<ul class="list-unstyled small mb-0">` + [["route", "auto.h1", 3], ["changed", "auto.h2", 26], ["followUp", "auto.h3", 30], ["weekly", "auto.h4", 50]].map(([id, key, hrs]) =>
+        `<li class="border-bottom py-1"><span class="text-body-secondary">${esc(timeAgo(hoursAgo(hrs)))} · ${tt("auto." + id)}</span> — ${tt(key)}</li>`).join("") + `</ul>`);
+  }
+});
+ACT.autoToggle = (d, el) => { AUTOS.find(a => a.id === d.id).on = el.checked; toast(t(el.checked ? "auto.turnedOn" : "auto.turnedOff")); render(); };
+
+/* ------------------------------ APPLE NOTES IMPORT ------------------------------ */
+// The app reads each note, proposes the customer it belongs to, and waits for someone to accept, change or skip.
+// Notes that look like logins or passwords are set aside automatically and never imported.
+const NOTES_IN = { read: 2609, matched: 1270, review: 1204, aside: 135 };
+const QUEUE = [
+  { id: "n1", d: new Date(2022, 5, 14), text: "Otis Fenwick\n3518 Semmes Ave\nRichmond VA 23225\nGUTTERS\n38,22,14 frente\n3 bajantes\n$1,150.00", kind: "new", name: "Otis Fenwick", addr: "3518 Semmes Ave", city: "Richmond VA 23225" },
+  { id: "n2", d: new Date(2023, 2, 9), text: "Sra. Camila Restrepo\n9207 Jahnke Rd\nREPARACION\nCambiar 2 paipas de 3\nSellar alrededor de la chimenea\n$380.00", kind: "new", name: "Camila Restrepo", addr: "9207 Jahnke Rd", city: "Richmond VA 23235" },
+  { id: "n3", d: new Date(2019, 9, 2), text: "Terrence Oakes\n(804) 555-0127\nLimpiar gutters y revisar el techo\n$180.00", kind: "acct", acct: "A2" },
+  { id: "n4", d: new Date(2024, 3, 22), text: "Lista de material\n14 bd de ridge\n6 rollos de felt\n2 cajas de clavos", kind: "none" },
+  { id: "n5", d: new Date(2021, 7, 3), text: "Cumpleaños de la abuela\nComprar el pastel\nLlamar a la tía", kind: "personal" }
+];
+function queueCard(n) {
+  const proposal = n.kind === "new" ? `${ic("plus")} ${tt("imp.pNew")}: <span class="fw-semibold">${esc(n.name)}</span>, ${esc(n.addr)}`
+    : n.kind === "acct" ? `${ic("link")} ${tt("imp.pMatch")}: <a href="#account/${n.acct}">${esc(acct(n.acct).name)}</a> (${tt("imp.byPhone")})`
+    : n.kind === "none" ? `${ic("alert")} ${tt("imp.pNone")}` : `${ic("user")} ${tt("imp.pPersonal")}`;
+  const btn = (how, label, main) => `<button type="button" class="btn btn-sm ${main ? "btn-primary" : "btn-outline-secondary"}" data-act="impDo" data-id="${n.id}" data-how="${how}">${esc(label)}</button>`;
+  const btns = n.done ? badge(t("imp.did_" + n.done), n.done === "skip" ? "secondary" : "success")
+    : (n.kind === "new" || n.kind === "acct" ? btn("accept", t("imp.accept"), true) + btn("skip", t("imp.skip"))
+      : n.kind === "none" ? btn("keep", t("imp.keep"), true) + btn("skip", t("imp.skip")) : btn("skip", t("imp.skip"), true) + btn("keep", t("imp.keep")));
+  return `<div class="card shadow-sm mb-3"><div class="card-body"><div class="row g-3"><div class="col-md-6"><div class="small text-body-secondary mb-1">${esc(fmtDate(n.d))}</div>` +
+    `<pre class="hl-pre small bg-body-tertiary border rounded p-2 mb-0">${esc(n.text)}</pre></div>` +
+    `<div class="col-md-6 d-flex flex-column"><div class="small mb-2">${proposal}</div><div class="d-flex flex-wrap gap-2 mt-auto">${btns}</div></div></div></div></div>`;
+}
+ADMIN_PAGES.push({
+  id: "imports", icon: "upload", title: "imp.title", desc: "imp.desc",
+  render() {
+    const tile = (v, l, tone) => `<div class="col"><div class="card h-100 shadow-sm"><div class="card-body p-3"><div class="fs-4 fw-bold${tone ? " text-" + tone : ""}">${v.toLocaleString("en-US")}</div><div class="small text-body-secondary">${esc(l)}</div></div></div></div>`;
+    const left = QUEUE.filter(n => !n.done).length;
+    return pageHead(tt("imp.title"), tt("imp.sub")) +
+      `<div class="row row-cols-2 row-cols-md-4 g-2 mb-3">${tile(NOTES_IN.read, t("imp.read"))}${tile(NOTES_IN.matched, t("imp.matched"))}${tile(NOTES_IN.review, t("imp.review"))}${tile(NOTES_IN.aside, t("imp.aside"), "danger")}</div>` +
+      `<div class="alert alert-warning small">${ic("shield")} ${tt("imp.asideNote")}</div>` +
+      `<div class="d-flex align-items-center gap-2 mb-2"><h2 class="h6 mb-0 flex-grow-1">${tt("imp.queue")} <span class="text-body-secondary fw-normal">${tt("imp.left", { n: left, of: QUEUE.length })}</span></h2>` +
+      (QUEUE.some(n => !n.done && (n.kind === "new" || n.kind === "acct")) ? `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="impAll">${ic("check")} ${tt("imp.acceptAll")}</button>` : "") + `</div>` +
+      QUEUE.map(queueCard).join("");
+  }
+});
+function importNote(n, how) {
+  n.done = how;
+  if (how !== "accept") return;
+  const title = n.text.split("\n")[0], note = { title, d: n.d, text: n.text };
+  if (n.kind === "acct") { const a = acct(n.acct); a.details.push(note); addLog(a, "log.noteImported"); return; }
+  const k = ACCOUNTS.length + 1;
+  const a = { id: "A" + k, name: n.name, type: "person", kind: "homeowner", lang: "es", since: n.d.getFullYear(), contacts: [{ name: n.name, role: "owner", phone: "", email: "" }],
+    props: [{ id: "P" + k, addr: n.addr, city: n.city, lat: 37.52, lng: -77.47 }], details: [note] };
+  ACCOUNTS.push(a); addLog(a, "log.noteImported"); n.acct = a.id;
+}
+ACT.impDo = d => { importNote(QUEUE.find(n => n.id === d.id), d.how); toast(t("imp.did_" + d.how)); render(); };
+ACT.impAll = () => { QUEUE.filter(n => !n.done && (n.kind === "new" || n.kind === "acct")).forEach(n => importNote(n, "accept")); toast(t("imp.did_accept")); render(); };
+
+/* ------------------------------ DATA EDITOR ------------------------------ */
+// Edits are held, reviewed, confirmed, logged, and can be undone. Nothing is written until Confirm.
+let HELD = {};                 // "A1.phone" -> new value
+const AUDIT = [];              // confirmed change sets
+const ED_FIELDS = ["name", "phone", "email", "lang"];
+const edGet = (a, f) => (f === "name" ? a.name : f === "lang" ? a.lang : a.contacts[0][f]);
+const edSet = (a, f, v) => { if (f === "name") a.name = v; else if (f === "lang") a.lang = v; else a.contacts[0][f] = v; };
+const edShow = (f, v) => (f === "lang" ? t("langName." + v) : v || "—");
+const edBad = (f, v) => (f === "phone" && v && digitsOf(v).length !== 10) || (f === "name" && !v.trim());
+const edCls = key => (!(key in HELD) ? "" : edBad(key.split(".")[1], HELD[key]) ? " is-invalid" : " border-warning bg-warning-subtle");
+function edRefresh() {            // update the button and warnings without redrawing the table, so typing is not interrupted
+  const n = Object.keys(HELD).length, bad = Object.entries(HELD).some(([k, v]) => edBad(k.split(".")[1], v));
+  $("#edReviewText").textContent = t("ed.review", { n }); $("#edReviewBtn").disabled = !n || bad;
+  $("#edFix").classList.toggle("d-none", !bad); $("#edDiscard").classList.toggle("d-none", !n);
+}
+ADMIN_PAGES.push({
+  id: "editor", icon: "edit", title: "ed.title", desc: "ed.desc", after: edRefresh,
+  render() {
+    const cell = (a, f) => { const key = a.id + "." + f, v = key in HELD ? HELD[key] : edGet(a, f);
+      return f === "lang" ? `<select class="form-select form-select-sm${edCls(key)}" data-change="edChange" data-key="${key}" aria-label="${tt("leads.language")}">${["en", "es"].map(l => `<option value="${l}"${l === v ? " selected" : ""}>${tt("langName." + l)}</option>`).join("")}</select>`
+        : `<input class="form-control form-control-sm${edCls(key)}" value="${esc(v)}" data-input="edChange" data-key="${key}" aria-label="${tt(f)}">`; };
+    return pageHead(tt("ed.title"), tt("ed.sub"), `<button type="button" class="btn btn-primary btn-sm text-nowrap" id="edReviewBtn" data-act="edReview">${ic("check")} <span id="edReviewText"></span></button>`) +
+      `<div class="alert alert-danger py-2 small d-none" id="edFix">${tt("ed.fix")}</div>` +
+      `<div class="card shadow-sm mb-3"><div class="table-responsive"><table class="table table-sm align-middle small mb-0"><thead><tr><th class="ps-3">${tt("name")}</th><th>${tt("phone")}</th><th>${tt("email")}</th><th class="pe-3">${tt("leads.language")}</th></tr></thead><tbody>` +
+      ACCOUNTS.map(a => `<tr>${ED_FIELDS.map((f, i) => `<td class="${i === 0 ? "ps-3" : i === 3 ? "pe-3" : ""}">${cell(a, f)}</td>`).join("")}</tr>`).join("") + `</tbody></table></div></div>` +
+      `<button type="button" class="btn btn-link btn-sm p-0 mb-3 d-none" id="edDiscard" data-act="edClear">${tt("ed.discard")}</button>` +
+      section(tt("ed.audit"), AUDIT.length ? `<ul class="list-unstyled small mb-0">` + AUDIT.map(s =>
+        `<li class="border-bottom py-2 d-flex gap-2 align-items-start"><div class="flex-grow-1"><span class="text-body-secondary">${esc(fmtDay(s.d))} · ${esc(whoName(s.w))}</span> — ${tt("ed.setLine", { n: s.changes.length })}${s.reason ? ` · “${esc(s.reason)}”` : ""}<br>` +
+        s.changes.map(c => `${esc(c.name)} · ${tt(c.f === "lang" ? "leads.language" : c.f)}: ${esc(edShow(c.f, c.old))} → <span class="fw-semibold">${esc(edShow(c.f, c.val))}</span>`).join("<br>") + `</div>` +
+        (s.undone ? badge(t("ed.undone"), "secondary") : `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="edUndo" data-id="${s.id}">${ic("undo")} ${tt("ed.undo")}</button>`) + `</li>`).join("") + `</ul>`
+        : `<div class="small text-body-secondary">${tt("ed.noAudit")}</div>`);
+  }
+});
+ACT.edChange = (d, el) => {
+  const [id, f] = d.key.split("."), a = acct(id);
+  if (el.value === edGet(a, f)) delete HELD[d.key]; else HELD[d.key] = el.value;
+  el.className = (f === "lang" ? "form-select form-select-sm" : "form-control form-control-sm") + edCls(d.key);
+  edRefresh();
+};
+ACT.edClear = () => { HELD = {}; render(); };
+const heldList = () => Object.entries(HELD).map(([k, val]) => { const [id, f] = k.split("."), a = acct(id); return { id, f, name: a.name, old: edGet(a, f), val }; });
+ACT.edReview = () => {
+  const list = heldList();
+  openModal(modalShell(tt("ed.review", { n: list.length }),
+    `<p class="small text-body-secondary">${tt("ed.reviewHint")}</p><table class="table table-sm small"><thead><tr><th>${tt("ed.record")}</th><th>${tt("ed.field")}</th><th>${tt("ed.old")}</th><th>${tt("ed.new")}</th></tr></thead><tbody>` +
+    list.map(c => `<tr><td>${esc(c.name)}</td><td>${tt(c.f === "lang" ? "leads.language" : c.f)}</td><td class="text-body-secondary">${esc(edShow(c.f, c.old))}</td><td class="fw-semibold">${esc(edShow(c.f, c.val))}</td></tr>`).join("") + `</tbody></table>` +
+    field(t("ed.reason"), `<input class="form-control" id="edReason" autocomplete="off">`),
+    cancelBtn() + `<button type="button" class="btn btn-primary" data-act="edConfirm">${ic("check")} ${tt("ed.confirm", { n: list.length })}</button>`), "lg");
+};
+ACT.edConfirm = () => {
+  const changes = heldList();
+  changes.forEach(c => edSet(acct(c.id), c.f, c.val));
+  AUDIT.unshift({ id: "S" + (AUDIT.length + 1), d: new Date(), w: me(), reason: val("edReason"), changes });
+  HELD = {}; closeModal(); toast(t("ed.saved", { n: changes.length })); render();
+};
+ACT.edUndo = d => { const s = AUDIT.find(x => x.id === d.id); s.changes.forEach(c => edSet(acct(c.id), c.f, c.old)); s.undone = true; toast(t("ed.undone")); render(); };
+
+/* ------------------------------ SYSTEM STATUS ------------------------------ */
+ADMIN_PAGES.push({
+  id: "status", icon: "shield", title: "status.title", desc: "status.desc",
+  render() {
+    const ok = badge(t("status.ok"), "success"), up = UPLOADS.find(u => !u.rolled);
+    const copy = (name, what) => `<div class="list-group-item d-flex gap-2 align-items-start"><div class="flex-grow-1"><div class="fw-semibold">${tt(name)}</div><div class="small text-body-secondary">${tt(what)}</div></div>${ok}</div>`;
+    return pageHead(tt("status.title"), tt("status.sub")) +
+      section(tt("status.backup"), `<p class="small mb-2">${ok} ${tt("status.backupWhen")}</p><div class="list-group list-group-flush">${copy("status.ssd", "status.ssdD")}${copy("status.cloud", "status.cloudD")}${copy("status.usb", "status.usbD")}</div>` +
+        `<div class="small text-body-secondary mt-2">${tt("status.restore", { d: fmtDate(ago(19)) })}</div>`,
+        `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="backupNow">${tt("status.runNow")}</button>`) +
+      section(tt("status.app"), dl([[tt("status.address"), "app.handlroofers.com"], [tt("status.server"), tt("status.serverD")], [tt("status.priceUpload"), up ? esc(up.file) + " · " + esc(fmtDate(up.d)) : tt("none")],
+        [tt("status.users"), String(USERS.length)], [tt("status.records"), tt("status.recordsD", { a: ACCOUNTS.length, j: JOBS.length, l: LEADS.length })]]));
+  }
+});
+ACT.backupNow = () => toast(t("status.started"));
+
+/* ---------- start ---------- */
+new bootstrap.Tooltip(document.body, { selector: '[data-bs-toggle="tooltip"]' });   // Bootstrap tooltips on chart bars
 render();
 </script>
 </body>
