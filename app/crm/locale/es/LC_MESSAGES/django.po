@@ -1,0 +1,1190 @@
+# The Spanish wording of the H & L Roofers CRM.
+#
+# Each label has two lines: msgid is the English in the code, msgstr is the Spanish shown on screen.
+# To change a Spanish word, edit the msgstr line, then run:  python manage.py spanish
+# (The free program Poedit can edit this file too.)
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: hl-roofers-crm\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Not allowed"
+msgstr "No permitido"
+
+msgid "This page is for the administrator."
+msgstr "Esta página es solo para el administrador."
+
+msgid "Back to the first page"
+msgstr "Volver a la primera página"
+
+msgid "Not found"
+msgstr "No se encontró"
+
+msgid "That page or record was not found."
+msgstr "No se encontró esa página o ese registro."
+
+msgid "Admin site"
+msgstr "Sitio de administración"
+
+msgid "Sign out"
+msgstr "Cerrar sesión"
+
+msgid "More"
+msgstr "Más"
+
+msgid "Close"
+msgstr "Cerrar"
+
+msgid "Call"
+msgstr "Llamar"
+
+msgid "Text"
+msgstr "Mensaje"
+
+msgid "Directions"
+msgstr "Cómo llegar"
+
+msgid "Customer"
+msgstr "Cliente"
+
+msgid "Site contact"
+msgstr "Contacto en el lugar"
+
+msgid "Property"
+msgstr "Propiedad"
+
+msgid "Phone"
+msgstr "Teléfono"
+
+msgid "Email"
+msgstr "Correo"
+
+msgid "None"
+msgstr "Ninguno"
+
+msgid "No history yet."
+msgstr "Nada todavía."
+
+msgid "Pages"
+msgstr "Páginas"
+
+msgid "Previous"
+msgstr "Anterior"
+
+msgid "Page %(number)s of %(total)s"
+msgstr "Página %(number)s de %(total)s"
+
+msgid "Next"
+msgstr "Siguiente"
+
+msgid "Accounts"
+msgstr "Cuentas"
+
+msgid "Customer since %(year)s"
+msgstr "Cliente desde %(year)s"
+
+msgid "Edit"
+msgstr "Editar"
+
+msgid "New opportunity"
+msgstr "Oportunidad nueva"
+
+msgid "Contacts"
+msgstr "Contactos"
+
+msgid "Add"
+msgstr "Agregar"
+
+msgid "main contact"
+msgstr "contacto principal"
+
+msgid "Properties"
+msgstr "Propiedades"
+
+msgid "Details"
+msgstr "Detalles"
+
+msgid "No notes yet."
+msgstr "Todavía no hay notas."
+
+msgid "Add a note"
+msgstr "Agregar una nota"
+
+msgid "Save the note"
+msgstr "Guardar la nota"
+
+msgid "Opportunities"
+msgstr "Oportunidades"
+
+msgid "Jobs"
+msgstr "Trabajos"
+
+msgid "History"
+msgstr "Historial"
+
+msgid "Every customer: people and companies."
+msgstr "Todos los clientes: personas y compañías."
+
+msgid "New account"
+msgstr "Cuenta nueva"
+
+msgid "Jobs: %(jobs)s · Open opportunities: %(open)s"
+msgstr "Trabajos: %(jobs)s · Oportunidades abiertas: %(open)s"
+
+msgid "No accounts yet. Add the first one with New account."
+msgstr "Todavía no hay cuentas. Agregue la primera con Cuenta nueva."
+
+msgid "Back"
+msgstr "Volver"
+
+msgid "A customer with the same phone, email or address is already in the app:"
+msgstr "Ya hay un cliente en la app con el mismo teléfono, correo o dirección:"
+
+msgid "This is a different customer: create the new account anyway"
+msgstr "Es un cliente distinto: crear la cuenta nueva de todos modos"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Already on the schedule"
+msgstr "Ya en la agenda"
+
+msgid "Nothing is scheduled yet."
+msgstr "Todavía no hay nada programado."
+
+msgid "Today"
+msgstr "Hoy"
+
+msgid "Proposals out"
+msgstr "Propuestas enviadas"
+
+msgid "Jobs to schedule"
+msgstr "Trabajos por programar"
+
+msgid "Jobs in progress"
+msgstr "Trabajos en progreso"
+
+msgid "Unpaid invoices"
+msgstr "Facturas sin pagar"
+
+msgid "Today's work"
+msgstr "Trabajo de hoy"
+
+msgid "Nothing is scheduled for today."
+msgstr "No hay nada programado hoy."
+
+msgid "Needs attention"
+msgstr "Requiere atención"
+
+msgid "All clear. Nothing is waiting on you."
+msgstr "No hay nada pendiente."
+
+msgid "Confirm"
+msgstr "Confirmar"
+
+msgid "Add %(count)s notes to the Details of the customers the app found?"
+msgstr "¿Agregar %(count)s notas a los Detalles de los clientes que la app encontró?"
+
+msgid "Create the accounts for %(count)s notes and add each note to its customer's Details?"
+msgstr "¿Crear las cuentas de %(count)s notas y agregar cada nota a los Detalles de su cliente?"
+
+msgid "Keep %(count)s notes as unlinked notes? Search will still find them."
+msgstr "¿Guardar %(count)s notas sin cliente? Buscar las seguirá encontrando."
+
+msgid "Skip %(count)s notes? Their text is removed from the app. They stay in Apple Notes."
+msgstr "¿Omitir %(count)s notas? Su texto se borra de la app. Siguen en Notas de Apple."
+
+msgid "This changes many records at once and cannot be undone here."
+msgstr "Esto cambia muchos registros a la vez y no se puede deshacer aquí."
+
+msgid "Review the imported notes"
+msgstr "Revisar las notas importadas"
+
+msgid "The note"
+msgstr "La nota"
+
+msgid "Keep unlinked"
+msgstr "Guardar sin cliente"
+
+msgid "Skip"
+msgstr "Omitir"
+
+msgid "Add to an existing customer"
+msgstr "Agregar a un cliente que ya existe"
+
+msgid "Add to this customer"
+msgstr "Agregar a este cliente"
+
+msgid "Name, address or phone"
+msgstr "Nombre, dirección o teléfono"
+
+msgid "Search"
+msgstr "Buscar"
+
+msgid "Nothing found."
+msgstr "Sin resultados."
+
+msgid "Create a new account"
+msgstr "Crear una cuenta nueva"
+
+msgid "This is what the app read from the note. Correct it before you create the account."
+msgstr "Esto es lo que la app leyó de la nota. Corríjalo antes de crear la cuenta."
+
+msgid "Create the account and add the note"
+msgstr "Crear la cuenta y agregar la nota"
+
+msgid "Admin"
+msgstr "Administración"
+
+msgid "Done so far: %(accepted)s accepted · %(unlinked)s kept unlinked · %(skipped)s skipped"
+msgstr "Hasta ahora: %(accepted)s aceptadas · %(unlinked)s guardadas sin cliente · %(skipped)s omitidas"
+
+msgid "Folder"
+msgstr "Carpeta"
+
+msgid "All folders"
+msgstr "Todas las carpetas"
+
+msgid "Tick all on this page"
+msgstr "Marcar todas las de esta página"
+
+msgid "Which notes"
+msgstr "Cuáles notas"
+
+msgid "The ticked notes"
+msgstr "Las notas marcadas"
+
+msgid "All %(count)s notes in this list"
+msgstr "Las %(count)s notas de esta lista"
+
+msgid "Accept"
+msgstr "Aceptar"
+
+msgid "Look for customers again"
+msgstr "Buscar clientes otra vez"
+
+msgid "Accept adds the note to the Details of the customer shown."
+msgstr "Aceptar agrega la nota a los Detalles del cliente que se muestra."
+
+msgid "Accept creates the account from what the app read, then adds the note. Notes of the same customer go to the same account."
+msgstr "Aceptar crea la cuenta con lo que la app leyó y luego agrega la nota. Las notas del mismo cliente van a la misma cuenta."
+
+msgid "The app found no customer in these notes. Open a note to choose one, keep it unlinked (Search still finds it), or skip it."
+msgstr "La app no encontró un cliente en estas notas. Abra una nota para elegir uno, guárdela sin cliente (Buscar igual la encuentra) u omítala."
+
+msgid "These have no address, phone or work words. Skipping removes the note's text from the app."
+msgstr "Estas no tienen dirección, teléfono ni palabras de trabajo. Al omitir una nota, su texto se borra de la app."
+
+msgid "same phone"
+msgstr "mismo teléfono"
+
+msgid "same email"
+msgstr "mismo correo"
+
+msgid "same address"
+msgstr "misma dirección"
+
+msgid "same name"
+msgstr "mismo nombre"
+
+msgid "The app read"
+msgstr "La app leyó"
+
+msgid "no name: the address is used as the name"
+msgstr "sin nombre: se usa la dirección como nombre"
+
+msgid "Show the note"
+msgstr "Ver la nota"
+
+msgid "Open the note"
+msgstr "Abrir la nota"
+
+msgid "Nothing is waiting in this list."
+msgstr "No hay nada pendiente en esta lista."
+
+msgid "For the administrator only."
+msgstr "Solo para el administrador."
+
+msgid "Logins, crews and records"
+msgstr "Usuarios, equipos y registros"
+
+msgid "Add or change logins, crews and workers, or correct a record, in the admin site."
+msgstr "En el sitio de administración puede agregar o cambiar usuarios, equipos y trabajadores, o corregir un registro."
+
+msgid "Open the admin site"
+msgstr "Abrir el sitio de administración"
+
+msgid "Import Apple Notes"
+msgstr "Importar Notas de Apple"
+
+msgid "Notes that look like logins or passwords are counted and thrown away. They are never stored."
+msgstr "Las notas que parecen usuarios o contraseñas se cuentan y se descartan. Nunca se guardan."
+
+msgid "Notes in the folders you list under Folders to leave out are counted and thrown away too."
+msgstr "Las notas de las carpetas que escriba en Carpetas que no se importan también se cuentan y se descartan."
+
+msgid "Nothing is added to a customer until you accept it in the review queue."
+msgstr "No se agrega nada a un cliente hasta que usted lo acepte en la lista de revisión."
+
+msgid "Uploading the same file twice does not import a note twice."
+msgstr "Subir el mismo archivo dos veces no importa una nota dos veces."
+
+msgid "Read the file"
+msgstr "Leer el archivo"
+
+msgid "Files read so far"
+msgstr "Archivos leídos hasta ahora"
+
+msgid "Review all waiting notes"
+msgstr "Revisar todas las notas pendientes"
+
+msgid "File"
+msgstr "Archivo"
+
+msgid "Notes read"
+msgstr "Notas leídas"
+
+msgid "Logins and passwords, not stored"
+msgstr "Usuarios y contraseñas, sin guardar"
+
+msgid "Empty"
+msgstr "Vacías"
+
+msgid "Already imported"
+msgstr "Ya importadas"
+
+msgid "To review"
+msgstr "Por revisar"
+
+msgid "Accepted"
+msgstr "Aceptadas"
+
+msgid "Unlinked"
+msgstr "Sin cliente"
+
+msgid "Skipped"
+msgstr "Omitidas"
+
+msgid "Review"
+msgstr "Revisar"
+
+msgid "No file has been read yet."
+msgstr "Todavía no se ha leído ningún archivo."
+
+msgid "My Jobs"
+msgstr "Mis trabajos"
+
+msgid "Schedule"
+msgstr "Programar"
+
+msgid "%(action)s?"
+msgstr "¿%(action)s?"
+
+msgid "Change the schedule"
+msgstr "Cambiar la programación"
+
+msgid "New warranty job"
+msgstr "Trabajo de garantía nuevo"
+
+msgid "Crew and dates"
+msgstr "Equipo y fechas"
+
+msgid "Crew"
+msgstr "Equipo"
+
+msgid "Lead"
+msgstr "Encargado"
+
+msgid "Extra workers"
+msgstr "Trabajadores extra"
+
+msgid "When"
+msgstr "Cuándo"
+
+msgid "%(days)s work days"
+msgstr "%(days)s días de trabajo"
+
+msgid "Not scheduled yet"
+msgstr "Sin programar"
+
+msgid "Numbers"
+msgstr "Números"
+
+msgid "Our number"
+msgstr "Número de H & L"
+
+msgid "Outside number"
+msgstr "Número externo"
+
+msgid "Change the outside number"
+msgstr "Cambiar el número externo"
+
+msgid "Scope of work"
+msgstr "Trabajo a realizar"
+
+msgid "Price"
+msgstr "Precio"
+
+msgid "Warranty job: no charge."
+msgstr "Trabajo de garantía: sin costo."
+
+msgid "Job price"
+msgstr "Precio del trabajo"
+
+msgid "Labor only: the customer supplies the materials."
+msgstr "Solo mano de obra: el cliente pone los materiales."
+
+msgid "Invoice sent"
+msgstr "Factura enviada"
+
+msgid "Paid"
+msgstr "Pagado"
+
+msgid "Linked records"
+msgstr "Registros relacionados"
+
+msgid "Opportunity #%(number)s"
+msgstr "Oportunidad #%(number)s"
+
+msgid "Warranty for job #%(number)s"
+msgstr "Garantía del trabajo #%(number)s"
+
+msgid "Warranty job #%(number)s"
+msgstr "Trabajo de garantía #%(number)s"
+
+msgid "The work side. A job starts when its proposal is signed and keeps the same number."
+msgstr "El lado del trabajo. Un trabajo empieza cuando se firma su propuesta y conserva el mismo número."
+
+msgid "This login is not linked to a crew yet. Ask the administrator."
+msgstr "Este usuario todavía no está ligado a un equipo. Pregunte al administrador."
+
+msgid "Coming up"
+msgstr "Próximos"
+
+msgid "Finished"
+msgstr "Terminados"
+
+msgid "Labor only"
+msgstr "Solo mano de obra"
+
+msgid "Lost because"
+msgstr "Por qué se perdió"
+
+msgid "Enter the proposal"
+msgstr "Escribir la propuesta"
+
+msgid "Mark lost"
+msgstr "Marcar perdida"
+
+msgid "Mark signed"
+msgstr "Marcar firmada"
+
+msgid "Change the proposal"
+msgstr "Cambiar la propuesta"
+
+msgid "Open job #%(number)s"
+msgstr "Abrir trabajo #%(number)s"
+
+msgid "New opportunity for this customer"
+msgstr "Oportunidad nueva para este cliente"
+
+msgid "Inspection"
+msgstr "Inspección"
+
+msgid "No inspection date yet."
+msgstr "Todavía no hay fecha de inspección."
+
+msgid "Change the date"
+msgstr "Cambiar la fecha"
+
+msgid "Set the date"
+msgstr "Poner la fecha"
+
+msgid "Proposal"
+msgstr "Propuesta"
+
+msgid "Nothing written yet."
+msgstr "Todavía no hay nada escrito."
+
+msgid "No price yet. Enter the proposal after the inspection."
+msgstr "Todavía no tiene precio. Escriba la propuesta después de la inspección."
+
+msgid "Sent on"
+msgstr "Enviada el"
+
+msgid "Signed on"
+msgstr "Firmada el"
+
+msgid "Where it came from"
+msgstr "De dónde vino"
+
+msgid "The sales side: inspection, proposal, then won or lost. To start one, open the customer and choose New opportunity."
+msgstr "El lado de ventas: inspección, propuesta y luego ganada o perdida. Para empezar una, abra el cliente y elija Oportunidad nueva."
+
+msgid "Searches the jobs scheduled to your crew: name, address, phone, job number."
+msgstr "Busca en los trabajos programados para su equipo: nombre, dirección, teléfono, número de trabajo."
+
+msgid "Name, address, phone typed any way, job number, or a word from the notes."
+msgstr "Nombre, dirección, teléfono escrito de cualquier forma, número de trabajo o una palabra de las notas."
+
+msgid "From the notes"
+msgstr "De las notas"
+
+msgid "close spelling"
+msgstr "se escribe parecido"
+
+msgid "Only the first 25 are shown. Type more to narrow it down."
+msgstr "Solo se muestran los primeros 25. Escriba más para reducir la lista."
+
+msgid "Sign in"
+msgstr "Entrar"
+
+msgid "The user name or the password is not right. Try again."
+msgstr "El usuario o la contraseña no es correcto. Intente de nuevo."
+
+msgid "User name"
+msgstr "Usuario"
+
+msgid "Password"
+msgstr "Contraseña"
+
+msgid "Forgot your password? Ask the administrator to reset it."
+msgstr "¿Olvidó su contraseña? Pida al administrador que la cambie."
+
+msgid "Who it is"
+msgstr "Quién es"
+
+msgid "H & L profile"
+msgstr "Perfil de H & L"
+
+msgid "Dates"
+msgstr "Fechas"
+
+msgid "Workers who help on this job. They have no login; this records who worked."
+msgstr "Trabajadores que ayudan en este trabajo. No tienen usuario; aquí se anota quién trabajó."
+
+msgid "Pick a work day, Monday to Friday."
+msgstr "Elija un día de trabajo, de lunes a viernes."
+
+msgid "Type of account"
+msgstr "Tipo de cuenta"
+
+msgid "Name"
+msgstr "Nombre"
+
+msgid "Language"
+msgstr "Idioma"
+
+msgid "The customer's language. Texts to them start in this language."
+msgstr "El idioma del cliente. Los mensajes para el cliente empiezan en este idioma."
+
+msgid "Street address"
+msgstr "Dirección"
+
+msgid "City"
+msgstr "Ciudad"
+
+msgid "State"
+msgstr "Estado"
+
+msgid "ZIP"
+msgstr "Código postal"
+
+msgid "Note"
+msgstr "Nota"
+
+msgid "What is it for?"
+msgstr "¿Para qué es?"
+
+msgid "Day"
+msgstr "Día"
+
+msgid "Time"
+msgstr "Hora"
+
+msgid "How was it signed?"
+msgstr "¿Cómo se firmó?"
+
+msgid "Reason"
+msgstr "Motivo"
+
+msgid "How many work days"
+msgstr "Cuántos días de trabajo"
+
+msgid "What is the problem?"
+msgstr "¿Cuál es el problema?"
+
+msgid "The notes export file"
+msgstr "El archivo exportado de las notas"
+
+msgid "The .json file exported from Apple Notes."
+msgstr "El archivo .json exportado de Notas de Apple."
+
+msgid "Folders to leave out"
+msgstr "Carpetas que no se importan"
+
+msgid "Apple Notes folders that are never imported, separated by commas. Their notes are counted, not stored."
+msgstr "Carpetas de Notas de Apple que nunca se importan, separadas por comas. Sus notas se cuentan, no se guardan."
+
+msgid "Enter the price."
+msgstr "Escriba el precio."
+
+msgid "Say what the proposal covers."
+msgstr "Escriba qué incluye la propuesta."
+
+msgid "Enter a number of days from 1 to 60."
+msgstr "Escriba un número de días del 1 al 60."
+
+msgid "Pick the kind of number."
+msgstr "Elija el tipo de número."
+
+msgid "Enter a name or a street address for the new account."
+msgstr "Escriba un nombre o una dirección para la cuenta nueva."
+
+msgid "Tick at least one note first."
+msgstr "Primero marque al menos una nota."
+
+msgid "%(count)s notes added to customers' Details."
+msgstr "%(count)s notas agregadas a los Detalles de los clientes."
+
+msgid "%(count)s notes kept as unlinked notes."
+msgstr "%(count)s notas guardadas sin cliente."
+
+msgid "%(count)s notes skipped."
+msgstr "%(count)s notas omitidas."
+
+msgid "Checked again: %(count)s notes moved to another list."
+msgstr "Se revisó otra vez: %(count)s notas pasaron a otra lista."
+
+msgid "%(count)s notes have no name or address to make an account from. Open them to choose a customer."
+msgstr "%(count)s notas no tienen nombre ni dirección para crear una cuenta. Ábralas para elegir un cliente."
+
+msgid "Kept as an unlinked note"
+msgstr "Guardada sin cliente"
+
+msgid "The note was skipped"
+msgstr "Se omitió la nota"
+
+msgid "The file was read. Review the notes below."
+msgstr "Se leyó el archivo. Revise las notas abajo."
+
+msgid "No file arrived. A file larger than 25 MB is refused."
+msgstr "No llegó ningún archivo. No se aceptan archivos de más de 25 MB."
+
+msgid "New account created: %(name)s"
+msgstr "Cuenta nueva creada: %(name)s"
+
+msgid "Added to the Details of %(name)s"
+msgstr "Agregada a los Detalles de %(name)s"
+
+msgid "This file is not a notes export: it should hold a list of notes."
+msgstr "Este archivo no es una exportación de notas: debe tener una lista de notas."
+
+msgid "This file could not be read. Upload the .json file exported from Apple Notes."
+msgstr "No se pudo leer este archivo. Suba el archivo .json exportado de Notas de Apple."
+
+msgid "English"
+msgstr "Inglés"
+
+msgid "Spanish"
+msgstr "Español"
+
+msgid "Repair"
+msgstr "Reparación"
+
+msgid "Roof replacement"
+msgstr "Techo nuevo"
+
+msgid "Gutters"
+msgstr "Canaletas"
+
+msgid "Flat roof (TPO)"
+msgstr "Techo plano (TPO)"
+
+msgid "Siding"
+msgstr "Siding"
+
+msgid "Chimney"
+msgstr "Chimenea"
+
+msgid "Skylight"
+msgstr "Tragaluz"
+
+msgid "Metal roof"
+msgstr "Techo de metal"
+
+msgid "Soffit, fascia and trim"
+msgstr "Soffit, fascia y molduras"
+
+msgid "Warranty visit"
+msgstr "Visita de garantía"
+
+msgid "Other"
+msgstr "Otro"
+
+msgid "name"
+msgstr "nombre"
+
+msgid "crew lead"
+msgstr "encargado del equipo"
+
+msgid "phone"
+msgstr "teléfono"
+
+msgid "active"
+msgstr "activo"
+
+msgid "profile"
+msgstr "perfil"
+
+msgid "type of account"
+msgstr "tipo de cuenta"
+
+msgid "language"
+msgstr "idioma"
+
+msgid "customer since"
+msgstr "cliente desde"
+
+msgid "role"
+msgstr "rol"
+
+msgid "email"
+msgstr "correo"
+
+msgid "street address"
+msgstr "dirección"
+
+msgid "city"
+msgstr "ciudad"
+
+msgid "state"
+msgstr "estado"
+
+msgid "site contact"
+msgstr "contacto en el lugar"
+
+msgid "site contact's phone"
+msgstr "teléfono del contacto en el lugar"
+
+msgid "access notes"
+msgstr "notas de acceso"
+
+msgid "title"
+msgstr "título"
+
+msgid "text"
+msgstr "texto"
+
+msgid "date"
+msgstr "fecha"
+
+msgid "number"
+msgstr "número"
+
+msgid "type of work"
+msgstr "tipo de trabajo"
+
+msgid "stage"
+msgstr "etapa"
+
+msgid "where it came from"
+msgstr "de dónde vino"
+
+msgid "labor only"
+msgstr "solo mano de obra"
+
+msgid "what the proposal covers"
+msgstr "qué incluye la propuesta"
+
+msgid "price"
+msgstr "precio"
+
+msgid "inspection"
+msgstr "inspección"
+
+msgid "how it was signed"
+msgstr "cómo se firmó"
+
+msgid "reason"
+msgstr "motivo"
+
+msgid "scope of work"
+msgstr "trabajo a realizar"
+
+msgid "first day"
+msgstr "primer día"
+
+msgid "days"
+msgstr "días"
+
+msgid "kind of number"
+msgstr "tipo de número"
+
+msgid "outside number"
+msgstr "número externo"
+
+msgid "Called"
+msgstr "Llamada"
+
+msgid "Sent a text"
+msgstr "Mensaje de texto enviado"
+
+msgid "Opened directions"
+msgstr "Abrió la ruta"
+
+msgid "Account created"
+msgstr "Cuenta creada"
+
+msgid "Opportunity created"
+msgstr "Oportunidad creada"
+
+msgid "Proposal sent"
+msgstr "Propuesta enviada"
+
+msgid "Proposal signed"
+msgstr "Propuesta firmada"
+
+msgid "Marked lost"
+msgstr "Marcada como perdida"
+
+msgid "Inspection date set"
+msgstr "Se puso la fecha de la inspección"
+
+msgid "Proposal changed"
+msgstr "Propuesta cambiada"
+
+msgid "Job created from the signed proposal"
+msgstr "Trabajo creado al firmarse la propuesta"
+
+msgid "Warranty job opened"
+msgstr "Trabajo de garantía abierto"
+
+msgid "Warranty job #%(detail)s opened"
+msgstr "Se abrió el trabajo de garantía #%(detail)s"
+
+msgid "Put on the schedule"
+msgstr "Puesto en la agenda"
+
+msgid "Schedule changed"
+msgstr "Programación cambiada"
+
+msgid "Job started"
+msgstr "Trabajo empezado"
+
+msgid "Marked done"
+msgstr "Marcado como terminado"
+
+msgid "Paid in full"
+msgstr "Pagado por completo"
+
+msgid "Outside number changed"
+msgstr "Número externo actualizado"
+
+msgid "Note: %(detail)s"
+msgstr "Nota: %(detail)s"
+
+msgid "Note imported from Apple Notes"
+msgstr "Nota importada de Notas de Apple"
+
+msgid "crew"
+msgstr "equipo"
+
+msgid "crews"
+msgstr "equipos"
+
+msgid "Leave empty for an extra worker who helps on bigger jobs."
+msgstr "Déjelo vacío para un trabajador extra que ayuda en trabajos grandes."
+
+msgid "worker"
+msgstr "trabajador"
+
+msgid "workers"
+msgstr "trabajadores"
+
+msgid "Administrator"
+msgstr "Administrador"
+
+msgid "Office"
+msgstr "Oficina"
+
+msgid "Set this only for a crew's shared login."
+msgstr "Llénelo solo para el usuario compartido de un equipo."
+
+msgid "Homeowner"
+msgstr "Dueño de casa"
+
+msgid "Contractor"
+msgstr "Contratista"
+
+msgid "Home-warranty company"
+msgstr "Compañía de garantía"
+
+msgid "Property manager"
+msgstr "Administrador de propiedades"
+
+msgid "The year. An imported note with an older date moves it back."
+msgstr "El año. Una nota importada con fecha más vieja lo mueve hacia atrás."
+
+msgid "account"
+msgstr "cuenta"
+
+msgid "accounts"
+msgstr "cuentas"
+
+msgid "owner"
+msgstr "dueño"
+
+msgid "spouse"
+msgstr "cónyuge"
+
+msgid "office"
+msgstr "oficina"
+
+msgid "other"
+msgstr "otro"
+
+msgid "contact"
+msgstr "contacto"
+
+msgid "contacts"
+msgstr "contactos"
+
+msgid "Who to ask for at the house, when it is not the account's own contact."
+msgstr "Por quién preguntar en la casa, cuando no es el contacto de la cuenta."
+
+msgid "property"
+msgstr "propiedad"
+
+msgid "properties"
+msgstr "propiedades"
+
+msgid "Imported from Apple Notes"
+msgstr "Importado de Notas de Apple"
+
+msgid "Typed in the app"
+msgstr "Escrito en la app"
+
+msgid "note"
+msgstr "nota"
+
+msgid "notes"
+msgstr "notas"
+
+msgid "Won"
+msgstr "Ganada"
+
+msgid "Lost"
+msgstr "Perdida"
+
+msgid "Website form"
+msgstr "Formulario del sitio web"
+
+msgid "Referral"
+msgstr "Recomendación"
+
+msgid "Returning customer"
+msgstr "Cliente que regresa"
+
+msgid "Contractor request"
+msgstr "Pedido de contratista"
+
+msgid "on paper"
+msgstr "en papel"
+
+msgid "online, from the email link"
+msgstr "en línea, desde el enlace del correo"
+
+msgid "their approval or PO"
+msgstr "su aprobación u orden de compra"
+
+msgid "Went with a lower price"
+msgstr "Eligió un precio más bajo"
+
+msgid "Not doing the work now"
+msgstr "No hará el trabajo por ahora"
+
+msgid "Stopped answering"
+msgstr "Dejó de contestar"
+
+msgid "The customer supplies the materials."
+msgstr "El cliente pone los materiales."
+
+msgid "One line for each item."
+msgstr "Una línea por cada cosa."
+
+msgid "opportunity"
+msgstr "oportunidad"
+
+msgid "opportunities"
+msgstr "oportunidades"
+
+msgid "To schedule"
+msgstr "Por programar"
+
+msgid "Scheduled"
+msgstr "Programado"
+
+msgid "In progress"
+msgstr "En progreso"
+
+msgid "Done"
+msgstr "Terminado"
+
+msgid "PO"
+msgstr "Orden de compra"
+
+msgid "Claim"
+msgstr "Reclamo"
+
+msgid "Work order"
+msgstr "Orden de trabajo"
+
+msgid "extra workers"
+msgstr "trabajadores extra"
+
+msgid "job"
+msgstr "trabajo"
+
+msgid "jobs"
+msgstr "trabajos"
+
+msgid "No customer found"
+msgstr "No se encontró un cliente"
+
+msgid "Looks personal"
+msgstr "Parece personal"
+
+msgid "Added to the customer's Details"
+msgstr "Agregada a los Detalles del cliente"
+
+msgid "Pick the crew this login belongs to."
+msgstr "Elija el equipo de este usuario."
+
+msgid "Notes not linked to a customer"
+msgstr "Notas sin cliente"
+
+msgid "D, M j"
+msgstr "D, j M"
+
+msgid "Warranty"
+msgstr "Garantía"
+
+msgid "Signed"
+msgstr "Firmado"
+
+msgid "Opened"
+msgstr "Abierto"
+
+msgid "Type what the proposal covers, one line for each item, and the price. Saving marks the proposal as sent to the customer."
+msgstr "Escriba qué incluye la propuesta, una línea por cada cosa, y el precio. Al guardar, la propuesta queda marcada como enviada al cliente."
+
+msgid "The job gets whole work days, Monday to Friday. A job that needs more than one day continues on the next work day."
+msgstr "El trabajo ocupa días de trabajo completos, de lunes a viernes. Un trabajo de más de un día sigue el próximo día de trabajo."
+
+msgid "Edit the account"
+msgstr "Editar la cuenta"
+
+msgid "New contact"
+msgstr "Contacto nuevo"
+
+msgid "Edit the contact"
+msgstr "Editar el contacto"
+
+msgid "New property"
+msgstr "Propiedad nueva"
+
+msgid "Edit the property"
+msgstr "Editar la propiedad"
+
+msgid "Marking proposal #%(number)s as signed creates Job #%(number)s. It keeps the same number."
+msgstr "Al marcar la propuesta #%(number)s como firmada se crea el trabajo #%(number)s. Conserva el mismo número."
+
+msgid "Start job"
+msgstr "Empezar trabajo"
+
+msgid "Mark done"
+msgstr "Marcar terminado"
+
+msgid "Mark invoice sent"
+msgstr "Marcar factura enviada"
+
+msgid "Mark paid"
+msgstr "Marcar pagado"
+
+msgid "This opens a new warranty job linked to job #%(number)s. It has its own number and no charge."
+msgstr "Esto abre un trabajo de garantía nuevo, ligado al trabajo #%(number)s. Tiene su propio número y no tiene costo."
+
+msgid "Saved"
+msgstr "Guardado"
+
+msgid "Add the property first: the address where the work will be done."
+msgstr "Primero agregue la propiedad: la dirección donde se hará el trabajo."
+
+msgid "Signed: create the job"
+msgstr "Firmada: crear el trabajo"
+
+msgid "That step was already taken. Look at the job again."
+msgstr "Ese paso ya se hizo. Vuelva a ver el trabajo."
+
+msgid "The other company's number for this job: an insurance or warranty claim, a purchase order or a work order."
+msgstr "El número de la otra compañía para este trabajo: un reclamo de seguro o de garantía, una orden de compra o una orden de trabajo."
+
+msgid "Save"
+msgstr "Guardar"
+
+msgid "Opportunity #%(number)s created"
+msgstr "Oportunidad #%(number)s creada"
+
+msgid "Job #%(number)s created"
+msgstr "Trabajo #%(number)s creado"
+
+msgid "Warranty job #%(number)s created"
+msgstr "Trabajo de garantía #%(number)s creado"
+
+msgid "Follow up with %(name)s: the proposal was sent %(days)s days ago"
+msgstr "Dar seguimiento a %(name)s: la propuesta se envió hace %(days)s días"
+
+msgid "Schedule job #%(number)s for %(name)s"
+msgstr "Programar el trabajo #%(number)s de %(name)s"
+
+msgid "%(name)s: the invoice has been unpaid for %(days)s days"
+msgstr "%(name)s: la factura lleva %(days)s días sin pagar"
+
+msgid "%(count)s imported notes are waiting for review"
+msgstr "%(count)s notas importadas esperan revisión"
+
+msgid "All"
+msgstr "Todos"
+
+msgid "People"
+msgstr "Personas"
+
+msgid "Companies"
+msgstr "Compañías"
+
+msgid "Open"
+msgstr "Abiertos"
+
+msgid "year"
+msgstr "año"
+
+msgid "last number used"
+msgstr "último número usado"
+
+msgid "The last two digits: 26 for 2026."
+msgstr "Los dos últimos dígitos: 26 para 2026."
+
+msgid "The next opportunity or warranty job gets the number after this one."
+msgstr "La próxima oportunidad o trabajo de garantía recibe el número que sigue a este."
+
+msgid "number sequence"
+msgstr "secuencia de números"
+
+msgid "number sequences"
+msgstr "secuencias de números"

@@ -1,0 +1,94 @@
+/* =====================================================================
+   H & L styles. Everything else on the page is plain Bootstrap.
+   Part 1 swaps Bootstrap's blue for the H & L colors.
+   Part 2 is the handful of pieces Bootstrap does not have.
+   ===================================================================== */
+
+/* ---------- 1. H & L colors ---------- */
+:root {
+  --hl-navy: #1f3a5f;                 /* top bar */
+  --hl-accent: #b05a22;               /* buttons and highlights */
+}
+[data-bs-theme=light] {
+  --bs-primary: #b05a22;
+  --bs-primary-rgb: 176, 90, 34;
+  --bs-primary-text-emphasis: #6f3713;
+  --bs-primary-bg-subtle: #f6e3d4;
+  --bs-primary-border-subtle: #e7bf9f;
+  --bs-link-color: #24507f;
+  --bs-link-color-rgb: 36, 80, 127;
+  --bs-link-hover-color: #1a3a5c;
+  --bs-link-hover-color-rgb: 26, 58, 92;
+  --bs-body-bg: #f4f1ec;              /* warm paper background */
+  --bs-body-bg-rgb: 244, 241, 236;
+  --bs-focus-ring-color: rgba(176, 90, 34, .25);
+}
+[data-bs-theme=dark] {
+  --bs-primary: #e08a4c;
+  --bs-primary-rgb: 224, 138, 76;
+  --bs-primary-text-emphasis: #f0b07f;
+  --bs-primary-bg-subtle: #3a2a1f;
+  --bs-primary-border-subtle: #7a4a25;
+  --bs-link-color: #86b2ea;
+  --bs-link-color-rgb: 134, 178, 234;
+  --bs-link-hover-color: #a9c8f0;
+  --bs-link-hover-color-rgb: 169, 200, 240;
+  --bs-focus-ring-color: rgba(224, 138, 76, .3);
+}
+/* white cards, lists and boxes to type in, on the warm background (light theme only) */
+[data-bs-theme=light] .card { --bs-card-bg: #fff; }
+[data-bs-theme=light] .list-group { --bs-list-group-bg: #fff; }
+[data-bs-theme=light] .form-control, [data-bs-theme=light] .form-select, [data-bs-theme=light] .input-group-text,
+[data-bs-theme=light] .form-check-input:not(:checked) { background-color: #fff; }
+[data-bs-theme=dark] .card { --bs-card-bg: var(--bs-tertiary-bg); }
+.table { --bs-table-bg: transparent; }
+/* Bootstrap components that hard-code its blue */
+.btn-primary {
+  --bs-btn-color: #fff; --bs-btn-bg: #b05a22; --bs-btn-border-color: #b05a22;
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #974d1d; --bs-btn-hover-border-color: #8d481b;
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: #8d481b; --bs-btn-active-border-color: #844319;
+  --bs-btn-disabled-color: #fff; --bs-btn-disabled-bg: #b05a22; --bs-btn-disabled-border-color: #b05a22;
+  --bs-btn-focus-shadow-rgb: 176, 90, 34;
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--bs-primary); --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #b05a22; --bs-btn-hover-border-color: #b05a22;
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: #b05a22; --bs-btn-active-border-color: #b05a22;
+  --bs-btn-disabled-color: var(--bs-primary); --bs-btn-disabled-border-color: var(--bs-primary);
+  --bs-btn-focus-shadow-rgb: 176, 90, 34;
+}
+.nav-pills { --bs-nav-pills-link-active-bg: #b05a22; }
+.hl-side .nav, .hl-tabbar .nav { --bs-nav-link-color: var(--bs-body-color); --bs-nav-link-hover-color: var(--bs-primary); }
+.list-group { --bs-list-group-active-bg: #b05a22; --bs-list-group-active-border-color: #b05a22; }
+.dropdown-menu { --bs-dropdown-link-active-bg: #b05a22; }
+.form-check-input:checked { background-color: #b05a22; border-color: #b05a22; }
+.form-control:focus, .form-select:focus, .form-check-input:focus {
+  border-color: #d9a57f; box-shadow: 0 0 0 .25rem rgba(176, 90, 34, .25);
+}
+
+/* ---------- 2. Pieces Bootstrap does not have ---------- */
+/* brand bar */
+.hl-topbar { background: var(--hl-navy); }
+.hl-amp { color: #f0b07f; }
+.hl-tag { font-size: .62rem; letter-spacing: .04em; }
+/* page frame */
+.hl-side { width: 220px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.hl-main { max-width: 1000px; padding-bottom: 5.5rem; }    /* leaves room for the phone tab bar */
+@media (min-width: 992px) { .hl-main { padding-bottom: 2rem; } }
+.hl-minw0 { min-width: 0; }
+/* phone tab bar */
+.hl-tabbar { padding-bottom: env(safe-area-inset-bottom); }
+.hl-tabbar .nav-link { font-size: .7rem; font-weight: 600; color: var(--bs-secondary-color); }
+.hl-tabbar .nav-link.active { color: var(--bs-primary); }
+/* icons */
+.hl-ic { width: 1.15em; height: 1.15em; flex: none; vertical-align: -.2em; }
+.hl-tabbar .hl-ic, .hl-side .hl-ic { width: 1.35rem; height: 1.35rem; }
+/* notes keep their line breaks */
+.hl-pre { white-space: pre-wrap; }
+/* stage bar: one step per stage, from Inspection to Paid */
+.hl-stage { display: flex; gap: .25rem; overflow-x: auto; }
+.hl-stage > div { flex: 1; min-width: 4.4rem; text-align: center; font-size: .68rem; font-weight: 700; color: var(--bs-secondary-color); }
+.hl-stage > div::before { content: ""; display: block; height: .4rem; border-radius: 1rem; background: var(--bs-border-color); margin-bottom: .3rem; }
+.hl-stage > .done::before { background: var(--bs-success); }
+.hl-stage > .cur::before { background: var(--bs-primary); }
+.hl-stage > .cur { color: var(--bs-primary); }

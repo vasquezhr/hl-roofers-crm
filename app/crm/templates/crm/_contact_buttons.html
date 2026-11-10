@@ -1,0 +1,11 @@
+{% load i18n crm_tags %}
+{# Call, Text and Directions. data-touch makes hl.js add a line to the record's history. #}
+<div class="d-flex flex-wrap gap-2">
+  {% if phone %}
+  <a class="btn btn-outline-secondary{% if small %} btn-sm{% endif %}" href="{{ phone|tel }}" data-touch="call" data-kind="{{ kind }}" data-id="{{ ident }}">{% icon "phone" %} {% trans "Call" %}</a>
+  <a class="btn btn-outline-secondary{% if small %} btn-sm{% endif %}" href="{{ sms }}" data-touch="text" data-kind="{{ kind }}" data-id="{{ ident }}">{% icon "msg" %} {% trans "Text" %}</a>
+  {% endif %}
+  {% if place %}
+  <a class="btn btn-outline-secondary{% if small %} btn-sm{% endif %}" href="{{ place|maps_href }}" target="_blank" rel="noopener" data-touch="nav" data-kind="{{ kind }}" data-id="{{ ident }}">{% icon "nav" %} {% trans "Directions" %}</a>
+  {% endif %}
+</div>

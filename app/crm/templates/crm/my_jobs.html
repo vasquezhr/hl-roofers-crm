@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "My Jobs" %}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <h1 class="h4 mb-0">{% trans "My Jobs" %}</h1>
+  {% if crew %}
+  <div class="text-body-secondary small">{{ crew.name }}{% if members %} · {% for worker in members %}{{ worker.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}</div>
+  {% endif %}
+</div>
+
+{% if not crew %}
+<div class="alert alert-warning">{% trans "This login is not linked to a crew yet. Ask the administrator." %}</div>
+{% else %}
+<h2 class="h6 mt-3 mb-2">{% trans "Today" %} <span class="text-body-secondary fw-normal">{{ now|length }}</span></h2>
+{% if now %}<div class="list-group shadow-sm mb-3">{% for job in now %}{% include "crm/_job_row.html" %}{% endfor %}</div>
+{% else %}<div class="small text-body-secondary mb-3">{% trans "None" %}</div>{% endif %}
+
+<h2 class="h6 mt-3 mb-2">{% trans "Coming up" %} <span class="text-body-secondary fw-normal">{{ upcoming|length }}</span></h2>
+{% if upcoming %}<div class="list-group shadow-sm mb-3">{% for job in upcoming %}{% include "crm/_job_row.html" %}{% endfor %}</div>
+{% else %}<div class="small text-body-secondary mb-3">{% trans "None" %}</div>{% endif %}
+
+<h2 class="h6 mt-3 mb-2">{% trans "Finished" %} <span class="text-body-secondary fw-normal">{{ finished|length }}</span></h2>
+{% if finished %}<div class="list-group shadow-sm mb-3">{% for job in finished %}{% include "crm/_job_row.html" %}{% endfor %}</div>
+{% else %}<div class="small text-body-secondary mb-3">{% trans "None" %}</div>{% endif %}
+{% endif %}
+{% endblock %}

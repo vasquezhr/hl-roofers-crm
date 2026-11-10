@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{{ title }}{% endblock %}
+
+{# The page used by every small form: a title, the fields, Save and Cancel. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{{ back }}">‹ {% trans "Back" %}</a>
+<div class="row">
+  <div class="col-lg-9 col-xl-8">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h1 class="h5 mb-1">{{ title }}</h1>
+        {% if sub %}<div class="small text-body-secondary mb-2">{{ sub }}</div>{% endif %}
+        {% if intro %}<p class="small text-body-secondary mb-3">{{ intro }}</p>{% endif %}
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if same %}
+          {# New account: a customer with the same phone, email or address is already in the app #}
+          <div class="alert alert-warning small">
+            {% trans "A customer with the same phone, email or address is already in the app:" %}
+            <a class="alert-link" href="{% url 'account' same.pk %}">{{ same.name }}</a>{% if same.main_property %} · {{ same.main_property.full_address }}{% endif %}
+            <div class="form-check mt-2">
+              <input class="form-check-input" type="checkbox" name="anyway" value="1" id="anyway">
+              <label class="form-check-label" for="anyway">{% trans "This is a different customer: create the new account anyway" %}</label>
+            </div>
+          </div>
+          {% endif %}
+          {% include "crm/_fields.html" %}
+          <div class="d-flex gap-2 justify-content-end">
+            <a class="btn btn-outline-secondary" href="{{ back }}">{% trans "Cancel" %}</a>
+            <button type="submit" class="btn btn-primary">{{ save_label }}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {% if coming is not None %}
+    {# Schedule: what the crews already have coming up #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Already on the schedule" %}</h2>
+        {% if coming %}
+        <ul class="list-unstyled small mb-0">
+          {% for other in coming %}
+          <li class="border-top py-1">
+            <span class="fw-semibold">{{ other.crew.name }}</span> · {% job_dates other %}<br>
+            <a href="{% url 'job' other.number %}">#{{ other.number }}</a> <span class="text-body-secondary">· {{ other.account.name }} · {{ other.get_job_type_display }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="small text-body-secondary">{% trans "Nothing is scheduled yet." %}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

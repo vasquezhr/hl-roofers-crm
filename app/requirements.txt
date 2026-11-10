@@ -1,0 +1,6 @@
+# Install with:  pip install -r requirements.txt
+Django==5.2.19          # the web framework (long-term-support release, security fixes until April 2028)
+psycopg[binary]==3.3.8  # talks to PostgreSQL (used on the server)
+waitress==3.0.2         # the web server that runs the app on Windows
+whitenoise==6.12.0      # serves the CSS and JavaScript files
+polib==1.2.0            # compiles the Spanish translation file (no extra tools needed on Windows)

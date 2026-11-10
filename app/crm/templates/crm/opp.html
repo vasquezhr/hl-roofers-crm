@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}#{{ opp.number }} {{ account.name }}{% endblock %}
+
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'opps' %}">‹ {% trans "Opportunities" %}</a>
+<div class="d-flex align-items-start gap-2 mb-3">
+  <div class="flex-grow-1 hl-minw0">
+    <h1 class="h4 mb-0">{{ account.name }}</h1>
+    <div class="text-body-secondary small">#{{ opp.number }} · {{ opp.get_job_type_display }}{% if opp.labor_only %} · {% trans "Labor only" %}{% endif %}</div>
+  </div>
+  {% stage_badge opp %}
+</div>
+
+{% stage_bar opp %}
+
+{% if opp.stage == "lost" %}
+<div class="alert alert-secondary py-2 small">{% trans "Lost because" %}: {{ opp.get_lost_reason_display }}{% if opp.lost_on %} · {{ opp.lost_on|date }}{% endif %}</div>
+{% endif %}
+
+{# the buttons for this stage #}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  {% if opp.stage == "inspection" %}
+  <a class="btn btn-primary" href="{% url 'opp_proposal' opp.number %}">{% icon "doc" %} {% trans "Enter the proposal" %}</a>
+  <a class="btn btn-outline-secondary" href="{% url 'opp_lost' opp.number %}">{% trans "Mark lost" %}</a>
+  {% elif opp.stage == "proposal" %}
+  <a class="btn btn-primary" href="{% url 'opp_sign' opp.number %}">{% icon "check" %} {% trans "Mark signed" %}</a>
+  <a class="btn btn-outline-secondary" href="{% url 'opp_proposal' opp.number %}">{% icon "edit" %} {% trans "Change the proposal" %}</a>
+  <a class="btn btn-outline-secondary" href="{% url 'opp_lost' opp.number %}">{% trans "Mark lost" %}</a>
+  {% elif opp.stage == "won" and job %}
+  <a class="btn btn-primary" href="{% url 'job' job.number %}">{% icon "jobs" %} {% trf "Open job #%(number)s" number=job.number %}</a>
+  {% elif opp.stage == "lost" %}
+  <a class="btn btn-outline-primary" href="{% url 'opp_new' account.pk %}">{% icon "plus" %} {% trans "New opportunity for this customer" %}</a>
+  {% endif %}
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Customer" %}</h2>
+        {% include "crm/_customer.html" with place=opp.place kind="opp" ident=opp.number %}
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Inspection" %}</h2>
+        {% if opp.inspection_at %}
+        <div class="fw-semibold">{{ opp.inspection_at|day }} · {{ opp.inspection_at|time:"g:i A" }}</div>
+        {% else %}
+        <div class="small text-body-secondary">{% trans "No inspection date yet." %}</div>
+        {% endif %}
+        {% if opp.stage == "inspection" %}
+        <a class="btn {% if opp.inspection_at %}btn-outline-secondary{% else %}btn-primary{% endif %} btn-sm mt-2" href="{% url 'opp_inspection' opp.number %}">{% icon "schedule" %} {% if opp.inspection_at %}{% trans "Change the date" %}{% else %}{% trans "Set the date" %}{% endif %}</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Proposal" %}</h2>
+        {% if opp.lines %}
+        <ul class="small ps-3 mb-2">{% for line in opp.lines %}<li>{{ line }}</li>{% endfor %}</ul>
+        {% else %}
+        <div class="small text-body-secondary mb-2">{% trans "Nothing written yet." %}</div>
+        {% endif %}
+        {% if opp.total %}
+        <div class="d-flex border-top pt-2 fw-bold"><span class="flex-grow-1">{% trans "Price" %}</span><span>{{ opp.total|money }}</span></div>
+        {% else %}
+        <div class="small text-body-secondary">{% trans "No price yet. Enter the proposal after the inspection." %}</div>
+        {% endif %}
+        {% if opp.sent_on %}
+        <div class="small text-body-secondary mt-2">{% trans "Sent on" %}: {{ opp.sent_on|date }}{% if opp.signed_on %} · {% trans "Signed on" %}: {{ opp.signed_on|date }} ({{ opp.get_signed_how_display }}){% endif %}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Where it came from" %}</h2>
+        <div class="small">{{ opp.get_source_display }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "History" %}</h2>
+    {% include "crm/_history.html" %}
+  </div>
+</div>
+{% endblock %}

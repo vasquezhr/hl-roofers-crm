@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Review the imported notes" %}{% endblock %}
+
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'imports' %}">‹ {% trans "Admin" %}</a>
+<div class="mb-3">
+  <h1 class="h4 mb-0">{% trans "Review the imported notes" %}</h1>
+  <div class="text-body-secondary small">{% trf "Done so far: %(accepted)s accepted · %(unlinked)s kept unlinked · %(skipped)s skipped" accepted=accepted unlinked=unlinked skipped=skipped %}</div>
+</div>
+
+{% include "crm/_pills.html" %}
+
+{% if folders %}
+{# narrow the list to one Apple Notes folder #}
+<div class="d-flex flex-wrap align-items-center gap-1 small mb-3">
+  <span class="text-body-secondary me-1">{% trans "Folder" %}:</span>
+  <a class="btn btn-sm rounded-pill {% if not folder %}btn-secondary{% else %}btn-outline-secondary{% endif %}" href="?{{ keep_no_folder }}">{% trans "All folders" %}</a>
+  {% for item in folders %}
+  <a class="btn btn-sm rounded-pill {% if item.folder == folder %}btn-secondary{% else %}btn-outline-secondary{% endif %}" href="?{{ keep_no_folder }}&amp;folder={{ item.folder|urlencode }}">{{ item.folder|default:"—" }} <span class="opacity-75">{{ item.n }}</span></a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<form method="post">
+  {% csrf_token %}
+  {# what to do with the ticked notes, or with every note in this list #}
+  <div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <div class="form-check me-2">
+          <input class="form-check-input" type="checkbox" id="checkAll" data-check-all>
+          <label class="form-check-label small" for="checkAll">{% trans "Tick all on this page" %}</label>
+        </div>
+        <select class="form-select form-select-sm w-auto" name="which" aria-label="{% trans 'Which notes' %}">
+          <option value="ticked">{% trans "The ticked notes" %}</option>
+          <option value="all">{% trf "All %(count)s notes in this list" count=total %}</option>
+        </select>
+        {% if can_accept %}<button type="submit" name="do" value="accept" class="btn btn-primary btn-sm">{% icon "check" %} {% trans "Accept" %}</button>{% endif %}
+        <button type="submit" name="do" value="unlinked" class="btn btn-outline-secondary btn-sm">{% trans "Keep unlinked" %}</button>
+        <button type="submit" name="do" value="skip" class="btn btn-outline-secondary btn-sm">{% trans "Skip" %}</button>
+        <button type="submit" name="do" value="recheck" class="btn btn-link btn-sm ms-auto">{% trans "Look for customers again" %}</button>
+      </div>
+      <div class="form-text">
+        {% if show == "existing" %}{% trans "Accept adds the note to the Details of the customer shown." %}
+        {% elif show == "new" %}{% trans "Accept creates the account from what the app read, then adds the note. Notes of the same customer go to the same account." %}
+        {% elif show == "none" %}{% trans "The app found no customer in these notes. Open a note to choose one, keep it unlinked (Search still finds it), or skip it." %}
+        {% else %}{% trans "These have no address, phone or work words. Skipping removes the note's text from the app." %}{% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% for note in page %}
+  <div class="card shadow-sm mb-2">
+    <div class="card-body py-2">
+      <div class="d-flex align-items-start gap-2">
+        <input class="form-check-input mt-1 flex-shrink-0" type="checkbox" name="note" value="{{ note.pk }}" aria-label="{{ note.title }}">
+        <div class="flex-grow-1 hl-minw0">
+          <div class="fw-semibold text-truncate">{{ note.title }}</div>
+          <div class="small text-body-secondary">{% if note.noted_on %}{{ note.noted_on|date }} · {% endif %}{{ note.folder }}</div>
+          {% if note.account %}
+          <div class="small mt-1">{% trans "Customer" %}: <a href="{% url 'account' note.account.pk %}">{{ note.account.name }}</a>
+            <span class="text-body-secondary">· {% if note.match_reason == "phone" %}{% trans "same phone" %}{% elif note.match_reason == "email" %}{% trans "same email" %}{% elif note.match_reason == "address" %}{% trans "same address" %}{% else %}{% trans "same name" %}{% endif %}</span></div>
+          {% elif show == "new" %}
+          <div class="small mt-1">{% trans "The app read" %}: {% if note.parsed_name %}<span class="fw-semibold">{{ note.parsed_name }}</span>{% else %}<span class="text-body-secondary">{% trans "no name: the address is used as the name" %}</span>{% endif %}{% if note.parsed_street %} · {{ note.parsed_street }}{% endif %}{% if note.parsed_city or note.parsed_zip %} · {{ note.parsed_city }} {{ note.parsed_zip }}{% endif %}{% if note.parsed_phone %} · {{ note.parsed_phone }}{% endif %}{% if note.parsed_email %} · {{ note.parsed_email }}{% endif %}</div>
+          {% endif %}
+          <details class="mt-1">
+            <summary class="small">{% trans "Show the note" %}</summary>
+            <pre class="hl-pre small bg-body-tertiary border rounded p-2 mt-1 mb-0">{{ note.text }}</pre>
+          </details>
+        </div>
+        <div class="d-flex flex-column flex-sm-row gap-1 flex-shrink-0">
+          {% if can_accept %}<button type="submit" name="single" value="accept-{{ note.pk }}" class="btn btn-primary btn-sm">{% trans "Accept" %}</button>{% endif %}
+          <button type="submit" name="single" value="skip-{{ note.pk }}" class="btn btn-outline-secondary btn-sm">{% trans "Skip" %}</button>
+          <a class="btn btn-outline-secondary btn-sm" href="{% url 'import_note' note.pk %}">{% trans "Open the note" %}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="text-center text-body-secondary py-4">{% trans "Nothing is waiting in this list." %}</div>
+  {% endfor %}
+</form>
+
+{% include "crm/_pager.html" %}
+{% endblock %}

@@ -1,0 +1,11 @@
+{% load i18n crm_tags %}
+{# The history of a record, newest first. Needs: history #}
+{% if history %}
+<ul class="list-unstyled small mb-0">
+  {% for line in history %}
+  <li class="border-bottom py-1"><span class="text-body-secondary">{{ line.at|day }}{% if line.actor %} · {{ line.actor }}{% endif %}</span> — {{ line.text }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="text-body-secondary small">{% trans "No history yet." %}</div>
+{% endif %}

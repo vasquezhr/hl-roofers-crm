@@ -207,8 +207,52 @@ The Bootstrap mockup is `mockup/hl-roofers-mockup.html`. Each phase is tested in
 - The breakdown's "View Financials" permission set is renamed "View Costs and Margins", because crews now see job prices by default.
 - The login rule is split: the office and the admin have one login per person; each crew shares one login.
 - "Proposal follow-up" uses the breakdown's 7 days. All the automation delays are the breakdown's proposed defaults.
-- The import page shows the real size of the notes export (2,609 notes, about 135 set aside as logins or passwords). Its five sample notes are made up.
+- The import page shows the real size of the notes export (2,609 notes, about 135 set aside as logins or passwords). Its five sample notes are made up. That 135 was an early estimate and is too high: the app's import sets aside 56 (see "App status"). The mockup still shows the old figure.
 - The dashboard and report numbers are samples. Unpaid invoices and price changes are worked out from the mockup's own records.
 
 **What was and wasn't checked:** every flow passes the browser test in Chromium at computer and phone size, in English and Spanish, as Admin, Office and both crews. It has **not** been opened in Safari on a Mac or iPhone, which is what the business uses. That check is still to do.
 
+## App status
+
+On Nov 10, 2026 the user wrote "go ahead and create phase 1 of the actual app". That settled the open question from Nov 9. **Phase 1 of the Django app is built**, in `app/`. Only Phase 1 is approved: Phases 2 to 4 of the app wait for the user's go-ahead. How to run it is in `app/README.md`.
+
+| Roadmap phase | In the app | Status |
+| --- | --- | --- |
+| 1 · Customer records and search | Accounts (person or company) with contacts, properties and Details; Opportunities and Jobs on one stage bar; a signed proposal creates the Job with the same number; scheduling to a crew for whole work days; warranty jobs; outside numbers; one search box; Admin, Office and Crew profiles; Call, Text, Directions with history; English and Spanish; the Apple Notes import with a review queue | Built, Nov 10 |
+| 2 · Leads, proposals, invoices, pricing | — | Not started |
+| 3 · Scheduling and crew | — | Not started |
+| 4 · Reports, dashboard, automations, admin | — | Not started |
+
+**Built with:** Python 3.13, Django 5.2 (the long-term-support release), PostgreSQL on the server and a single SQLite file on a PC, Bootstrap 5.3.8 served from the app's own files, Waitress and WhiteNoise for the Windows server. Server-rendered pages; about 50 lines of JavaScript.
+
+**Choices made in the app that the user should confirm:**
+
+- **Phase 1 has no payments.** "Mark invoice sent" and "Mark paid" are buttons the office presses. A crew can start its job, mark it done and add a note. Recording a payment a crew collects comes with Phase 2, when payments exist.
+- **Scheduling is the simple form:** a crew, a first day and a number of work days, Monday to Friday. Jobs carry no time of day yet. An opportunity can carry an inspection day and time. The week calendar and suggested times are Phase 3.
+- **A proposal in Phase 1** is the lines of what it covers and one price. Saving it marks the opportunity "Proposal sent". The printed document, email and the customer's Accept page are Phase 2.
+- **The profile is the only access setting** on a login: Admin, Office or Crew. The Admin profile also opens Django's admin site, where logins, crews and workers are set up. Permission sets come later.
+- **A new account that shares a phone, email or address with an existing customer** shows that customer and asks before creating a second account.
+- **No delete buttons in the office's pages.** The administrator deletes or corrects records in the admin site. The Recycle Bin from the breakdown comes later.
+- **The EN / ES choice is remembered on the phone or computer,** not on the login, because crews share a login. A first visit follows the browser's language.
+- **Search finds close spellings only on PostgreSQL** (the server). On a PC with the single-file database it finds exact words.
+- **The administrator can set the last number used for the year,** so the app carries on from the business's own numbering.
+- **The app icon** (a navy square with "H&L") is a placeholder until the logo arrives.
+
+**The Apple Notes import, as built:**
+
+- It reads the `.json` export the user provided (a list of notes with folder, title, created and text). The breakdown describes a different export tool and a .zip of Markdown files; the app follows the file the business actually has.
+- The administrator lists the folders to leave out when uploading. It starts with "Passwords and accounts".
+- A note is set aside (counted, never stored) when it is in one of those folders, uses a word like password, contraseña, usuario, PIN or routing, holds a word shaped like a password, or has an email address followed by a line that is one word of letters and digits. The uploaded file is only held in memory.
+- The rest wait in a review queue in four lists: existing customer, new account, no customer found, looks personal. Nothing reaches a customer's Details until the administrator accepts it. A change to more than one note shows a confirmation page first.
+- A note with an address but no name proposes an account named by its street address. The review queue marks these.
+- Skipping a note erases its text from the app. A note kept "unlinked" has no customer but is still found by Search.
+
+**Run against the real export** (in memory, counts only; nothing was copied): 2,609 notes read; 56 set aside as logins or passwords (29 in the passwords folder, 27 elsewhere); 30 empty (pictures only); 2,523 in the queue: 1,061 "new account" (733 with a name, 328 named by address), 785 "no customer found", 677 "looks personal". Accepting every "new account" note creates about 950 accounts holding about 1,060 notes, because notes that share a phone or address join one account. On PostgreSQL the upload took 3 seconds and accepting those 1,060 notes took 9 seconds; a search takes about a tenth of a second.
+
+- **The earlier "about 135" credential notes was too high.** That first pattern also caught email addresses with digits in them and prices typed like `Labor$450`. Up to five customer notes are still set aside by the stricter rules; they stay in Apple Notes.
+- **One note about another business's money sits in its own folder.** The rules do not catch it, and it would be proposed as a new account. Add that folder under "Folders to leave out" before uploading.
+- About 785 notes have work words but no address, phone or email. The app does not guess a customer for them.
+
+**What was and wasn't checked:** 96 automated tests pass on PostgreSQL 16; on SQLite 95 pass and one (close-spelling search) is skipped because it needs PostgreSQL. A browser test of 31 checks passes. Every page was opened as Admin, Office and both crews, in English and Spanish, and the main flows were clicked through in Chromium at computer and phone size. The app was also run in server mode (debug off, PostgreSQL, Waitress, WhiteNoise). It has **not** been opened in Safari on a Mac or iPhone, and it has not been run on Windows: both need the real machines.
+
+**For the server, later:** the app has no limit on wrong password tries. Before staff reach it from outside, add a Cloudflare rate-limiting rule on the sign-in page or put Cloudflare Access in front.

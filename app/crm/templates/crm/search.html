@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Search" %}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <h1 class="h4 mb-0">{% trans "Search" %}</h1>
+  <div class="text-body-secondary small">{% if crew_view %}{% trans "Searches the jobs scheduled to your crew: name, address, phone, job number." %}{% else %}{% trans "Name, address, phone typed any way, job number, or a word from the notes." %}{% endif %}</div>
+</div>
+
+<form method="get" class="input-group input-group-lg shadow-sm mb-3" role="search">
+  <span class="input-group-text bg-body">{% icon "search" %}</span>
+  <input type="search" class="form-control" name="q" value="{{ q }}" placeholder="{% trans 'Search' %}…" aria-label="{% trans 'Search' %}" autocomplete="off" autocapitalize="none"{% if not q %} autofocus{% endif %}>
+  <button type="submit" class="btn btn-primary">{% trans "Search" %}</button>
+</form>
+
+{% for group in groups %}
+<h2 class="h6 mt-3 mb-2">{{ group.title }} <span class="text-body-secondary fw-normal">{{ group.rows|length }}{% if group.more %}+{% endif %}</span></h2>
+<div class="list-group shadow-sm mb-3">
+  {% for row in group.rows %}
+  {% if group.kind == "accounts" %}
+  <a class="list-group-item list-group-item-action" href="{% url 'account' row.pk %}">
+    <div class="d-flex gap-2 align-items-start">
+      <div class="flex-grow-1 hl-minw0">
+        <div class="fw-semibold text-truncate">{{ row.name|hl:q }}</div>
+        <div class="small text-body-secondary text-truncate">{{ row.main_property.full_address|hl:q }}{% if row.main_contact.phone %} · {{ row.main_contact.phone|hl:q }}{% endif %}</div>
+        {% if row.note_line %}<div class="small text-body-secondary fst-italic text-truncate">{% trans "From the notes" %}: {{ row.note_line|hl:q }}</div>{% endif %}
+      </div>
+      <div class="text-end flex-shrink-0">{% kind_badge row %}{% if row.close_match %}<div class="small text-body-secondary mt-1">{% trans "close spelling" %}</div>{% endif %}</div>
+    </div>
+  </a>
+  {% elif group.kind == "opps" %}
+  <a class="list-group-item list-group-item-action" href="{% url 'opp' row.number %}">
+    <div class="d-flex gap-2 align-items-start">
+      <div class="flex-grow-1 hl-minw0">
+        <div class="small text-body-secondary">#{{ row.number|hl:q }} · {{ row.get_job_type_display|hl:q }}</div>
+        <div class="fw-semibold text-truncate">{{ row.account.name|hl:q }}</div>
+        <div class="small text-body-secondary text-truncate">{{ row.place.full_address|hl:q }}</div>
+      </div>
+      <div class="text-end flex-shrink-0">{% stage_badge row %}</div>
+    </div>
+  </a>
+  {% elif group.kind == "jobs" %}
+  <a class="list-group-item list-group-item-action" href="{% url 'job' row.number %}">
+    <div class="d-flex gap-2 align-items-start">
+      <div class="flex-grow-1 hl-minw0">
+        <div class="small text-body-secondary">#{{ row.number|hl:q }} · {{ row.get_job_type_display|hl:q }}{% if row.ref_number %} · {{ row.get_ref_type_display }} {{ row.ref_number|hl:q }}{% endif %}</div>
+        <div class="fw-semibold text-truncate">{{ row.account.name|hl:q }}</div>
+        <div class="small text-body-secondary text-truncate">{{ row.place.full_address|hl:q }}</div>
+        <div class="small text-body-secondary">{% if row.crew %}{{ row.crew.name }} · {% endif %}{% job_dates row %}</div>
+      </div>
+      <div class="text-end flex-shrink-0">{% stage_badge row %}{% if row.close_match %}<div class="small text-body-secondary mt-1">{% trans "close spelling" %}</div>{% endif %}</div>
+    </div>
+  </a>
+  {% else %}
+  <div class="list-group-item">
+    <div class="small text-body-secondary mb-1">{{ row.title|hl:q }}{% if row.noted_on %} · {{ row.noted_on|date }}{% endif %}</div>
+    <pre class="hl-pre small mb-0">{{ row.text|hl:q }}</pre>
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
+{% if group.more %}<div class="small text-body-secondary mb-3">{% trans "Only the first 25 are shown. Type more to narrow it down." %}</div>{% endif %}
+{% empty %}
+{% if q|length >= 2 %}<div class="text-center text-body-secondary py-4">{% trans "Nothing found." %}</div>{% endif %}
+{% endfor %}
+{% endblock %}

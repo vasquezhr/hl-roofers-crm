@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{{ note.title }}{% endblock %}
+
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{{ back }}">‹ {% trans "Review the imported notes" %}</a>
+<div class="mb-3">
+  <h1 class="h4 mb-0">{{ note.title }}</h1>
+  <div class="text-body-secondary small">{% if note.noted_on %}{{ note.noted_on|date }} · {% endif %}{{ note.folder }} · {{ note.get_proposal_display }}</div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "The note" %}</h2>
+        <pre class="hl-pre small bg-body-tertiary border rounded p-2 mb-0">{{ note.text }}</pre>
+      </div>
+    </div>
+    <form method="post" class="d-flex flex-wrap gap-2 mb-3">
+      {% csrf_token %}
+      <button type="submit" name="do" value="unlinked" class="btn btn-outline-secondary">{% trans "Keep unlinked" %}</button>
+      <button type="submit" name="do" value="skip" class="btn btn-outline-secondary">{% trans "Skip" %}</button>
+    </form>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Add to an existing customer" %}</h2>
+        {% if note.account %}
+        <form method="post" class="d-flex align-items-center gap-2 mb-3">
+          {% csrf_token %}
+          <input type="hidden" name="account" value="{{ note.account.pk }}">
+          <div class="flex-grow-1 hl-minw0 small"><a class="fw-semibold" href="{% url 'account' note.account.pk %}">{{ note.account.name }}</a><br><span class="text-body-secondary">{{ note.account.main_property.full_address }}</span></div>
+          <button type="submit" name="do" value="add" class="btn btn-primary btn-sm text-nowrap">{% trans "Add to this customer" %}</button>
+        </form>
+        {% endif %}
+        <form method="get" class="input-group input-group-sm mb-2" role="search">
+          <input type="search" class="form-control" name="q" value="{{ q }}" placeholder="{% trans 'Name, address or phone' %}" aria-label="{% trans 'Search' %}" autocomplete="off">
+          <button type="submit" class="btn btn-outline-secondary">{% trans "Search" %}</button>
+        </form>
+        {% for account in found %}
+        <form method="post" class="d-flex align-items-center gap-2 border-top py-2">
+          {% csrf_token %}
+          <input type="hidden" name="account" value="{{ account.pk }}">
+          <div class="flex-grow-1 hl-minw0 small"><a class="fw-semibold" href="{% url 'account' account.pk %}">{{ account.name }}</a><br><span class="text-body-secondary">{{ account.main_property.full_address }}</span></div>
+          <button type="submit" name="do" value="add" class="btn btn-outline-primary btn-sm text-nowrap">{% trans "Add to this customer" %}</button>
+        </form>
+        {% empty %}
+        {% if q %}<div class="small text-body-secondary">{% trans "Nothing found." %}</div>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-1">{% trans "Create a new account" %}</h2>
+        <p class="small text-body-secondary">{% trans "This is what the app read from the note. Correct it before you create the account." %}</p>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% include "crm/_fields.html" %}
+          <button type="submit" name="do" value="new" class="btn btn-primary">{% icon "plus" %} {% trans "Create the account and add the note" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

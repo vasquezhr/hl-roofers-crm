@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Confirm" %}{% endblock %}
+
+{# A change to many notes at once is shown here first. Nothing is changed until Confirm is pressed. #}
+{% block content %}
+<div class="row">
+  <div class="col-lg-9 col-xl-8">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h1 class="h5 mb-2">{% trans "Confirm" %}</h1>
+        <p class="mb-2">
+          {% if do == "accept" and show == "existing" %}{% trf "Add %(count)s notes to the Details of the customers the app found?" count=count %}
+          {% elif do == "accept" %}{% trf "Create the accounts for %(count)s notes and add each note to its customer's Details?" count=count %}
+          {% elif do == "unlinked" %}{% trf "Keep %(count)s notes as unlinked notes? Search will still find them." count=count %}
+          {% else %}{% trf "Skip %(count)s notes? Their text is removed from the app. They stay in Apple Notes." count=count %}{% endif %}
+        </p>
+        <p class="small text-body-secondary">{% trans "This changes many records at once and cannot be undone here." %}</p>
+        <form method="post" action="{{ here }}" class="d-flex gap-2 justify-content-end">
+          {% csrf_token %}
+          <input type="hidden" name="do" value="{{ do }}">
+          <input type="hidden" name="which" value="{{ which }}">
+          <input type="hidden" name="confirmed" value="1">
+          {% for pk in ticked %}<input type="hidden" name="note" value="{{ pk }}">{% endfor %}
+          <a class="btn btn-outline-secondary" href="{{ here }}">{% trans "Cancel" %}</a>
+          <button type="submit" class="btn btn-primary">{% trans "Confirm" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

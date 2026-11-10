@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Opportunities" %}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <h1 class="h4 mb-0">{% trans "Opportunities" %}</h1>
+  <div class="text-body-secondary small">{% trans "The sales side: inspection, proposal, then won or lost. To start one, open the customer and choose New opportunity." %}</div>
+</div>
+
+{% include "crm/_pills.html" %}
+
+{% if page %}
+<div class="list-group shadow-sm mb-3">
+  {% for opp in page %}{% include "crm/_opp_row.html" %}{% endfor %}
+</div>
+{% include "crm/_pager.html" with keep="show="|add:show %}
+{% else %}
+<div class="text-center text-body-secondary py-4">{% trans "None" %}</div>
+{% endif %}
+{% endblock %}

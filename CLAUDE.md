@@ -6,8 +6,10 @@ A small, self-hosted CRM for H & L Roofers, a roofing business in Virginia that 
 
 **Status (as of Nov 9, 2026): the owners' answers are in** (`docs/decisions.md`, "Owner answers"). Answers the owners left to Claude were inferred from their Apple Notes and Mac file list (`docs/data-review.md`) and confirmed in the owner checklist as correct for now, subject to change. The checklist is a Claude Doc: https://claude.ai/artifact/Gecymk9Uy4LjQdDdhWWo5o. The plan is in `docs/project-breakdown.md`.
 
-- **The Bootstrap mockup now covers all four roadmap phases** (Nov 10, 2026). `docs/decisions.md`, "Mockup status", lists what is in it and the choices made in it that the user still needs to confirm.
-- **Next step: the user's and the owners' review of the mockup.** Do not start building the app until the user clearly says to. On Nov 9 the user wrote "build out Phase 1 of the model"; that was read as the mockup, and whether it meant the Django app is an open question to settle first.
+- **The Bootstrap mockup covers all four roadmap phases** (Nov 10, 2026). `docs/decisions.md`, "Mockup status", lists what is in it and the choices made in it that the user still needs to confirm.
+- **Phase 1 of the real app is built** (Nov 10, 2026), in `app/`: customer records and search, the three profiles, English and Spanish, and the Apple Notes import. The user asked for it with "go ahead and create phase 1 of the actual app". `docs/decisions.md`, "App status", lists what is in it, the choices to confirm, and what was and wasn't checked. `app/README.md` says how to run it.
+- **Only Phase 1 of the app is approved.** Do not build Phases 2 to 4 of the app until the user clearly says to.
+- **Next step: the user's review** of the app on his Windows PC and of the mockup with the owners, then the Safari check on a Mac and an iPhone.
 - Deferred by the user, not blocking: Sundays and Friday hours, and the samples (a supplier price file, a proposal, an invoice, the logo).
 - `docs/decisions.md` overrides the breakdown snapshot wherever they differ.
 - Brainstorming and business analysis continue in claude.ai. The living breakdown is https://claude.ai/artifact/38SrB7koDPwexSADPnmDGj. The copy in `docs/` is a snapshot. If the user says the breakdown changed, ask for a fresh export instead of assuming what changed.
@@ -32,12 +34,17 @@ Your sole purpose is to execute your tasks with precision, anything other than t
 | `docs/project-breakdown.md` | The full plan: Salesforce concept mapping, the three apps, data model, leads, features, permissions, automations, pricing uploads, admin data editor, hosting and backups, roadmap, ideas, risks, open questions, sources |
 | `mockup/hl-roofers-mockup.html` | The current clickable mockup, built with Bootstrap 5.3.8 (embedded, so it opens offline). One self-contained HTML file with made-up customers. English/Spanish toggle and a "View as" switch for Admin, Office, Crew 1 and Crew 2. All four roadmap phases are in; see `docs/decisions.md`, "Mockup status". The file's own top comment explains its layout: lines 20–24 and 189–194 are the embedded Bootstrap copies; our stylesheet is lines 25–125 and our script starts at line 195. Edit the file directly; there is no build step. The older non-Bootstrap mockup, with the parked Measure calculator, is in git history at commit `147043d` |
 | `mockup/tests/mockup-test.js` | A browser test that clicks through every flow in the mockup (needs Node.js and Playwright). Run it after any change to the mockup |
+| `app/` | The real app (Django 5.2, Bootstrap 5.3.8 from its own files). `app/README.md` has the run steps for Windows, a map of the code and the server outline. One Django project (`hlcrm`) with one app (`crm`) |
+| `app/crm/tests/` | The app's tests. Run `python manage.py test` in `app/` after any change; they must pass on SQLite and on PostgreSQL |
+| `app/crm/locale/es/LC_MESSAGES/django.po` | The Spanish for every label. `python manage.py spanish` checks it and builds the `.mo` file; `--add` adds new labels. GNU gettext is not needed |
+| `app/browser-test/app-test.js` | A browser test that clicks through the app's main flows (needs Node.js, Playwright and the app running with the demo data). Run it after a change to the pages |
+| `app/sample/notes-sample.json` | A made-up notes export for trying the import |
 
 ## What the user has decided
 
 - **Scope:** barebones Salesforce Field Service-style CRM with Admin, Office and Crew views. Website form lead capture; scheduling with nearby-slot suggestions; proposal and invoice PDFs; calendar, phone, text and navigation; crew updates; Apple Notes import into a customer "Details" field; search; lead lifecycle; simple reports and dashboard; permissions and permission sets; account, contact and opportunity management; lead assignment and routing; process automation.
 - **Not yet:** no Measure / calculator feature for now. The mockup's Measure tab is parked.
-- **Stack:** Python + Django + PostgreSQL; free and open source. A custom self-hosted app, not a Salesforce org. **Everything uses Bootstrap for its CSS**: the app once the build is approved, and every mockup (details in `docs/decisions.md`).
+- **Stack:** Python + Django + PostgreSQL; free and open source. A custom self-hosted app, not a Salesforce org. **Everything uses Bootstrap for its CSS**: the app and every mockup (details in `docs/decisions.md`).
 - **Records:** Lead → Opportunity → Job. One signed proposal creates one Job; Change Orders on the Job; Warranty Jobs link to the original Job with no Opportunity. Details in `docs/decisions.md`.
 - **Runtime:** native Windows services on Windows 11 Pro (no Docker). Remote admin: paid Tailscale plan.
 - **Who codes:** the user reads code and SQL but is not an experienced developer. Claude writes plain, conventional Django and explains each change in plain English with steps to check it.
@@ -80,3 +87,12 @@ Resolved: headcount (8 permanent crew plus the owner and office; extra workers o
 - Before a name, address or note goes into a mockup, check it against the real notes and file list: none may match a real customer or crew member. The mockup's customers, crew, contractor, warranty company, house numbers and sample note are made up and were checked this way. Business details show as placeholders.
 - Map each feature to its Salesforce concept and cite Salesforce documentation (Help, Developers, Trailhead) where it applies.
 - Keep the English/Spanish toggle and the "View as" switch (Admin, Office, Crew 1, Crew 2) in the mockup unless the user says otherwise. Every label needs both languages.
+
+### In the app
+
+- Plain, conventional Django: function views, server-rendered templates, Bootstrap classes for all styling. Custom CSS stays in `crm/static/crm/hl.css`; JavaScript stays small, in `hl.js`.
+- Every label goes through translation: `{% trans "..." %}` or `{% trf "... %(x)s" x=value %}` in templates, `_("...")` in Python. No `{% blocktrans %}`: the `spanish` command does not read it. A label with two meanings needs two wordings, so each gets the right Spanish.
+- Every page checks who is asking: `office_only`, `admin_only`, or `job_or_404` for a job a crew may open. A crew must never reach another crew's job or an office page.
+- The demo data (`python manage.py demo`), the tests and the sample export use the mockup's made-up names. Check any new name or address against the real notes and file list first.
+- When tuning the import against the real export, run it in an in-memory database and print counts only. Never print note text, and never leave real data in a database on disk.
+- The user may already have a database on his PC. Change the data model with a new migration; do not regenerate `0001_initial.py`.

@@ -8,8 +8,8 @@ __pycache__/
 .venv/
 venv/
 *.sqlite3
-/media/
-/staticfiles/
+media/
+staticfiles/
 
 # Secrets and local config
 .env

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Not found" %}{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body text-center py-5">
+    <h1 class="h5">{% trans "That page or record was not found." %}</h1>
+    <a class="btn btn-primary mt-2" href="{% url 'home' %}">{% trans "Back to the first page" %}</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% load crm_tags %}
+{# One job in a list. Needs: job #}
+<a class="list-group-item list-group-item-action" href="{% url 'job' job.number %}">
+  <div class="d-flex gap-2 align-items-start">
+    <div class="flex-grow-1 hl-minw0">
+      <div class="small text-body-secondary">#{{ job.number }} · {{ job.get_job_type_display }} {% job_tags job %}</div>
+      <div class="fw-semibold text-truncate">{{ job.account.name }}</div>
+      <div class="small text-body-secondary text-truncate">{{ job.place.full_address }}</div>
+      <div class="small text-body-secondary">{% if job.crew %}{{ job.crew.name }} · {% endif %}{% job_dates job %}</div>
+    </div>
+    <div class="text-end flex-shrink-0">{% stage_badge job %}{% if not job.is_warranty %}<div class="fw-semibold mt-1">{{ job.price|money }}</div>{% endif %}</div>
+  </div>
+</a>

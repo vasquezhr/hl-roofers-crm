@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}#{{ job.number }} {{ account.name }}{% endblock %}
+
+{% block content %}
+{% if crew_view %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'my_jobs' %}">‹ {% trans "My Jobs" %}</a>
+{% else %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'jobs' %}">‹ {% trans "Jobs" %}</a>
+{% endif %}
+<div class="d-flex align-items-start gap-2 mb-3">
+  <div class="flex-grow-1 hl-minw0">
+    <h1 class="h4 mb-0">{{ account.name }}</h1>
+    <div class="text-body-secondary small">#{{ job.number }} · {{ job.get_job_type_display }} {% job_tags job %}</div>
+  </div>
+  {% stage_badge job %}
+</div>
+
+{% stage_bar job %}
+
+{# the buttons for this stage, for the person looking #}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  {% if can_schedule and job.stage == "signed" %}
+  <a class="btn btn-primary" href="{% url 'job_schedule' job.number %}">{% icon "schedule" %} {% trans "Schedule" %}</a>
+  {% endif %}
+  {% if step %}
+  <form method="post" action="{% url 'job_stage' job.number %}">
+    {% csrf_token %}
+    <input type="hidden" name="to" value="{{ step.to }}">
+    <button type="submit" class="btn btn-primary" data-confirm="{% trf '%(action)s?' action=step.label %}">{% icon "check" %} {{ step.label }}</button>
+  </form>
+  {% endif %}
+  {% if can_schedule and job.stage != "signed" %}
+  <a class="btn btn-outline-secondary" href="{% url 'job_schedule' job.number %}">{% icon "edit" %} {% trans "Change the schedule" %}</a>
+  {% endif %}
+  {% if can_open_warranty %}
+  <a class="btn btn-outline-secondary" href="{% url 'job_warranty' job.number %}">{% icon "shield" %} {% trans "New warranty job" %}</a>
+  {% endif %}
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Customer" %}</h2>
+        {% include "crm/_customer.html" with place=job.place kind="job" ident=job.number %}
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Crew and dates" %}</h2>
+        {% if job.crew %}
+        <dl class="row mb-0 small">
+          <dt class="col-4 text-body-secondary fw-normal">{% trans "Crew" %}</dt>
+          <dd class="col-8 mb-1"><span class="fw-semibold">{{ job.crew.name }}</span>{% if job.crew.lead_name %} · {% trans "Lead" %}: {{ job.crew.lead_name }}{% endif %}
+            {% if members %}<br><span class="text-body-secondary">{% for worker in members %}{{ worker.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>{% endif %}</dd>
+          {% if workers %}
+          <dt class="col-4 text-body-secondary fw-normal">{% trans "Extra workers" %}</dt>
+          <dd class="col-8 mb-1">{% for worker in workers %}{{ worker.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd>
+          {% endif %}
+          <dt class="col-4 text-body-secondary fw-normal">{% trans "When" %}</dt>
+          <dd class="col-8 mb-1">{% job_dates job %}{% if job.days > 1 %}<br><span class="text-body-secondary">{% trf "%(days)s work days" days=job.days %}</span>{% endif %}</dd>
+        </dl>
+        {% else %}
+        <div class="small text-body-secondary">{% trans "Not scheduled yet" %}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Numbers" %}</h2>
+        <dl class="row mb-0 small">
+          <dt class="col-4 text-body-secondary fw-normal">{% trans "Our number" %}</dt>
+          <dd class="col-8 mb-1">#{{ job.number }}</dd>
+          <dt class="col-4 text-body-secondary fw-normal">{% trans "Outside number" %}</dt>
+          <dd class="col-8 mb-1">{% if job.ref_number %}{{ job.get_ref_type_display }} {{ job.ref_number }}{% else %}<span class="text-body-secondary">{% trans "None" %}</span>{% endif %}</dd>
+        </dl>
+        {% if not crew_view %}
+        <a class="btn btn-outline-secondary btn-sm mt-2" href="{% url 'job_ref' job.number %}">{% icon "edit" %} {% trans "Change the outside number" %}</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Scope of work" %}</h2>
+        {% if job.scope_lines %}
+        <ul class="small mb-0 ps-3">{% for line in job.scope_lines %}<li>{{ line }}</li>{% endfor %}</ul>
+        {% else %}
+        <div class="small text-body-secondary">{% trans "None" %}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Price" %}</h2>
+        {% if job.is_warranty %}
+        <div class="small">{% trans "Warranty job: no charge." %}</div>
+        {% else %}
+        <div class="d-flex fw-bold"><span class="flex-grow-1">{% trans "Job price" %}</span><span>{{ job.price|money }}</span></div>
+        {% if job.labor_only %}<div class="small text-body-secondary mt-1">{% trans "Labor only: the customer supplies the materials." %}</div>{% endif %}
+        {% if job.invoiced_on %}<div class="small text-body-secondary mt-1">{% trans "Invoice sent" %}: {{ job.invoiced_on|date }}{% if job.paid_on %} · {% trans "Paid" %}: {{ job.paid_on|date }}{% endif %}</div>{% endif %}
+        {% endif %}
+      </div>
+    </div>
+
+    {% if job.opportunity_id and not crew_view or job.warranty_for or warranty_jobs %}
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Linked records" %}</h2>
+        <ul class="list-unstyled small mb-0">
+          {% if job.opportunity_id and not crew_view %}
+          <li class="mb-1">{% icon "link" %} <a href="{% url 'opp' job.number %}">{% trf "Opportunity #%(number)s" number=job.number %}</a></li>
+          {% endif %}
+          {% if job.warranty_for %}
+          <li class="mb-1">{% icon "link" %} <a href="{% url 'job' job.warranty_for.number %}">{% trf "Warranty for job #%(number)s" number=job.warranty_for.number %}</a></li>
+          {% endif %}
+          {% for warranty in warranty_jobs %}
+          <li class="mb-1">{% icon "link" %} <a href="{% url 'job' warranty.number %}">{% trf "Warranty job #%(number)s" number=warranty.number %}</a> {% stage_badge warranty %}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "History" %}</h2>
+    {% include "crm/_history.html" %}
+    <form method="post" action="{% url 'job_note' job.number %}" class="mt-3">
+      {% csrf_token %}
+      <label class="form-label small fw-semibold mb-1" for="{{ note_form.text.id_for_label }}">{% trans "Add a note" %}</label>
+      {{ note_form.text }}
+      <button type="submit" class="btn btn-outline-secondary btn-sm mt-2">{% trans "Save the note" %}</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

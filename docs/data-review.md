@@ -15,7 +15,9 @@ Reviewed Nov 9, 2026. The source files hold real customer data, crew pay records
 | Customer or job notes (an address, a ZIP or roof measurements) | ~1,270 | Into the customer's Details, matched by address |
 | Amounts only (a price or payment with no context) | ~260 | Review queue |
 | Other: supply lists, crew schedules and pay, personal notes | ~940 | Review queue; personal notes skipped |
-| Logins and passwords: the Passwords and accounts folder, plus ~100 more notes that look like credentials | ~135 | **Never imported** |
+| Logins and passwords: the Passwords and accounts folder (29), plus notes elsewhere that look like credentials | 56 | **Never imported** |
+
+The first count of credential notes here was about 135. It was too high: that pattern also caught email addresses with digits in them and prices typed like `Labor$450`. The app's import (Nov 10) sets aside 56: the 29 in the passwords folder and 27 elsewhere. The other rows are still the Nov 9 estimates; what the import itself does with the export is in `decisions.md`, "App status".
 
 ### How customer notes are written
 

@@ -1,0 +1,12 @@
+{% load crm_tags %}
+{# One opportunity in a list. Needs: opp #}
+<a class="list-group-item list-group-item-action" href="{% url 'opp' opp.number %}">
+  <div class="d-flex gap-2 align-items-start">
+    <div class="flex-grow-1 hl-minw0">
+      <div class="small text-body-secondary">#{{ opp.number }} · {{ opp.get_job_type_display }}</div>
+      <div class="fw-semibold text-truncate">{{ opp.account.name }}</div>
+      <div class="small text-body-secondary text-truncate">{{ opp.place.full_address }}</div>
+    </div>
+    <div class="text-end flex-shrink-0">{% stage_badge opp %}{% if opp.total %}<div class="fw-semibold mt-1">{{ opp.total|money }}</div>{% endif %}</div>
+  </div>
+</a>

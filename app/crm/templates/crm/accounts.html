@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Accounts" %}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-start gap-2 mb-3">
+  <div class="flex-grow-1 hl-minw0">
+    <h1 class="h4 mb-0">{% trans "Accounts" %}</h1>
+    <div class="text-body-secondary small">{% trans "Every customer: people and companies." %}</div>
+  </div>
+  <a class="btn btn-primary btn-sm text-nowrap" href="{% url 'account_new' %}">{% icon "plus" %} {% trans "New account" %}</a>
+</div>
+
+{% include "crm/_pills.html" %}
+
+{% if page %}
+<div class="list-group shadow-sm mb-3">
+  {% for account in page %}
+  <a class="list-group-item list-group-item-action" href="{% url 'account' account.pk %}">
+    <div class="d-flex gap-2 align-items-start">
+      <div class="flex-grow-1 hl-minw0">
+        <div class="fw-semibold text-truncate">{{ account.name }}</div>
+        <div class="small text-body-secondary text-truncate">{{ account.main_property.full_address }}</div>
+      </div>
+      <div class="text-end flex-shrink-0">
+        {% kind_badge account %}
+        <div class="small text-body-secondary mt-1">{% trf "Jobs: %(jobs)s · Open opportunities: %(open)s" jobs=account.job_count open=account.open_count %}</div>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% include "crm/_pager.html" with keep="show="|add:show %}
+{% else %}
+<div class="text-center text-body-secondary py-4">{% trans "No accounts yet. Add the first one with New account." %}</div>
+{% endif %}
+{% endblock %}

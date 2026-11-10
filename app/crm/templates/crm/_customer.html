@@ -1,0 +1,23 @@
+{% load i18n crm_tags %}
+{# The customer and the place, on an opportunity or a job. Needs: account, place, kind ("opp" or "job"), ident, crew_view #}
+<dl class="row mb-0 small">
+  <dt class="col-4 text-body-secondary fw-normal">{% trans "Customer" %}</dt>
+  <dd class="col-8 mb-1">{% if crew_view %}{{ account.name }}{% else %}<a href="{% url 'account' account.pk %}">{{ account.name }}</a>{% endif %} {% kind_badge account %}</dd>
+  {% if place.site_name %}
+  <dt class="col-4 text-body-secondary fw-normal">{% trans "Site contact" %}</dt>
+  <dd class="col-8 mb-1">{{ place.site_name }}{% if place.site_phone %} · <a href="{{ place.site_phone|tel }}">{{ place.site_phone }}</a>{% endif %}</dd>
+  {% endif %}
+  <dt class="col-4 text-body-secondary fw-normal">{% trans "Property" %}</dt>
+  <dd class="col-8 mb-1">{{ place.street }}<br><span class="text-body-secondary">{{ place.city_line }}</span>{% if place.access_notes %}<br>{{ place.access_notes }}{% endif %}</dd>
+  {% with contact=account.main_contact %}
+  {% if contact.phone %}
+  <dt class="col-4 text-body-secondary fw-normal">{% trans "Phone" %}</dt>
+  <dd class="col-8 mb-1"><a href="{{ contact.phone|tel }}">{{ contact.phone }}</a></dd>
+  {% endif %}
+  {% if contact.email and not crew_view %}
+  <dt class="col-4 text-body-secondary fw-normal">{% trans "Email" %}</dt>
+  <dd class="col-8 mb-1"><a href="mailto:{{ contact.email }}">{{ contact.email }}</a></dd>
+  {% endif %}
+  {% endwith %}
+</dl>
+<div class="mt-2">{% contact_buttons account place kind ident small=True %}</div>

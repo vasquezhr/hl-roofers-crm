@@ -1,0 +1,29 @@
+{% load i18n %}
+{# The fields of a form, with Bootstrap's layout. Needs: form #}
+{% for error in form.non_field_errors %}<div class="alert alert-danger py-2 small">{{ error }}</div>{% endfor %}
+{% for field in form.hidden_fields %}{{ field }}{% endfor %}
+{% for field in form.visible_fields %}
+<div class="mb-3">
+  {% if field.widget_type == "checkbox" %}
+  <div class="form-check">
+    {{ field }}
+    <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+  </div>
+  {% elif field.widget_type == "checkboxselectmultiple" %}
+  <div class="form-label small fw-semibold mb-1">{{ field.label }}</div>
+  {% for box in field %}
+  <div class="form-check">
+    {{ box.tag }}
+    <label class="form-check-label" for="{{ box.id_for_label }}">{{ box.choice_label }}</label>
+  </div>
+  {% empty %}
+  <div class="small text-body-secondary">{% trans "None" %}</div>
+  {% endfor %}
+  {% else %}
+  <label class="form-label small fw-semibold mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {{ field }}
+  {% endif %}
+  {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+  {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+</div>
+{% endfor %}

@@ -1,0 +1,175 @@
+"""
+Small helpers the page templates use: icons, dates, money, phone / text / map links,
+status badges, the stage bar and search highlighting.
+"""
+import re
+from urllib.parse import quote
+
+from django import template
+from django.utils import formats
+from django.utils.html import escape, format_html
+from django.utils.safestring import mark_safe
+from django.utils.translation import gettext as _
+
+from crm.models import Job, Opportunity, digits
+
+register = template.Library()
+
+# ---------- icons: small inline drawings, so the app needs no icon font ----------
+ICONS = {
+    "today": '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+    "opps": '<path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/>',
+    "jobs": '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M9 12h6M9 16h4"/>',
+    "accounts": '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>',
+    "search": '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+    "admin": '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+    "more": '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
+    "phone": '<path d="M5 4h4l2 5-3 2a11 11 0 006 6l2-3 5 2v4a2 2 0 01-2 2A17 17 0 013 6a2 2 0 012-2z"/>',
+    "msg": '<path d="M21 15a2 2 0 01-2 2H8l-5 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>',
+    "nav": '<path d="M3 11l18-8-8 18-2-8z"/>',
+    "check": '<path d="M5 12l5 5L20 7"/>',
+    "mail": '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+    "doc": '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+    "plus": '<path d="M12 5v14M5 12h14"/>',
+    "user": '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 016-6h4a6 6 0 016 6v1"/>',
+    "shield": '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+    "dollar": '<path d="M12 2v20M17 6.5C17 4.6 14.8 4 12 4S7 5 7 7.5 9.5 11 12 11.5s5 1.5 5 4-2.2 4.5-5 4.5-5-.8-5-3"/>',
+    "schedule": '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    "link": '<path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/>',
+    "edit": '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    "upload": '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
+    "out": '<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>',
+}
+ICONS["my_jobs"] = ICONS["jobs"]
+
+
+@register.simple_tag
+def icon(name):
+    return mark_safe('<svg class="hl-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+                     f'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{ICONS.get(name, "")}</svg>')
+
+
+# ---------- words with a value inside: {% trf "Customer since %(year)s" year=2021 %} ----------
+@register.simple_tag
+def trf(message, **values):
+    return _(message) % values
+
+
+# ---------- dates and money ----------
+@register.filter(expects_localtime=True)
+def day(value):
+    """Mon, Nov 9   (lun, 9 nov in Spanish)"""
+    if not value:
+        return ""
+    return formats.date_format(value, _("D, M j"))
+
+
+@register.filter
+def money(value):
+    """9050 -> $9,050   685.5 -> $685.50"""
+    if value in (None, ""):
+        return ""
+    value = float(value)
+    return f"${value:,.0f}" if value == int(value) else f"${value:,.2f}"
+
+
+# ---------- phone, text and directions ----------
+@register.filter
+def tel(phone):
+    return "tel:" + digits(phone)
+
+
+def sms_href(phone, first_name, language):
+    """Opens the phone's own Messages app with a greeting in the customer's language (iPhone link format)."""
+    hello = {"es": "Hola {name}, le saluda H & L Roofers. "}.get(language, "Hi {name}, this is H & L Roofers. ")
+    return "sms:" + digits(phone) + "&body=" + quote(hello.format(name=first_name))
+
+
+@register.filter
+def maps_href(place):
+    return "https://maps.apple.com/?daddr=" + quote(place.full_address)
+
+
+@register.inclusion_tag("crm/_contact_buttons.html")
+def contact_buttons(account, place, kind, ident, small=False):
+    """Call, Text and Directions. They call the person at the house when the property has its own site contact."""
+    contact = account.main_contact
+    if place and place.site_phone:
+        phone, first_name = place.site_phone, (place.site_name or account.first_name).split(" ")[0]
+    else:
+        phone, first_name = (contact.phone if contact else ""), account.first_name
+    return {"phone": phone, "sms": sms_href(phone, first_name, account.language) if phone else "",
+            "place": place, "kind": kind, "ident": ident, "small": small}
+
+
+# ---------- status badges ----------
+TONE = {"inspection": "info", "proposal": "warning", "won": "success", "lost": "secondary",
+        "signed": "warning", "scheduled": "primary", "inprogress": "primary", "done": "success", "invoiced": "danger", "paid": "success"}
+
+
+@register.simple_tag
+def badge(text, tone="secondary"):
+    return format_html('<span class="badge rounded-pill bg-{0}-subtle text-{0}-emphasis border border-{0}-subtle">{1}</span>', tone, text)
+
+
+@register.simple_tag
+def stage_badge(record):
+    return badge(record.get_stage_display(), TONE.get(record.stage, "secondary"))
+
+
+@register.simple_tag
+def kind_badge(account):
+    return badge(account.get_kind_display(), "primary" if account.is_company else "secondary")
+
+
+@register.simple_tag
+def job_tags(job):
+    """The small labels after a job's type: Warranty, Labor only."""
+    tags = [badge(_("Warranty"), "info")] if job.is_warranty else []
+    if job.labor_only:
+        tags.append(badge(_("Labor only"), "secondary"))
+    return mark_safe(" ".join(tags))
+
+
+@register.simple_tag
+def job_dates(job):
+    """Mon, Nov 9   or   Mon, Nov 9 – Wed, Nov 11"""
+    if not job.first_day:
+        return _("Not scheduled yet")
+    if job.last_day == job.first_day:
+        return day(job.first_day)
+    return f"{day(job.first_day)} – {day(job.last_day)}"
+
+
+# ---------- the stage bar: one bar from Inspection to Paid ----------
+PATH = [("inspection", Opportunity.Stage.INSPECTION.label), ("proposal", Opportunity.Stage.PROPOSAL.label), ("signed", None),
+        ("scheduled", Job.Stage.SCHEDULED.label), ("inprogress", Job.Stage.IN_PROGRESS.label), ("done", Job.Stage.DONE.label),
+        ("invoiced", Job.Stage.INVOICED.label), ("paid", Job.Stage.PAID.label)]
+
+
+@register.inclusion_tag("crm/_stage_bar.html")
+def stage_bar(record):
+    """Steps before the current one are green; the current one is orange. A lost opportunity shows no current step."""
+    steps = [(key, label if label is not None else _("Signed")) for key, label in PATH]
+    if isinstance(record, Opportunity):
+        job = getattr(record, "job", None)
+        current = "lost" if record.stage == "lost" else (job.stage if job else "signed") if record.stage == "won" else record.stage
+    else:
+        current = record.stage
+        if not record.opportunity_id:                                   # a warranty job has no sales steps
+            steps = [("signed", _("Opened"))] + steps[3:6]
+    keys = [key for key, _label in steps]
+    at = keys.index(current) if current in keys else -1
+    return {"steps": [{"label": label, "state": "" if at < 0 else "done" if i < at else "cur" if i == at else ""}
+                      for i, (_key, label) in enumerate(steps)]}
+
+
+# ---------- search results: mark the words that were typed ----------
+@register.filter
+def hl(text, q):
+    """{{ account.name|hl:q }} wraps each searched word found in the text in <mark>."""
+    words = [re.escape(word.strip("#,;")) for word in str(q).split() if word.strip("#,;")]
+    if not words or text in (None, ""):
+        return text or ""
+    parts = re.split("(" + "|".join(words) + ")", str(text), flags=re.IGNORECASE)
+    return mark_safe("".join(format_html("<mark>{}</mark>", part) if i % 2 else escape(part) for i, part in enumerate(parts)))

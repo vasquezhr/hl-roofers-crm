@@ -1,0 +1,9 @@
+{% load i18n crm_tags %}
+{# Previous / Next under a long list. Needs: page, and "keep": what else stays in the address, like show=open #}
+{% if page.has_other_pages %}
+<nav class="d-flex align-items-center justify-content-between mb-3" aria-label="{% trans 'Pages' %}">
+  {% if page.has_previous %}<a class="btn btn-outline-secondary btn-sm" href="?{{ keep }}&amp;page={{ page.previous_page_number }}">‹ {% trans "Previous" %}</a>{% else %}<span></span>{% endif %}
+  <span class="small text-body-secondary">{% trf "Page %(number)s of %(total)s" number=page.number total=page.paginator.num_pages %}</span>
+  {% if page.has_next %}<a class="btn btn-outline-secondary btn-sm" href="?{{ keep }}&amp;page={{ page.next_page_number }}">{% trans "Next" %} ›</a>{% else %}<span></span>{% endif %}
+</nav>
+{% endif %}

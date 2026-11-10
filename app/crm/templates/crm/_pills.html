@@ -1,0 +1,6 @@
+{# The row of filter buttons above a list. Needs: pills. "keep" is anything else to keep in the address. #}
+<div class="d-flex flex-nowrap gap-1 overflow-auto pb-2 mb-2">
+  {% for pill in pills %}
+  <a class="btn btn-sm rounded-pill text-nowrap {% if pill.active %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="?show={{ pill.value }}{{ keep_after_pill }}">{{ pill.label }} <span class="opacity-75">{{ pill.count }}</span></a>
+  {% endfor %}
+</div>

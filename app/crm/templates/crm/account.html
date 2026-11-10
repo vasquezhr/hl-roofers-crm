@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{{ account.name }}{% endblock %}
+
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'accounts' %}">‹ {% trans "Accounts" %}</a>
+<div class="d-flex align-items-start gap-2 mb-3">
+  <div class="flex-grow-1 hl-minw0">
+    <h1 class="h4 mb-0">{{ account.name }}</h1>
+    <div class="text-body-secondary small">{% kind_badge account %} <span class="ms-1">{% trf "Customer since %(year)s" year=account.customer_since %}</span></div>
+  </div>
+  <a class="btn btn-outline-secondary btn-sm text-nowrap" href="{% url 'account_edit' account.pk %}">{% icon "edit" %} {% trans "Edit" %}</a>
+  <a class="btn btn-primary btn-sm text-nowrap" href="{% url 'opp_new' account.pk %}">{% icon "plus" %} {% trans "New opportunity" %}</a>
+</div>
+
+<div class="mb-3">{% contact_buttons account account.main_property "account" account.pk %}</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <h2 class="h6 mb-0 flex-grow-1">{% trans "Contacts" %}</h2>
+          <a class="btn btn-outline-secondary btn-sm" href="{% url 'contact_new' account.pk %}">{% icon "plus" %} {% trans "Add" %}</a>
+        </div>
+        <ul class="list-unstyled mb-0">
+          {% for contact in account.contacts.all %}
+          <li class="d-flex align-items-start gap-2 mb-2">
+            <div class="flex-grow-1 hl-minw0">
+              <div class="fw-semibold">{{ contact.name }} <span class="text-body-secondary fw-normal small">· {{ contact.get_role_display }}{% if contact.is_primary %} · {% trans "main contact" %}{% endif %}</span></div>
+              <div class="small">{% if contact.phone %}<a href="{{ contact.phone|tel }}">{{ contact.phone }}</a>{% endif %}{% if contact.phone and contact.email %} · {% endif %}{% if contact.email %}<a href="mailto:{{ contact.email }}">{{ contact.email }}</a>{% endif %}</div>
+            </div>
+            <a class="btn btn-link btn-sm p-0" href="{% url 'contact_edit' contact.pk %}" aria-label="{% trans 'Edit' %}">{% icon "edit" %}</a>
+          </li>
+          {% empty %}
+          <li class="small text-body-secondary">{% trans "None" %}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <h2 class="h6 mb-0 flex-grow-1">{% trans "Properties" %}</h2>
+          <a class="btn btn-outline-secondary btn-sm" href="{% url 'property_new' account.pk %}">{% icon "plus" %} {% trans "Add" %}</a>
+        </div>
+        {% for place in account.properties.all %}
+        <div class="d-flex align-items-start gap-2 mb-2">
+          <div class="flex-grow-1 hl-minw0">
+            <div class="fw-semibold">{{ place.street }}</div>
+            <div class="small text-body-secondary">{{ place.city_line }}
+              {% if place.site_name %}<br>{% trans "Site contact" %}: {{ place.site_name }}{% if place.site_phone %} · <a href="{{ place.site_phone|tel }}">{{ place.site_phone }}</a>{% endif %}{% endif %}
+              {% if place.access_notes %}<br>{{ place.access_notes }}{% endif %}
+            </div>
+          </div>
+          <a class="btn btn-link btn-sm p-0" href="{% url 'property_edit' place.pk %}" aria-label="{% trans 'Edit' %}">{% icon "edit" %}</a>
+          <a class="btn btn-outline-secondary btn-sm" href="{{ place|maps_href }}" target="_blank" rel="noopener" aria-label="{% trans 'Directions' %}">{% icon "nav" %}</a>
+        </div>
+        {% empty %}
+        <div class="small text-body-secondary">{% trans "None" %}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Details" %}</h2>
+        {% for note in account.notes.all %}
+        <div class="mb-2">
+          <div class="small text-body-secondary mb-1">{{ note.get_source_display }}{% if note.noted_on %} · {{ note.noted_on|date }}{% endif %}</div>
+          <pre class="hl-pre small bg-body-tertiary border rounded p-2 mb-0">{{ note.text }}</pre>
+        </div>
+        {% empty %}
+        <div class="small text-body-secondary mb-2">{% trans "No notes yet." %}</div>
+        {% endfor %}
+        <form method="post" action="{% url 'note_new' account.pk %}" class="mt-3">
+          {% csrf_token %}
+          <label class="form-label small fw-semibold mb-1" for="{{ note_form.text.id_for_label }}">{% trans "Add a note" %}</label>
+          {{ note_form.text }}
+          <button type="submit" class="btn btn-outline-secondary btn-sm mt-2">{% trans "Save the note" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "Opportunities" %}</h2>
+    {% if opps %}<div class="list-group list-group-flush">{% for opp in opps %}{% include "crm/_opp_row.html" %}{% endfor %}</div>
+    {% else %}<div class="small text-body-secondary">{% trans "None" %}</div>{% endif %}
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "Jobs" %}</h2>
+    {% if jobs %}<div class="list-group list-group-flush">{% for job in jobs %}{% include "crm/_job_row.html" %}{% endfor %}</div>
+    {% else %}<div class="small text-body-secondary">{% trans "None" %}</div>{% endif %}
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "History" %}</h2>
+    {% include "crm/_history.html" %}
+  </div>
+</div>
+{% endblock %}
