@@ -216,7 +216,7 @@ const I18N = {
     signedHow: { paper: "on paper", link: "online, from the email link", po: "their approval or PO" },
     lost: { price: "Went with a lower price", timing: "Not doing the work now", noresponse: "Stopped answering", other: "Other" },
     ref: { po: "PO", claim: "Claim", wo: "Work order" },
-    sms: { onTheWay: "Hi {name}, this is H & L Roofers. " },
+    sms: { onTheWay: "Hi {name}, this is H & L Roofers. ", changed: "H & L: job #{id} ({name}) changed. Now: {now}. Before: {was}. Please tap Got it in the app." },
     log: { call: "Called", text: "Sent a text", nav: "Opened directions",
       acctCreated: "Account created", oppCreated: "Opportunity created", proposalSent: "Proposal sent", signed: "Proposal signed", lost: "Marked lost",
       jobCreated: "Job created from the signed proposal", warrantyCreated: "Warranty job opened", warrantyOpened: "Warranty job #{id} opened",
@@ -224,7 +224,9 @@ const I18N = {
       refChanged: "Outside number changed",
       leadIn: "Request received from the website", unqualified: "Marked not a fit", converted: "Converted",
       oppFromLead: "Opportunity created from a website lead", leadAttached: "Website request added: “{msg}”",
-      coSent: "Change order {id} sent for signature", coSigned: "Change order {id} signed", payment: "Payment recorded: {amount}" },
+      coSent: "Change order {id} sent for signature", coSigned: "Change order {id} signed", payment: "Payment recorded: {amount}",
+      inspBooked: "Inspection booked: {when}", changed: "Dates changed (before: {was})", notified: "Crew notified by text", gotIt: "Crew confirmed the change",
+      workerAdded: "Extra worker added: {name}", workerRemoved: "Extra worker removed: {name}" },
     accounts: { sub: "Customers and companies you work with", new: "New account", people: "People", companies: "Companies",
       counts: "Jobs: {jobs} · Open: {open}", since: "Customer since {y}", contacts: "Contacts", properties: "Properties",
       details: "Details", fromNotes: "Imported from Apple Notes", noDetails: "No notes for this customer.", type: "Type of account" },
@@ -232,6 +234,7 @@ const I18N = {
       makeProposal: "Create proposal", markSigned: "Mark signed", markLost: "Mark lost", openJob: "Open job #{id}",
       newForCustomer: "New opportunity for this customer", inspection: "Inspection", noInspection: "No inspection booked yet.",
       proposal: "Proposal", source: "Where it came from", lostBecause: "Why it was lost", sentOn: "Sent {d}", signedOn: "signed {d}",
+      bookInspection: "Book inspection", rebook: "Change time",
       noPrice: "No price yet.", whatFor: "What is it for?", created: "Opportunity #{id} created",
       viewProposal: "View proposal", acceptPage: "Customer's Accept page",
       signAsk: "A signed proposal becomes job #{id} right away, with the same number.", howSigned: "How was it signed?",
@@ -251,10 +254,22 @@ const I18N = {
     today: { hello: "Good morning", newLeads: "New leads", callLead: "Call {name}: website request, {ago}", proposalsOut: "Proposals out", toSchedule: "Jobs to schedule", inProgress: "Jobs in progress", unpaid: "Unpaid invoices",
       work: "Today's work", nothing: "Nothing scheduled today.", attention: "Needs attention", allClear: "Nothing waiting.",
       followUp: "Follow up with {name}: proposal sent {n} days ago", scheduleJob: "Schedule job #{id} for {name}",
-      unpaidSince: "{name}: invoice unpaid for {n} days" },
+      unpaidSince: "{name}: invoice unpaid for {n} days", changeNotSeen: "{crew} has not seen the change to job #{id}" },
     search: { hint: "Customers, addresses, phone numbers, job numbers and old notes.", hintCrew: "Searches your crew's jobs.",
       ph: "Name, address, phone, job number…", none: "No matches." },
     mine: { today: "Today", upcoming: "Coming up", finished: "Finished" },
+    myday: { next: "Next work day", changes: "Changes to your jobs" },
+    sched: { inspections: "Inspections", prev: "Earlier", next: "Later", dayOf: "day {i} of {n}", changed: "Changed", map: "Map of that day's stops",
+      book: "Book a visit", nothingToBook: "Nothing is waiting to be booked.", pick: "What are you booking?",
+      inspGroup: "Inspections to book", jobGroup: "Jobs to schedule", suggestions: "Suggested times", best: "Best fit",
+      near: "{m} mi from {name} ({time})", noNear: "No other stops that day", bookBtn: "Book", booked: "Booked",
+      inspHint: "Inspections are one hour, any hour from 9 am to 4 pm. Days are ranked by how close the visit is to that day's other stops.",
+      crewFree: "{crew} is free for the whole job", dayBefore: "The day before: {name}, {m} mi away", noDayBefore: "Nothing booked the day before",
+      feed: "Add to my phone's calendar",
+      feedText: "Subscribe once and your jobs show up in Apple Calendar on your iPhone or Mac. The calendar refreshes on its own a few times a day, so same-day changes still come by text.",
+      feedCopy: "Copy link", feedCopied: "Link copied (demo)", feedNote: "In the real app, tapping the link on an iPhone opens Calendar and asks to subscribe.",
+      changedWas: "Before: {was}.", notSeen: "{who} has not seen it yet.", seenBy: "Seen by {who}", notify: "Notify crew",
+      gotIt: "Got it", gotItDone: "The office can see you got it", changeDates: "Change dates", addWorker: "Add worker", removeWorker: "Remove" },
     leads: { sub: "Requests from the website, waiting for someone to review them", returning: "Returning customer",
       convert: "Convert", unfit: "Not a fit", addedToJob: "Added to job #{id}", unfitBecause: "Why it is not a fit",
       isReturning: "This looks like a customer you already have:", hasOpenJob: "They have an open job:",
@@ -323,7 +338,7 @@ const I18N = {
     signedHow: { paper: "en papel", link: "en línea, desde el enlace del correo", po: "su aprobación u orden de compra" },
     lost: { price: "Eligió un precio más bajo", timing: "No hará el trabajo por ahora", noresponse: "Dejó de contestar", other: "Otro" },
     ref: { po: "Orden de compra", claim: "Reclamo", wo: "Orden de trabajo" },
-    sms: { onTheWay: "Hola {name}, le saluda H & L Roofers. " },
+    sms: { onTheWay: "Hola {name}, le saluda H & L Roofers. ", changed: "H & L: cambió el trabajo #{id} ({name}). Ahora: {now}. Antes: {was}. Por favor toque Enterado en la app." },
     log: { call: "Llamada", text: "Mensaje de texto enviado", nav: "Abrió la ruta",
       acctCreated: "Cuenta creada", oppCreated: "Oportunidad creada", proposalSent: "Propuesta enviada", signed: "Propuesta firmada", lost: "Marcada como perdida",
       jobCreated: "Trabajo creado al firmarse la propuesta", warrantyCreated: "Trabajo de garantía abierto", warrantyOpened: "Se abrió el trabajo de garantía #{id}",
@@ -331,7 +346,9 @@ const I18N = {
       refChanged: "Número externo actualizado",
       leadIn: "Pedido recibido del sitio web", unqualified: "Marcado como no califica", converted: "Convertido",
       oppFromLead: "Oportunidad creada desde un prospecto del sitio web", leadAttached: "Pedido del sitio web agregado: «{msg}»",
-      coSent: "Orden de cambio {id} enviada para firma", coSigned: "Orden de cambio {id} firmada", payment: "Pago registrado: {amount}" },
+      coSent: "Orden de cambio {id} enviada para firma", coSigned: "Orden de cambio {id} firmada", payment: "Pago registrado: {amount}",
+      inspBooked: "Inspección agendada: {when}", changed: "Fechas cambiadas (antes: {was})", notified: "Se avisó al equipo por mensaje", gotIt: "El equipo confirmó el cambio",
+      workerAdded: "Trabajador extra agregado: {name}", workerRemoved: "Trabajador extra quitado: {name}" },
     accounts: { sub: "Clientes y compañías con las que trabaja", new: "Cuenta nueva", people: "Personas", companies: "Compañías",
       counts: "Trabajos: {jobs} · Abiertas: {open}", since: "Cliente desde {y}", contacts: "Contactos", properties: "Propiedades",
       details: "Detalles", fromNotes: "Importado de Notas de Apple", noDetails: "No hay notas de este cliente.", type: "Tipo de cuenta" },
@@ -339,6 +356,7 @@ const I18N = {
       makeProposal: "Crear propuesta", markSigned: "Marcar firmada", markLost: "Marcar perdida", openJob: "Abrir trabajo #{id}",
       newForCustomer: "Oportunidad nueva para este cliente", inspection: "Inspección", noInspection: "Todavía no hay inspección programada.",
       proposal: "Propuesta", source: "De dónde vino", lostBecause: "Por qué se perdió", sentOn: "Enviada el {d}", signedOn: "firmada el {d}",
+      bookInspection: "Agendar inspección", rebook: "Cambiar horario",
       noPrice: "Todavía no tiene precio.", whatFor: "¿Para qué es?", created: "Oportunidad #{id} creada",
       viewProposal: "Ver propuesta", acceptPage: "Página del cliente para aceptar",
       signAsk: "Al firmarse, la propuesta se convierte de inmediato en el trabajo #{id}, con el mismo número.", howSigned: "¿Cómo se firmó?",
@@ -358,10 +376,22 @@ const I18N = {
     today: { hello: "Buenos días", newLeads: "Prospectos nuevos", callLead: "Llamar a {name}: pedido del sitio web, {ago}", proposalsOut: "Propuestas enviadas", toSchedule: "Trabajos por programar", inProgress: "Trabajos en progreso", unpaid: "Facturas sin pagar",
       work: "Trabajo de hoy", nothing: "No hay nada programado hoy.", attention: "Requiere atención", allClear: "No hay nada pendiente.",
       followUp: "Dar seguimiento a {name}: propuesta enviada hace {n} días", scheduleJob: "Programar el trabajo #{id} de {name}",
-      unpaidSince: "{name}: factura sin pagar desde hace {n} días" },
+      unpaidSince: "{name}: factura sin pagar desde hace {n} días", changeNotSeen: "{crew} no ha visto el cambio del trabajo #{id}" },
     search: { hint: "Clientes, direcciones, teléfonos, números de trabajo y notas viejas.", hintCrew: "Busca en los trabajos de su equipo.",
       ph: "Nombre, dirección, teléfono, número de trabajo…", none: "Sin resultados." },
     mine: { today: "Hoy", upcoming: "Próximos", finished: "Terminados" },
+    myday: { next: "Próximo día de trabajo", changes: "Cambios en sus trabajos" },
+    sched: { inspections: "Inspecciones", prev: "Antes", next: "Después", dayOf: "día {i} de {n}", changed: "Cambió", map: "Mapa de las paradas de ese día",
+      book: "Programar una visita", nothingToBook: "No hay nada pendiente de programar.", pick: "¿Qué va a programar?",
+      inspGroup: "Inspecciones por agendar", jobGroup: "Trabajos por programar", suggestions: "Horarios sugeridos", best: "Mejor opción",
+      near: "a {m} mi de {name} ({time})", noNear: "No hay otras paradas ese día", bookBtn: "Agendar", booked: "Agendado",
+      inspHint: "Las inspecciones duran una hora, a cualquier hora entre 9 am y 4 pm. Los días se ordenan según qué tan cerca queda la visita de las otras paradas de ese día.",
+      crewFree: "{crew} está libre para todo el trabajo", dayBefore: "El día anterior: {name}, a {m} mi", noDayBefore: "Nada programado el día anterior",
+      feed: "Agregar al calendario de mi teléfono",
+      feedText: "Suscríbase una vez y sus trabajos aparecen en el Calendario de Apple de su iPhone o Mac. El calendario se actualiza solo unas veces al día, así que los cambios del mismo día igual llegan por mensaje.",
+      feedCopy: "Copiar enlace", feedCopied: "Enlace copiado (demo)", feedNote: "En la app real, al tocar el enlace en un iPhone se abre Calendario y pregunta si quiere suscribirse.",
+      changedWas: "Antes: {was}.", notSeen: "{who} todavía no lo ha visto.", seenBy: "Visto por {who}", notify: "Avisar al equipo",
+      gotIt: "Enterado", gotItDone: "La oficina ya ve que está enterado", changeDates: "Cambiar fechas", addWorker: "Agregar trabajador", removeWorker: "Quitar" },
     leads: { sub: "Pedidos del sitio web, en espera de que alguien los revise", returning: "Cliente que regresa",
       convert: "Convertir", unfit: "No califica", addedToJob: "Agregado al trabajo #{id}", unfitBecause: "Por qué no califica",
       isReturning: "Parece ser un cliente que ya tiene:", hasOpenJob: "Tiene un trabajo abierto:",
@@ -472,7 +502,7 @@ function historyList(rec) {
   const log = (rec.log || []).slice().sort((a, b) => b.d - a.d);      // newest first
   if (!log.length) return `<div class="text-body-secondary small">${esc(t("noHistory"))}</div>`;
   return `<ul class="list-unstyled small mb-0">` + log.map(e =>
-    `<li class="border-bottom py-1"><span class="text-body-secondary">${esc(fmtDay(e.d))} · ${esc(whoName(e.w))}</span> — ${esc(t(e.k, e.v))}</li>`).join("") + `</ul>`;
+    `<li class="border-bottom py-1"><span class="text-body-secondary">${esc(fmtDay(e.d))} · ${esc(whoName(e.w))}</span> — ${esc(t(e.k, typeof e.v === "function" ? e.v() : e.v))}</li>`).join("") + `</ul>`;
 }
 
 /* ---------- icons (inline drawings, so the file needs no icon font) ---------- */
@@ -945,7 +975,8 @@ route("opp", {
       `<button type="button" class="btn btn-outline-secondary" data-act="oppAccept" data-id="${o.id}">${ic("link")} ${tt("opps.acceptPage")}</button>` + lostBtn;
     if (o.stage === "won") actions = (job ? `<a class="btn btn-primary" href="#job/${job.id}">${ic("jobs")} ${tt("opps.openJob", { id: job.id })}</a>` : "") + viewBtn;
     if (o.stage === "lost") actions = `<button type="button" class="btn btn-outline-primary" data-act="newOpp" data-acct="${a.id}">${ic("plus")} ${tt("opps.newForCustomer")}</button>`;
-    const insp = o.insp ? `<div class="fw-semibold">${esc(fmtDay(o.insp.day))} · ${fmtTime(o.insp.time)}</div>` : `<div class="small text-body-secondary">${tt("opps.noInspection")}</div>`;
+    const insp = (o.insp ? `<div class="fw-semibold">${esc(fmtDay(o.insp.day))} · ${fmtTime(o.insp.time)}</div>` : `<div class="small text-body-secondary">${tt("opps.noInspection")}</div>`) +
+      (o.stage === "inspection" ? `<button type="button" class="btn ${o.insp ? "btn-outline-secondary" : "btn-primary"} btn-sm mt-2" data-act="goBook" data-kind="opp" data-id="${o.id}">${ic("schedule")} ${tt(o.insp ? "opps.rebook" : "opps.bookInspection")}</button>` : "");
     return backLink("#opps", t("nav.opps")) +
       pageHead(esc(a.name), `#${o.id} · ${tt("type." + o.type)}` + (o.laborOnly ? " · " + tt("job.laborOnly") : ""), stageBadge(o.stage)) +
       stageBar(PATH, cur) +
@@ -1031,8 +1062,9 @@ route("jobs", {
 function jobActions(j) {
   const b = (act, icon, label, extra, cls) => `<button type="button" class="btn ${cls || "btn-primary"}" data-act="${act}" data-id="${j.id}" ${extra || ""}>${ic(icon)} ${esc(label)}</button>`;
   const out = [];
-  if (j.stage === "signed" && !isCrew()) out.push(b("jobSchedule", "schedule", t("job.schedule")));
+  if (j.stage === "signed" && !isCrew()) out.push(b("goBook", "schedule", t("job.schedule"), 'data-kind="job"'));
   if (j.stage === "scheduled") out.push(b("jobStage", "check", t("job.start"), 'data-to="inprogress"'));
+  if (j.stage === "scheduled" && !isCrew()) out.push(b("jobSchedule", "edit", t("sched.changeDates"), "", "btn-outline-secondary"));
   if (j.stage === "inprogress") out.push(b("jobStage", "check", t("job.markDone"), 'data-to="done"'));
   if (j.type !== "warranty") {
     if (j.stage === "done" && !isCrew()) out.push(b("jobInvoice", "mail", t("job.makeInvoice")));
@@ -1053,8 +1085,8 @@ route("job", {
     const cur = j.opp ? PATH.indexOf(j.stage) : ["signed", "scheduled", "inprogress", "done"].indexOf(j.stage);
     const orig = j.warrantyFor ? jobOf(j.warrantyFor) : null, wjobs = JOBS.filter(x => x.warrantyFor === j.id);
     const crewCard = crew
-      ? dl([[tt("crew"), `<span class="fw-semibold">${esc(crewName(crew))}</span> · ${tt("job.lead")}: ${esc(crew.lead)}<br><span class="text-body-secondary">${esc(crew.members.join(", "))}</span>`],
-          j.workers.length ? [tt("job.extraWorkers"), esc(j.workers.join(", "))] : null,
+      ? changedBox(j) + dl([[tt("crew"), `<span class="fw-semibold">${esc(crewName(crew))}</span> · ${tt("job.lead")}: ${esc(crew.lead)}<br><span class="text-body-secondary">${esc(crew.members.join(", "))}</span>`],
+          jobDone(j) ? (j.workers.length ? [tt("job.extraWorkers"), esc(j.workers.join(", "))] : null) : [tt("job.extraWorkers"), workersEditor(j)],
           [tt("job.when"), esc(jobDates(j)) + (j.days.length > 1 ? `<br><span class="text-body-secondary">${tt("job.days", { n: j.days.length })} · ${tt("job.startsAt", { t: fmtTime(j.time) })}</span>` : "")]])
       : `<div class="small text-body-secondary">${tt("job.notScheduled")}</div>`;
     const refCard = dl([[tt("job.ourNumber"), "#" + j.id],
@@ -1101,10 +1133,14 @@ ACT.jobSchedule = d => {
 ACT.jobScheduleCrew = (d, el) => ACT.jobSchedule({ id: d.id, crew: el.value });
 ACT.saveSchedule = d => {
   const j = jobOf(d.id), n = Math.max(1, parseInt(val("jsDays"), 10) || 1), [y, m, dd] = val("jsDay").split("-").map(Number);
-  const days = [], cur = new Date(y, m - 1, dd);
+  const days = [], cur = new Date(y, m - 1, dd), wasDays = j.days.slice(), wasCrew = j.crew;
   while (days.length < n) { if (!isOff(cur)) days.push(new Date(cur)); cur.setDate(cur.getDate() + 1); }
-  j.crew = val("jsCrew"); j.days = days; j.time = "08:00"; if (j.stage === "signed") j.stage = "scheduled";
-  addLog(j, "log.scheduled"); closeModal(); toast(t("log.scheduled")); render();
+  j.crew = val("jsCrew"); j.days = days; j.time = "08:00";
+  if (j.stage === "signed") { j.stage = "scheduled"; addLog(j, "log.scheduled"); }
+  else if (wasDays.map(iso).join() !== days.map(iso).join() || wasCrew !== j.crew) {       // an already scheduled job changed: the crew gets a "Changed" notice
+    j.changed = { wasDays, seen: false, d: new Date() }; addLog(j, "log.changed", { was: rangeText(wasDays) });
+  }
+  closeModal(); toast(t("log.scheduled")); render();
 };
 
 // The outside number a job can carry: an insurance or warranty claim, a purchase order or a work order.
@@ -1228,28 +1264,6 @@ route("search", {
   after() { const q = $("#q"); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }
 });
 ACT.searchType = (d, el) => { S.q = el.value; $("#sres").innerHTML = searchResults(); };
-
-/* =====================================================================
-   CREW APP. A crew signs in with its one shared login and sees only the
-   jobs scheduled to that crew.
-   ===================================================================== */
-
-route("myjobs", {
-  roles: ["crew"], icon: "myjobs",
-  render() {
-    const jobs = myJobs().slice().sort((a, b) => (a.days[0] || 0) - (b.days[0] || 0));
-    const isToday = j => j.days.some(d => sameDay(d, TODAY));
-    const groups = [
-      ["mine.today", jobs.filter(j => isToday(j) && !jobDone(j))],
-      ["mine.upcoming", jobs.filter(j => !isToday(j) && !jobDone(j))],
-      ["mine.finished", jobs.filter(jobDone).reverse()]
-    ];
-    const crew = crewOf(S.crew);
-    return pageHead(tt("nav.myjobs"), esc(crewName(crew) + " · " + crew.members.join(", "))) +
-      groups.map(([key, list]) => `<h2 class="h6 mt-3 mb-2">${tt(key)} <span class="text-body-secondary fw-normal">${list.length}</span></h2>` +
-        (list.length ? listBox(list.map(jobRow).join("")) : `<div class="small text-body-secondary mb-3">${tt("none")}</div>`)).join("");
-  }
-});
 
 /* =====================================================================
    LEADS. A request from the website arrives here. Someone reviews it,
@@ -1742,6 +1756,230 @@ ADMIN_PAGES.push({
 });
 ACT.companySave = () => { Object.keys(CO_BLANK).forEach(k => { S.company[k] = val("co_" + k); }); toast(t("saved")); render(); };
 ACT.companySample = () => { Object.keys(CO_BLANK).forEach(k => { S.company[k] = val("co_" + k); }); showProposal(oppOf("26-112")); };
+
+/* =====================================================================
+   SCHEDULE: the week calendar, suggested times, and changes sent to crews.
+   Work days are Monday to Friday here. Saturdays are never offered;
+   Sunday is not decided yet.
+   ===================================================================== */
+S.week = 0;                     // which week is showing: 0 = starting today, 1 = the five work days after, ...
+S.book = "";                    // what is being booked, e.g. "opp:26-124" or "job:26-122"
+S.bookCrew = "c1";
+const CREW_TONE = { c1: "primary", c2: "success" };
+
+/* ---------- sample change: this job was moved and its crew has not seen it yet ---------- */
+const rangeText = days => (days.length > 1 ? fmtDay(days[0]) + " – " + fmtDay(days[days.length - 1]) : fmtDay(days[0]));
+jobOf("26-104").changed = { wasDays: [wd(1), wd(2)], seen: false, d: ago(1) };
+seed(jobOf("26-104"), ago(1), "office", "log.changed", () => ({ was: rangeText([wd(1), wd(2)]) }));
+
+/* ---------- the week ---------- */
+function schedItem(s, day) {
+  const r = s.rec, name = acct(r.acct).name, base = "d-block text-decoration-none text-reset small rounded-end border-start border-3 p-1 ";
+  if (s.kind === "insp") return `<a href="#opp/${r.id}" class="${base}border-info bg-info-subtle"><span class="fw-semibold">${fmtTime(s.time)}</span> · ${tt("stage.inspection")}<br>${esc(name)}</a>`;
+  const tone = CREW_TONE[r.crew] || "secondary", i = r.days.findIndex(x => sameDay(x, day)) + 1;
+  return `<a href="#job/${r.id}" class="${base}border-${tone} bg-${tone}-subtle"><span class="fw-semibold">${esc(crewName(crewOf(r.crew)))}</span> · ` +
+    (r.days.length > 1 ? tt("sched.dayOf", { i, n: r.days.length }) : fmtTime(r.time)) + `<br>${esc(name)} · ${tt("type." + r.type)}` +
+    (r.changed && !r.changed.seen ? `<br>${badge(t("sched.changed"), "warning")}` : "") + `</a>`;
+}
+function schedDay(d) {
+  const f = S.f.sched;
+  const items = stopsOn(d).filter(s => f === "all" || (f === "insp" ? s.kind === "insp" : s.kind === "job" && s.rec.crew === f));
+  return `<div class="col"><div class="card h-100${sameDay(d, TODAY) ? " border-primary" : ""}">` +
+    `<div class="card-header d-flex justify-content-between py-1 px-2 small"><span class="fw-semibold text-uppercase">${esc(d.toLocaleDateString(loc(), { weekday: "short" }))}</span><span>${esc(d.toLocaleDateString(loc(), { month: "short", day: "numeric" }))}</span></div>` +
+    `<div class="card-body d-flex flex-column gap-1 p-2">${items.length ? items.map(s => schedItem(s, d)).join("") : `<div class="small text-body-secondary">—</div>`}</div></div></div>`;
+}
+
+/* ---------- suggested times ---------- */
+// Inspection: any hour from 9 am to 4 pm, one hour long. Days are ranked by how close the
+// visit is to that day's other stops, then by soonest.
+function inspSuggestions(o) {
+  const place = placeOf(o), out = [];
+  for (let k = 1; k <= 6; k++) {
+    const day = wd(k), others = stopsOn(day).filter(s => s.rec !== o);
+    let near = null;
+    others.forEach(s => { const m = miles(place, placeOf(s.rec)); if (!near || m < near.m) near = { m, s }; });
+    const nearHour = near && near.s.kind === "insp" ? parseInt(near.s.time, 10) : 9;
+    for (let h = 9; h <= 16; h++) {
+      if (others.some(s => s.kind === "insp" && Math.abs(parseInt(s.time, 10) - h) < 1)) continue;      // that hour is taken
+      out.push({ day, time: String(h).padStart(2, "0") + ":00", near, score: near ? near.m : 40, gap: Math.abs(h - nearHour) });
+    }
+  }
+  out.sort((a, b) => a.score - b.score || a.day - b.day || a.gap - b.gap || a.time.localeCompare(b.time));
+  const seen = new Set(), top = [];                                  // the best time on each day; four days
+  for (const r of out) { if (seen.has(iso(r.day))) continue; seen.add(iso(r.day)); top.push(r); if (top.length === 4) break; }
+  return top;
+}
+// Job: the next days when the crew is free for the whole job. Whole days only.
+function jobSuggestions(j, crewId) {
+  const n = DAYS_BY_TYPE[j.type] || 1, out = [];
+  for (let k = 1; k <= 15 && out.length < 4; k++) {
+    const days = Array.from({ length: n }, (_, i) => wd(k + i));
+    if (days.some(d => crewBusy(crewId, d, j.id))) continue;
+    const prev = JOBS.find(x => x.crew === crewId && x.id !== j.id && x.days.some(d => sameDay(d, wd(k - 1))));
+    out.push({ days, prev, m: prev ? miles(placeOf(j), placeOf(prev)) : null });
+  }
+  return out;
+}
+// small map: the new visit (green) and that day's other stops
+function miniMap(place, day, label) {
+  const pts = stopsOn(day).map(s => ({ p: placeOf(s.rec), label: acct(s.rec.acct).name.split(" ")[0] + " " + fmtTime(s.time) }));
+  const all = [...pts.map(x => x.p), place], lats = all.map(p => p.lat), lngs = all.map(p => p.lng), pad = 0.03;
+  const minLat = Math.min(...lats) - pad, maxLat = Math.max(...lats) + pad, minLng = Math.min(...lngs) - pad, maxLng = Math.max(...lngs) + pad;
+  const W = 320, H = 150, X = l => ((l - minLng) / (maxLng - minLng || 1)) * (W - 90) + 15, Y = l => H - (((l - minLat) / (maxLat - minLat || 1)) * (H - 30) + 15);
+  return `<svg class="w-100 border rounded bg-body-tertiary mt-3" viewBox="0 0 ${W} ${H}" role="img" aria-label="${tt("sched.map")}">` +
+    pts.map(x => `<line x1="${X(place.lng)}" y1="${Y(place.lat)}" x2="${X(x.p.lng)}" y2="${Y(x.p.lat)}" stroke="var(--bs-secondary)" stroke-width="1.5" stroke-dasharray="4 4"/>`).join("") +
+    pts.map(x => `<circle cx="${X(x.p.lng)}" cy="${Y(x.p.lat)}" r="6" fill="var(--bs-primary)"/><text x="${X(x.p.lng) + 9}" y="${Y(x.p.lat) + 4}" font-size="10" fill="var(--bs-body-color)">${esc(x.label)}</text>`).join("") +
+    `<circle cx="${X(place.lng)}" cy="${Y(place.lat)}" r="7" fill="var(--bs-success)" stroke="var(--bs-body-bg)" stroke-width="2"/><text x="${X(place.lng) + 10}" y="${Y(place.lat) + 4}" font-size="10" font-weight="700" fill="var(--bs-success)">${esc(label)}</text></svg>`;
+}
+
+// everything waiting to be booked
+const toBook = () => [
+  ...OPPS.filter(o => o.stage === "inspection" && (!o.insp || S.book === "opp:" + o.id)).map(o => ({ key: "opp:" + o.id, rec: o, kind: "opp" })),   // includes one whose time is being changed
+  ...JOBS.filter(j => j.stage === "signed").map(j => ({ key: "job:" + j.id, rec: j, kind: "job" }))
+];
+function bookCard() {
+  const list = toBook();
+  if (!list.length) return section(tt("sched.book"), `<div class="small text-body-secondary">${tt("sched.nothingToBook")}</div>`);
+  const cur = list.find(x => x.key === S.book) || list[0], r = cur.rec, a = acct(r.acct), place = placeOf(r);
+  const opt = x => `<option value="${x.key}"${x === cur ? " selected" : ""}>${esc(acct(x.rec.acct).name)} — ${tt("type." + x.rec.type)} · ${esc(placeOf(x.rec).addr)}</option>`;
+  const grp = (kind, label) => { const g = list.filter(x => x.kind === kind); return g.length ? `<optgroup label="${esc(label)}">${g.map(opt).join("")}</optgroup>` : ""; };
+  let body = field(t("sched.pick"), `<select class="form-select" data-change="bookPick" id="bookPick">${grp("opp", t("sched.inspGroup"))}${grp("job", t("sched.jobGroup"))}</select>`);
+  const item = (best, when, note, btn) => `<div class="list-group-item d-flex align-items-center gap-3${best ? " list-group-item-success" : ""}"><div class="fw-bold text-nowrap">${when}</div>` +
+    `<div class="flex-grow-1 small hl-minw0">${note}${best ? `<br>${badge(t("sched.best"), "success")}` : ""}</div>${btn}</div>`;
+  if (cur.kind === "opp") {
+    const sug = inspSuggestions(r);
+    body += `<div class="fw-semibold mb-2">${tt("sched.suggestions")}</div><div class="list-group">` + sug.map((s, i) => item(i === 0,
+      `${esc(fmtDay(s.day))}<div class="small fw-normal text-body-secondary">${fmtTime(s.time)}</div>`,
+      s.near ? tt("sched.near", { m: s.near.m.toFixed(1), name: acct(s.near.s.rec.acct).name, time: fmtTime(s.near.s.time) }) : tt("sched.noNear"),
+      `<button type="button" class="btn btn-sm ${i === 0 ? "btn-primary" : "btn-outline-secondary"}" data-act="bookInsp" data-id="${r.id}" data-day="${iso(s.day)}" data-time="${s.time}">${tt("sched.bookBtn")}</button>`)).join("") + `</div>` +
+      `<div class="form-text">${tt("sched.inspHint")}</div>` + (sug[0] ? `<div class="row"><div class="col-md-7 col-lg-6">${miniMap(place, sug[0].day, a.name.split(" ")[0])}</div></div>` : "");
+  } else {
+    const crewId = S.bookCrew, sug = jobSuggestions(r, crewId);
+    body += field(t("crew"), `<select class="form-select" data-change="bookCrew">${CREWS.map(c => `<option value="${c.id}"${c.id === crewId ? " selected" : ""}>${esc(crewName(c))} · ${esc(c.lead)}</option>`).join("")}</select>`) +
+      `<div class="fw-semibold mb-2">${tt("sched.suggestions")}</div><div class="list-group">` + sug.map((s, i) => item(i === 0,
+        esc(s.days.length > 1 ? fmtDay(s.days[0]) + " – " + fmtDay(s.days[s.days.length - 1]) : fmtDay(s.days[0])),
+        tt("sched.crewFree", { crew: crewName(crewOf(crewId)), n: s.days.length }) + "<br>" + (s.prev ? tt("sched.dayBefore", { name: acct(s.prev.acct).name, m: s.m.toFixed(1) }) : tt("sched.noDayBefore")),
+        `<button type="button" class="btn btn-sm ${i === 0 ? "btn-primary" : "btn-outline-secondary"}" data-act="bookJob" data-id="${r.id}" data-crew="${crewId}" data-day="${iso(s.days[0])}" data-n="${s.days.length}">${tt("sched.bookBtn")}</button>`)).join("") + `</div>` +
+      `<div class="form-text">${tt("job.scheduleHint")}</div>`;
+  }
+  return section(tt("sched.book"), body);
+}
+
+route("schedule", {
+  roles: ["admin", "office"], icon: "schedule",
+  render() {
+    const days = Array.from({ length: 5 }, (_, i) => wd(S.week * 5 + i));
+    const nav = `<div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-secondary" data-act="schedWeek" data-by="-1"${S.week ? "" : " disabled"} aria-label="${tt("sched.prev")}">‹</button>` +
+      `<button type="button" class="btn btn-outline-secondary" data-act="schedWeek" data-by="1" aria-label="${tt("sched.next")}">›</button></div>`;
+    return pageHead(tt("nav.schedule"), esc(fmtDay(days[0]) + " – " + fmtDay(days[4])), nav) +
+      pills("sched", S.f.sched, [["all", t("all")], ...CREWS.map(c => [c.id, crewName(c)]), ["insp", t("sched.inspections")]]) +
+      `<div class="row row-cols-1 row-cols-md-5 g-2 mb-3">${days.map(schedDay).join("")}</div>` +
+      `<div class="d-flex flex-wrap gap-3 small text-body-secondary mb-3">` + CREWS.map(c => `<span><span class="badge bg-${CREW_TONE[c.id]} rounded-circle p-1">&nbsp;</span> ${esc(crewName(c))}</span>`).join("") +
+      `<span><span class="badge bg-info rounded-circle p-1">&nbsp;</span> ${tt("sched.inspections")}</span>` +
+      `<button type="button" class="btn btn-link btn-sm p-0 ms-auto" data-act="calFeed">${ic("schedule")} ${tt("sched.feed")}</button></div>` + bookCard();
+  }
+});
+ACT.schedWeek = d => { S.week = Math.max(0, S.week + (+d.by)); render(); };
+ACT.bookPick = (d, el) => { S.book = el.value; render(); };
+ACT.bookCrew = (d, el) => { S.bookCrew = el.value; render(); };
+ACT.goBook = d => { S.book = d.kind + ":" + d.id; S.week = 0; go("#schedule"); };
+const dayFromIso = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+ACT.bookInsp = d => {
+  const o = oppOf(d.id); o.insp = { day: dayFromIso(d.day), time: d.time };
+  addLog(o, "log.inspBooked", { when: fmtDay(o.insp.day) + " " + fmtTime(d.time) });
+  S.book = ""; toast(t("sched.booked")); go("#opp/" + o.id);
+};
+ACT.bookJob = d => {
+  const j = jobOf(d.id), first = dayFromIso(d.day), days = [];
+  for (const cur = new Date(first); days.length < +d.n; cur.setDate(cur.getDate() + 1)) if (!isOff(cur)) days.push(new Date(cur));
+  j.crew = d.crew; j.days = days; j.time = "08:00"; j.stage = "scheduled"; addLog(j, "log.scheduled");
+  S.book = ""; toast(t("sched.booked")); go("#job/" + j.id);
+};
+
+/* ---------- calendar feed ---------- */
+ACT.calFeed = () => openModal(modalShell(tt("sched.feed"),
+  `<p>${tt("sched.feedText")}</p><div class="input-group"><input class="form-control font-monospace small" readonly value="webcal://app.handlroofers.com/calendar/${isCrew() ? S.crew : "office"}.ics" aria-label="${tt("sched.feed")}">` +
+  `<button type="button" class="btn btn-outline-secondary" data-act="feedCopy">${tt("sched.feedCopy")}</button></div><div class="form-text">${tt("sched.feedNote")}</div>`, ""));
+ACT.feedCopy = () => toast(t("sched.feedCopied"));
+
+/* ---------- changes: office changes a job, the crew sees "Changed" and taps Got it ---------- */
+function changedBox(j) {
+  if (!j.changed) return "";
+  const crew = crewOf(j.crew), c = j.changed, was = rangeText(c.wasDays);
+  const body = t("sms.changed", { id: j.id, name: acct(j.acct).name, now: jobDates(j), was });
+  const right = isCrew()
+    ? (c.seen ? "" : `<button type="button" class="btn btn-warning btn-sm" data-act="gotIt" data-id="${j.id}">${ic("check")} ${tt("sched.gotIt")}</button>`)
+    : (c.seen ? badge(t("sched.seenBy", { who: crewName(crew) }), "success")
+      : `<a class="btn btn-outline-dark btn-sm" href="${smsHref(crew.phone, body)}" data-act="notifyCrew" data-id="${j.id}">${ic("msg")} ${tt("sched.notify")}</a>`);
+  return `<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 py-2 small mb-2"><div class="flex-grow-1">${ic("bell")} <span class="fw-semibold">${tt("sched.changed")}.</span> ${tt("sched.changedWas", { was })}` +
+    (!isCrew() && !c.seen ? ` <span class="text-body-secondary">${tt("sched.notSeen", { who: crewName(crew) })}</span>` : "") + `</div>${right}</div>`;
+}
+ACT.notifyCrew = d => { addLog(jobOf(d.id), "log.notified"); setTimeout(render, 400); };
+ACT.gotIt = d => { const j = jobOf(d.id); j.changed.seen = true; addLog(j, "log.gotIt"); toast(t("sched.gotItDone")); render(); };
+ATTENTION.push(() => JOBS.filter(j => j.changed && !j.changed.seen).map(j => ({ icon: "bell", href: "#job/" + j.id, text: t("today.changeNotSeen", { crew: crewName(crewOf(j.crew)), id: j.id }) })));
+
+/* ---------- extra workers on a job (no login; just a record of who worked) ---------- */
+function workersEditor(j) {
+  const free = HELPERS.filter(h => !j.workers.includes(h));
+  return `<div class="d-flex flex-wrap align-items-center gap-1">` + j.workers.map(w =>
+      `<span class="badge text-bg-secondary fw-normal d-inline-flex align-items-center gap-1">${esc(w)}<button type="button" class="btn-close btn-close-white" style="font-size:.55em" data-act="workerDel" data-id="${j.id}" data-w="${esc(w)}" aria-label="${tt("sched.removeWorker")}"></button></span>`).join("") +
+    (free.length ? `<select class="form-select form-select-sm w-auto" data-change="workerAdd" data-id="${j.id}" aria-label="${tt("sched.addWorker")}"><option value="">+ ${tt("sched.addWorker")}</option>${free.map(h => `<option>${esc(h)}</option>`).join("")}</select>` : "") + `</div>`;
+}
+ACT.workerAdd = (d, el) => { if (!el.value) return; const j = jobOf(d.id); j.workers.push(el.value); addLog(j, "log.workerAdded", { name: el.value }); render(); };
+ACT.workerDel = d => { const j = jobOf(d.id); j.workers = j.workers.filter(w => w !== d.w); addLog(j, "log.workerRemoved", { name: d.w }); render(); };
+
+/* =====================================================================
+   CREW APP. A crew signs in with its one shared login and sees only the
+   jobs scheduled to that crew: My Day, My Jobs and Search.
+   ===================================================================== */
+
+// one of today's stops, with everything needed on site
+function dayCard(s) {
+  const j = s.rec, a = acct(j.acct), p = placeOf(j), site = p.site, crew = crewOf(j.crew);
+  const i = j.days.findIndex(x => sameDay(x, TODAY)) + 1;
+  const big = (act, icon, label, extra) => `<button type="button" class="btn btn-primary btn-sm" data-act="${act}" data-id="${j.id}" ${extra || ""}>${ic(icon)} ${esc(label)}</button>`;
+  const next = (j.stage === "scheduled" ? big("jobStage", "check", t("job.start"), 'data-to="inprogress"') : j.stage === "inprogress" ? big("jobStage", "check", t("job.markDone"), 'data-to="done"') : "") +
+    (j.type !== "warranty" && canTakePayment(j) ? `<button type="button" class="btn btn-outline-primary btn-sm" data-act="payAdd" data-id="${j.id}">${ic("dollar")} ${tt("money.record")}</button>` : "");
+  return `<div class="card shadow-sm mb-3"><div class="card-body">` +
+    `<div class="d-flex align-items-center gap-2 mb-1"><span class="fw-bold">${fmtTime(s.time)}</span>${j.days.length > 1 ? `<span class="small text-body-secondary">${tt("sched.dayOf", { i, n: j.days.length })}</span>` : ""}<span class="ms-auto">${jobBadge(j)}</span></div>` +
+    `<a class="h5 d-block text-decoration-none mb-0" href="#job/${j.id}">${esc(a.name)}</a>` +
+    `<div class="small text-body-secondary">${esc(addrLine(p))}</div><div class="small mb-2">#${j.id} · ${tt("type." + j.type)}${jobTags(j)}</div>` + changedBox(j) +
+    `<div class="small mb-1">${ic("accounts")} ${esc([...crew.members, ...j.workers].join(", "))}</div>` +
+    (j.type !== "warranty" && balance(j) > 0 ? `<div class="small mb-1">${ic("dollar")} ${tt("money.balance")}: <span class="fw-semibold">${money(balance(j))}</span></div>` : "") +
+    `<div class="mt-2">` + contactBtns({ phone: site ? site.phone : a.contacts[0].phone, first: site ? site.name.split(" ")[0] : firstName(a), lang: a.lang, place: p, kind: "job", id: j.id, sm: true, extra: next }) + `</div></div></div>`;
+}
+
+route("myday", {
+  roles: ["crew"], icon: "myday",
+  render() {
+    const crew = crewOf(S.crew), stops = stopsOn(TODAY, S.crew), nextDay = wd(1), next = stopsOn(nextDay, S.crew);
+    const changes = myJobs().filter(j => j.changed && !j.changed.seen && !j.days.some(d => sameDay(d, TODAY)));
+    return `<div class="text-body-secondary small">${esc(fmtDay(TODAY))}</div>` + pageHead(tt("nav.myday"), esc(crewName(crew) + " · " + crew.lead)) +
+      (changes.length ? `<h2 class="h6 mb-2">${tt("myday.changes")}</h2>` + changes.map(j =>
+        `<div class="card shadow-sm mb-3"><div class="card-body py-2"><a class="fw-semibold text-decoration-none d-block mb-2" href="#job/${j.id}">#${j.id} · ${esc(acct(j.acct).name)} · ${esc(jobDates(j))}</a>${changedBox(j)}</div></div>`).join("") : "") +
+      (stops.length ? stops.map(dayCard).join("") : `<div class="card shadow-sm mb-3"><div class="card-body">${empty(t("today.nothing"))}</div></div>`) +
+      `<h2 class="h6 mt-4 mb-2">${tt("myday.next")} · ${esc(fmtDay(nextDay))}</h2>` +
+      (next.length ? listBox(next.map(s => jobRow(s.rec)).join("")) : `<div class="small text-body-secondary mb-3">${tt("none")}</div>`) +
+      `<button type="button" class="btn btn-link btn-sm p-0" data-act="calFeed">${ic("schedule")} ${tt("sched.feed")}</button>`;
+  }
+});
+
+route("myjobs", {
+  roles: ["crew"], icon: "myjobs",
+  render() {
+    const jobs = myJobs().slice().sort((a, b) => (a.days[0] || 0) - (b.days[0] || 0));
+    const isToday = j => j.days.some(d => sameDay(d, TODAY));
+    const groups = [
+      ["mine.today", jobs.filter(j => isToday(j) && !jobDone(j))],
+      ["mine.upcoming", jobs.filter(j => !isToday(j) && !jobDone(j))],
+      ["mine.finished", jobs.filter(jobDone).reverse()]
+    ];
+    const crew = crewOf(S.crew);
+    return pageHead(tt("nav.myjobs"), esc(crewName(crew) + " · " + crew.members.join(", "))) +
+      groups.map(([key, list]) => `<h2 class="h6 mt-3 mb-2">${tt(key)} <span class="text-body-secondary fw-normal">${list.length}</span></h2>` +
+        (list.length ? listBox(list.map(jobRow).join("")) : `<div class="small text-body-secondary mb-3">${tt("none")}</div>`)).join("");
+  }
+});
 
 /* ---------- start: show the first screen ---------- */
 render();

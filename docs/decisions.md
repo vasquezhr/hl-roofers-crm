@@ -179,7 +179,7 @@ The Bootstrap mockup is `mockup/hl-roofers-mockup.html`. Each phase is tested in
 | --- | --- | --- |
 | 1 · Customer records and search | Accounts (person or company) with contacts, properties and Details from imported notes; Opportunities and Jobs on one stage bar; a signed proposal creates the Job; warranty jobs; outside numbers; one search box; Office and Crew views; Call, Text, Directions | Built, Nov 9 |
 | 2 · Leads, proposals, invoices, pricing | Leads list and page; Convert creates the account, contact, property and opportunity, reuses an existing customer, and can add a request to that customer's open job; proposal builder with Price Book lines, the printed proposal, email, and the customer's Accept page; change orders; deposits, payments and balance due; invoice; crews record payments they collect; Price Book with upload review, full history and roll back; Company details that fill the placeholders | Built, Nov 9 |
-| 3 · Scheduling and crew | — | Not yet |
+| 3 · Scheduling and crew | Week calendar of five work days with a filter per crew; suggested inspection times ranked by distance to that day's other stops, with a small map; suggested start days for a job when the crew is free; booking from a suggestion; "Changed" notice with Notify crew and the crew's Got it; extra workers recorded on a job; the crew's My Day; calendar feed link | Built, Nov 10 |
 | 4 · Reports, dashboard, automations, admin | — | Not yet |
 
 **Choices made in the mockup that the user should confirm:**
@@ -197,4 +197,10 @@ The Bootstrap mockup is `mockup/hl-roofers-mockup.html`. Each phase is tested in
 - A payment recorded before the work starts is labeled a deposit. A payment that brings the balance to zero after the job is done marks it Paid.
 - Change orders are numbered per job (CO1, CO2) and count in the total only once signed. A negative amount takes work off.
 - The Price Book sits under Admin. The office reaches it from the proposal builder ("Add from the Price Book").
+- The schedule shows five work days at a time, Monday to Friday. Sunday stays off until the owners answer.
+- Inspection suggestions cover the next six work days: one hour, any hour from 9 am to 4 pm, ranked by distance to that day's nearest stop, then by soonest.
+- Job suggestions are the next days the chosen crew is free for the whole job. Jobs are booked as whole days starting at 8 am.
+- Changing the dates or crew of a job that is already scheduled raises a "Changed" notice. The office can text the crew lead from it; the crew taps Got it; the office then sees "Seen by".
+- Extra workers can be added or removed on a job by the office or by the crew, until the job is done.
+- The crew's My Day lists today's stops with who is on the job, the balance due, and Start, Mark done and Record payment.
 
