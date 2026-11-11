@@ -7,10 +7,19 @@ The data model: what the CRM stores.
        │──< Opportunity ──1 Job    the sales side, then the work side. A signed proposal creates the Job,
                                    and both carry the same number (26-101).
     Crew ──< Worker                crews and their people. A crew signs in with one shared login (User.crew).
-    Activity                       one line of history on an account, opportunity or job.
+    Activity                       one line of history on an account, lead, opportunity or job.
     ImportBatch ──< ImportedNote   the Apple Notes import and its review queue.
+
+    Lead                           a request from the website. Convert turns it into an Account and an Opportunity.
+    Opportunity ──< ProposalLine   the lines of a proposal, each with an amount or "included".
+    Job ──< ChangeOrder            work added or taken off after signing. It counts once the customer signs it.
+    Job ──< Payment                deposits and payments. Balance due = price + signed change orders - payments.
+    PriceItem ──< PriceEntry       the Price Book: every price an item has had. PriceUpload is one uploaded spreadsheet.
+    Company                        the business's own name, license, address and terms (one row).
 """
 import re
+import secrets
+from decimal import Decimal
 from datetime import timedelta
 
 from django.conf import settings
@@ -125,6 +134,65 @@ class User(AbstractUser):
         if self.is_crew_profile and self.crew:
             return self.crew.name
         return self.get_full_name() or self.username
+
+
+# ---------------------------------------------------------------- the business itself
+PLACEHOLDERS = {"legal_name": "{Company Legal Name}", "license_number": "{Company License Number}",
+                "address": "{Company Business Address}", "phone": "{Company Business Phone Number}"}
+
+
+class Company(models.Model):
+    """The business's own details: one row, edited under Admin › Company details.
+    They print on proposals and invoices. Until one is filled in, its {placeholder} prints instead."""
+    name = models.CharField(_("short name"), max_length=80, default="H & L Roofers",
+                            help_text=_("Shown at the top of every page and used in emails and texts."))
+    tagline = models.CharField(_("line under the name"), max_length=80, blank=True, default="Honest & Loyal · Virginia")
+    legal_name = models.CharField(_("legal name"), max_length=160, blank=True)
+    license_number = models.CharField(_("license number"), max_length=60, blank=True)
+    address = models.CharField(_("business address"), max_length=200, blank=True)
+    phone = models.CharField(_("business phone"), max_length=30, blank=True)
+    proposal_terms_en = models.TextField(_("proposal terms, in English"), blank=True)
+    proposal_terms_es = models.TextField(_("proposal terms, in Spanish"), blank=True)
+    invoice_terms_en = models.TextField(_("invoice terms, in English"), blank=True)
+    invoice_terms_es = models.TextField(_("invoice terms, in Spanish"), blank=True)
+    lead_owner = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("new website requests go to"), null=True, blank=True,
+                                   on_delete=models.SET_NULL, related_name="+")
+
+    class Meta:
+        verbose_name, verbose_name_plural = _("company details"), _("company details")
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def load(cls):
+        return cls.objects.get_or_create(pk=1)[0]
+
+    # what prints on a document: the detail, or its {placeholder} while it is empty
+    @property
+    def legal(self):
+        return self.legal_name or PLACEHOLDERS["legal_name"]
+
+    @property
+    def license(self):
+        return self.license_number or PLACEHOLDERS["license_number"]
+
+    @property
+    def street(self):
+        return self.address or PLACEHOLDERS["address"]
+
+    @property
+    def tel(self):
+        return self.phone or PLACEHOLDERS["phone"]
+
+    def terms(self, kind, language):
+        """The terms printed on a proposal or an invoice. Sample wording prints until the business types its own."""
+        typed = getattr(self, f"{kind}_terms_{'es' if language == 'es' else 'en'}")
+        if typed:
+            return typed
+        if kind == "proposal":
+            return _("Price valid for 30 days. Payment is due when the work is finished. (Sample wording: set the final terms under Company details.)")
+        return _("Payment is due when the work is finished. Thank you for your business.")
 
 
 # ---------------------------------------------------------------- customers
@@ -330,6 +398,10 @@ class Opportunity(models.Model):
     signed_how = models.CharField(_("how it was signed"), max_length=6, choices=SignedHow.choices, blank=True)
     lost_on = models.DateField(null=True, blank=True)
     lost_reason = models.CharField(_("reason"), max_length=10, choices=LostReason.choices, blank=True)
+    # the customer's own page for accepting the proposal: a long random word in its web address
+    accept_token = models.CharField(max_length=64, blank=True, db_index=True, editable=False)
+    signed_by = models.CharField(_("name typed by the customer"), max_length=120, blank=True)
+    signed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -352,15 +424,57 @@ class Opportunity(models.Model):
     def lines(self):
         return [line.strip() for line in self.description.splitlines() if line.strip()]
 
-    def sign(self, how):
+    @property
+    def line_items(self):
+        """The proposal's lines as (text, amount). An amount of None prints as "included".
+        An opportunity from before the proposal builder has only its text and one price: the price goes on the first line."""
+        items = [(line.text, line.amount) for line in self.proposal_lines.all()]
+        if not items:
+            items = [(text, self.total if i == 0 else None) for i, text in enumerate(self.lines)]
+        return items
+
+    def set_lines(self, items):
+        """Save the proposal's lines, and keep the plain text and the total in step with them."""
+        with transaction.atomic():
+            self.proposal_lines.all().delete()
+            for position, (text, amount) in enumerate(items):
+                ProposalLine.objects.create(opportunity=self, position=position, text=text, amount=amount)
+            self.description = "\n".join(text for text, _amount in items)
+            self.total = sum((amount for _text, amount in items if amount is not None), Decimal("0"))
+            self.save()
+
+    def link(self):
+        """The long random word for the customer's Accept page. Made the first time it is needed."""
+        if not self.accept_token:
+            self.accept_token = secrets.token_urlsafe(24)
+            self.save(update_fields=["accept_token"])
+        return self.accept_token
+
+    def sign(self, how, by=""):
         """A signed proposal becomes a Job right away, with the same number. Nothing is copied twice:
         the Job points to the same account and property."""
         with transaction.atomic():
             self.stage, self.signed_on, self.signed_how = self.Stage.WON, timezone.localdate(), how
+            if by:
+                self.signed_by, self.signed_at = by, timezone.now()
             self.save()
             return Job.objects.create(number=self.number, opportunity=self, account=self.account, place=self.place,
                                       job_type=self.job_type, price=self.total or 0, labor_only=self.labor_only,
                                       scope=self.description, days=DAYS_BY_TYPE.get(self.job_type, 1))
+
+
+class ProposalLine(models.Model):
+    """One line of a proposal. A line with no amount is included in the price of the others."""
+    opportunity = models.ForeignKey(Opportunity, on_delete=models.CASCADE, related_name="proposal_lines")
+    position = models.PositiveSmallIntegerField(default=0)
+    text = models.CharField(_("what it covers"), max_length=300)
+    amount = models.DecimalField(_("amount"), max_digits=10, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        ordering = ["position", "id"]
+
+    def __str__(self):
+        return self.text
 
 
 # ---------------------------------------------------------------- the work side
@@ -445,6 +559,247 @@ class Job(models.Model):
     def on_day(self, day):
         return day in self.work_days
 
+    # ----- money: what the job costs the customer, what has been paid, what is still owed
+    @property
+    def signed_changes(self):
+        return sum((order.amount for order in self.change_orders.all() if order.is_signed), Decimal("0"))
+
+    @property
+    def total(self):
+        """The price from the signed proposal, plus the change orders the customer has signed."""
+        return self.price + self.signed_changes
+
+    @property
+    def paid_so_far(self):
+        return sum((payment.amount for payment in self.payments.all()), Decimal("0"))
+
+    @property
+    def balance(self):
+        return self.total - self.paid_so_far
+
+    def can_take_payment(self, user):
+        """The office can record a payment at any point (a deposit before the work). A crew can once the work has started."""
+        if self.is_warranty or self.balance <= 0:
+            return False
+        if user.is_crew_profile:
+            return self.stage in (self.Stage.IN_PROGRESS, self.Stage.DONE, self.Stage.INVOICED)
+        return self.stage != self.Stage.PAID
+
+    def settle(self):
+        """Once the work is done and nothing is owed, the job is Paid. Returns True when that just happened."""
+        if self.stage in (self.Stage.DONE, self.Stage.INVOICED) and self.balance <= 0:
+            self.stage, self.paid_on = self.Stage.PAID, timezone.localdate()
+            self.save()
+            return True
+        return False
+
+
+class ChangeOrder(models.Model):
+    """Work added or taken off after the proposal was signed. It is sent to the customer and counts once signed."""
+
+    class Status(models.TextChoices):
+        SENT = "sent", _("Waiting for signature")
+        SIGNED = "signed", _("Signed")
+
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="change_orders")
+    number = models.PositiveSmallIntegerField()                          # 1, 2, 3 on each job: CO1, CO2, CO3
+    description = models.TextField(_("what changes"))
+    amount = models.DecimalField(_("amount"), max_digits=10, decimal_places=2, help_text=_("Use a minus sign to take work off, for example -250."))
+    status = models.CharField(max_length=6, choices=Status.choices, default=Status.SENT)
+    sent_on = models.DateField(default=timezone.localdate)
+    signed_on = models.DateField(null=True, blank=True)
+    accept_token = models.CharField(max_length=64, blank=True, db_index=True, editable=False)
+    signed_by = models.CharField(max_length=120, blank=True)
+
+    class Meta:
+        ordering = ["number"]
+        unique_together = [("job", "number")]
+        verbose_name, verbose_name_plural = _("change order"), _("change orders")
+
+    def __str__(self):
+        return f"#{self.job.number} {self.label}"
+
+    def save(self, *args, **kwargs):
+        if not self.number:
+            self.number = self.job.change_orders.count() + 1
+        super().save(*args, **kwargs)
+
+    @property
+    def label(self):
+        return f"CO{self.number}"
+
+    @property
+    def is_signed(self):
+        return self.status == self.Status.SIGNED
+
+    def link(self):
+        if not self.accept_token:
+            self.accept_token = secrets.token_urlsafe(24)
+            self.save(update_fields=["accept_token"])
+        return self.accept_token
+
+    def sign(self, by=""):
+        self.status, self.signed_on, self.signed_by = self.Status.SIGNED, timezone.localdate(), by
+        self.save()
+
+
+class Payment(models.Model):
+    """Money received on a job. Before the work starts it is a deposit; after that, a payment."""
+
+    class Method(models.TextChoices):
+        CHECK = "check", _("Check")
+        CASH = "cash", _("Cash")
+        CARD = "card", _("Card")
+        OTHER = "other", _("Other")
+
+    class Kind(models.TextChoices):
+        DEPOSIT = "deposit", _("Deposit")
+        PAYMENT = "payment", _("Payment")
+
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="payments")
+    paid_on = models.DateField(_("date"), default=timezone.localdate)
+    amount = models.DecimalField(_("amount"), max_digits=10, decimal_places=2)
+    method = models.CharField(_("how it was paid"), max_length=6, choices=Method.choices, default=Method.CHECK)
+    check_number = models.CharField(_("check number"), max_length=30, blank=True)
+    kind = models.CharField(max_length=8, choices=Kind.choices, default=Kind.PAYMENT)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    actor = models.CharField(max_length=80, blank=True)                  # who recorded it, as shown at the time ("Crew 1")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["paid_on", "id"]
+        verbose_name, verbose_name_plural = _("payment"), _("payments")
+
+    def __str__(self):
+        return f"#{self.job.number} {self.amount}"
+
+
+# ---------------------------------------------------------------- leads: requests from the website
+class Lead(models.Model):
+    class Status(models.TextChoices):
+        NEW = "new", _("New")
+        CONTACTED = "contacted", _("Contacted")
+        CONVERTED = "converted", _("Converted")
+        UNQUALIFIED = "unqualified", _("Not a fit")
+
+    class Reason(models.TextChoices):
+        AREA = "area", _("Out of the service area")
+        SERVICE = "service", _("Service not offered")
+        NO_RESPONSE = "noresponse", _("No answer after 3 tries")
+        SHOPPING = "shopping", _("Only comparing prices")
+        SPAM = "spam", _("Spam or duplicate")
+
+    name = models.CharField(_("name"), max_length=160)
+    phone = models.CharField(_("phone"), max_length=30, blank=True)
+    phone_digits = models.CharField(max_length=20, blank=True, editable=False, db_index=True)
+    email = models.EmailField(_("email"), blank=True)
+    street = models.CharField(_("street address"), max_length=160, blank=True)
+    city = models.CharField(_("city"), max_length=80, blank=True)
+    state = models.CharField(_("state"), max_length=2, default="VA", blank=True)
+    zip_code = models.CharField(_("ZIP"), max_length=10, blank=True)
+    job_type = models.CharField(_("type of work"), max_length=12, choices=JOB_TYPES, default="inspection")
+    message = models.TextField(_("what they asked for"), blank=True)
+    language = models.CharField(_("language"), max_length=2, choices=LANGS, default="en")
+    source = models.CharField(_("where it came from"), max_length=10, choices=Opportunity.Source.choices, default=Opportunity.Source.WEB)
+    status = models.CharField(_("status"), max_length=12, choices=Status.choices, default=Status.NEW)
+    reason = models.CharField(_("reason"), max_length=10, choices=Reason.choices, blank=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("assigned to"), null=True, blank=True, on_delete=models.SET_NULL, related_name="leads")
+    received_at = models.DateTimeField(_("received"), default=timezone.now)
+    first_contact_at = models.DateTimeField(null=True, blank=True)
+    # what Convert made of it
+    account = models.ForeignKey(Account, null=True, blank=True, on_delete=models.SET_NULL, related_name="leads")
+    opportunity = models.ForeignKey(Opportunity, null=True, blank=True, on_delete=models.SET_NULL, related_name="leads")
+    job = models.ForeignKey(Job, null=True, blank=True, on_delete=models.SET_NULL, related_name="leads")
+
+    class Meta:
+        ordering = ["-received_at"]
+        verbose_name, verbose_name_plural = _("lead"), _("leads")
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        self.phone_digits = digits(self.phone)[-10:]
+        super().save(*args, **kwargs)
+
+    @property
+    def is_open(self):
+        return self.status in (self.Status.NEW, self.Status.CONTACTED)
+
+    @property
+    def first_name(self):
+        return self.name.split(" ")[0]
+
+    @property
+    def city_line(self):
+        return " ".join(p for p in [self.city, self.state, self.zip_code] if p)
+
+    @property
+    def full_address(self):
+        return ", ".join(p for p in [self.street, self.city_line] if p)
+
+
+# ---------------------------------------------------------------- the Price Book
+class PriceUpload(models.Model):
+    """One uploaded price spreadsheet. Every upload is kept in the list, even one that was rolled back."""
+    file_name = models.CharField(max_length=200)
+    supplier = models.CharField(_("supplier"), max_length=80)
+    line = models.CharField(_("product line"), max_length=80, blank=True)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    actor = models.CharField(max_length=80, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    added = models.PositiveIntegerField(default=0)
+    changed = models.PositiveIntegerField(default=0)
+    same = models.PositiveIntegerField(default=0)
+    rolled_back_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-uploaded_at", "-id"]
+
+    def __str__(self):
+        return self.file_name
+
+
+class PriceItem(models.Model):
+    """One thing H & L buys and sells: its cost from the supplier and the price charged to customers.
+    The cost is never shown to crews."""
+    code = models.CharField(_("code"), max_length=40)
+    name = models.CharField(_("item"), max_length=200)
+    unit = models.CharField(_("unit"), max_length=20, blank=True)
+    supplier = models.CharField(_("supplier"), max_length=80)
+    line = models.CharField(_("product line"), max_length=80, blank=True)
+    cost = models.DecimalField(_("cost"), max_digits=10, decimal_places=2)
+    price = models.DecimalField(_("selling price"), max_digits=10, decimal_places=2)
+    changed_on = models.DateField(default=timezone.localdate)
+    added_by = models.ForeignKey(PriceUpload, null=True, blank=True, on_delete=models.SET_NULL, related_name="new_items")
+
+    class Meta:
+        ordering = ["supplier", "line", "name"]
+        unique_together = [("supplier", "code")]
+        verbose_name, verbose_name_plural = _("price book item"), _("price book items")
+
+    def __str__(self):
+        return self.name
+
+    def set_price(self, cost, price, upload=None):
+        """Record a new price. The old one stays in the history; nothing is overwritten."""
+        PriceEntry.objects.create(item=self, upload=upload, cost=cost, price=price)
+        self.cost, self.price, self.changed_on = cost, price, timezone.localdate()
+        self.save()
+
+
+class PriceEntry(models.Model):
+    """One line of an item's price history."""
+    item = models.ForeignKey(PriceItem, on_delete=models.CASCADE, related_name="history")
+    upload = models.ForeignKey(PriceUpload, null=True, blank=True, on_delete=models.SET_NULL, related_name="entries")
+    cost = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    effective_on = models.DateField(default=timezone.localdate)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["effective_on", "id"]
+
 
 # ---------------------------------------------------------------- history
 class Activity(models.Model):
@@ -459,8 +814,17 @@ class Activity(models.Model):
         "rescheduled": _("Schedule changed"),
         "started": _("Job started"), "done": _("Marked done"), "invoiced": _("Invoice sent"), "paid": _("Paid in full"),
         "ref_changed": _("Outside number changed"), "note": _("Note: %(detail)s"), "note_imported": _("Note imported from Apple Notes"),
+        # leads
+        "lead_in": _("Request received from the website"), "lead_typed": _("Request typed in by the office"),
+        "unqualified": _("Marked not a fit"), "converted": _("Converted"),
+        "opp_from_lead": _("Opportunity created from a website request"), "lead_attached": _("Website request added: “%(detail)s”"),
+        # documents and money
+        "emailed": _("Emailed to %(detail)s"), "accepted": _("Accepted online by %(detail)s"),
+        "co_sent": _("Change order %(detail)s sent for signature"), "co_signed": _("Change order %(detail)s signed"),
+        "payment": _("Payment recorded: %(detail)s"),
     }
 
+    lead = models.ForeignKey("Lead", null=True, blank=True, on_delete=models.CASCADE, related_name="activities")
     account = models.ForeignKey(Account, null=True, blank=True, on_delete=models.CASCADE, related_name="activities")
     opportunity = models.ForeignKey(Opportunity, null=True, blank=True, on_delete=models.CASCADE, related_name="activities")
     job = models.ForeignKey(Job, null=True, blank=True, on_delete=models.CASCADE, related_name="activities")
@@ -479,10 +843,11 @@ class Activity(models.Model):
         return label % {"detail": self.detail} if "%(detail)s" in label else label
 
 
-def log(record, kind, user=None, detail=""):
-    """Add a history line to an account, an opportunity or a job."""
-    field = {Account: "account", Opportunity: "opportunity", Job: "job"}[type(record)]
-    return Activity.objects.create(**{field: record}, kind=kind, detail=detail, user=user, actor=user.label if user else "")
+def log(record, kind, user=None, detail="", actor=""):
+    """Add a history line to an account, a lead, an opportunity or a job.
+    `actor` names who did it when it was not a login: a customer accepting online, or the website."""
+    field = {Account: "account", Lead: "lead", Opportunity: "opportunity", Job: "job"}[type(record)]
+    return Activity.objects.create(**{field: record}, kind=kind, detail=detail, user=user, actor=actor or (user.label if user else ""))
 
 
 # ---------------------------------------------------------------- the Apple Notes import

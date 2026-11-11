@@ -8,6 +8,6 @@
       <div class="small text-body-secondary text-truncate">{{ job.place.full_address }}</div>
       <div class="small text-body-secondary">{% if job.crew %}{{ job.crew.name }} · {% endif %}{% job_dates job %}</div>
     </div>
-    <div class="text-end flex-shrink-0">{% stage_badge job %}{% if not job.is_warranty %}<div class="fw-semibold mt-1">{{ job.price|money }}</div>{% endif %}</div>
+    <div class="text-end flex-shrink-0">{% stage_badge job %}{% if not job.is_warranty %}<div class="fw-semibold mt-1">{{ job.total|money }}</div>{% endif %}</div>
   </div>
 </a>

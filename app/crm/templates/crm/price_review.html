@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Review the price file" %}{% endblock %}
+
+{# Step 2 of an upload: what the file would change. Nothing is saved until Confirm. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'price_upload' %}">‹ {% trans "Back" %}</a>
+<div class="row">
+  <div class="col-lg-10 col-xl-9">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h1 class="h5 mb-1">{% trans "Review the price file" %}</h1>
+        <p class="small text-body-secondary">{{ held.file_name }} · {{ held.supplier }}{% if held.line %} · {{ held.line }}{% endif %}</p>
+        {% if nothing %}<div class="alert alert-secondary py-2 small">{% trans "This file changes nothing: every price in it is already in the Price Book." %}</div>{% endif %}
+
+        {% if found.changed %}
+        <h2 class="h6">{% trans "Prices that change" %}</h2>
+        <table class="table table-sm small">
+          <thead><tr><th>{% trans "Item" %}</th><th class="text-end">{% trans "Cost" %}</th><th class="text-end">{% trans "Selling price" %}</th><th class="text-end">%</th></tr></thead>
+          <tbody>
+            {% for change in found.changed %}
+            <tr>
+              <td>{{ change.item.name }}</td>
+              <td class="text-end text-nowrap">{{ change.item.cost|money }} → <span class="fw-semibold">{{ change.cost|money }}</span></td>
+              <td class="text-end text-nowrap">{{ change.item.price|money }} → <span class="fw-semibold">{{ change.price|money }}</span></td>
+              <td class="text-end text-nowrap">{% if change.percent > 0 %}+{% endif %}{{ change.percent }}%{% if change.big %} {% trans "big change" as big %}{% badge big "danger" %}{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+
+        {% if found.added %}
+        <h2 class="h6">{% trans "New items" %}</h2>
+        <table class="table table-sm small">
+          <tbody>
+            {% for row in found.added %}
+            <tr><td>{{ row.name }}<br><span class="text-body-secondary">{{ row.code }}{% if row.unit %} · {{ row.unit }}{% endif %}</span></td><td class="text-end text-nowrap">{{ row.cost|money }} / {{ row.price|money }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+
+        <div class="small text-body-secondary mb-3">{% trf "%(same)s items are the same · %(missing)s items of this product line are not in the file and stay as they are" same=found.same missing=found.missing %}</div>
+        <form method="post" class="d-flex gap-2 justify-content-end">
+          {% csrf_token %}
+          <a class="btn btn-outline-secondary" href="{% url 'pricebook' %}">{% trans "Cancel" %}</a>
+          {% if not nothing %}<button type="submit" class="btn btn-primary">{% icon "check" %} {% trans "Confirm" %}</button>{% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

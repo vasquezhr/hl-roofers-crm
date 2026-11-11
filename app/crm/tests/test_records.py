@@ -97,8 +97,11 @@ class FromOpportunityToPaidJob(Base):
         opp.refresh_from_db()
         self.assertEqual(timezone.localtime(opp.inspection_at).strftime("%Y-%m-%d %H:%M"), f"{MONDAY} 10:00")
 
-        # entering the proposal moves it to Proposal sent
-        self.client.post(reverse("opp_proposal", args=[opp.number]), {"description": "Replace damaged shingles\nReseal flashing", "total": "685"})
+        # writing the proposal keeps it at Inspection; marking it sent moves it to Proposal sent
+        self.client.post(reverse("opp_proposal", args=[opp.number]), {"text": ["Replace damaged shingles", "Reseal flashing"], "amount": ["685", ""]})
+        opp.refresh_from_db()
+        self.assertEqual((opp.stage, opp.total), ("inspection", 685))
+        self.client.post(reverse("opp_send", args=[opp.number]), {"do": "sent"})
         opp.refresh_from_db()
         self.assertEqual((opp.stage, opp.total, opp.sent_on), ("proposal", 685, timezone.localdate()))
 
@@ -118,11 +121,17 @@ class FromOpportunityToPaidJob(Base):
         self.assertEqual((job.stage, job.crew, job.first_day, job.last_day.isoformat()), ("scheduled", self.crew1, MONDAY, "2026-11-10"))
         self.assertEqual(list(job.workers.all()), [self.helper])
 
-        # Start job, Mark done, Mark invoice sent, Mark paid
-        for stage in ["inprogress", "done", "invoiced", "paid"]:
+        # Start job and Mark done; then the invoice and the payment move it on
+        for stage in ["inprogress", "done"]:
             self.client.post(reverse("job_stage", args=[job.number]), {"to": stage})
             job.refresh_from_db()
             self.assertEqual(job.stage, stage)
+        self.client.post(reverse("invoice_send", args=[job.number]), {"do": "sent"})
+        job.refresh_from_db()
+        self.assertEqual(job.stage, "invoiced")
+        self.client.post(reverse("payment_new", args=[job.number]), {"amount": "685", "method": "check", "check_number": "1048", "paid_on": timezone.localdate().isoformat()})
+        job.refresh_from_db()
+        self.assertEqual((job.stage, job.balance), ("paid", 0))
         today = timezone.localdate()
         self.assertEqual((job.started_on, job.done_on, job.invoiced_on, job.paid_on), (today, today, today, today))
 
@@ -130,7 +139,7 @@ class FromOpportunityToPaidJob(Base):
         self.assertEqual(list(opp.activities.order_by("id").values_list("kind", flat=True)),
                          ["opp_created", "inspection_set", "proposal_sent", "signed"])
         self.assertEqual(list(job.activities.order_by("id").values_list("kind", flat=True)),
-                         ["job_created", "scheduled", "started", "done", "invoiced", "paid"])
+                         ["job_created", "scheduled", "started", "done", "invoiced", "payment", "paid"])
         self.assertEqual(set(Activity.objects.values_list("actor", flat=True)), {"office"})
         # and the pages show it
         self.assertContains(self.client.get(reverse("job", args=[job.number])), "Paid in full")
@@ -138,11 +147,12 @@ class FromOpportunityToPaidJob(Base):
 
     def test_a_proposal_needs_a_price_and_some_words(self):
         opp = self.opportunity()
-        response = self.client.post(reverse("opp_proposal", args=[opp.number]), {"description": "", "total": ""})
-        self.assertContains(response, "Enter the price.")
-        self.assertContains(response, "Say what the proposal covers.")
+        builder = reverse("opp_proposal", args=[opp.number])
+        self.assertContains(self.client.post(builder, {"text": ["Replace shingles"], "amount": [""]}), "Add at least one line with a price.")
+        self.assertContains(self.client.post(builder, {"text": [""], "amount": ["500"]}), "A line has an amount but no words.")
+        self.assertContains(self.client.post(builder, {"text": ["Replace shingles"], "amount": ["five"]}), "An amount is not a number: five")
         opp.refresh_from_db()
-        self.assertEqual(opp.stage, "inspection")
+        self.assertEqual((opp.stage, opp.total), ("inspection", None))
 
     def test_only_a_sent_proposal_can_be_signed(self):
         opp = self.opportunity()                                                     # still at Inspection

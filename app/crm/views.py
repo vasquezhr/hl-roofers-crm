@@ -2,14 +2,17 @@
 The pages. Each function below is one page, or one button on a page.
 
 Order: Today, accounts, opportunities, jobs, the crew's page, search, and the Call / Text / Directions log.
-The pages of the Apple Notes import are in import_views.py.
+
+Other pages are in their own files: leads (lead_views.py), proposals, change orders, payments and
+invoices (money_views.py), the Price Book and the Admin hub (price_views.py), the Apple Notes import
+(import_views.py).
 """
 from datetime import datetime, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Case, Count, IntegerField, Q, Sum, Value, When
+from django.db.models import Case, Count, IntegerField, Q, Value, When
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -20,10 +23,11 @@ from django.views.decorators.http import require_POST
 
 from .access import job_or_404, jobs_for, office_only
 from .forms import (AccountForm, ContactForm, InspectionForm, LostForm, NewAccountForm, NoteForm, OpportunityForm, PropertyForm,
-                    ProposalForm, RefForm, ScheduleForm, SignForm, WarrantyForm)
+                    RefForm, ScheduleForm, SignForm, WarrantyForm)
 from .importer import find_account
-from .models import Account, Activity, Contact, ImportedNote, Job, Note, Opportunity, Property, log
+from .models import Account, Activity, Contact, ImportedNote, Job, Lead, Note, Opportunity, Property, log
 from .search import search as find_records
+from .templatetags.crm_tags import ago
 
 OPEN_OPPS = [Opportunity.Stage.INSPECTION, Opportunity.Stage.PROPOSAL]
 FINISHED_JOBS = [Job.Stage.DONE, Job.Stage.INVOICED, Job.Stage.PAID]
@@ -65,8 +69,9 @@ def saved(request, text=""):
 def home(request):
     day, week_ago = today(), today() - timedelta(days=7)
     opps = Opportunity.objects.select_related("account", "place")
-    jobs = Job.objects.select_related("account", "place", "crew")
+    jobs = Job.objects.select_related("account", "place", "crew").prefetch_related("change_orders", "payments")
     unpaid = jobs.filter(stage=Job.Stage.INVOICED)
+    new_leads = Lead.objects.filter(status=Lead.Status.NEW)
 
     # what is happening today: inspections with a time, and the jobs a crew is on
     inspections = opps.filter(stage=Opportunity.Stage.INSPECTION, inspection_at__date=day).order_by("inspection_at")
@@ -74,6 +79,9 @@ def home(request):
 
     # what needs someone's attention
     attention = []
+    for lead in new_leads.filter(received_at__lte=timezone.now() - timedelta(hours=2)).order_by("received_at"):
+        attention.append({"icon": "phone", "url": reverse("lead", args=[lead.pk]),
+                          "text": _("Call %(name)s: website request, %(ago)s") % {"name": lead.name, "ago": ago(lead.received_at)}})
     for opp in opps.filter(stage=Opportunity.Stage.PROPOSAL, sent_on__lte=week_ago).order_by("sent_on"):
         attention.append({"icon": "mail", "url": reverse("opp", args=[opp.number]),
                           "text": _("Follow up with %(name)s: the proposal was sent %(days)s days ago") % {"name": opp.account.name, "days": (day - opp.sent_on).days}})
@@ -93,7 +101,7 @@ def home(request):
         "proposals_out": opps.filter(stage=Opportunity.Stage.PROPOSAL).count(),
         "to_schedule": jobs.filter(stage=Job.Stage.SIGNED).count(),
         "in_progress": jobs.filter(stage=Job.Stage.IN_PROGRESS).count(),
-        "unpaid_count": unpaid.count(), "unpaid_total": unpaid.aggregate(total=Sum("price"))["total"] or 0,
+        "new_leads": new_leads.count(), "unpaid_count": unpaid.count(), "unpaid_total": sum(job.balance for job in unpaid),
     })
 
 
@@ -120,7 +128,7 @@ def account(request, pk):
     return render(request, "crm/account.html", {
         "account": account, "note_form": NoteForm(),
         "opps": account.opportunities.select_related("account", "place"),
-        "jobs": account.jobs.select_related("account", "place", "crew").order_by("-created_at"),
+        "jobs": account.jobs.select_related("account", "place", "crew").prefetch_related("change_orders", "payments").order_by("-created_at"),
         "history": account.activities.all()[:60],
     })
 
@@ -278,25 +286,6 @@ def opp_inspection(request, number):
 
 
 @office_only
-def opp_proposal(request, number):
-    """What the proposal covers and its price. Saving it moves the opportunity to "Proposal sent"."""
-    opp = opp_or_404(number)
-    if not opp.is_open:
-        return redirect("opp", number=opp.number)
-    first_time = opp.stage == Opportunity.Stage.INSPECTION
-    form = ProposalForm(request.POST or None, instance=opp)
-    if form.is_valid():
-        opp = form.save(commit=False)
-        opp.stage, opp.sent_on = Opportunity.Stage.PROPOSAL, opp.sent_on or today()
-        opp.save()
-        log(opp, "proposal_sent" if first_time else "proposal_changed", request.user)
-        saved(request)
-        return redirect("opp", number=opp.number)
-    intro = _("Type what the proposal covers, one line for each item, and the price. Saving marks the proposal as sent to the customer.")
-    return form_page(request, form, _("Proposal"), reverse("opp", args=[opp.number]), intro=intro)
-
-
-@office_only
 def opp_sign(request, number):
     """A signed proposal turns into a Job right away. The Job keeps the same number."""
     opp = opp_or_404(number)
@@ -333,7 +322,7 @@ def opp_lost(request, number):
 @office_only
 def jobs(request):
     show = request.GET.get("show", "open")
-    everything = Job.objects.select_related("account", "place", "crew")
+    everything = Job.objects.select_related("account", "place", "crew").prefetch_related("change_orders", "payments")
     Stage = Job.Stage
     count = dict(everything.values_list("stage").annotate(n=Count("id")))                  # how many in each stage
     # open: not paid yet. A warranty job has no invoice, so it is closed once it is done.
@@ -352,17 +341,15 @@ def jobs(request):
 NEXT_STEP = {
     Job.Stage.SCHEDULED: (Job.Stage.IN_PROGRESS, gettext_lazy("Start job"), "started", "started_on"),
     Job.Stage.IN_PROGRESS: (Job.Stage.DONE, gettext_lazy("Mark done"), "done", "done_on"),
-    Job.Stage.DONE: (Job.Stage.INVOICED, gettext_lazy("Mark invoice sent"), "invoiced", "invoiced_on"),
-    Job.Stage.INVOICED: (Job.Stage.PAID, gettext_lazy("Mark paid"), "paid", "paid_on"),
 }
+# After Done, the invoice and the payments move a job on: sending the invoice makes it "Invoice sent",
+# and the payment that brings the balance to zero makes it "Paid". (A warranty job ends at Done.)
 CREW_STEPS = [Job.Stage.SCHEDULED, Job.Stage.IN_PROGRESS]        # a crew may start a job and mark it done
 
 
 def next_step(job, user):
     """The next step this person may take on the job, or None."""
     if job.stage not in NEXT_STEP or (user.is_crew_profile and job.stage not in CREW_STEPS):
-        return None
-    if job.is_warranty and job.stage == Job.Stage.DONE:           # a warranty job has no invoice
         return None
     to, label, kind, date_field = NEXT_STEP[job.stage]
     return {"to": to, "label": label, "kind": kind, "date_field": date_field}
@@ -373,10 +360,17 @@ def job(request, number):
     """A job. The office sees every job; a crew sees a job only when it is scheduled to that crew."""
     job = job_or_404(request.user, number)
     office = not request.user.is_crew_profile
+    orders = list(job.change_orders.all())
     return render(request, "crm/job.html", {
         "job": job, "account": job.account, "crew_view": not office, "step": next_step(job, request.user),
         "can_schedule": office and not job.is_finished,
         "can_open_warranty": office and job.is_finished and not job.is_warranty,
+        # money: the office adds change orders and sends the invoice; the office or the crew records a payment
+        "orders": orders, "orders_waiting": any(not order.is_signed for order in orders), "payments": list(job.payments.all()),
+        "can_add_order": office and not job.is_warranty and job.stage != Job.Stage.PAID,
+        "can_pay": job.can_take_payment(request.user),
+        "can_invoice": office and job.stage == Job.Stage.DONE and not job.is_warranty,
+        "has_invoice": job.invoiced_on is not None,
         "members": job.crew.members.filter(active=True) if job.crew else [],
         "workers": job.workers.all(),
         "warranty_jobs": job.warranty_jobs.all(),
@@ -387,7 +381,7 @@ def job(request, number):
 @login_required
 @require_POST
 def job_stage(request, number):
-    """The Start job, Mark done, Mark invoice sent and Mark paid buttons."""
+    """The Start job and Mark done buttons."""
     job = job_or_404(request.user, number)
     step = next_step(job, request.user)
     if not step or request.POST.get("to") != step["to"]:
@@ -509,6 +503,11 @@ def touch(request):
         record = job_or_404(request.user, ident)
     elif request.user.is_crew_profile:
         raise Http404                                            # a crew only has its jobs
+    elif kind == "lead" and ident.isdigit():
+        record = get_object_or_404(Lead, pk=ident)
+        if record.status == Lead.Status.NEW and how != "nav":
+            record.status, record.first_contact_at = Lead.Status.CONTACTED, timezone.now()
+            record.save()
     elif kind == "opp":
         record = get_object_or_404(Opportunity, number=ident)
     elif kind == "account" and ident.isdigit():

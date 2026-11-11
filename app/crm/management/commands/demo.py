@@ -12,7 +12,8 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
-from crm.models import Account, Activity, Contact, Crew, Job, Note, Opportunity, Property, Sequence, User, Worker
+from crm.models import (Account, Activity, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment, PriceEntry, PriceItem,
+                        PriceUpload, Property, Sequence, User, Worker)
 
 PASSWORD = "roofing-demo"
 
@@ -112,6 +113,34 @@ JOBS = {
 }
 
 
+# requests from the website: name, phone, email, street, city, zip, type, language, status, hours ago, message, reason
+LEADS = [
+    ("Mina Seo", "(804) 555-0178", "mseo@example.com", "3214 Broad St Rd", "Short Pump", "23233", "inspection", "en", "new", 3,
+     "I think the wind took some shingles off the back of the house. Can someone take a look?", ""),
+    ("Naomi Iturralde", "(804) 555-0136", "niturralde@example.com", "4417 Forest Hill Ave", "Richmond", "23225", "repair", "es", "contacted", 27,
+     "Hay una gotera cerca de la chimenea cuando llueve fuerte. ¿Pueden venir a verla?", ""),
+    ("Terrence Oakes", "(804) 555-0127", "toakes@example.com", "1512 N 26th St", "Richmond", "23223", "gutters", "en", "new", 20,
+     "While you are here for the repair, can you look at the front gutters? They overflow when it rains.", ""),
+    ("Desmond Farrow", "(757) 555-0142", "dfarrow@example.com", "1320 Colley Ave", "Norfolk", "23517", "replacement", "en", "unqualified", 150,
+     "Looking for a quote on a full roof replacement.", "area"),
+]
+# the Price Book: code, item, unit, supplier, product line, then its history as (days ago, cost, selling price). Sample prices.
+PRICES = [
+    ("GAF-HDZ", "GAF Timberline HDZ shingles", "bundle", "ABC Supply", "GAF HDZ", [(120, 35.5, 43), (60, 36.75, 44.5), (12, 38.25, 46)]),
+    ("GAF-RDG", "GAF Seal-A-Ridge ridge cap", "bundle", "ABC Supply", "GAF HDZ", [(120, 59, 71), (12, 62, 75)]),
+    ("GAF-STR", "GAF Pro-Start starter strip", "bundle", "ABC Supply", "GAF HDZ", [(120, 55, 66)]),
+    ("GAF-IWS", "GAF WeatherWatch ice & water shield", "roll", "ABC Supply", "GAF HDZ", [(120, 92, 110), (60, 95, 114)]),
+    ("GAF-FLT", "GAF FeltBuster synthetic underlayment", "roll", "ABC Supply", "GAF HDZ", [(120, 110, 132)]),
+    ("TPO-60", "TPO membrane, 60 mil, 10 ft x 100 ft", "roll", "ABC Supply", "TPO", [(90, 760, 912), (30, 780, 935)]),
+    ("TPO-ADH", "TPO bonding adhesive, 5 gal", "pail", "ABC Supply", "TPO", [(90, 165, 198)]),
+    ("IKO-DYN", "IKO Dynasty shingles", "bundle", "RSG", "IKO", [(100, 33.5, 40.5), (40, 34.75, 42)]),
+    ("IKO-RDG", "IKO UltraHP ridge cap", "bundle", "RSG", "IKO", [(100, 58, 70)]),
+    ("ACC-BT15", "Pipe boot, 1½ in", "each", "Liberty Roofing Center", "Accessories", [(75, 14, 22)]),
+    ("ACC-NAIL", "Coil nails, 1¼ in", "box", "Liberty Roofing Center", "Accessories", [(75, 46, 56), (20, 48, 58)]),
+    ("ACC-OSB", "OSB sheathing, 7/16 in, 4 x 8", "sheet", "Liberty Roofing Center", "Accessories", [(75, 15.25, 23), (20, 16.5, 24)]),
+]
+
+
 class Command(BaseCommand):
     help = "Fill an empty database with made-up customers, crews and logins, to try the app on a PC."
 
@@ -138,7 +167,10 @@ class Command(BaseCommand):
         for name in EXTRA_WORKERS:
             workers[name] = Worker.objects.create(name=name)
         User.objects.create_user("admin", password=PASSWORD, first_name="Admin", profile=User.Profile.ADMIN)
-        User.objects.create_user("office", password=PASSWORD, first_name="Office", profile=User.Profile.OFFICE)
+        office = User.objects.create_user("office", password=PASSWORD, first_name="Office", profile=User.Profile.OFFICE)
+        company = Company.load()
+        company.lead_owner = office                                        # website requests go to the office
+        company.save()
         User.objects.create_user("crew1", password=PASSWORD, profile=User.Profile.CREW, crew=crews["Crew 1"])
         User.objects.create_user("crew2", password=PASSWORD, profile=User.Profile.CREW, crew=crews["Crew 2"])
 
@@ -161,10 +193,14 @@ class Command(BaseCommand):
         for n, key, which, job_type, stage, source, total, lines, created, sent, closed, more in OPPS:
             opp = Opportunity.objects.create(
                 number=number(n), account=accounts[key], place=places[key][which], job_type=job_type, stage=stage, source=source,
-                total=total, description=lines, labor_only=more.get("labor_only", False),
+                labor_only=more.get("labor_only", False),
                 sent_on=ago(sent) if sent is not None else None,
                 signed_on=ago(closed) if stage == "won" else None, signed_how=more.get("signed_how", ""),
                 lost_on=ago(closed) if stage == "lost" else None, lost_reason=more.get("lost_reason", ""))
+            # the proposal's lines: the price is on the first line, the rest are included
+            opp.set_lines([(text, total if i == 0 else None) for i, text in enumerate(lines.splitlines())])
+            if sent is not None:
+                opp.link()                                                 # a sent proposal has its Accept page
             history(opp, "opp_created", ago(created))
             if sent is not None:
                 history(opp, "proposal_sent", ago(sent))
@@ -208,9 +244,46 @@ class Command(BaseCommand):
         history(warranty, "scheduled", ago(2))
         Activity.objects.create(job=original, kind="warranty_opened", detail=warranty.number, actor="Office", at=at(ago(2)))
 
+        # money: a change order waiting for a signature, a deposit, and a job paid in full
+        def job(n):
+            return Job.objects.get(number=number(n))
+
+        order = ChangeOrder.objects.create(job=job("112"), description="Replace 6 more sheets of rotted plywood found at tear-off", amount=390,
+                                           sent_on=work_day(-1))
+        Activity.objects.create(job=order.job, kind="co_sent", detail=order.label, actor="Office", at=at(work_day(-1)))
+        for n, days, amount, check, kind in [("104", 5, 1500, "2217", "deposit"), ("101", 12, 1850, "1048", "payment")]:
+            Payment.objects.create(job=job(n), paid_on=ago(days), amount=amount, method="check", check_number=check, kind=kind, user=office, actor="Office")
+            Activity.objects.create(job=job(n), kind="payment", detail=f"${amount:,}", actor="Office", at=at(ago(days)))
+
+        # leads: requests from the website. One is from a customer who is already in the app.
+        for name, phone, email, street, city, zip_code, job_type, language, status, hours, message, reason in LEADS:
+            received = timezone.now() - timedelta(hours=hours)
+            lead = Lead.objects.create(name=name, phone=phone, email=email, street=street, city=city, zip_code=zip_code, job_type=job_type,
+                                       language=language, status=status, reason=reason, message=message, owner=office, received_at=received,
+                                       first_contact_at=received + timedelta(hours=2) if status == "contacted" else None)
+            Activity.objects.create(lead=lead, kind="lead_in", actor="Web", at=received)
+            if status == "contacted":
+                Activity.objects.create(lead=lead, kind="call", actor="Office", at=received + timedelta(hours=2))
+            if status == "unqualified":
+                Activity.objects.create(lead=lead, kind="unqualified", actor="Office", at=received + timedelta(hours=10))
+
+        # the Price Book, with its history and the two files that brought the latest prices
+        uploads = {}
+        for file_name, supplier, line, days in [("ABC - GAF HDZ.xlsx", "ABC Supply", "GAF HDZ", 12), ("Liberty - Accessories.xlsx", "Liberty Roofing Center", "Accessories", 20)]:
+            uploads[(supplier, days)] = upload = PriceUpload.objects.create(file_name=file_name, supplier=supplier, line=line, uploaded_by=office, actor="Office")
+            PriceUpload.objects.filter(pk=upload.pk).update(uploaded_at=at(ago(days)))
+        for code, name, unit, supplier, line, prices in PRICES:
+            days, cost, price = prices[-1]
+            item = PriceItem.objects.create(code=code, name=name, unit=unit, supplier=supplier, line=line, cost=cost, price=price, changed_on=ago(days))
+            for days, cost, price in prices:
+                PriceEntry.objects.create(item=item, upload=uploads.get((supplier, days)), cost=cost, price=price, effective_on=ago(days))
+        for upload in uploads.values():
+            upload.changed, upload.same = upload.entries.count(), PriceItem.objects.filter(supplier=upload.supplier, line=upload.line).count() - upload.entries.count()
+            upload.save()
+
         # new numbers continue after the demo's last one
         Sequence.objects.update_or_create(year=yy, defaults={"last": 127})
 
-        self.stdout.write(self.style.SUCCESS("Demo data loaded: 12 customers, 13 opportunities, 10 jobs, 2 crews."))
+        self.stdout.write(self.style.SUCCESS("Demo data loaded: 12 customers, 4 leads, 13 opportunities, 10 jobs, 2 crews and a Price Book."))
         self.stdout.write(f"Logins (password for all four: {PASSWORD}):  admin   office   crew1   crew2")
         self.stdout.write("These logins are for trying the app on your PC. Never load the demo data on the real server.")

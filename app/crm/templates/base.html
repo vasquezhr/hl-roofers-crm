@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1f3a5f">
-<meta name="apple-mobile-web-app-title" content="H &amp; L Roofers">
-<title>{% block title %}{% endblock %} · H &amp; L Roofers</title>
+<meta name="apple-mobile-web-app-title" content="{{ company.name }}">
+<title>{% block title %}{% endblock %} · {{ company.name }}</title>
 <link rel="icon" type="image/png" href="{% static 'crm/icon.png' %}">
 <link rel="apple-touch-icon" href="{% static 'crm/icon.png' %}">
 {# Bootstrap comes from the app's own files, so the app needs no internet connection of its own #}
@@ -31,8 +31,8 @@
     {# top bar #}
     <header class="navbar sticky-top shadow-sm px-3 py-2 hl-topbar" data-bs-theme="dark">
       <a class="navbar-brand d-flex flex-column lh-1 m-0 p-0" href="{% url 'home' %}">
-        <span class="fw-bolder">H <span class="hl-amp">&amp;</span> L ROOFERS</span>
-        <small class="opacity-75 hl-tag">HONEST &amp; LOYAL · VIRGINIA</small>
+        <span class="fw-bolder">{{ company.name|brand }}</span>
+        {% if company.tagline %}<small class="opacity-75 hl-tag text-uppercase">{{ company.tagline }}</small>{% endif %}
       </a>
       <div class="d-flex align-items-center gap-2 ms-auto">
         {# English / Spanish: the choice is remembered on this phone or computer #}

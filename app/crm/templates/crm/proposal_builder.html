@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load i18n l10n crm_tags %}
+{% block title %}{% trans "Proposal" %} #{{ opp.number }}{% endblock %}
+
+{# The proposal builder: one row for each line. hl.js adds rows, adds a Price Book item and keeps the total. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'opp' opp.number %}">‹ {% trans "Back" %}</a>
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h1 class="h5 mb-1">{% trans "Proposal" %} #{{ opp.number }}</h1>
+    <p class="small text-body-secondary">{{ account.name }} · {{ opp.place.full_address }}</p>
+    {% if problem %}<div class="alert alert-danger py-2 small">{{ problem }}</div>{% endif %}
+    <form method="post" novalidate data-builder>
+      {% csrf_token %}
+      <div class="row g-2 small fw-semibold text-body-secondary mb-1">
+        <div class="col">{% trans "What it covers" %}</div>
+        <div class="col-4 col-sm-3">{% trans "Amount" %}</div>
+        <div class="col-auto invisible"><span class="btn btn-sm">×</span></div>
+      </div>
+      <div data-rows>
+        {% for text, amount in rows %}
+        <div class="row g-2 mb-2" data-row>
+          <div class="col"><input class="form-control form-control-sm" name="text" value="{{ text }}" maxlength="300" aria-label="{% trans 'What it covers' %}"></div>
+          <div class="col-4 col-sm-3">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text">$</span>
+              <input class="form-control" name="amount" inputmode="decimal" value="{% if amount is not None %}{{ amount|unlocalize }}{% endif %}" placeholder="{% trans 'included' %}" aria-label="{% trans 'Amount' %}">
+            </div>
+          </div>
+          <div class="col-auto"><button type="button" class="btn btn-sm btn-outline-secondary" data-remove-row aria-label="{% trans 'Remove the line' %}">×</button></div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-add-row>{% icon "plus" %} {% trans "Add a line" %}</button>
+        {% if price_items %}
+        <select class="form-select form-select-sm w-auto" data-add-item aria-label="{% trans 'Add from the Price Book' %}">
+          <option value="">{% trans "Add from the Price Book" %}…</option>
+          {% for item in price_items %}
+          <option data-text="{{ item.name }}{% if item.unit %} ({{ item.unit }}){% endif %}" data-amount="{{ item.price|unlocalize }}">{{ item.name }} · {{ item.price|money }}{% if item.unit %}/{{ item.unit }}{% endif %}</option>
+          {% endfor %}
+        </select>
+        {% endif %}
+        <div class="ms-auto fw-bold">{% trans "Total" %}: <span data-total></span></div>
+      </div>
+      <div class="form-text mt-2">{% trans "Leave the amount empty on lines that are included in the price. A line from the Price Book uses today's price, and the proposal keeps that price even if the Price Book changes later." %}</div>
+      <div class="d-flex gap-2 justify-content-end mt-3">
+        <a class="btn btn-outline-secondary" href="{% url 'opp' opp.number %}">{% trans "Cancel" %}</a>
+        <button type="submit" class="btn btn-primary">{% trans "Save and preview" %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

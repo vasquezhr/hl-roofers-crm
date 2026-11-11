@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Convert" %}{% endblock %}
+
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'lead' lead.pk %}">‹ {% trans "Back" %}</a>
+<div class="row">
+  <div class="col-lg-9 col-xl-8">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h1 class="h5 mb-2">{% trans "Convert" %}</h1>
+        {% if customer %}
+        <div class="alert alert-primary py-2 small">{% trf "The account that already exists for %(name)s will be used. No second account is made." name=customer.name %}</div>
+        {% else %}
+        <p class="small mb-2">{% trans "Convert creates all of this in one step:" %}</p>
+        <ul class="small">
+          <li>{% trans "Account" %}: <span class="fw-semibold">{{ lead.name }}</span></li>
+          <li>{% trans "Contact" %}: {{ lead.phone }}{% if lead.phone and lead.email %} · {% endif %}{{ lead.email }}</li>
+          {% if lead.street %}<li>{% trans "Property" %}: {{ lead.full_address }}</li>{% endif %}
+          <li>{% trans "An opportunity at the Inspection stage" %}</li>
+        </ul>
+        {% endif %}
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% include "crm/_fields.html" %}
+          <div class="d-flex gap-2 justify-content-end">
+            <a class="btn btn-outline-secondary" href="{% url 'lead' lead.pk %}">{% trans "Cancel" %}</a>
+            <button type="submit" class="btn btn-primary">{% icon "check" %} {% trans "Convert" %}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

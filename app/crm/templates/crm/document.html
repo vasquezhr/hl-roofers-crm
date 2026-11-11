@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{{ title }}{% endblock %}
+
+{# A proposal, an invoice or a change order, with the buttons for it. Needs: document, actions, back, send_to. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{{ back }}">‹ {% trans "Back" %}</a>
+<h1 class="h4 mb-3">{{ title }}</h1>
+
+<form method="post" action="{{ send_to }}" class="d-flex flex-wrap gap-2 mb-3">
+  {% csrf_token %}
+  {% for button in actions %}
+  {% if button.post %}
+  <button type="submit" name="do" value="{{ button.post }}" class="btn btn-{{ button.style }}">{% if button.icon %}{% icon button.icon %} {% endif %}{{ button.label }}</button>
+  {% else %}
+  <a class="btn btn-{{ button.style }}" href="{{ button.url }}">{% if button.icon %}{% icon button.icon %} {% endif %}{{ button.label }}</a>
+  {% endif %}
+  {% endfor %}
+</form>
+{% if email %}<div class="small text-body-secondary mb-3">{% trans "Email goes to" %}: {{ email }}</div>{% endif %}
+
+{% if accept_link %}
+<div class="card shadow-sm mb-3">
+  <div class="card-body py-2">
+    <label class="form-label small fw-semibold mb-1" for="acceptLink">{% icon "link" %} {% trans "The customer's page for accepting it" %}</label>
+    <div class="input-group input-group-sm">
+      <input class="form-control font-monospace" id="acceptLink" readonly value="{{ accept_link }}">
+      <button type="button" class="btn btn-outline-secondary" data-copy="#acceptLink">{% trans "Copy" %}</button>
+      <a class="btn btn-outline-secondary" href="{{ accept_link }}" target="_blank" rel="noopener">{% trans "Open the page" %}</a>
+    </div>
+    <div class="form-text">{% trans "The email carries this link. The customer reads the document there, types their name and accepts. The app keeps the name, the date and the time." %}</div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row">
+  <div class="col-lg-10 col-xl-9">{% include "crm/_paper.html" %}</div>
+</div>
+{% endblock %}

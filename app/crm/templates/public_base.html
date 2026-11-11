@@ -1,0 +1,29 @@
+{% load static i18n crm_tags %}{% get_current_language as LANG %}<!doctype html>
+<html lang="{{ LANG }}" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{% block title %}{% endblock %} · {{ company.name }}</title>
+<link rel="icon" type="image/png" href="{% static 'crm/icon.png' %}">
+<link rel="stylesheet" href="{% static 'crm/bootstrap.min.css' %}">
+<link rel="stylesheet" href="{% static 'crm/hl.css' %}">
+</head>
+{# The frame for a page a customer opens from an email. It has no menu and shows nothing of the app. #}
+<body>
+<header class="navbar shadow-sm px-3 py-2 hl-topbar" data-bs-theme="dark">
+  <span class="navbar-brand d-flex flex-column lh-1 m-0 p-0">
+    <span class="fw-bolder">{{ company.name|brand }}</span>
+    {% if company.tagline %}<small class="opacity-75 hl-tag text-uppercase">{{ company.tagline }}</small>{% endif %}
+  </span>
+  <form action="{% url 'set_language' %}" method="post" class="btn-group btn-group-sm ms-auto" role="group" aria-label="Language / Idioma">
+    {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <button type="submit" name="language" value="en" class="btn btn-outline-light{% if LANG == 'en' %} active{% endif %}">EN</button>
+    <button type="submit" name="language" value="es" class="btn btn-outline-light{% if LANG == 'es' %} active{% endif %}">ES</button>
+  </form>
+</header>
+<main class="container py-3">
+  <div class="row justify-content-center"><div class="col-lg-9 col-xl-8">{% block content %}{% endblock %}</div></div>
+</main>
+</body>
+</html>

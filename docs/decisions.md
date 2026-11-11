@@ -214,12 +214,12 @@ The Bootstrap mockup is `mockup/hl-roofers-mockup.html`. Each phase is tested in
 
 ## App status
 
-On Nov 10, 2026 the user wrote "go ahead and create phase 1 of the actual app". That settled the open question from Nov 9. **Phase 1 of the Django app is built**, in `app/`. Only Phase 1 is approved: Phases 2 to 4 of the app wait for the user's go-ahead. How to run it is in `app/README.md`.
+On Nov 10, 2026 the user wrote "go ahead and create phase 1 of the actual app". That settled the open question from Nov 9. On Nov 11, after Phase 1 was reported with "Phases 2 to 4 of the app wait for your go-ahead", the user wrote "finish it". That was read as: build the rest of the app, Phases 2 to 4. How to run the app is in `app/README.md`.
 
 | Roadmap phase | In the app | Status |
 | --- | --- | --- |
 | 1 · Customer records and search | Accounts (person or company) with contacts, properties and Details; Opportunities and Jobs on one stage bar; a signed proposal creates the Job with the same number; scheduling to a crew for whole work days; warranty jobs; outside numbers; one search box; Admin, Office and Crew profiles; Call, Text, Directions with history; English and Spanish; the Apple Notes import with a review queue | Built, Nov 10 |
-| 2 · Leads, proposals, invoices, pricing | — | Not started |
+| 2 · Leads, proposals, invoices, pricing | Leads with the website's request address, Convert and "Not a fit"; the proposal builder with Price Book lines; the proposal as a page and a PDF, emailed or marked sent; the customer's Accept page; change orders; deposits, payments and balance due; the invoice; crews record payments they collect; the Price Book with an Excel upload, review, full history and roll back; Company details that fill the placeholders; an Admin hub | Built, Nov 11 |
 | 3 · Scheduling and crew | — | Not started |
 | 4 · Reports, dashboard, automations, admin | — | Not started |
 
@@ -256,3 +256,22 @@ On Nov 10, 2026 the user wrote "go ahead and create phase 1 of the actual app". 
 **What was and wasn't checked:** 96 automated tests pass on PostgreSQL 16; on SQLite 95 pass and one (close-spelling search) is skipped because it needs PostgreSQL. A browser test of 31 checks passes. Every page was opened as Admin, Office and both crews, in English and Spanish, and the main flows were clicked through in Chromium at computer and phone size. The app was also run in server mode (debug off, PostgreSQL, Waitress, WhiteNoise). It has **not** been opened in Safari on a Mac or iPhone, and it has not been run on Windows: both need the real machines.
 
 **For the server, later:** the app has no limit on wrong password tries. Before staff reach it from outside, add a Cloudflare rate-limiting rule on the sign-in page or put Cloudflare Access in front.
+
+### Phase 2 of the app: choices to confirm
+
+- **Documents go out in the customer's language** (the language set on the account): the emailed PDF, the words of the email and the Accept page. The office's preview on screen follows the screen's language. The mockup left this open.
+- **"Mark as sent" sits next to "Email to the customer"**, for a proposal handed over on paper or a customer with no email. The invoice has "Mark invoice sent", and a change order has "Mark signed".
+- **Change orders go to the customer like proposals:** a PDF, an email and their own Accept page. This follows the user's rule that a change order is "sent to the customer for revision and to be signed".
+- **The Accept page** is reached only by a long random link. It asks for a typed name and keeps the name, date and time. Whether that is enough for H & L's contracts is still the owners' call.
+- **A payment cannot be more than the balance due.** A payment recorded by mistake is corrected in the admin site.
+- **"Mark invoice sent" and "Mark paid" are gone as plain buttons.** Sending the invoice moves a job to Invoice sent. The payment that brings the balance to zero moves it to Paid.
+- **"New lead"** lets the office type in a request that came by phone. The mockup only had website requests.
+- **Website requests go to one person,** chosen under Company details. The mockup's "backup: the owner" comes with the Phase 4 automations.
+- **A returning customer's request for a new address** adds that address to their account as a second property.
+- **The Price Book is for the administrator only** until permission sets exist (Phase 4). The office sees items only in the proposal builder, at the selling price. Crews see neither.
+- **The price file reader was built without a real supplier file** (the sample is still deferred). It expects a row of column names with Item, Cost and Price; Code and Unit are optional; English or Spanish. It will need a check against one real file.
+- **Proposals and invoices print the business's name as text.** The logo comes when the file arrives.
+- **The business's name and the line under it are settings** (Company details), not fixed in the code. That is also the first step toward reusing the app for another business.
+- **Email needs a mailbox's settings** in `.env`. Until then the Email buttons say so, and on a PC each email is written to the server window.
+
+**Checked for Phase 2:** 143 automated tests pass on PostgreSQL 16 (142 on SQLite, one skipped). The browser test passes with 43 checks, including the proposal builder, the PDF, the customer's Accept page on a phone, a change order, the invoice and a payment. Not checked: Safari, Windows, and real email delivery (no mailbox is set up).

@@ -29,6 +29,17 @@
       <div class="text-end flex-shrink-0">{% kind_badge row %}{% if row.close_match %}<div class="small text-body-secondary mt-1">{% trans "close spelling" %}</div>{% endif %}</div>
     </div>
   </a>
+  {% elif group.kind == "leads" %}
+  <a class="list-group-item list-group-item-action" href="{% url 'lead' row.pk %}">
+    <div class="d-flex gap-2 align-items-start">
+      <div class="flex-grow-1 hl-minw0">
+        <div class="small text-body-secondary">{{ row.get_job_type_display|hl:q }} · {{ row.received_at|ago }}</div>
+        <div class="fw-semibold text-truncate">{{ row.name|hl:q }}</div>
+        <div class="small text-body-secondary text-truncate">{{ row.full_address|hl:q }}{% if row.phone %} · {{ row.phone|hl:q }}{% endif %}</div>
+      </div>
+      <div class="text-end flex-shrink-0">{% stage_badge row %}</div>
+    </div>
+  </a>
   {% elif group.kind == "opps" %}
   <a class="list-group-item list-group-item-action" href="{% url 'opp' row.number %}">
     <div class="d-flex gap-2 align-items-start">

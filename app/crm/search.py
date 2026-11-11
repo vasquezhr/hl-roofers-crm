@@ -17,7 +17,7 @@ from django.db.models.lookups import GreaterThanOrEqual
 from django.utils.translation import gettext as _
 
 from .access import jobs_for
-from .models import JOB_TYPES, Account, Contact, Note, Opportunity, Property, digits, street_key
+from .models import JOB_TYPES, Account, Contact, Lead, Note, Opportunity, Property, digits, street_key
 
 LIMIT = 25          # rows shown in each group
 CLOSE = 0.45        # how alike two spellings must be, from 0 (nothing in common) to 1 (the same)
@@ -74,6 +74,13 @@ def job_has(word):
 
 def note_has(word):
     return Q(title__icontains=word) | Q(text__icontains=word)
+
+
+def lead_has(word):
+    found = (Q(name__icontains=word) | Q(email__icontains=word) | Q(street__icontains=word) | Q(city__icontains=word)
+             | Q(message__icontains=word))
+    phone = phone_part(word)
+    return found | Q(phone_digits__contains=phone) if phone else found
 
 
 def every_word(records, words, has):
@@ -150,8 +157,9 @@ def search(user, q):
                                                                words, account_has, account_has_or_nearly))
         for account in accounts["rows"]:
             account.note_line = note_line(account, words)
+        leads = every_word(Lead.objects.all(), words, lead_has)
         opportunities = every_word(Opportunity.objects.select_related("account", "place"), words, opportunity_has)
         notes = every_word(Note.objects.filter(account__isnull=True), words, note_has)
-        groups = [accounts, group("opps", _("Opportunities"), opportunities), group("jobs", _("Jobs"), jobs),
-                  group("notes", _("Notes not linked to a customer"), notes)]
+        groups = [accounts, group("leads", _("Leads"), leads), group("opps", _("Opportunities"), opportunities),
+                  group("jobs", _("Jobs"), jobs), group("notes", _("Notes not linked to a customer"), notes)]
     return [g for g in groups if g["rows"]]

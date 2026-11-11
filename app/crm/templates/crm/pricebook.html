@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Price Book" %}{% endblock %}
+
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'admin_home' %}">‹ {% trans "Admin" %}</a>
+<div class="d-flex flex-wrap align-items-start gap-2 mb-3">
+  <div class="flex-grow-1 hl-minw0">
+    <h1 class="h4 mb-0">{% trans "Price Book" %}</h1>
+    <div class="text-body-secondary small">{% trans "What each item costs and what it sells for. Crews never see this page." %}</div>
+  </div>
+  <a class="btn btn-outline-secondary btn-sm text-nowrap" href="{% url 'price_item_new' %}">{% icon "plus" %} {% trans "New item" %}</a>
+  <a class="btn btn-primary btn-sm text-nowrap" href="{% url 'price_upload' %}">{% icon "upload" %} {% trans "Upload a price file" %}</a>
+</div>
+
+{% include "crm/_pills.html" %}
+
+<div class="card shadow-sm mb-3">
+  <div class="table-responsive">
+    <table class="table table-hover table-sm align-middle small mb-0">
+      <thead>
+        <tr><th class="ps-3">{% trans "Item" %}</th><th>{% trans "Unit" %}</th><th class="text-end">{% trans "Cost" %}</th><th class="text-end">{% trans "Selling price" %}</th><th class="text-end pe-3">{% trans "Changed" %}</th></tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td class="ps-3"><a class="fw-semibold" href="{% url 'price_item' item.pk %}">{{ item.name }}</a><br><span class="text-body-secondary">{{ item.supplier }}{% if item.line %} · {{ item.line }}{% endif %} · {{ item.code }}</span></td>
+          <td>{{ item.unit }}</td>
+          <td class="text-end">{{ item.cost|money }}</td>
+          <td class="text-end">{{ item.price|money }}</td>
+          <td class="text-end pe-3 text-nowrap">{{ item.changed_on|date }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-body-secondary py-4">{% trans "No prices yet. Upload a price file or add an item." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h2 class="h6 mt-4 mb-2">{% trans "Uploads" %}</h2>
+{% if uploads %}
+<div class="list-group shadow-sm mb-3">
+  {% for upload in uploads %}
+  <div class="list-group-item d-flex gap-2 align-items-start">
+    <div class="flex-grow-1 hl-minw0">
+      <div class="fw-semibold text-truncate">{{ upload.file_name }}</div>
+      <div class="small text-body-secondary">{{ upload.supplier }}{% if upload.line %} · {{ upload.line }}{% endif %} · {{ upload.uploaded_at|day }} · {{ upload.actor }} · {% trf "%(added)s new, %(changed)s changed, %(same)s the same" added=upload.added changed=upload.changed same=upload.same %}</div>
+    </div>
+    {% if upload.rolled_back_at %}
+    {% trans "Rolled back" as rolled %}{% badge rolled "secondary" %}
+    {% elif upload == latest %}
+    <form method="post" action="{% url 'price_rollback' upload.pk %}">{% csrf_token %}
+      <button type="submit" class="btn btn-outline-secondary btn-sm" data-confirm="{% trans 'Roll back this upload? Its new items go, and its changed items return to the price before.' %}">{% icon "undo" %} {% trans "Roll back" %}</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="small text-body-secondary mb-3">{% trans "No file has been uploaded yet." %}</div>
+{% endif %}
+<a class="small" href="{% url 'price_blank_file' %}">{% icon "download" %} {% trans "Download a blank price file with the right columns" %}</a>
+{% endblock %}

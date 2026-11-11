@@ -45,19 +45,19 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   check('the office lands on Today', (await text(office, 'h1')) === 'Today');
   await office.click('a.nav-link:has-text("Accounts") >> visible=true');
   await office.click('text=New account');
-  await office.fill('#id_name', 'Mina Seo');
+  await office.fill('#id_name', 'Harriet Voss');
   await office.fill('#id_phone', '(804) 555-0120');
   await office.fill('#id_street', '2718 Monument Ave');
   await office.fill('#id_city', 'Richmond');
   await office.fill('#id_zip_code', '23220');
   await office.click('button:has-text("Save")');
   await office.waitForLoadState('networkidle');
-  check('the account page opens', (await text(office, 'h1')) === 'Mina Seo');
+  check('the account page opens', (await text(office, 'h1')) === 'Harriet Voss');
   check('"Saved" shows', (await office.locator('.toast-body').innerText()).includes('Saved'));
 
   // the same phone again asks first
   await office.goto(base + '/accounts/new/');
-  await office.fill('#id_name', 'M. Seo');
+  await office.fill('#id_name', 'H. Voss');
   await office.fill('#id_phone', '804-555-0120');
   await office.fill('#id_street', '1 Other St');
   await office.click('button:has-text("Save")');
@@ -65,7 +65,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   check('a second account with the same phone asks first', await office.locator('#anyway').count() === 1);
 
   await office.goto(base + '/accounts/');
-  await office.click('a.list-group-item:has-text("Mina Seo")');
+  await office.click('a.list-group-item:has-text("Harriet Voss")');
   await office.click('text=New opportunity');
   await office.selectOption('#id_job_type', 'gutters');
   await office.selectOption('#id_source', 'referral');
@@ -75,15 +75,26 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   const number = (await text(office, 'h1 + div')).match(/#(\d\d-\d+)/)[1];
   check('the opportunity gets a number and starts at Inspection', (await text(office, '.hl-stage .cur')) === 'Inspection', number);
 
-  await office.click('text=Enter the proposal');
-  await office.fill('#id_description', 'Remove old gutters\nInstall 5 inch seamless gutters, 118 ft');
-  await office.fill('#id_total', '1960');
-  await office.click('button:has-text("Save")');
+  // the proposal builder: type two lines, add one from the Price Book, and the total follows
+  await office.click('text=Write the proposal');
+  await office.locator('input[name=text]').nth(0).fill('Remove old gutters');
+  await office.locator('input[name=amount]').nth(0).fill('1960');
+  await office.locator('input[name=text]').nth(1).fill('Install 5 inch seamless gutters, 118 ft');
+  await office.selectOption('[data-add-item]', { index: 1 });
+  check('a Price Book line is added with its price', (await office.locator('[data-total]').innerText()) !== '$1,960');
+  await office.locator('[data-remove-row]').last().click();
+  check('the total follows the lines', (await office.locator('[data-total]').innerText()) === '$1,960');
+  await office.click('button:has-text("Save and preview")');
   await office.waitForLoadState('networkidle');
-  check('the proposal moves it to Proposal sent', (await text(office, '.hl-stage .cur')) === 'Proposal sent');
+  check('the proposal shows as the customer gets it', (await office.locator('main').innerText()).includes('PROPOSAL #' + number));
+  const pdf = await office.request.get(`${base}/opportunities/${number}/proposal/view/?pdf=1`);
+  check('the PDF downloads', pdf.headers()['content-type'] === 'application/pdf');
+  await office.click('button:has-text("Mark as sent")');
+  await office.waitForLoadState('networkidle');
+  check('sending it moves it to Proposal sent', (await text(office, '.hl-stage .cur')) === 'Proposal sent');
   check('the price shows', (await office.locator('main').innerText()).includes('$1,960'));
 
-  await office.click('text=Mark signed');
+  await office.click('a:has-text("Mark signed")');
   await office.click('button:has-text("Signed: create the job")');
   await office.waitForLoadState('networkidle');
   check('signing opens the job with the same number', office.url().endsWith(`/jobs/${number}/`));
@@ -120,7 +131,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await crew.click('button:has-text("Mark done")');
   await crew.waitForLoadState('networkidle');
   check('the crew starts and finishes the job', (await text(crew, 'main .badge')) === 'Done');
-  check('a crew has no invoice button', await crew.locator('button:has-text("Mark invoice sent")').count() === 0);
+  check('a crew cannot send the invoice', await crew.locator('a:has-text("Create the invoice")').count() === 0);
   await crew.fill('#id_text', 'Left the old gutters by the driveway');
   await crew.click('button:has-text("Save the note")');
   await crew.waitForLoadState('networkidle');
@@ -129,27 +140,61 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   const other = await signIn(browser, 'crew2');
   const response = await other.goto(`${base}/jobs/${number}/`);
   check('another crew cannot open the job', response.status() === 404);
-  await other.goto(base + '/search/?q=Seo');
+  await other.goto(base + '/search/?q=Voss');
   check('another crew cannot find the customer', (await other.locator('main').innerText()).includes('Nothing found.'));
 
   console.log('Office: invoice, payment, warranty, search');
   await office.reload();
+  await office.click('text=Add change order');
+  await office.fill('#id_description', 'Add a downspout at the back corner');
+  await office.fill('#id_amount', '140');
+  await office.click('button:has-text("Save")');
+  await office.waitForLoadState('networkidle');
+  await office.click('button:has-text("Mark signed")');
+  await office.waitForLoadState('networkidle');
+  check('a signed change order is added to the total', (await office.locator('main').innerText()).includes('$2,100'));
+  await office.click('text=Create the invoice');
+  check('the invoice shows the balance due', (await office.locator('main').innerText()).includes('Balance due'));
   await office.click('button:has-text("Mark invoice sent")');
   await office.waitForLoadState('networkidle');
-  await office.click('button:has-text("Mark paid")');
+  check('the invoice moves the job to Invoice sent', (await text(office, '.hl-stage .cur')) === 'Invoice sent');
+  await office.click('a:has-text("Record payment")');
+  await office.fill('#id_check_number', '1048');
+  await office.click('button:has-text("Record payment")');
   await office.waitForLoadState('networkidle');
-  check('the job ends at Paid', (await text(office, '.hl-stage .cur')) === 'Paid');
+  check('the payment that clears the balance ends the job at Paid', (await text(office, '.hl-stage .cur')) === 'Paid');
   await office.click('text=New warranty job');
   await office.fill('#id_problem', 'A joint is dripping at the corner');
   await office.click('button:has-text("Save")');
   await office.waitForLoadState('networkidle');
   check('a warranty job opens with no charge', (await office.locator('main').innerText()).includes('Warranty job: no charge.'));
   await office.goto(base + '/search/?q=' + encodeURIComponent('555-0120'));
-  check('search finds the customer by phone', (await office.locator('main').innerText()).includes('Mina Seo'));
+  check('search finds the customer by phone', (await office.locator('main').innerText()).includes('Harriet Voss'));
   await office.goto(base + '/search/?q=' + number);
   check('search finds the job by number', await office.locator(`a[href="/jobs/${number}/"]`).count() === 1);
   await office.goto(base + '/search/?q=paipas');
   check('search finds a word inside a note', (await office.locator('main').innerText()).includes('From the notes'));
+
+  console.log('Leads and the customer\'s Accept page');
+  await office.goto(base + '/leads/');
+  await office.click('a.list-group-item:has-text("Mina Seo")');
+  await office.click('a:has-text("Convert")');
+  await office.click('button:has-text("Convert")');
+  await office.waitForLoadState('networkidle');
+  check('Convert opens the new opportunity', /\/opportunities\/\d\d-\d+\/$/.test(office.url()) && (await text(office, 'h1')) === 'Mina Seo', office.url());
+  await office.goto(base + '/opportunities/?show=proposal');
+  await office.click('a.list-group-item:has-text("Anjali Raman")');
+  await office.click('a:has-text("View the proposal")');
+  const link = (await office.inputValue('#acceptLink')).replace(/^https?:\/\/[^/]+/, base);
+  const customer = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+  await customer.goto(link);
+  check('the customer sees the proposal without a login', (await customer.locator('main').innerText()).includes('Remove old gutters'));
+  await customer.fill('#name', 'Anjali Raman');
+  await customer.click('button:has-text("I accept")');
+  await customer.waitForLoadState('networkidle');
+  check('accepting it thanks the customer', (await customer.locator('main').innerText()).includes('Accepted. Thank you.'));
+  await office.goto(base + '/jobs/?show=signed');
+  check('and the job is waiting to be scheduled', (await office.locator('main').innerText()).includes('Anjali Raman'));
 
   console.log('Spanish, the phone menu and dark mode');
   await office.goto(base + '/');

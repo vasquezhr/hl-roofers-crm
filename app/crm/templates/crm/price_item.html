@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{{ item.name }}{% endblock %}
+
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'pricebook' %}">‹ {% trans "Price Book" %}</a>
+<div class="mb-3">
+  <h1 class="h4 mb-0">{{ item.name }}</h1>
+  <div class="text-body-secondary small">{{ item.supplier }}{% if item.line %} · {{ item.line }}{% endif %} · {{ item.code }}{% if item.unit %} · {{ item.unit }}{% endif %}</div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Every price it has had" %}</h2>
+        <table class="table table-sm small mb-0">
+          <thead><tr><th>{% trans "Date" %}</th><th class="text-end">{% trans "Cost" %}</th><th class="text-end">{% trans "Selling price" %}</th><th class="text-end">%</th></tr></thead>
+          <tbody>
+            {% for line in history %}
+            <tr>
+              <td>{{ line.entry.effective_on|date }}{% if line.entry.upload %}<br><span class="text-body-secondary">{{ line.entry.upload.file_name }}</span>{% endif %}</td>
+              <td class="text-end">{{ line.entry.cost|money }}</td>
+              <td class="text-end">{{ line.entry.price|money }}</td>
+              <td class="text-end{% if line.big %} text-danger fw-semibold{% endif %}">{% if line.percent is None %}—{% else %}{% if line.percent > 0 %}+{% endif %}{{ line.percent }}%{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Type a new price" %}</h2>
+        <p class="small text-body-secondary">{% trans "The old price stays in the history." %}</p>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% include "crm/_fields.html" %}
+          <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

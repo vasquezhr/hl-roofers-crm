@@ -1,37 +1,63 @@
-"""The navigation tabs each profile sees. Runs for every page."""
+"""What every page needs: the navigation tabs for the person's profile, and the business's name."""
+from django.urls import NoReverseMatch, reverse
 from django.utils.translation import gettext_lazy as _
+
+from .models import Company
 
 # tab key -> (name of the page it opens, label, icon)
 TABS = {
+    "dashboard": ("dashboard", _("Dashboard"), "dashboard"),
     "today": ("home", _("Today"), "today"),
+    "leads": ("leads", _("Leads"), "leads"),
     "opps": ("opps", _("Opportunities"), "opps"),
     "jobs": ("jobs", _("Jobs"), "jobs"),
+    "schedule": ("schedule", _("Schedule"), "schedule"),
     "accounts": ("accounts", _("Accounts"), "accounts"),
     "search": ("search", _("Search"), "search"),
-    "admin": ("imports", _("Admin"), "admin"),
+    "reports": ("reports", _("Reports"), "reports"),
+    "admin": ("admin_home", _("Admin"), "admin"),
+    "my_day": ("my_day", _("My Day"), "my_day"),
     "my_jobs": ("my_jobs", _("My Jobs"), "my_jobs"),
 }
-# which tab is highlighted for each page
-TAB_OF_PAGE = {
-    "home": "today", "search": "search", "my_jobs": "my_jobs",
-    "accounts": "accounts", "account": "accounts", "account_new": "accounts", "account_edit": "accounts",
-    "contact_new": "accounts", "contact_edit": "accounts", "property_new": "accounts", "property_edit": "accounts", "note_new": "accounts",
-    "opps": "opps", "opp": "opps", "opp_new": "opps", "opp_inspection": "opps", "opp_proposal": "opps", "opp_sign": "opps", "opp_lost": "opps",
-    "jobs": "jobs", "job": "jobs", "job_schedule": "jobs", "job_ref": "jobs", "job_warranty": "jobs",
-    "imports": "admin", "import_queue": "admin", "import_note": "admin",
+# the tabs each profile sees, in order
+NAV = {
+    "admin": ["dashboard", "today", "leads", "opps", "jobs", "schedule", "accounts", "search", "reports", "admin"],
+    "office": ["today", "leads", "opps", "jobs", "schedule", "accounts", "search", "reports"],
+    "crew": ["my_day", "my_jobs", "search"],
 }
+# which tab is highlighted: a page's name starts with one of these
+TAB_BY_PAGE = [
+    ("home", "today"), ("dashboard", "dashboard"), ("lead", "leads"), ("opp", "opps"), ("proposal", "opps"),
+    ("job", "jobs"), ("change_order", "jobs"), ("payment", "jobs"), ("invoice", "jobs"), ("worker", "jobs"),
+    ("schedule", "schedule"), ("book", "schedule"),
+    ("account", "accounts"), ("contact", "accounts"), ("property", "accounts"), ("note", "accounts"),
+    ("search", "search"), ("report", "reports"), ("my_day", "my_day"), ("my_jobs", "my_jobs"),
+    ("admin", "admin"), ("import", "admin"), ("price", "admin"), ("company", "admin"), ("automation", "admin"),
+    ("user", "admin"), ("editor", "admin"), ("status", "admin"),
+]
+
+
+def exists(page):
+    """True when a page with this name has been built."""
+    try:
+        reverse(page)
+        return True
+    except NoReverseMatch:
+        return False
+
+
+def company(request):
+    """The business's name and details, for the top bar and the documents."""
+    return {"company": Company.load()}
 
 
 def navigation(request):
     user = getattr(request, "user", None)
     if not user or not user.is_authenticated:
         return {}
-    if user.is_crew_profile:
-        keys = ["my_jobs", "search"]
-    else:
-        keys = ["today", "opps", "jobs", "accounts", "search"] + (["admin"] if user.is_admin_profile else [])
+    keys = [key for key in NAV[user.profile] if exists(TABS[key][0])]
     page = request.resolver_match.url_name if request.resolver_match else ""
-    active = TAB_OF_PAGE.get(page, "")
+    active = next((tab for start, tab in TAB_BY_PAGE if page and page.startswith(start)), "")
     if user.is_crew_profile and active == "jobs":
         active = "my_jobs"
     tabs = [{"key": k, "url": TABS[k][0], "label": TABS[k][1], "icon": TABS[k][2], "active": k == active} for k in keys]

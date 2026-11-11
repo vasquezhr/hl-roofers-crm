@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Leads" %}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-start gap-2 mb-3">
+  <div class="flex-grow-1 hl-minw0">
+    <h1 class="h4 mb-0">{% trans "Leads" %}</h1>
+    <div class="text-body-secondary small">{% trans "Requests from the website, waiting for someone to review them." %}</div>
+  </div>
+  <a class="btn btn-outline-secondary btn-sm text-nowrap" href="{% url 'lead_new' %}">{% icon "plus" %} {% trans "New lead" %}</a>
+</div>
+
+{% include "crm/_pills.html" %}
+
+{% if page %}
+<div class="list-group shadow-sm mb-3">
+  {% for lead in page %}
+  <a class="list-group-item list-group-item-action" href="{% url 'lead' lead.pk %}">
+    <div class="d-flex gap-2 align-items-start">
+      <div class="flex-grow-1 hl-minw0">
+        <div class="small text-body-secondary">{{ lead.get_job_type_display }} · {{ lead.get_source_display }} · {{ lead.received_at|ago }}</div>
+        <div class="fw-semibold text-truncate">{{ lead.name }}{% if lead.returning %} {% trans "Returning customer" as returning %}{% badge returning "primary" %}{% endif %}</div>
+        <div class="small text-body-secondary text-truncate">{{ lead.full_address }}</div>
+      </div>
+      <div class="text-end flex-shrink-0">{% stage_badge lead %}</div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% include "crm/_pager.html" with keep="show="|add:show %}
+{% else %}
+<div class="text-center text-body-secondary py-4">{% trans "None" %}</div>
+{% endif %}
+{% endblock %}

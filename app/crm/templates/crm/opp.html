@@ -21,14 +21,19 @@
 {# the buttons for this stage #}
 <div class="d-flex flex-wrap gap-2 mb-3">
   {% if opp.stage == "inspection" %}
-  <a class="btn btn-primary" href="{% url 'opp_proposal' opp.number %}">{% icon "doc" %} {% trans "Enter the proposal" %}</a>
+  {% if opp.total %}
+  <a class="btn btn-primary" href="{% url 'opp_document' opp.number %}">{% icon "doc" %} {% trans "View and send the proposal" %}</a>
+  {% else %}
+  <a class="btn btn-primary" href="{% url 'opp_proposal' opp.number %}">{% icon "doc" %} {% trans "Write the proposal" %}</a>
+  {% endif %}
   <a class="btn btn-outline-secondary" href="{% url 'opp_lost' opp.number %}">{% trans "Mark lost" %}</a>
   {% elif opp.stage == "proposal" %}
   <a class="btn btn-primary" href="{% url 'opp_sign' opp.number %}">{% icon "check" %} {% trans "Mark signed" %}</a>
-  <a class="btn btn-outline-secondary" href="{% url 'opp_proposal' opp.number %}">{% icon "edit" %} {% trans "Change the proposal" %}</a>
+  <a class="btn btn-outline-secondary" href="{% url 'opp_document' opp.number %}">{% icon "doc" %} {% trans "View the proposal" %}</a>
   <a class="btn btn-outline-secondary" href="{% url 'opp_lost' opp.number %}">{% trans "Mark lost" %}</a>
-  {% elif opp.stage == "won" and job %}
-  <a class="btn btn-primary" href="{% url 'job' job.number %}">{% icon "jobs" %} {% trf "Open job #%(number)s" number=job.number %}</a>
+  {% elif opp.stage == "won" %}
+  {% if job %}<a class="btn btn-primary" href="{% url 'job' job.number %}">{% icon "jobs" %} {% trf "Open job #%(number)s" number=job.number %}</a>{% endif %}
+  <a class="btn btn-outline-secondary" href="{% url 'opp_document' opp.number %}">{% icon "doc" %} {% trans "View the proposal" %}</a>
   {% elif opp.stage == "lost" %}
   <a class="btn btn-outline-primary" href="{% url 'opp_new' account.pk %}">{% icon "plus" %} {% trans "New opportunity for this customer" %}</a>
   {% endif %}
@@ -62,15 +67,20 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h2 class="h6 mb-2">{% trans "Proposal" %}</h2>
-        {% if opp.lines %}
-        <ul class="small ps-3 mb-2">{% for line in opp.lines %}<li>{{ line }}</li>{% endfor %}</ul>
+        {% if opp.line_items %}
+        <table class="table table-sm small mb-0">
+          <tbody>
+            {% for text, amount in opp.line_items %}
+            <tr><td>{{ text }}</td><td class="text-end text-nowrap">{% if amount is None %}{% trans "included" %}{% else %}{{ amount|money }}{% endif %}</td></tr>
+            {% endfor %}
+            {% if opp.total %}<tr class="fw-bold"><td>{% trans "Total" %}</td><td class="text-end">{{ opp.total|money }}</td></tr>{% endif %}
+          </tbody>
+        </table>
         {% else %}
         <div class="small text-body-secondary mb-2">{% trans "Nothing written yet." %}</div>
         {% endif %}
-        {% if opp.total %}
-        <div class="d-flex border-top pt-2 fw-bold"><span class="flex-grow-1">{% trans "Price" %}</span><span>{{ opp.total|money }}</span></div>
-        {% else %}
-        <div class="small text-body-secondary">{% trans "No price yet. Enter the proposal after the inspection." %}</div>
+        {% if not opp.total %}
+        <div class="small text-body-secondary mt-2">{% trans "No price yet. Write the proposal after the inspection." %}</div>
         {% endif %}
         {% if opp.sent_on %}
         <div class="small text-body-secondary mt-2">{% trans "Sent on" %}: {{ opp.sent_on|date }}{% if opp.signed_on %} · {% trans "Signed on" %}: {{ opp.signed_on|date }} ({{ opp.get_signed_how_display }}){% endif %}</div>

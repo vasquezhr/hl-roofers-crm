@@ -84,6 +84,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "crm.context.navigation",
+                "crm.context.company",
             ],
         },
     },
@@ -143,6 +144,27 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")      # Cloudflare Tunnel passes this along
+
+# ---------- email: proposals, invoices and summaries ----------
+# With no EMAIL_HOST in .env the app cannot send email. On your PC it then writes each email to the
+# server window instead, so you can read what would have been sent.
+EMAIL_HOST = env("EMAIL_HOST")
+EMAIL_PORT = int(env("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = env("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+EMAIL_TIMEOUT = 20
+DEFAULT_FROM_EMAIL = env("EMAIL_FROM", EMAIL_HOST_USER or "office@example.com")
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend" if EMAIL_HOST else "django.core.mail.backends.console.EmailBackend"
+EMAIL_READY = bool(EMAIL_HOST) or DEBUG          # False on a server with no email set up: the Email buttons explain why
+
+# The address customers see in emailed links (the Accept page). On the server: https://app.handlroofers.com
+SITE_URL = env("SITE_URL", "http://127.0.0.1:8000").rstrip("/")
+
+# ---------- the website's request form ----------
+# The website sends each request to /leads/in/ with this key. With no key, that address is switched off.
+LEAD_FORM_KEY = env("LEAD_FORM_KEY")
+LEAD_FORM_ORIGIN = env("LEAD_FORM_ORIGIN", "*")  # the website's address, e.g. https://handlroofers.com
 
 # ---------- CRM settings ----------
 FIRST_JOB_NUMBER = int(env("FIRST_JOB_NUMBER", "101"))    # the first number each year: 26-101, 26-102, ...

@@ -4,7 +4,10 @@ from django.conf import settings
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils.translation import gettext_lazy as _
 
-from .models import JOB_TYPES, LANGS, Account, Contact, Crew, Job, Opportunity, Property, Worker
+from .models import (JOB_TYPES, LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Opportunity, Payment, PriceItem, Property,
+                     Worker)
+
+JOB_TYPES_TO_SELL = [choice for choice in JOB_TYPES if choice[0] != "warranty"]      # a warranty visit is opened from a job, never sold
 
 
 class Bootstrap:
@@ -13,7 +16,7 @@ class Bootstrap:
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             widget = field.widget
-            if isinstance(widget, (forms.CheckboxInput, forms.CheckboxSelectMultiple)):
+            if isinstance(widget, (forms.CheckboxInput, forms.CheckboxSelectMultiple, forms.RadioSelect)):
                 css = "form-check-input"
             elif isinstance(widget, forms.Select):
                 css = "form-select"
@@ -94,7 +97,7 @@ class OpportunityForm(Bootstrap, forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["place"].queryset = account.properties.all()
         self.fields["place"].empty_label = None
-        self.fields["job_type"].choices = [c for c in JOB_TYPES if c[0] != "warranty"]      # warranty visits are opened from a job
+        self.fields["job_type"].choices = JOB_TYPES_TO_SELL
         self.fields["source"].choices = [("", "---------")] + list(Opportunity.Source.choices)
 
 
@@ -104,25 +107,6 @@ class InspectionForm(Bootstrap, forms.Form):
 
     def clean_day(self):
         return work_day(self.cleaned_data["day"])
-
-
-class ProposalForm(Bootstrap, forms.ModelForm):
-    class Meta:
-        model = Opportunity
-        fields = ["description", "total"]
-        widgets = {"description": forms.Textarea(attrs={"rows": 5})}
-
-    def clean_total(self):
-        total = self.cleaned_data["total"]
-        if not total or total <= 0:
-            raise forms.ValidationError(_("Enter the price."))
-        return total
-
-    def clean_description(self):
-        text = self.cleaned_data["description"].strip()
-        if not text:
-            raise forms.ValidationError(_("Say what the proposal covers."))
-        return text
 
 
 class SignForm(Bootstrap, forms.Form):
@@ -206,3 +190,105 @@ class ImportedNoteForm(Bootstrap, forms.Form):
         if not (data.get("name") or data.get("street")):
             raise forms.ValidationError(_("Enter a name or a street address for the new account."))
         return data
+
+
+# ---------- leads ----------
+class LeadForm(Bootstrap, forms.ModelForm):
+    """A request typed in by the office, or sent by the website's form."""
+    class Meta:
+        model = Lead
+        fields = ["name", "phone", "email", "street", "city", "state", "zip_code", "job_type", "message", "language", "source"]
+        widgets = {"message": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["job_type"].choices = JOB_TYPES_TO_SELL
+
+    def clean(self):
+        data = super().clean()
+        if not (data.get("phone") or data.get("email")):
+            raise forms.ValidationError(_("Enter a phone number or an email address, so someone can answer."))
+        return data
+
+
+class ConvertForm(Bootstrap, forms.Form):
+    """Convert a lead: the type of work, and (for a customer with an open job) where the request goes."""
+    job_type = forms.ChoiceField(label=_("Type of work"), choices=JOB_TYPES_TO_SELL)
+    add_to_job = forms.ChoiceField(label=_("What should happen?"), widget=forms.RadioSelect, required=False)
+
+    def __init__(self, *args, open_job=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if open_job:
+            self.fields["add_to_job"].choices = [("", _("Start a new opportunity")),
+                                                 ("yes", _("Add the request to job #%(number)s") % {"number": open_job.number})]
+        else:
+            del self.fields["add_to_job"]
+
+
+class UnfitForm(Bootstrap, forms.Form):
+    reason = forms.ChoiceField(label=_("Reason"), choices=Lead.Reason.choices)
+
+
+# ---------- money on a job ----------
+class ChangeOrderForm(Bootstrap, forms.ModelForm):
+    class Meta:
+        model = ChangeOrder
+        fields = ["description", "amount"]
+        widgets = {"description": forms.Textarea(attrs={"rows": 2})}
+
+    def clean_amount(self):
+        amount = self.cleaned_data["amount"]
+        if not amount:
+            raise forms.ValidationError(_("Enter the amount. Use a minus sign to take work off."))
+        return amount
+
+
+class PaymentForm(Bootstrap, forms.ModelForm):
+    class Meta:
+        model = Payment
+        fields = ["amount", "method", "check_number", "paid_on"]
+        widgets = {"paid_on": date_box()}
+
+    def __init__(self, *args, balance, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.balance = balance
+
+    def clean_amount(self):
+        amount = self.cleaned_data["amount"]
+        if amount <= 0:
+            raise forms.ValidationError(_("Enter the amount received."))
+        if amount > self.balance:
+            raise forms.ValidationError(_("That is more than the balance due."))
+        return amount
+
+
+# ---------- the Price Book and the company's details ----------
+class PriceItemForm(Bootstrap, forms.ModelForm):
+    class Meta:
+        model = PriceItem
+        fields = ["supplier", "line", "code", "name", "unit", "cost", "price"]
+
+
+class NewPriceForm(Bootstrap, forms.Form):
+    cost = forms.DecimalField(label=_("Cost"), max_digits=10, decimal_places=2, min_value=0)
+    price = forms.DecimalField(label=_("Selling price"), max_digits=10, decimal_places=2, min_value=0)
+
+
+class PriceUploadForm(Bootstrap, forms.Form):
+    file = forms.FileField(label=_("The price spreadsheet"), help_text=_("An Excel file (.xlsx) with one row for each item: its code, name, unit, cost and selling price."))
+    supplier = forms.CharField(label=_("Supplier"), max_length=80)
+    line = forms.CharField(label=_("Product line"), max_length=80, required=False)
+
+
+class CompanyForm(Bootstrap, forms.ModelForm):
+    class Meta:
+        model = Company
+        fields = ["name", "tagline", "legal_name", "license_number", "address", "phone",
+                  "proposal_terms_en", "proposal_terms_es", "invoice_terms_en", "invoice_terms_es", "lead_owner"]
+        widgets = {field: forms.Textarea(attrs={"rows": 2}) for field in
+                   ["proposal_terms_en", "proposal_terms_es", "invoice_terms_en", "invoice_terms_es"]}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["lead_owner"].queryset = self.fields["lead_owner"].queryset.exclude(profile="crew").filter(is_active=True)
+        self.fields["lead_owner"].label_from_instance = lambda user: user.label

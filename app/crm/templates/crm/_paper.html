@@ -1,0 +1,47 @@
+{% load i18n crm_tags %}
+{# A document on "paper": a proposal, an invoice or a change order. Needs: document, company. Always white, even in dark mode. #}
+<div class="card shadow-sm" data-bs-theme="light">
+  <div class="card-body p-3 p-sm-4">
+    <div class="d-flex flex-wrap justify-content-between gap-2 border-bottom border-3 border-dark pb-2 mb-3">
+      <div>
+        <div class="fs-5 fw-bolder">{{ company.name|brand:"text-primary" }}</div>
+        <div class="small text-body-secondary">{{ company.legal }} · {% trans "License" %} {{ company.license }}<br>{{ company.street }} · {{ company.tel }}</div>
+      </div>
+      <div class="text-sm-end">
+        <div class="fw-bold text-uppercase">{{ document.title }} #{{ document.number }}</div>
+        <div class="small text-body-secondary">{% trans "Date" %}: {{ document.date }}</div>
+      </div>
+    </div>
+    <div class="row g-3 mb-3">
+      {% for label, lines in document.blocks %}
+      <div class="{% if document.blocks|length > 1 %}col-sm-6{% else %}col-12{% endif %}">
+        <div class="small text-uppercase text-body-secondary fw-semibold">{{ label }}</div>
+        {% for line in lines %}<div{% if forloop.first %} class="fw-semibold"{% endif %}>{{ line }}</div>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <table class="table table-sm mb-0">
+      <tbody>
+        {% for text, amount in document.lines %}
+        <tr><td>{{ text }}</td><td class="text-end text-nowrap">{{ amount }}</td></tr>
+        {% endfor %}
+        {% for label, amount in document.totals %}
+        <tr class="{% if forloop.last %}fw-bold fs-6{% endif %}">
+          <td class="{% if forloop.first %}border-top border-dark{% endif %}">{{ label }}</td>
+          <td class="text-end text-nowrap {% if forloop.first %}border-top border-dark{% endif %}">{{ amount }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="mt-3">
+      <div class="small text-uppercase text-body-secondary fw-semibold">{% trans "Terms" %}</div>
+      <div class="small hl-pre">{{ document.terms }}</div>
+    </div>
+    {% if document.signature and not hide_signature %}
+    <div class="row g-4 mt-3 small text-body-secondary">
+      <div class="col-6"><div class="border-top border-secondary pt-1">{{ document.signature }}</div></div>
+      <div class="col-6"><div class="border-top border-secondary pt-1">{{ company.legal }}</div></div>
+    </div>
+    {% endif %}
+  </div>
+</div>

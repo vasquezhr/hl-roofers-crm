@@ -47,3 +47,47 @@ document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll("input[name=note]").forEach(function (box) { box.checked = all.checked; });
   });
 });
+
+/* 7. The proposal builder: add a line, remove a line, add an item from the Price Book, keep the total.
+      The server checks everything again when the form is saved. */
+document.addEventListener("DOMContentLoaded", function () {
+  var form = document.querySelector("[data-builder]");
+  if (!form) return;
+  var rows = form.querySelector("[data-rows]");
+  function total() {
+    var sum = 0;
+    form.querySelectorAll("input[name=amount]").forEach(function (box) {
+      var number = parseFloat(box.value.replace(/[$,]/g, ""));
+      if (!isNaN(number)) sum += number;
+    });
+    form.querySelector("[data-total]").textContent = "$" + sum.toLocaleString("en-US", { minimumFractionDigits: sum % 1 ? 2 : 0, maximumFractionDigits: 2 });
+  }
+  function addRow(text, amount) {
+    var row = rows.querySelector("[data-row]").cloneNode(true);
+    row.querySelector("input[name=text]").value = text || "";
+    row.querySelector("input[name=amount]").value = amount || "";
+    rows.appendChild(row);
+    if (!text) row.querySelector("input[name=text]").focus();
+    total();
+  }
+  form.addEventListener("input", total);
+  form.addEventListener("click", function (event) {
+    if (event.target.closest("[data-add-row]")) addRow();
+    var remove = event.target.closest("[data-remove-row]");
+    if (remove && rows.querySelectorAll("[data-row]").length > 1) { remove.closest("[data-row]").remove(); total(); }
+  });
+  var picker = form.querySelector("[data-add-item]");
+  if (picker) picker.addEventListener("change", function () {
+    var item = picker.options[picker.selectedIndex];
+    if (item.dataset.text) addRow(item.dataset.text, item.dataset.amount);
+    picker.selectedIndex = 0;
+  });
+  total();
+});
+
+/* 8. A "Copy" button next to a box: <button data-copy="#acceptLink"> */
+document.addEventListener("click", function (event) {
+  var button = event.target.closest("[data-copy]");
+  if (!button || !navigator.clipboard) return;
+  navigator.clipboard.writeText(document.querySelector(button.dataset.copy).value);
+});

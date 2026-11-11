@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Admin" %}{% endblock %}
+
+{# The Admin hub: one card for each admin page. #}
+{% block content %}
+<div class="mb-3">
+  <h1 class="h4 mb-0">{% trans "Admin" %}</h1>
+  <div class="text-body-secondary small">{% trans "Settings and tools for the administrator." %}</div>
+</div>
+<div class="row row-cols-1 row-cols-md-2 g-3">
+  <div class="col">
+    <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'pricebook' %}">
+      <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "dollar" %}</span>
+        <div><div class="fw-semibold">{% trans "Price Book" %}</div><div class="small text-body-secondary">{% trans "Supplier prices from your spreadsheets, with the full history." %}</div></div></div>
+    </a>
+  </div>
+  <div class="col">
+    <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'company_details' %}">
+      <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "building" %}</span>
+        <div><div class="fw-semibold">{% trans "Company details" %}</div><div class="small text-body-secondary">{% trans "The name, license, address, phone and terms printed on proposals and invoices." %}</div></div></div>
+    </a>
+  </div>
+  {% block more_cards %}{% endblock %}
+  <div class="col">
+    <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'imports' %}">
+      <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "upload" %}</span>
+        <div><div class="fw-semibold">{% trans "Import Apple Notes" %}</div><div class="small text-body-secondary">{% trans "Move the business's notes into each customer's Details, with a review step." %}{% if waiting %} <span class="fw-semibold text-body">{% trf "%(count)s waiting for review." count=waiting %}</span>{% endif %}</div></div></div>
+    </a>
+  </div>
+  <div class="col">
+    <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'admin:index' %}">
+      <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "accounts" %}</span>
+        <div><div class="fw-semibold">{% trans "Logins, crews and records" %}</div><div class="small text-body-secondary">{% trans "Add or change logins, crews and workers, or correct a record, in the admin site." %}</div></div></div>
+    </a>
+  </div>
+</div>
+{% endblock %}

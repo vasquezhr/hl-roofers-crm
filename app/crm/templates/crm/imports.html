@@ -1,24 +1,13 @@
 {% extends "base.html" %}
 {% load i18n crm_tags %}
-{% block title %}{% trans "Admin" %}{% endblock %}
+{% block title %}{% trans "Import Apple Notes" %}{% endblock %}
 
 {% block content %}
-<div class="mb-3">
-  <h1 class="h4 mb-0">{% trans "Admin" %}</h1>
-  <div class="text-body-secondary small">{% trans "For the administrator only." %}</div>
-</div>
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'admin_home' %}">‹ {% trans "Admin" %}</a>
+<h1 class="h4 mb-3">{% trans "Import Apple Notes" %}</h1>
 
 <div class="card shadow-sm mb-3">
   <div class="card-body">
-    <h2 class="h6 mb-2">{% trans "Logins, crews and records" %}</h2>
-    <p class="small text-body-secondary mb-2">{% trans "Add or change logins, crews and workers, or correct a record, in the admin site." %}</p>
-    <a class="btn btn-outline-secondary btn-sm" href="{% url 'admin:index' %}">{% icon "admin" %} {% trans "Open the admin site" %}</a>
-  </div>
-</div>
-
-<div class="card shadow-sm mb-3">
-  <div class="card-body">
-    <h2 class="h6 mb-2">{% trans "Import Apple Notes" %}</h2>
     <ul class="small text-body-secondary ps-3">
       <li>{% trans "Notes that look like logins or passwords are counted and thrown away. They are never stored." %}</li>
       <li>{% trans "Notes in the folders you list under Folders to leave out are counted and thrown away too." %}</li>

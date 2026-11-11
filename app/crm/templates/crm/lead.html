@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{{ lead.name }}{% endblock %}
+
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'leads' %}">‹ {% trans "Leads" %}</a>
+<div class="d-flex align-items-start gap-2 mb-3">
+  <div class="flex-grow-1 hl-minw0">
+    <h1 class="h4 mb-0">{{ lead.name }}</h1>
+    <div class="text-body-secondary small">{{ lead.get_job_type_display }} · {{ lead.get_source_display }} · {{ lead.received_at|ago }}</div>
+  </div>
+  {% stage_badge lead %}
+</div>
+
+{% stage_bar lead %}
+
+{% if lead.status == "unqualified" %}
+<div class="alert alert-secondary py-2 small">{% trans "Why it is not a fit" %}: {{ lead.get_reason_display }}</div>
+{% endif %}
+{% if customer %}
+<div class="alert alert-primary py-2 small mb-2">{% icon "user" %} {% trans "This looks like a customer you already have:" %}
+  <a class="alert-link" href="{% url 'account' customer.pk %}">{{ customer.name }}</a>.
+  {% if open_job %}{% trans "They have a job that is still open:" %} <a class="alert-link" href="{% url 'job' open_job.number %}">#{{ open_job.number }}</a>.{% endif %}
+</div>
+{% endif %}
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+  {% if lead.is_open %}
+  <a class="btn btn-primary" href="{% url 'lead_convert' lead.pk %}">{% icon "check" %} {% trans "Convert" %}</a>
+  <a class="btn btn-outline-secondary" href="{% url 'lead_unfit' lead.pk %}">{% trans "Not a fit" %}</a>
+  {% elif lead.opportunity %}
+  <a class="btn btn-primary" href="{% url 'opp' lead.opportunity.number %}">{% icon "opps" %} {% trf "Opportunity #%(number)s" number=lead.opportunity.number %}</a>
+  {% elif lead.job %}
+  <a class="btn btn-primary" href="{% url 'job' lead.job.number %}">{% icon "jobs" %} {% trf "Added to job #%(number)s" number=lead.job.number %}</a>
+  {% endif %}
+</div>
+{% if lead.is_open %}<div class="mb-3">{% lead_buttons lead %}</div>{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "What they asked for" %}</h2>
+        {% if lead.message %}<blockquote class="border-start border-3 border-primary ps-3 mb-2 hl-pre">{{ lead.message }}</blockquote>{% endif %}
+        <dl class="row mb-0 small">
+          <dt class="col-4 text-body-secondary fw-normal">{% trans "Type of work" %}</dt><dd class="col-8 mb-1">{{ lead.get_job_type_display }}</dd>
+          <dt class="col-4 text-body-secondary fw-normal">{% trans "Received" %}</dt><dd class="col-8 mb-1">{{ lead.received_at|day }} · {{ lead.received_at|ago }}</dd>
+          <dt class="col-4 text-body-secondary fw-normal">{% trans "Where it came from" %}</dt><dd class="col-8 mb-1">{{ lead.get_source_display }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Contact" %}</h2>
+        <dl class="row mb-0 small">
+          {% if lead.phone %}<dt class="col-4 text-body-secondary fw-normal">{% trans "Phone" %}</dt><dd class="col-8 mb-1"><a href="{{ lead.phone|tel }}">{{ lead.phone }}</a></dd>{% endif %}
+          {% if lead.email %}<dt class="col-4 text-body-secondary fw-normal">{% trans "Email" %}</dt><dd class="col-8 mb-1"><a href="mailto:{{ lead.email }}">{{ lead.email }}</a></dd>{% endif %}
+          {% if lead.street %}<dt class="col-4 text-body-secondary fw-normal">{% trans "Property" %}</dt><dd class="col-8 mb-1">{{ lead.street }}<br><span class="text-body-secondary">{{ lead.city_line }}</span></dd>{% endif %}
+          <dt class="col-4 text-body-secondary fw-normal">{% trans "Language" %}</dt><dd class="col-8 mb-1">{{ lead.get_language_display }}</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2">{% trans "Assigned to" %}</h2>
+        <div class="small"><span class="fw-semibold">{% if lead.owner %}{{ lead.owner.label }}{% else %}{% trans "Office" %}{% endif %}</span><br>
+          <span class="text-body-secondary">{% trans "Requests from the website go to the person named under Admin › Company details." %}</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "History" %}</h2>
+    {% include "crm/_history.html" %}
+  </div>
+</div>
+{% endblock %}

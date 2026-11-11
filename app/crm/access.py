@@ -39,7 +39,7 @@ def admin_only(view):
 
 def jobs_for(user):
     """The jobs this login may see: every job for the office; only its own crew's jobs for a crew."""
-    jobs = Job.objects.select_related("account", "place", "crew", "opportunity")
+    jobs = Job.objects.select_related("account", "place", "crew", "opportunity").prefetch_related("change_orders", "payments")
     if user.is_crew_profile:
         return jobs.filter(crew=user.crew) if user.crew_id else jobs.none()
     return jobs

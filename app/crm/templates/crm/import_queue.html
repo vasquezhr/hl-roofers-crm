@@ -3,7 +3,7 @@
 {% block title %}{% trans "Review the imported notes" %}{% endblock %}
 
 {% block content %}
-<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'imports' %}">‹ {% trans "Admin" %}</a>
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'imports' %}">‹ {% trans "Import Apple Notes" %}</a>
 <div class="mb-3">
   <h1 class="h4 mb-0">{% trans "Review the imported notes" %}</h1>
   <div class="text-body-secondary small">{% trf "Done so far: %(accepted)s accepted · %(unlinked)s kept unlinked · %(skipped)s skipped" accepted=accepted unlinked=unlinked skipped=skipped %}</div>

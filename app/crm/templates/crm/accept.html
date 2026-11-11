@@ -1,0 +1,30 @@
+{% extends "public_base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{{ document.title }} #{{ document.number }}{% endblock %}
+
+{# What the customer sees when they open the link in the email. Accepting signs the proposal or the change order. #}
+{% block content %}
+{% if state == "accepted" %}
+<div class="alert alert-success">{% icon "check" %} <span class="fw-semibold">{% trans "Accepted. Thank you." %}</span>
+  {% if signed_by %}<div class="small">{{ signed_by }} · {{ signed_on|date }}</div>{% endif %}</div>
+{% elif state == "closed" %}
+<div class="alert alert-secondary">{% trans "This is no longer open to accept. Please call us if you have a question." %}</div>
+{% endif %}
+
+{% include "crm/_paper.html" with hide_signature=True %}
+
+{% if state == "open" %}
+<div class="card shadow-sm mt-3">
+  <div class="card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <label class="form-label fw-semibold" for="name">{% trf "Accept this %(what)s" what=what %}</label>
+      <input class="form-control{% if problem %} is-invalid{% endif %}" id="name" name="name" placeholder="{% trans 'Type your full name' %}" autocomplete="name" maxlength="120">
+      {% if problem %}<div class="invalid-feedback">{{ problem }}</div>{% endif %}
+      <button type="submit" class="btn btn-primary w-100 mt-2">{% icon "check" %} {% trans "I accept" %}</button>
+      <div class="form-text">{% trans "Your name, the date and the time are kept with it." %}</div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

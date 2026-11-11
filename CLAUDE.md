@@ -7,8 +7,7 @@ A small, self-hosted CRM for H & L Roofers, a roofing business in Virginia that 
 **Status (as of Nov 9, 2026): the owners' answers are in** (`docs/decisions.md`, "Owner answers"). Answers the owners left to Claude were inferred from their Apple Notes and Mac file list (`docs/data-review.md`) and confirmed in the owner checklist as correct for now, subject to change. The checklist is a Claude Doc: https://claude.ai/artifact/Gecymk9Uy4LjQdDdhWWo5o. The plan is in `docs/project-breakdown.md`.
 
 - **The Bootstrap mockup covers all four roadmap phases** (Nov 10, 2026). `docs/decisions.md`, "Mockup status", lists what is in it and the choices made in it that the user still needs to confirm.
-- **Phase 1 of the real app is built** (Nov 10, 2026), in `app/`: customer records and search, the three profiles, English and Spanish, and the Apple Notes import. The user asked for it with "go ahead and create phase 1 of the actual app". `docs/decisions.md`, "App status", lists what is in it, the choices to confirm, and what was and wasn't checked. `app/README.md` says how to run it.
-- **Only Phase 1 of the app is approved.** Do not build Phases 2 to 4 of the app until the user clearly says to.
+- **The real app is in `app/`.** Phase 1 (customer records, search, the three profiles, English and Spanish, the Apple Notes import) was built Nov 10, 2026. On Nov 11 the user wrote "finish it", read as: build Phases 2 to 4. `docs/decisions.md`, "App status", lists what is built, the choices to confirm, and what was and wasn't checked. `app/README.md` says how to run it.
 - **Next step: the user's review** of the app on his Windows PC and of the mockup with the owners, then the Safari check on a Mac and an iPhone.
 - Deferred by the user, not blocking: Sundays and Friday hours, and the samples (a supplier price file, a proposal, an invoice, the logo).
 - `docs/decisions.md` overrides the breakdown snapshot wherever they differ.

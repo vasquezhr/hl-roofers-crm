@@ -1,4 +1,6 @@
-# Sample notes export
+# Sample files
+
+## A notes export
 
 `notes-sample.json` is a small, made-up notes export in the same format as the real one.
 Use it to try **Admin › Import Apple Notes** on your PC after loading the demo data (`python manage.py demo`).
@@ -19,3 +21,7 @@ Every note in it is made up. It has ten notes, one of each kind the import has t
 | An empty note | Counted as empty |
 
 Never put the real notes export in this folder or anywhere in the repository: it holds real customers and passwords.
+
+## A price file
+
+`price-file-sample.xlsx` is a made-up supplier price sheet for trying **Admin › Price Book › Upload a price file**. Type `ABC Supply` as the supplier and `GAF HDZ` as the product line. With the demo data loaded, the review page shows three prices that change (one flagged as a big change), one new item, and two that stay the same.

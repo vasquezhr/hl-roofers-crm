@@ -33,6 +33,15 @@
   {% if can_schedule and job.stage != "signed" %}
   <a class="btn btn-outline-secondary" href="{% url 'job_schedule' job.number %}">{% icon "edit" %} {% trans "Change the schedule" %}</a>
   {% endif %}
+  {% if can_invoice %}
+  <a class="btn btn-primary" href="{% url 'invoice' job.number %}">{% icon "mail" %} {% trans "Create the invoice" %}</a>
+  {% endif %}
+  {% if can_pay and job.stage != "done" or can_pay and crew_view %}
+  <a class="btn {% if job.stage == 'invoiced' or crew_view and job.stage == 'done' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'payment_new' job.number %}">{% icon "dollar" %} {% trans "Record payment" %}</a>
+  {% endif %}
+  {% if has_invoice %}
+  <a class="btn btn-outline-secondary" href="{% url 'invoice' job.number %}">{% icon "doc" %} {% trans "View the invoice" %}</a>
+  {% endif %}
   {% if can_open_warranty %}
   <a class="btn btn-outline-secondary" href="{% url 'job_warranty' job.number %}">{% icon "shield" %} {% trans "New warranty job" %}</a>
   {% endif %}
@@ -98,13 +107,48 @@
 
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2">{% trans "Price" %}</h2>
+        <h2 class="h6 mb-2">{% trans "Price and payments" %}</h2>
         {% if job.is_warranty %}
         <div class="small">{% trans "Warranty job: no charge." %}</div>
         {% else %}
-        <div class="d-flex fw-bold"><span class="flex-grow-1">{% trans "Job price" %}</span><span>{{ job.price|money }}</span></div>
-        {% if job.labor_only %}<div class="small text-body-secondary mt-1">{% trans "Labor only: the customer supplies the materials." %}</div>{% endif %}
-        {% if job.invoiced_on %}<div class="small text-body-secondary mt-1">{% trans "Invoice sent" %}: {{ job.invoiced_on|date }}{% if job.paid_on %} · {% trans "Paid" %}: {{ job.paid_on|date }}{% endif %}</div>{% endif %}
+        <div class="small">
+          <div class="d-flex justify-content-between gap-3"><span>{% trans "Price" %} <span class="text-body-secondary">· {% trans "from the signed proposal" %}</span></span><span class="text-nowrap">{{ job.price|money }}</span></div>
+          {% if job.labor_only %}<div class="text-body-secondary">{% trans "Labor only: the customer supplies the materials." %}</div>{% endif %}
+
+          {% if orders or can_add_order %}
+          <div class="small text-uppercase text-body-secondary fw-semibold mt-3 mb-1">{% trans "Change orders" %}</div>
+          {% for order in orders %}
+          <div class="d-flex gap-3 align-items-start border-top py-1">
+            <div class="flex-grow-1 hl-minw0">
+              {% if crew_view %}<span class="fw-semibold">{{ order.label }}</span>{% else %}<a class="fw-semibold" href="{% url 'change_order' job.number order.number %}">{{ order.label }}</a>{% endif %} · {{ order.description }}<br>
+              {% if order.is_signed %}{% badge order.get_status_display "success" %}{% else %}{% badge order.get_status_display "warning" %}{% endif %}
+            </div>
+            <div class="text-nowrap{% if not order.is_signed %} text-body-secondary{% endif %}">{{ order.amount|money }}</div>
+          </div>
+          {% empty %}
+          <div class="text-body-secondary">{% trans "None" %}</div>
+          {% endfor %}
+          {% if can_add_order %}
+          <a class="btn btn-outline-secondary btn-sm mt-2" href="{% url 'change_order_new' job.number %}">{% icon "plus" %} {% trans "Add change order" %}</a>
+          {% endif %}
+          {% endif %}
+
+          <div class="d-flex justify-content-between gap-3 fw-bold border-top mt-3 pt-2"><span>{% trans "Total" %}</span><span class="text-nowrap">{{ job.total|money }}</span></div>
+          {% if orders_waiting %}<div class="text-body-secondary">{% trans "A change order counts in the total once the customer signs it." %}</div>{% endif %}
+
+          {% if payments %}
+          <div class="small text-uppercase text-body-secondary fw-semibold mt-3 mb-1">{% trans "Payments" %}</div>
+          {% for payment in payments %}
+          <div class="d-flex justify-content-between gap-3">
+            <span>{{ payment.paid_on|date }} · {{ payment.get_kind_display }} · {{ payment.get_method_display }}{% if payment.check_number %} #{{ payment.check_number }}{% endif %} <span class="text-body-secondary">· {{ payment.actor }}</span></span>
+            <span class="text-nowrap">−{{ payment.amount|money }}</span>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          <div class="d-flex justify-content-between gap-3 fw-bold fs-5 border-top mt-3 pt-2{% if job.balance <= 0 %} text-success{% endif %}"><span>{% trans "Balance due" %}</span><span class="text-nowrap">{{ job.balance|money }}</span></div>
+          {% if job.invoiced_on %}<div class="text-body-secondary mt-1">{% trans "Invoice sent" %}: {{ job.invoiced_on|date }}{% if job.paid_on %} · {% trans "Paid" %}: {{ job.paid_on|date }}{% endif %}</div>{% endif %}
+        </div>
         {% endif %}
       </div>
     </div>
