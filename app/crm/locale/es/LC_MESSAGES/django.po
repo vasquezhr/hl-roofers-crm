@@ -82,6 +82,15 @@ msgstr "Teléfono"
 msgid "Email"
 msgstr "Correo"
 
+msgid "Documents"
+msgstr "Documentos"
+
+msgid "%(document)s as a PDF"
+msgstr "%(document)s en PDF"
+
+msgid "No documents yet. A proposal shows here once it is sent, and an invoice once it is sent."
+msgstr "Todavía no hay documentos. Una propuesta aparece aquí cuando se envía, y una factura también."
+
 msgid "Add to my phone's calendar"
 msgstr "Agregar al calendario de mi teléfono"
 
@@ -589,6 +598,9 @@ msgstr "Registros relacionados"
 msgid "Opportunity #%(number)s"
 msgstr "Oportunidad #%(number)s"
 
+msgid "Signed proposal #%(number)s"
+msgstr "Propuesta firmada #%(number)s"
+
 msgid "Warranty for job #%(number)s"
 msgstr "Garantía del trabajo #%(number)s"
 
@@ -1011,6 +1023,18 @@ msgstr "Facturar a"
 
 msgid "Work done at"
 msgstr "Trabajo hecho en"
+
+msgid "Signed %(day)s"
+msgstr "Firmada el %(day)s"
+
+msgid "Not accepted"
+msgstr "No aceptada"
+
+msgid "Sent %(day)s"
+msgstr "Enviada el %(day)s"
+
+msgid "Paid %(day)s"
+msgstr "Pagada el %(day)s"
 
 msgid "Workers who help on this job. They have no login; this records who worked."
 msgstr "Trabajadores que ayudan en este trabajo. No tienen usuario; aquí se anota quién trabajó."

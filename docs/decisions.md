@@ -290,3 +290,26 @@ On Nov 10, 2026 the user wrote "go ahead and create phase 1 of the actual app". 
 - **Sundays are still open** (deferred by the user). The app treats Monday to Friday as work days. Adding Sunday is one setting, plus rewording the labels that say "Monday to Friday".
 
 **Checked for Phase 3:** 183 automated tests pass on PostgreSQL 16 (182 on SQLite, one skipped). The browser test passes with 58 checks, including booking a suggested time, moving a job, Got it on a phone-sized My Day, booking an inspection and reading the calendar file signed out. The new pages were looked at in English and Spanish, light and dark, at computer and phone size. Not checked: Safari, Windows, and subscribing to a calendar address from a real iPhone or Mac.
+
+### Requests from the user on Nov 12, 2026 (while Phases 3 and 4 were being built)
+
+The user read the mockup and asked for these. They apply to the app. The mockup has not been changed for them.
+
+**1. Three documents: proposals, change orders and invoices** (built Nov 12)
+
+The user: "the change order should produce a pdf, same as an invoice. the signed proposals for jobs should also be attached to the account records. those proposals are linked on the job, just like the opportunities are. those linked proposals should be available for view to the crew."
+
+- A change order already was a page and a PDF in the app, sent and accepted like a proposal. That part needed no change.
+- **The account has a Documents list:** every proposal that was sent, every change order and every invoice, newest first, each with its status (sent, signed, not accepted, waiting for signature, paid), its amount and a PDF button.
+- **The job has the same list for its own documents,** and its "Linked records" box now links the signed proposal next to the opportunity.
+- **The job's own crew can open all three** (the page and the PDF) and nothing else: no Email or Mark signed buttons, no customer link, and not another crew's job. The opportunity stays an office page.
+- Choices to confirm: a proposal still being written is not listed until it is sent; a proposal the customer turned down stays on the account's list, marked "Not accepted"; the invoice is listed once it has been sent.
+- Still open, as ideas put to the user: keeping a frozen copy of each signed document, a receipt for a payment, and attaching a photo of a paper signature.
+
+**2. History shows who, the date and the time, on every record** (to build)
+
+**3. Delete, with a permission** (to build, with the permission sets). The breakdown already says deleted records go to a Recycle Bin for 30 days and only the Admin empties it.
+
+**4. Crew notes on a job, for the office to see.** A crew could already add a note on its job; it shows in the job's history under the crew's name. To build: make new crew notes easier for the office to spot.
+
+**5. Adding logins.** Logins are added in the admin site today. The app's own Users page (Phase 4) gets an "Add a login" button, which the mockup does not show.

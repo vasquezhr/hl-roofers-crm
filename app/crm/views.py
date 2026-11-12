@@ -22,6 +22,7 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from . import scheduling
+from .documents import document_rows
 from .access import job_or_404, jobs_for, office_only
 from .dates import range_code
 from .forms import (AccountForm, ContactForm, InspectionForm, LostForm, NewAccountForm, NoteForm, OpportunityForm, PropertyForm,
@@ -130,10 +131,11 @@ def accounts(request):
 @office_only
 def account(request, pk):
     account = get_object_or_404(Account.objects.prefetch_related("contacts", "properties", "notes"), pk=pk)
+    opps = account.opportunities.select_related("account", "place")
+    jobs = account.jobs.select_related("account", "place", "crew").prefetch_related("change_orders", "payments").order_by("-created_at")
     return render(request, "crm/account.html", {
-        "account": account, "note_form": NoteForm(),
-        "opps": account.opportunities.select_related("account", "place"),
-        "jobs": account.jobs.select_related("account", "place", "crew").prefetch_related("change_orders", "payments").order_by("-created_at"),
+        "account": account, "note_form": NoteForm(), "opps": opps, "jobs": jobs,
+        "documents": document_rows(opps, jobs),                       # every proposal, change order and invoice of this customer
         "history": account.activities.all()[:60],
     })
 
@@ -376,6 +378,8 @@ def job(request, number):
         "can_pay": job.can_take_payment(request.user),
         "can_invoice": office and job.stage == Job.Stage.DONE and not job.is_warranty,
         "has_invoice": job.invoiced_on is not None,
+        # the job's paperwork: its signed proposal, its change orders and its invoice. The crew can open them too.
+        "documents": document_rows([job.opportunity] if job.opportunity_id else [], [job]),
         # extra workers can be added or taken off, by the office or the crew, until the job is done
         "can_change_workers": job.crew_id is not None and not job.is_finished,
         "free_workers": Worker.objects.filter(active=True, crew__isnull=True).exclude(jobs=job) if job.crew_id and not job.is_finished else [],

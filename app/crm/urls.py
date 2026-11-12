@@ -48,6 +48,7 @@ urlpatterns = [
     path("jobs/<str:number>/number/", views.job_ref, name="job_ref"),
     path("jobs/<str:number>/warranty/", views.job_warranty, name="job_warranty"),
     path("jobs/<str:number>/note/", views.job_note, name="job_note"),
+    path("jobs/<str:number>/proposal/", money_views.job_proposal, name="job_proposal"),
     path("jobs/<str:number>/change-orders/new/", money_views.change_order_new, name="change_order_new"),
     path("jobs/<str:number>/change-orders/<int:n>/", money_views.change_order, name="change_order"),
     path("jobs/<str:number>/change-orders/<int:n>/send/", money_views.change_order_send, name="change_order_send"),

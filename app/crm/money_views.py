@@ -182,6 +182,25 @@ def opp_send(request, number):
     return redirect("opp", number=opp.number)
 
 
+@login_required
+def job_proposal(request, number):
+    """The signed proposal, kept with its job. The office can open it, and so can the job's own crew. ?pdf=1 gives the PDF."""
+    job, company = job_or_404(request.user, number), Company.load()
+    opp = job.opportunity
+    if opp is None:                                                   # a warranty job has no proposal
+        return redirect("job", number=job.number)
+    document = documents.proposal_document(opp, company, translation.get_language())
+    if request.GET.get("pdf"):
+        return pdf_response(document, company, f"proposal-{opp.number}.pdf")
+    signed = _("Signed %(day)s") % {"day": documents.date_text(opp.signed_on)} + f" · {opp.get_signed_how_display()}"
+    if opp.signed_by:
+        signed += f" · {opp.signed_by}"
+    return render(request, "crm/document.html", {
+        "document": document, "title": f"{_('Proposal')} #{opp.number}", "note": signed, "back": reverse("job", args=[job.number]),
+        "actions": [action(_("Download the PDF"), reverse("job_proposal", args=[job.number]) + "?pdf=1", icon="doc")],
+    })
+
+
 def accept_proposal(request, token):
     """The customer's own page. They read the proposal, type their name and accept. That signs it and creates the Job."""
     opp = get_object_or_404(Opportunity.objects.select_related("account", "place"), accept_token=token)
@@ -226,23 +245,28 @@ def order_or_404(number, n):
     return get_object_or_404(ChangeOrder.objects.select_related("job__account", "job__place"), job__number=number, number=n)
 
 
-@office_only
+@login_required
 def change_order(request, number, n):
-    """A change order as the customer gets it. ?pdf=1 gives the PDF."""
+    """A change order as the customer gets it. The office sends it; the job's own crew can read it. ?pdf=1 gives the PDF."""
+    job_or_404(request.user, number)                                  # a crew only reaches its own jobs
     order, company = order_or_404(number, n), Company.load()
-    job = order.job
+    job, office = order.job, not request.user.is_crew_profile
     if request.GET.get("pdf"):
         return pdf_response(documents.change_order_document(order, company, translation.get_language()), company, f"change-order-{job.number}-{order.label}.pdf")
     here, actions = reverse("change_order", args=[job.number, order.number]), []
-    if not order.is_signed:
+    if office and not order.is_signed:
         actions += [action(_("Email to the customer"), post="email", style="primary", icon="mail"), action(_("Mark signed"), post="signed", icon="check")]
     actions.append(action(_("Download the PDF"), here + "?pdf=1", icon="doc"))
+    if order.is_signed:
+        note = _("Signed %(day)s") % {"day": documents.date_text(order.signed_on)} + (f" · {order.signed_by}" if order.signed_by else "")
+    else:
+        note = order.get_status_display()
     return render(request, "crm/document.html", {
-        "document": documents.change_order_document(order, company, translation.get_language()), "actions": actions,
+        "document": documents.change_order_document(order, company, translation.get_language()), "actions": actions, "note": note,
         "title": f"{_('Change order')} {order.label} · #{job.number}", "back": reverse("job", args=[job.number]),
         "send_to": reverse("change_order_send", args=[job.number, order.number]),
-        "accept_link": settings.SITE_URL + reverse("accept_change", args=[order.accept_token]) if order.accept_token and not order.is_signed else "",
-        "email": email_of(job.account),
+        "accept_link": settings.SITE_URL + reverse("accept_change", args=[order.accept_token]) if office and order.accept_token and not order.is_signed else "",
+        "email": email_of(job.account) if office and not order.is_signed else "",
     })
 
 

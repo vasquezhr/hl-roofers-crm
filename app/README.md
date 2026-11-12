@@ -24,6 +24,7 @@ This folder is the real app (Python, Django, PostgreSQL, Bootstrap). **Phases 1 
 - **Change orders:** work added or taken off after signing. They go to the customer the same way (PDF, email, Accept page) and count in the job's total once signed.
 - **Payments:** a deposit before the work, a payment after. The office can record one at any point; a crew can on its own job once the work has started. The job shows its total, what was paid and the balance due.
 - **Invoices:** built from the job (the signed price, signed change orders, payments, balance due), as a page and a PDF. Sending it moves the job to Invoice sent; the payment that brings the balance to zero moves it to Paid.
+- **Documents:** a customer's work goes through three documents: the proposal, change orders and the invoice. Each is a page and a PDF. The account lists all of them with their status (sent, signed, paid). The job lists its own: the signed proposal, its change orders and its invoice. The job's crew can open and download them; they show the customer's prices, never H & L's costs.
 - **Price Book:** for the administrator. Each item has a cost and a selling price. An Excel price file is uploaded, reviewed (what changes, by how much, what is new) and then confirmed. Every price is kept as history, and the newest upload can be rolled back.
 - **Company details:** the business's name, license, address, phone and terms. They print on every proposal and invoice; an empty one prints as a `{placeholder}`.
 
@@ -73,7 +74,7 @@ Run the tests. They build their own empty database, so they never touch your dat
 python manage.py test
 ```
 
-It should end with `OK (skipped=1)`. There are 183 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
+It should end with `OK (skipped=1)`. There are 193 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
 
 Then click through it:
 

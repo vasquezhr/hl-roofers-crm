@@ -10,9 +10,11 @@ in the customer's language:   with translation.override(account.language): ...
 """
 import io
 import os
+from datetime import date
 from xml.sax.saxutils import escape
 
 import reportlab
+from django.urls import reverse
 from django.utils import formats, timezone
 from django.utils.translation import gettext as _
 from reportlab.lib import colors
@@ -86,6 +88,49 @@ def invoice_document(job, company, language="en"):
         "blocks": [(_("Bill to"), customer_lines(job.account)), (_("Work done at"), [line for line in where if line])],
         "lines": lines, "totals": totals, "terms": company.terms("invoice", language), "signature": "",
     }
+
+
+# ---------------------------------------------------------------- the list of documents
+def document_rows(opps=(), jobs=()):
+    """The three kinds of document a customer's work goes through, as rows for a list, newest first:
+    the proposal (once it has been sent), the change orders, and the invoice (once it has been sent).
+
+    A signed proposal opens from its job, where the job's crew can read it too. One that is not signed
+    opens from its opportunity, which is the office's page."""
+    rows = []
+
+    def add(kind, number, about, status, tone, day, amount, url):
+        rows.append({"kind": kind, "number": number, "about": about, "status": status, "tone": tone, "day": day,
+                     "amount": amount, "url": url, "pdf": url + "?pdf=1"})
+
+    for opp in opps:
+        if opp.stage == opp.Stage.INSPECTION or not opp.total:
+            continue                                                  # still being written
+        about = opp.get_job_type_display()
+        if opp.stage == opp.Stage.WON:
+            add(_("Proposal"), f"#{opp.number}", about, _("Signed %(day)s") % {"day": date_text(opp.signed_on)}, "success", opp.signed_on,
+                opp.total, reverse("job_proposal", args=[opp.number]))
+        elif opp.stage == opp.Stage.LOST:
+            add(_("Proposal"), f"#{opp.number}", about, _("Not accepted"), "secondary", opp.lost_on or opp.sent_on, opp.total,
+                reverse("opp_document", args=[opp.number]))
+        else:
+            add(_("Proposal"), f"#{opp.number}", about, _("Sent %(day)s") % {"day": date_text(opp.sent_on)}, "warning", opp.sent_on,
+                opp.total, reverse("opp_document", args=[opp.number]))
+    for job in jobs:
+        for order in job.change_orders.all():
+            url = reverse("change_order", args=[job.number, order.number])
+            if order.is_signed:
+                add(_("Change order"), f"#{job.number} · {order.label}", order.description, _("Signed %(day)s") % {"day": date_text(order.signed_on)},
+                    "success", order.signed_on, order.amount, url)
+            else:
+                add(_("Change order"), f"#{job.number} · {order.label}", order.description, order.get_status_display(), "warning", order.sent_on,
+                    order.amount, url)
+        if job.invoiced_on:
+            paid = job.paid_on is not None
+            add(_("Invoice"), f"#{job.number}", job.get_job_type_display(),
+                _("Paid %(day)s") % {"day": date_text(job.paid_on)} if paid else _("Sent %(day)s") % {"day": date_text(job.invoiced_on)},
+                "success" if paid else "danger", job.invoiced_on, job.total, reverse("invoice", args=[job.number]))
+    return sorted(rows, key=lambda row: row["day"] or date.min, reverse=True)
 
 
 # ---------------------------------------------------------------- the PDF

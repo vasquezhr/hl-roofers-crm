@@ -151,6 +151,11 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await crew.goto(base + '/my-jobs/');
   await crew.click(`a.list-group-item:has-text("${number}")`);
   check('the crew sees the price', (await crew.locator('main').innerText()).includes('$1,960'));
+  await crew.click('a:has-text("Signed proposal")');
+  await crew.waitForLoadState('networkidle');
+  check('the crew can read the signed proposal of its job', (await main(crew)).includes('PROPOSAL #' + number) && (await main(crew)).includes('$1,960'));
+  await crew.goBack();
+  await crew.waitForLoadState('networkidle');
   await crew.click('button:has-text("Start job")');
   await crew.waitForLoadState('networkidle');
   await crew.click('button:has-text("Mark done")');
@@ -194,6 +199,10 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await office.click('button:has-text("Save")');
   await office.waitForLoadState('networkidle');
   check('a warranty job opens with no charge', (await office.locator('main').innerText()).includes('Warranty job: no charge.'));
+  await office.goto(base + '/accounts/');
+  await office.click('a.list-group-item:has-text("Harriet Voss")');
+  const papers = await office.locator('.card:has(h2:text-is("Documents"))').innerText();
+  check('the account lists the proposal, the change order and the invoice', ['Proposal #' + number, 'Change order #' + number, 'Invoice #' + number, 'PDF'].every(words => papers.includes(words)), papers);
   await office.goto(base + '/search/?q=' + encodeURIComponent('555-0120'));
   check('search finds the customer by phone', (await office.locator('main').innerText()).includes('Harriet Voss'));
   await office.goto(base + '/search/?q=' + number);

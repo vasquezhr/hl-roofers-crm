@@ -5,9 +5,10 @@
 {# A proposal, an invoice or a change order, with the buttons for it. Needs: document, actions, back, send_to. #}
 {% block content %}
 <a class="small text-decoration-none d-inline-block mb-2" href="{{ back }}">‹ {% trans "Back" %}</a>
-<h1 class="h4 mb-3">{{ title }}</h1>
+<h1 class="h4 {% if note %}mb-1{% else %}mb-3{% endif %}">{{ title }}</h1>
+{% if note %}<div class="small text-body-secondary mb-3">{{ note }}</div>{% endif %}
 
-<form method="post" action="{{ send_to }}" class="d-flex flex-wrap gap-2 mb-3">
+<form method="post" action="{{ send_to|default:'' }}" class="d-flex flex-wrap gap-2 mb-3">
   {% csrf_token %}
   {% for button in actions %}
   {% if button.post %}

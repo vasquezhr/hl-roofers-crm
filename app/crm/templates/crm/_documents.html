@@ -1,0 +1,23 @@
+{% load i18n crm_tags %}
+{# Proposals, change orders and invoices, newest first. Needs: documents (see document_rows in documents.py) #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "Documents" %}</h2>
+    {% if documents %}
+    <div class="list-group list-group-flush small">
+      {% for row in documents %}
+      <div class="list-group-item d-flex align-items-center gap-2 px-0">
+        <div class="flex-grow-1 hl-minw0">
+          <a class="fw-semibold text-decoration-none" href="{{ row.url }}">{% icon "doc" %} {{ row.kind }} {{ row.number }}</a>
+          <div class="text-truncate">{% badge row.status row.tone %} <span class="text-body-secondary">{{ row.about }}</span></div>
+        </div>
+        <div class="text-nowrap fw-semibold">{{ row.amount|money }}</div>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ row.pdf }}" aria-label="{% trf '%(document)s as a PDF' document=row.kind %} {{ row.number }}">PDF</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="small text-body-secondary">{% trans "No documents yet. A proposal shows here once it is sent, and an invoice once it is sent." %}</div>
+    {% endif %}
+  </div>
+</div>

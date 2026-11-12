@@ -143,7 +143,7 @@
           {% for order in orders %}
           <div class="d-flex gap-3 align-items-start border-top py-1">
             <div class="flex-grow-1 hl-minw0">
-              {% if crew_view %}<span class="fw-semibold">{{ order.label }}</span>{% else %}<a class="fw-semibold" href="{% url 'change_order' job.number order.number %}">{{ order.label }}</a>{% endif %} · {{ order.description }}<br>
+              <a class="fw-semibold" href="{% url 'change_order' job.number order.number %}">{{ order.label }}</a> · {{ order.description }}<br>
               {% if order.is_signed %}{% badge order.get_status_display "success" %}{% else %}{% badge order.get_status_display "warning" %}{% endif %}
             </div>
             <div class="text-nowrap{% if not order.is_signed %} text-body-secondary{% endif %}">{{ order.amount|money }}</div>
@@ -176,13 +176,18 @@
       </div>
     </div>
 
-    {% if job.opportunity_id and not crew_view or job.warranty_for or warranty_jobs %}
+    {% if not job.is_warranty %}{% include "crm/_documents.html" %}{% endif %}
+
+    {% if job.opportunity_id or job.warranty_for or warranty_jobs %}
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h2 class="h6 mb-2">{% trans "Linked records" %}</h2>
         <ul class="list-unstyled small mb-0">
           {% if job.opportunity_id and not crew_view %}
           <li class="mb-1">{% icon "link" %} <a href="{% url 'opp' job.number %}">{% trf "Opportunity #%(number)s" number=job.number %}</a></li>
+          {% endif %}
+          {% if job.opportunity_id %}
+          <li class="mb-1">{% icon "doc" %} <a href="{% url 'job_proposal' job.number %}">{% trf "Signed proposal #%(number)s" number=job.number %}</a></li>
           {% endif %}
           {% if job.warranty_for %}
           <li class="mb-1">{% icon "link" %} <a href="{% url 'job' job.warranty_for.number %}">{% trf "Warranty for job #%(number)s" number=job.warranty_for.number %}</a></li>
