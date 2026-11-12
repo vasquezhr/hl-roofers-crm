@@ -1,0 +1,3 @@
+{% load i18n crm_tags %}
+{# A small status label. Needs: state (ok, late, failed or never) #}
+{% if state == "ok" %}{% trans "OK" as words %}{% badge words "success" %}{% elif state == "late" %}{% trans "Late" as words %}{% badge words "warning" %}{% elif state == "failed" %}{% trans "Failed" as words %}{% badge words "danger" %}{% else %}{% trans "Not yet" as words %}{% badge words "secondary" %}{% endif %}

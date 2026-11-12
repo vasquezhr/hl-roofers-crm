@@ -1,6 +1,6 @@
 # H & L Roofers CRM: the app
 
-This folder is the real app (Python, Django, PostgreSQL, Bootstrap). **Phases 1 to 3 are built.** The clickable mockup in `../mockup` shows all four phases; this app does the first three for real, with a database and logins.
+This folder is the real app (Python, Django, PostgreSQL, Bootstrap). **All four phases are built**, plus the changes asked for on Nov 12, 2026 (documents on the account and the job, history with who and when, delete with a permission, adding logins). The clickable mockup in `../mockup` shows the four phases with made-up screens; this app does them for real, with a database and logins. Where the two differ, `../docs/decisions.md` says how.
 
 ## What it does
 
@@ -56,7 +56,14 @@ Documents that go to a customer (the emailed PDF, the email's words, the Accept 
 - **The numbers are counted from the records** each time a page opens. **Revenue means money received:** the payments recorded, by the day each came in.
 - Each chart has its table: **See the numbers** opens the report behind it.
 
-**Not built yet** (the rest of Phase 4): automations, the data editor and the system status page. Photos are not built either.
+**Automations, the data editor and system status (Phase 4, third part)**
+
+- **Automations** (Admin): ten ready-made automations, eight with an on/off switch. They route a new website request and email the person it goes to, remind about a request nobody answered, put proposal follow-ups and "send the invoice" on Today, mark a moved job Changed, note an invoice still unpaid after 15 and 30 days, email the Monday summary, and (off until you approve the wording) thank a customer who paid with the review link. "What ran lately" lists what they did.
+- **The scheduled command:** the ones that go by the clock run from `python manage.py tick`, which Windows Task Scheduler runs every 15 minutes on the server. It also empties what has been in the Recycle Bin for more than 30 days.
+- **Data editor** (Admin, or an Office login with the Data Editor set): change the name, phone, email and language of many customers on one page. Changed boxes turn yellow; nothing is saved until you review the list of changes and confirm. Each confirmed set is in a change log and can be undone.
+- **System status** (Admin): when each backup copy last reported, whether the scheduled command is running, whether email and the website form are set up, and a few counts. The dashboard shows the short version.
+
+**Not built:** photos on a job, and the Measure calculator (parked by the user).
 
 ## Try it on your Windows PC
 
@@ -90,7 +97,7 @@ Run the tests. They build their own empty database, so they never touch your dat
 python manage.py test
 ```
 
-It should end with `OK (skipped=1)`. There are 247 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, the dashboard and the reports, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
+It should end with `OK (skipped=1)`. There are 266 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, the dashboard and the reports, the automations and the scheduled command, the data editor, system status, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
 
 Then click through it:
 
@@ -104,8 +111,12 @@ Then click through it:
 8. On **Schedule**, open **Add to my phone's calendar**. On an iPhone or a Mac, **Subscribe** opens the Calendar app; on your Windows PC, paste the address into a browser with `http://` in place of `webcal://` to see the calendar file.
 9. Press **ES** in the top bar. Every label changes to Spanish.
 10. **Search** for `grove`, `804 555`, a job number, or `paipas` (a word inside a note).
-11. Sign in as `admin`. Under **Admin › Price Book**, upload `sample\price-file-sample.xlsx` (supplier `ABC Supply`, product line `GAF HDZ`) and look at the review page.
-12. Under **Admin › Import Apple Notes**, upload `sample\notes-sample.json`. `sample\README.md` lists what should happen to each of its ten made-up notes.
+11. Sign in as `admin`: you land on the **Dashboard**. Point at a column of the chart, then press **See the numbers**. Open **Reports**, pick a report and a period, and press **Export**.
+12. Under **Admin**: **Users and permissions** (add a login; give `office` the Delete records set), **Automations**, **Data editor** (change a phone, review, confirm, undo), **System status**, **Setup history** and the **Recycle Bin**.
+13. With Delete switched on for `office`: sign in as `office`, open a lead, press the red bin button, confirm. It is gone from the list and waits in the **Recycle Bin** (user menu), where **Restore** brings it back.
+14. Under **Admin › Price Book**, upload `sample\price-file-sample.xlsx` (supplier `ABC Supply`, product line `GAF HDZ`) and look at the review page.
+15. Under **Admin › Import Apple Notes**, upload `sample\notes-sample.json`. `sample\README.md` lists what should happen to each of its ten made-up notes.
+16. In the Command Prompt, run `python manage.py tick`. It prints what the automations did; System status then shows that the scheduled command ran.
 
 On your PC no email is sent: when you press an Email button, the email is written to the window where `runserver` is running, so you can read it there.
 
@@ -165,8 +176,9 @@ The tests fail if a label has no Spanish.
 | `crm\money_views.py` | The proposal builder, change orders, payments, invoices, and the customer's Accept pages |
 | `crm\documents.py`, `crm\mail.py` | A proposal, invoice or change order as a page and as a PDF; sending email |
 | `crm\price_views.py`, `crm\pricebook.py` | The Admin hub, Company details, Setup history and the Price Book; reading and comparing a price file |
+| `crm\automations.py` | The ten automations, what each does, and `tick()`: everything that goes by the clock |
 | `crm\report_views.py`, `crm\reports.py` | The dashboard, the Reports page, each report and its spreadsheet file; how every number and both charts are counted |
-| `crm\admin_views.py`, `crm\recycle.py` | Users and permissions, the Delete page, the Recycle Bin and "take an inspection"; what a delete takes with it, restoring and deleting for good |
+| `crm\admin_views.py`, `crm\recycle.py` | Users and permissions, the Delete page, the Recycle Bin, "take an inspection", the Automations page, the data editor and System status; what a delete takes with it, restoring and deleting for good |
 | `crm\import_views.py`, `crm\importer.py` | The Apple Notes import: the pages, and the reading and matching rules |
 | `crm\search.py` | Search |
 | `crm\access.py` | Who may open what |
@@ -177,7 +189,7 @@ The tests fail if a label has no Spanish.
 | `crm\templatetags\crm_tags.py`, `crm\dates.py` | Small helpers for the templates: icons, dates, money, badges, the stage bar |
 | `crm\static\crm\` | Bootstrap 5.3.8 (its own copy, so no internet is needed), `hl.css` (the H & L colors and the few pieces Bootstrap lacks), `hl.js` (about 100 lines) and the app icon |
 | `crm\admin.py` | What the admin site shows |
-| `crm\management\commands\` | `demo` (made-up data) and `spanish` (checks and builds the Spanish file) |
+| `crm\management\commands\` | `demo` (made-up data), `spanish` (checks and builds the Spanish file), `tick` (the automations that go by the clock; Task Scheduler runs it) and `backup_ran` (the backup job reports in) |
 | `crm\tests\` | The tests |
 | `browser-test\app-test.js` | A test that clicks through the app in a real browser |
 | `sample\` | A made-up notes export and a made-up price file, for trying the import and the upload |
@@ -201,6 +213,14 @@ waitress-serve --listen=127.0.0.1:8000 hlcrm.wsgi:application
 ```
 
 4. Point the Cloudflare Tunnel at `http://127.0.0.1:8000`, and run the `waitress-serve` line as a Windows service so it starts with the server.
+5. **Schedule the clock.** In a Command Prompt opened as administrator (change the two paths to where the app is):
+
+```bat
+schtasks /Create /TN "CRM tick" /SC MINUTE /MO 15 /RU SYSTEM /TR "C:\crm\app\.venv\Scripts\python.exe C:\crm\app\manage.py tick"
+```
+
+   Without it the app still works, but no reminder emails go out, overdue invoices are not noted, the Monday summary is not sent and the Recycle Bin is never emptied. **Admin › System status** shows whether it is running.
+6. **Backups report in.** The app does not make the backups. Whatever makes them should run `python manage.py backup_ran ssd` (or `cloud`, or `usb`) as its last step, and `--failed` when it did not work, so System status can show each copy. The backup tools are still to be chosen.
 
 - **Never run `demo` on the server.** It refuses to run when `DEBUG` is off.
 - **Work days** are Monday to Friday: `WORK_WEEKDAYS` in `hlcrm\settings.py`. Saturdays are never offered. Sundays are not decided yet.
@@ -208,4 +228,5 @@ waitress-serve --listen=127.0.0.1:8000 hlcrm.wsgi:application
 - **The website's request form.** Set `LEAD_FORM_KEY` in `.env`, and have the website send each request as a POST to `https://app.handlroofers.com/leads/in/` with these fields: `key`, `name`, `phone`, `email`, `address`, `city`, `zip`, `service`, `message`, `language`. The top of `crm\lead_views.py` (`lead_in`) says exactly what it accepts. A key inside a web page can be read by anyone who looks, so it only keeps casual robots out; Cloudflare's rate limiting is the real guard.
 - **The Price Book's file reader was built without a real supplier file.** It needs a row of column names with Item, Cost and Price (Code and Unit are optional), in English or Spanish. Try it with one real file before relying on it.
 - `python manage.py check --deploy` gives two warnings, about sending visitors to HTTPS. Cloudflare does that part: turn on **Always Use HTTPS** for the domain.
+- **Emails to the staff** (reminders, "ready to invoice", the weekly summary) go to the address typed on each login under Users and permissions, and to the addresses under Company details. With no `EMAIL_` settings nothing is sent, and the history never says someone was told when nobody was.
 - The app has no limit on wrong password tries. Before staff use it from outside, add a Cloudflare rate-limiting rule for `/login/`, or put Cloudflare Access in front of the app.

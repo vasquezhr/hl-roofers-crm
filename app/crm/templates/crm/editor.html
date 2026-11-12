@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Data editor" %}{% endblock %}
+
+{# Change a few fields of many customers on one page. Nothing is saved until the changes are reviewed and confirmed. #}
+{% block content %}
+{% if user.is_admin_profile %}<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'admin_home' %}">‹ {% trans "Admin" %}</a>{% endif %}
+<div class="mb-3">
+  <h1 class="h4 mb-0">{% trans "Data editor" %}</h1>
+  <div class="text-body-secondary small">{% trans "Changes are held, not saved, until you review and confirm them. Every change is logged and can be undone." %}</div>
+</div>
+
+<form method="get" class="d-flex gap-2 mb-3">
+  <input class="form-control" type="search" name="q" value="{{ q }}" placeholder="{% trans 'Find a customer by name' %}" aria-label="{% trans 'Find a customer by name' %}">
+  <button type="submit" class="btn btn-outline-secondary">{% icon "search" %}</button>
+</form>
+
+{% if problems %}<div class="alert alert-danger py-2 small">{% trans "Fix the fields in red first. Nothing was saved." %}</div>{% endif %}
+
+<form method="post" data-editor>
+  {% csrf_token %}
+  <input type="hidden" name="step" value="review">
+  <div class="card shadow-sm mb-3">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle small mb-0">
+        <thead><tr><th class="ps-3">{% trans "Name" %}</th><th>{% trans "Phone" %}</th><th>{% trans "Email" %}</th><th class="pe-3">{% trans "Language" %}</th></tr></thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            {% for cell in row.cells %}
+            <td class="{% if forloop.first %}ps-3{% endif %}{% if forloop.last %} pe-3{% endif %}">
+              {% if cell.field == "language" %}
+              <select class="form-select form-select-sm{% if cell.problem %} is-invalid{% elif cell.value != cell.was %} border-warning bg-warning-subtle{% endif %}" name="{{ cell.key }}" data-was="{{ cell.was }}" aria-label="{% trans 'Language' %}">
+                {% for code, label in languages %}<option value="{{ code }}"{% if code == cell.value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select>
+              {% else %}
+              <input class="form-control form-control-sm{% if cell.problem %} is-invalid{% elif cell.value != cell.was %} border-warning bg-warning-subtle{% endif %}" name="{{ cell.key }}" value="{{ cell.value }}" data-was="{{ cell.was }}" aria-label="{{ row.account.name }}">
+              {% endif %}
+              {% if cell.problem %}<div class="text-danger">{{ cell.problem }}</div>{% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-body-secondary py-3">{% trans "Nothing found." %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <button type="submit" class="btn btn-primary">{% icon "check" %} {% trans "Review the changes" %} <span class="badge text-bg-light ms-1" data-count>0</span></button>
+    <a class="btn btn-link btn-sm" href="?q={{ q|urlencode }}&amp;page={{ page.number }}">{% trans "Discard the changes on this page" %}</a>
+  </div>
+</form>
+{% include "crm/_pager.html" %}
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "Change log" %}</h2>
+    {% if sets %}
+    <ul class="list-unstyled small mb-0">
+      {% for one in sets %}
+      <li class="border-bottom py-2 d-flex gap-2 align-items-start">
+        <div class="flex-grow-1">
+          <span class="text-body-secondary">{{ one.set.at|day_time }} · {{ one.set.actor|default:"—" }}</span>{% if one.set.reason %} · “{{ one.set.reason }}”{% endif %}<br>
+          {% for change in one.changes %}{{ change.name }} · {{ change.field }}: {{ change.old }} → <span class="fw-semibold">{{ change.new }}</span><br>{% endfor %}
+        </div>
+        {% if one.set.undone_at %}
+        {% trf "Undone by %(who)s" who=one.set.undone_by as undone %}{% badge undone "secondary" %}
+        {% else %}
+        <form method="post" action="{% url 'editor_undo' one.set.pk %}">{% csrf_token %}
+          <button type="submit" class="btn btn-outline-secondary btn-sm" data-confirm="{% trans 'Put the old values back?' %}">{% icon "undo" %} {% trans "Undo" %}</button></form>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="small text-body-secondary">{% trans "No changes yet." %}</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

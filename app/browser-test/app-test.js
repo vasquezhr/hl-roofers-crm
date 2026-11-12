@@ -287,6 +287,24 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await office.goto(base + '/reports/');
   check('the office has the reports, and eight of them', await office.locator('main .list-group a[href^="/reports/"]').count() === 8);
 
+  console.log('Automations, the data editor and system status');
+  await boss.goto(base + '/manage/automations/');
+  check('ten automations, two of them always on', await boss.locator('main .list-group-item').count() === 10 && (await main(boss)).split('Always on').length === 3);
+  await boss.locator('form:has(input[value="weekly"]) button').click();
+  await boss.waitForLoadState('networkidle');
+  check('an automation is switched off', (await boss.locator('form:has(input[value="weekly"]) button').innerText()).includes('Turn on'));
+  await boss.goto(base + '/manage/editor/?q=Whitcomb');
+  await boss.fill('tbody tr:first-child td:nth-child(2) input', '(804) 555-0132');
+  check('the editor counts a change before anything is saved', (await boss.locator('[data-count]').innerText()) === '1');
+  await boss.click('button:has-text("Review the changes")');
+  await boss.waitForLoadState('networkidle');
+  check('the review shows before and after', (await main(boss)).includes('(804) 555-0131') && (await main(boss)).includes('(804) 555-0132'));
+  await boss.click('button:has-text("Confirm 1 changes")');
+  await boss.waitForLoadState('networkidle');
+  check('the change is saved and can be undone', (await main(boss)).includes('Change log') && await boss.locator('button:has-text("Undo")').count() === 1);
+  await boss.goto(base + '/manage/status/');
+  check('system status says what has not been set up yet', (await main(boss)).includes('No backup has reported yet.') && (await main(boss)).includes('Database'));
+
   console.log('Logins, permission sets and the Recycle Bin');
   await admin.goto(base + '/manage/users/');
   check('the administrator sees every login', (await main(admin)).includes('crew1') && (await main(admin)).includes('Permission sets'));

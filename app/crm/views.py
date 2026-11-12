@@ -21,7 +21,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
-from . import scheduling
+from . import automations, scheduling
 from .documents import document_rows
 from .access import job_or_404, jobs_for, office_only
 from .dates import range_code
@@ -93,17 +93,21 @@ def home(request):
     inspections = opps.filter(stage=Opportunity.Stage.INSPECTION, inspection_at__date=day).order_by("inspection_at")
     working = [job for job in jobs.filter(first_day__lte=day, last_day__gte=day).exclude(stage=Job.Stage.PAID) if job.on_day(day)]
 
-    # what needs someone's attention
+    # what needs someone's attention. Three of these lists are automations that can be switched off.
+    company = Company.load()
     attention = []
-    for lead in new_leads.filter(received_at__lte=timezone.now() - timedelta(hours=2)).order_by("received_at"):
+    for lead in (new_leads.filter(received_at__lte=timezone.now() - timedelta(hours=2)).order_by("received_at") if company.auto_remind else []):
         attention.append({"icon": "phone", "url": reverse("lead", args=[lead.pk]),
                           "text": _("Call %(name)s: website request, %(ago)s") % {"name": lead.name, "ago": ago(lead.received_at)}})
-    for opp in opps.filter(stage=Opportunity.Stage.PROPOSAL, sent_on__lte=week_ago).order_by("sent_on"):
+    for opp in (opps.filter(stage=Opportunity.Stage.PROPOSAL, sent_on__lte=week_ago).order_by("sent_on") if company.auto_follow_up else []):
         attention.append({"icon": "mail", "url": reverse("opp", args=[opp.number]),
                           "text": _("Follow up with %(name)s: the proposal was sent %(days)s days ago") % {"name": opp.account.name, "days": (day - opp.sent_on).days}})
     for job in jobs.filter(stage=Job.Stage.SIGNED):
         attention.append({"icon": "schedule", "url": reverse("job", args=[job.number]),
                           "text": _("Schedule job #%(number)s for %(name)s") % {"number": job.number, "name": job.account.name}})
+    for job in (jobs.filter(stage=Job.Stage.DONE).exclude(job_type="warranty").order_by("done_on") if company.auto_job_done else []):
+        attention.append({"icon": "mail", "url": reverse("job", args=[job.number]),
+                          "text": _("Send the invoice for job #%(number)s: %(name)s") % {"number": job.number, "name": job.account.name}})
     for job in unpaid.filter(invoiced_on__lte=week_ago).order_by("invoiced_on"):
         attention.append({"icon": "dollar", "url": reverse("job", args=[job.number]),
                           "text": _("%(name)s: the invoice has been unpaid for %(days)s days") % {"name": job.account.name, "days": (day - job.invoiced_on).days}})
@@ -442,6 +446,8 @@ def job_stage(request, number):
     setattr(job, step["date_field"], today())
     job.save()
     log(job, step["kind"], request.user)
+    if job.stage == Job.Stage.DONE:
+        automations.job_done(job)                                       # tells whoever does billing
     saved(request, str(Activity.KINDS[step["kind"]]))
     return redirect("job", number=job.number)
 
@@ -467,8 +473,9 @@ def job_schedule(request, number):
         elif (job.crew_id, job.first_day, job.days) != before:
             # the crew sees "Changed" on the job until it taps Got it
             was_first, was_last = before[1], Job(first_day=before[1], days=before[2]).work_days[-1]
-            job.mark_changed(was_first, was_last)
-            job.save()
+            if Company.load().auto_changed:                             # the "Appointment changed" automation
+                job.mark_changed(was_first, was_last)
+                job.save()
             if (job.first_day, job.days) != before[1:]:
                 log(job, "changed", request.user, detail=range_code(was_first, was_last))
             if job.crew_id != before[0]:

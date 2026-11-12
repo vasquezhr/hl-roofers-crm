@@ -17,6 +17,7 @@ TABS = {
     "reports": ("reports", _("Reports"), "reports"),
     "admin": ("admin_home", _("Admin"), "admin"),
     "prices": ("pricebook", _("Price Book"), "dollar"),
+    "editor": ("editor", _("Data editor"), "edit"),
     "my_day": ("my_day", _("My Day"), "my_day"),
     "my_jobs": ("my_jobs", _("My Jobs"), "my_jobs"),
 }
@@ -59,10 +60,12 @@ def navigation(request):
     keys = [key for key in NAV[user.profile] if exists(TABS[key][0])]
     if user.is_office_profile and not user.is_admin_profile and (user.can("price_book") or user.can("costs")):
         keys.append("prices")                                       # a permission set gives the office its own Price Book tab
+    if user.is_office_profile and not user.is_admin_profile and user.can("data_editor"):
+        keys.append("editor")
     page = request.resolver_match.url_name if request.resolver_match else ""
     active = next((tab for start, tab in TAB_BY_PAGE if page and page.startswith(start)), "")
     if active == "admin" and "admin" not in keys:
-        active = "prices" if page.startswith("price") else ""
+        active = "prices" if page.startswith("price") else "editor" if page.startswith("editor") else ""
     if user.is_crew_profile and active == "jobs":
         active = "my_jobs"
     tabs = [{"key": k, "url": TABS[k][0], "label": TABS[k][1], "icon": TABS[k][2], "active": k == active} for k in keys]

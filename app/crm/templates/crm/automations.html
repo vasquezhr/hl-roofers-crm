@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Automations" %}{% endblock %}
+
+{# Ready-made automations, each with an on/off switch. Two are part of how the app works and stay on. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'admin_home' %}">‹ {% trans "Admin" %}</a>
+<div class="mb-3">
+  <h1 class="h4 mb-0">{% trans "Automations" %}</h1>
+  <div class="text-body-secondary small">{% trans "Each one does one job. Turn it on or off; there is nothing to draw or program." %}</div>
+</div>
+
+<div class="list-group shadow-sm mb-3">
+  {% for row in rows %}
+  <div class="list-group-item d-flex gap-3 align-items-start">
+    <div class="flex-grow-1">
+      <span class="fw-semibold">{{ row.name }}</span>
+      {% if row.always %}{% trans "Always on" as always %}{% badge always "secondary" %}{% elif row.on %}{% trans "On" as on %}{% badge on "success" %}{% else %}{% trans "Off" as off %}{% badge off "secondary" %}{% endif %}
+      <div class="small text-body-secondary">{{ row.about }}</div>
+    </div>
+    {% if not row.always %}
+    <form method="post" action="{% url 'automation_switch' %}">
+      {% csrf_token %}<input type="hidden" name="key" value="{{ row.key }}"><input type="hidden" name="on" value="{% if row.on %}0{% else %}1{% endif %}">
+      <button type="submit" class="btn btn-sm {% if row.on %}btn-outline-secondary{% else %}btn-primary{% endif %} text-nowrap">{% if row.on %}{% trans "Turn off" %}{% else %}{% trans "Turn on" %}{% endif %}</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body small">
+    <h2 class="h6 mb-2">{% trans "What they need" %}</h2>
+    <ul class="mb-2 ps-3">
+      <li>{% trans "New website requests go to" %}: <span class="fw-semibold">{{ company.lead_owner.label|default:"—" }}</span>. {% trans "After a whole day, also" %}: <span class="fw-semibold">{{ company.lead_backup.label|default:"—" }}</span>.</li>
+      <li>{% trans "The weekly summary goes to" %}: <span class="fw-semibold">{{ company.summary_emails|default:"—" }}</span></li>
+      <li>{% trans "Review link" %}: <span class="fw-semibold">{{ company.review_link|default:"—" }}</span></li>
+      <li>{% trans "Emails to a person go to the address on their login (Users and permissions). An automation that has nobody to email does nothing." %}</li>
+    </ul>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'company_details' %}">{% icon "edit" %} {% trans "Company details" %}</a>
+    <div class="form-text mt-2">{% if company.last_tick_at %}{% trans "The reminders by the clock last ran" %}: {{ company.last_tick_at|day_time }}.{% else %}{% trans "The reminders by the clock have not run yet. They need the scheduled command; see System status." %}{% endif %}</div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "What ran lately" %}</h2>
+    {% if lately %}
+    <ul class="list-unstyled small mb-0">
+      {% for line in lately %}
+      <li class="border-bottom py-1"><span class="text-body-secondary">{{ line.at|day_time }}</span> — {{ line.text }}
+        {% if line.lead %}· <a href="{% url 'lead' line.lead.pk %}">{{ line.lead.name }}</a>{% elif line.job %}· <a href="{% url 'job' line.job.number %}">#{{ line.job.number }} {{ line.job.account.name }}</a>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="small text-body-secondary">{% trans "Nothing yet." %}</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

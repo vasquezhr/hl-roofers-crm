@@ -172,6 +172,18 @@ msgstr "Creado"
 msgid "Last change"
 msgstr "Último cambio"
 
+msgid "OK"
+msgstr "Bien"
+
+msgid "Late"
+msgstr "Atrasado"
+
+msgid "Failed"
+msgstr "Falló"
+
+msgid "Not yet"
+msgstr "Todavía no"
+
 msgid "New leads"
 msgstr "Prospectos nuevos"
 
@@ -307,6 +319,24 @@ msgstr "Usuarios y permisos"
 msgid "Who can sign in, their profile and their add-on permission sets."
 msgstr "Quién puede entrar, su perfil y sus permisos adicionales."
 
+msgid "Automations"
+msgstr "Automatizaciones"
+
+msgid "Ready-made automations with an on/off switch."
+msgstr "Automatizaciones listas, con interruptor para encender o apagar."
+
+msgid "Data editor"
+msgstr "Editor de datos"
+
+msgid "Change fields for many customers at once, with a review before anything is saved."
+msgstr "Cambie campos de muchos clientes a la vez, con una revisión antes de guardar."
+
+msgid "System status"
+msgstr "Estado del sistema"
+
+msgid "Backups, the reminders by the clock, email and the last price upload."
+msgstr "Respaldos, los recordatorios por reloj, el correo y la última subida de precios."
+
 msgid "Deleted records, for 30 days. Restore one, or delete it for good."
 msgstr "Registros eliminados, durante 30 días. Restaure uno, o elimínelo para siempre."
 
@@ -328,6 +358,54 @@ msgstr "Equipos, trabajadores y correcciones"
 msgid "Add or change crews and workers, or correct a record, in the admin site."
 msgstr "En el sitio de administración puede agregar o cambiar equipos y trabajadores, o corregir un registro."
 
+msgid "Each one does one job. Turn it on or off; there is nothing to draw or program."
+msgstr "Cada una hace una sola tarea. Enciéndala o apáguela; no hay nada que dibujar ni programar."
+
+msgid "Always on"
+msgstr "Siempre encendida"
+
+msgid "On"
+msgstr "Encendida"
+
+msgid "Off"
+msgstr "Apagada"
+
+msgid "Turn off"
+msgstr "Apagar"
+
+msgid "Turn on"
+msgstr "Encender"
+
+msgid "What they need"
+msgstr "Lo que necesitan"
+
+msgid "New website requests go to"
+msgstr "Las solicitudes nuevas del sitio web van a"
+
+msgid "After a whole day, also"
+msgstr "Después de un día entero, también a"
+
+msgid "The weekly summary goes to"
+msgstr "El resumen semanal va a"
+
+msgid "Review link"
+msgstr "Enlace de reseñas"
+
+msgid "Emails to a person go to the address on their login (Users and permissions). An automation that has nobody to email does nothing."
+msgstr "Los correos a una persona van a la dirección de su usuario (Usuarios y permisos). Una automatización que no tiene a quién escribirle no hace nada."
+
+msgid "The reminders by the clock last ran"
+msgstr "Los recordatorios por reloj corrieron por última vez"
+
+msgid "The reminders by the clock have not run yet. They need the scheduled command; see System status."
+msgstr "Los recordatorios por reloj todavía no han corrido. Necesitan el comando programado; vea Estado del sistema."
+
+msgid "What ran lately"
+msgstr "Qué se ejecutó últimamente"
+
+msgid "Nothing yet."
+msgstr "Nada todavía."
+
 msgid "Dashboard"
 msgstr "Panel"
 
@@ -348,6 +426,15 @@ msgstr "Trabajos en los próximos cinco días de trabajo"
 
 msgid "Inspections open"
 msgstr "Inspecciones abiertas"
+
+msgid "Backup"
+msgstr "Respaldo"
+
+msgid "Reminders by the clock"
+msgstr "Recordatorios por reloj"
+
+msgid "Last price upload"
+msgstr "Última subida de precios"
 
 msgid "Back"
 msgstr "Volver"
@@ -378,6 +465,66 @@ msgstr "Abrir la página"
 
 msgid "The email carries this link. The customer reads the document there, types their name and accepts. The app keeps the name, the date and the time."
 msgstr "El correo lleva este enlace. El cliente lee el documento ahí, escribe su nombre y acepta. La app guarda el nombre, la fecha y la hora."
+
+msgid "Changes are held, not saved, until you review and confirm them. Every change is logged and can be undone."
+msgstr "Los cambios quedan retenidos, sin guardarse, hasta que usted los revise y confirme. Cada cambio se registra y se puede deshacer."
+
+msgid "Find a customer by name"
+msgstr "Buscar un cliente por nombre"
+
+msgid "Fix the fields in red first. Nothing was saved."
+msgstr "Corrija primero los campos en rojo. No se guardó nada."
+
+msgid "Name"
+msgstr "Nombre"
+
+msgid "Language"
+msgstr "Idioma"
+
+msgid "Nothing found."
+msgstr "Sin resultados."
+
+msgid "Review the changes"
+msgstr "Revisar los cambios"
+
+msgid "Discard the changes on this page"
+msgstr "Descartar los cambios de esta página"
+
+msgid "Change log"
+msgstr "Registro de cambios"
+
+msgid "Undone by %(who)s"
+msgstr "Deshecho por %(who)s"
+
+msgid "Put the old values back?"
+msgstr "¿Volver a poner los valores anteriores?"
+
+msgid "Undo"
+msgstr "Deshacer"
+
+msgid "No changes yet."
+msgstr "Todavía no hay cambios."
+
+msgid "Review %(count)s changes"
+msgstr "Revisar %(count)s cambios"
+
+msgid "Nothing has been saved yet. Check each change, then confirm."
+msgstr "Todavía no se ha guardado nada. Revise cada cambio y luego confirme."
+
+msgid "Record"
+msgstr "Registro"
+
+msgid "Field"
+msgstr "Campo"
+
+msgid "After"
+msgstr "Después"
+
+msgid "Reason (optional)"
+msgstr "Motivo (opcional)"
+
+msgid "Confirm %(count)s changes"
+msgstr "Confirmar %(count)s cambios"
 
 msgid "A customer with the same phone, email or address is already in the app:"
 msgstr "Ya hay un cliente en la app con el mismo teléfono, correo o dirección:"
@@ -456,9 +603,6 @@ msgstr "Nombre, dirección o teléfono"
 
 msgid "Search"
 msgstr "Buscar"
-
-msgid "Nothing found."
-msgstr "Sin resultados."
 
 msgid "Create a new account"
 msgstr "Crear una cuenta nueva"
@@ -762,9 +906,6 @@ msgstr "De dónde vino"
 
 msgid "Contact"
 msgstr "Contacto"
-
-msgid "Language"
-msgstr "Idioma"
 
 msgid "Assigned to"
 msgstr "Asignado a"
@@ -1123,6 +1264,75 @@ msgstr "se escribe parecido"
 msgid "Only the first 25 are shown. Type more to narrow it down."
 msgstr "Solo se muestran los primeros 25. Escriba más para reducir la lista."
 
+msgid "A quick check that the app, its reminders and its backups are healthy."
+msgstr "Una revisión rápida de que la app, sus recordatorios y sus respaldos están bien."
+
+msgid "Backups"
+msgstr "Respaldos"
+
+msgid "Last report"
+msgstr "Último aviso"
+
+msgid "No backup has reported yet."
+msgstr "Ningún respaldo ha avisado todavía."
+
+msgid "The app does not make the backups. The backup job tells the app when a copy is done, with the command python manage.py backup_ran. A copy with no report for a day and a half shows as Late."
+msgstr "La app no hace los respaldos. La tarea de respaldo le avisa a la app cuando una copia termina, con el comando python manage.py backup_ran. Una copia sin aviso por día y medio aparece como Atrasado."
+
+msgid "The scheduled command last ran"
+msgstr "El comando programado corrió por última vez"
+
+msgid "The scheduled command has not run yet."
+msgstr "El comando programado todavía no ha corrido."
+
+msgid "Windows Task Scheduler runs python manage.py tick every 15 minutes. It sends the lead reminders and the weekly summary, notes overdue invoices and empties the Recycle Bin after 30 days."
+msgstr "El Programador de tareas de Windows corre python manage.py tick cada 15 minutos. Envía los recordatorios de prospectos y el resumen semanal, anota las facturas vencidas y vacía la Papelera después de 30 días."
+
+msgid "The app"
+msgstr "La app"
+
+msgid "Address"
+msgstr "Dirección web"
+
+msgid "Database"
+msgstr "Base de datos"
+
+msgid "Mode"
+msgstr "Modo"
+
+msgid "Trying it on a PC (DEBUG is on)"
+msgstr "De prueba en una PC (DEBUG está encendido)"
+
+msgid "Server"
+msgstr "Servidor"
+
+msgid "Set up"
+msgstr "Configurado"
+
+msgid "Not set up: nothing is emailed"
+msgstr "Sin configurar: no se envía ningún correo"
+
+msgid "Website request form"
+msgstr "Formulario de solicitudes del sitio web"
+
+msgid "Not set up: the website cannot send requests yet"
+msgstr "Sin configurar: el sitio web todavía no puede enviar solicitudes"
+
+msgid "Logins that can sign in"
+msgstr "Usuarios que pueden entrar"
+
+msgid "Records"
+msgstr "Registros"
+
+msgid "%(accounts)s accounts · %(jobs)s jobs · %(leads)s leads"
+msgstr "%(accounts)s cuentas · %(jobs)s trabajos · %(leads)s prospectos"
+
+msgid "Imported notes waiting"
+msgstr "Notas importadas en espera"
+
+msgid "In the Recycle Bin"
+msgstr "En la Papelera"
+
 msgid "Each login has one profile. Permission sets add to it."
 msgstr "Cada usuario tiene un perfil. Los permisos adicionales se suman."
 
@@ -1237,8 +1447,26 @@ msgstr "Fechas"
 msgid "Each login has one profile. Permission sets add to it: the first six are for an Office login, and Crew Lead is for a Crew login. The Administrator profile has all of them."
 msgstr "Cada usuario tiene un perfil. Los permisos adicionales se suman: los primeros seis son para un usuario de Oficina, y Líder de equipo es para un usuario de Equipo. El perfil Administrador los tiene todos."
 
+msgid "A name cannot be empty."
+msgstr "El nombre no puede quedar vacío."
+
+msgid "A phone number needs 10 digits."
+msgstr "Un teléfono necesita 10 dígitos."
+
+msgid "Pick a language."
+msgstr "Escoja un idioma."
+
 msgid "Deleted for good: %(detail)s"
 msgstr "Eliminado para siempre: %(detail)s"
+
+msgid "Turned on"
+msgstr "Encendida"
+
+msgid "Turned off"
+msgstr "Apagada"
+
+msgid "%(count)s changes undone"
+msgstr "%(count)s cambios deshechos"
 
 msgid "Login added: %(detail)s"
 msgstr "Usuario agregado: %(detail)s"
@@ -1248,6 +1476,176 @@ msgstr "%(what)s está en la Papelera. Se puede restaurar durante 30 días."
 
 msgid "Restored: %(detail)s"
 msgstr "Restaurado: %(detail)s"
+
+msgid "That is not an email address."
+msgstr "Eso no es una dirección de correo."
+
+msgid "%(count)s changes saved"
+msgstr "%(count)s cambios guardados"
+
+msgid "Nothing was changed."
+msgstr "No se cambió nada."
+
+msgid "That review page is too old. Make the changes again."
+msgstr "Esa página de revisión ya es muy vieja. Haga los cambios otra vez."
+
+msgid "%(count)s changes were left out, because someone changed those fields in the meantime."
+msgstr "%(count)s cambios se dejaron fuera, porque alguien cambió esos campos mientras tanto."
+
+msgid "Route new lead"
+msgstr "Asignar prospecto nuevo"
+
+msgid "When a request arrives from the website: assigns it to the person named in Company details and emails them."
+msgstr "Cuando llega una solicitud del sitio web: la asigna a la persona indicada en Datos de la empresa y le envía un correo."
+
+msgid "Uncontacted lead reminder"
+msgstr "Recordatorio de prospecto sin contactar"
+
+msgid "A request still New after 2 hours: shows on Today and emails the person it is assigned to. After a whole day: emails the backup person."
+msgstr "Una solicitud que sigue Nueva después de 2 horas: aparece en Hoy y se le envía un correo a quien la tiene asignada. Después de un día entero: correo a la persona de respaldo."
+
+msgid "Convert lead"
+msgstr "Convertir prospecto"
+
+msgid "The Convert button: creates the account, contact, property and opportunity in one step."
+msgstr "El botón Convertir: crea la cuenta, el contacto, la propiedad y la oportunidad en un solo paso."
+
+msgid "Proposal follow-up"
+msgstr "Seguimiento de propuesta"
+
+msgid "A proposal with no answer after 7 days: adds “Follow up with…” to Today."
+msgstr "Una propuesta sin respuesta después de 7 días: agrega “Dar seguimiento a…” a Hoy."
+
+msgid "Proposal signed"
+msgstr "Propuesta firmada"
+
+msgid "When a proposal is signed: creates the job with the same number and adds “Schedule job…” to Today."
+msgstr "Cuando se firma una propuesta: crea el trabajo con el mismo número y agrega “Programar el trabajo…” a Hoy."
+
+msgid "Appointment changed"
+msgstr "Cita cambiada"
+
+msgid "When the dates or the crew of a scheduled job change: marks it Changed and prepares the text for the crew."
+msgstr "Cuando cambian las fechas o el equipo de un trabajo programado: lo marca como Cambió y prepara el mensaje para el equipo."
+
+msgid "Job done"
+msgstr "Trabajo terminado"
+
+msgid "When a job is marked done: adds “Send the invoice…” to Today and emails the logins that have the Billing permission."
+msgstr "Cuando un trabajo se marca terminado: agrega “Enviar la factura…” a Hoy y envía un correo a los usuarios que tienen el permiso de Cobranza."
+
+msgid "Invoice overdue"
+msgstr "Factura vencida"
+
+msgid "15 and 30 days after an invoice is sent and still unpaid: notes it in the job's history and emails the logins that have Billing. Nothing is sent to the customer."
+msgstr "A los 15 y 30 días de enviada una factura que sigue sin pagar: lo anota en el historial del trabajo y envía un correo a los usuarios con Cobranza. No se le envía nada al cliente."
+
+msgid "Review request"
+msgstr "Solicitud de reseña"
+
+msgid "When a job is paid in full: emails the customer a thank-you with the review link from Company details. Off until the wording is approved."
+msgstr "Cuando un trabajo queda pagado por completo: le envía al cliente un correo de agradecimiento con el enlace de reseñas de Datos de la empresa. Apagada hasta que se apruebe el texto."
+
+msgid "Weekly summary"
+msgstr "Resumen semanal"
+
+msgid "Monday morning: emails last week's leads, finished jobs, money received and the unpaid total to the addresses in Company details."
+msgstr "Lunes por la mañana: envía por correo los prospectos, trabajos terminados y dinero recibido de la semana pasada, y el total sin pagar, a las direcciones de Datos de la empresa."
+
+msgid ""
+"Last week at %(company)s (%(first)s to %(last)s):\n"
+"\n"
+"Requests received: %(leads)s\n"
+"Jobs finished: %(jobs)s\n"
+"Money received: %(received)s\n"
+"Unpaid invoices right now: %(unpaid)s\n"
+"\n"
+"The reports: %(link)s"
+msgstr ""
+"La semana pasada en %(company)s (%(first)s a %(last)s):\n"
+"\n"
+"Solicitudes recibidas: %(leads)s\n"
+"Trabajos terminados: %(jobs)s\n"
+"Dinero recibido: %(received)s\n"
+"Facturas sin pagar ahora mismo: %(unpaid)s\n"
+"\n"
+"Los reportes: %(link)s"
+
+msgid "New request from %(name)s"
+msgstr "Solicitud nueva de %(name)s"
+
+msgid ""
+"%(name)s sent a request from the website: %(type)s.\n"
+"%(message)s\n"
+"\n"
+"Open it: %(link)s"
+msgstr ""
+"%(name)s envió una solicitud desde el sitio web: %(type)s.\n"
+"%(message)s\n"
+"\n"
+"Ábrala: %(link)s"
+
+msgid "Job #%(number)s is done: ready to invoice"
+msgstr "El trabajo #%(number)s está terminado: listo para facturar"
+
+msgid ""
+"Job #%(number)s for %(name)s was marked done. The balance is %(balance)s.\n"
+"\n"
+"Send the invoice: %(link)s"
+msgstr ""
+"El trabajo #%(number)s de %(name)s se marcó terminado. El saldo es %(balance)s.\n"
+"\n"
+"Envíe la factura: %(link)s"
+
+msgid ""
+"%(name)s sent a request and nobody has called or texted yet.\n"
+"\n"
+"Open it: %(link)s"
+msgstr ""
+"%(name)s envió una solicitud y nadie ha llamado ni escrito todavía.\n"
+"\n"
+"Ábrala: %(link)s"
+
+msgid "Thank you from %(company)s"
+msgstr "Gracias de parte de %(company)s"
+
+msgid ""
+"Hello %(name)s,\n"
+"\n"
+"Thank you for choosing %(company)s. If you are happy with the work, a short review helps us a lot:\n"
+"%(link)s\n"
+"\n"
+"Thank you.\n"
+"%(company)s"
+msgstr ""
+"Hola %(name)s,\n"
+"\n"
+"Gracias por elegir a %(company)s. Si quedó contento con el trabajo, una reseña breve nos ayuda mucho:\n"
+"%(link)s\n"
+"\n"
+"Gracias.\n"
+"%(company)s"
+
+msgid "%(company)s: last week in numbers"
+msgstr "%(company)s: la semana pasada en números"
+
+msgid "Still waiting: the request from %(name)s"
+msgstr "Sigue esperando: la solicitud de %(name)s"
+
+msgid "Waiting a whole day: the request from %(name)s"
+msgstr "Un día entero esperando: la solicitud de %(name)s"
+
+msgid "Invoice #%(number)s has been unpaid for %(days)s days"
+msgstr "La factura #%(number)s lleva %(days)s días sin pagar"
+
+msgid ""
+"%(name)s still owes %(balance)s on invoice #%(number)s, sent %(days)s days ago.\n"
+"\n"
+"Open the job: %(link)s"
+msgstr ""
+"%(name)s todavía debe %(balance)s de la factura #%(number)s, enviada hace %(days)s días.\n"
+"\n"
+"Abra el trabajo: %(link)s"
 
 msgid "D, M j"
 msgstr "D, j M"
@@ -1311,9 +1709,6 @@ msgstr "Elija un día de trabajo, de lunes a viernes."
 
 msgid "Type of account"
 msgstr "Tipo de cuenta"
-
-msgid "Name"
-msgstr "Nombre"
 
 msgid "The customer's language. Texts to them start in this language."
 msgstr "El idioma del cliente. Los mensajes para el cliente empiezan en este idioma."
@@ -1600,6 +1995,12 @@ msgstr "términos de la factura, en inglés"
 msgid "invoice terms, in Spanish"
 msgstr "términos de la factura, en español"
 
+msgid "the weekly summary goes to"
+msgstr "el resumen semanal va a"
+
+msgid "review link"
+msgstr "enlace de reseñas"
+
 msgid "Payment is due when the work is finished. Thank you for your business."
 msgstr "El pago se hace al terminar el trabajo. Gracias por su preferencia."
 
@@ -1758,9 +2159,6 @@ msgstr "Oportunidad creada"
 
 msgid "Proposal sent"
 msgstr "Propuesta enviada"
-
-msgid "Proposal signed"
-msgstr "Propuesta firmada"
 
 msgid "Marked lost"
 msgstr "Marcada como perdida"
@@ -1942,6 +2340,42 @@ msgstr "Pago quitado: %(detail)s"
 msgid "Took the inspection"
 msgstr "Tomó la inspección"
 
+msgid "Assigned to %(detail)s by the routing rule"
+msgstr "Asignado a %(detail)s por la regla de asignación"
+
+msgid "Still new after 2 hours: %(detail)s was reminded"
+msgstr "Sigue nuevo después de 2 horas: se le recordó a %(detail)s"
+
+msgid "Still new after a day: %(detail)s was told"
+msgstr "Sigue nuevo después de un día: se le avisó a %(detail)s"
+
+msgid "Ready to invoice: %(detail)s was told"
+msgstr "Listo para facturar: se le avisó a %(detail)s"
+
+msgid "The invoice has been unpaid for %(detail)s days"
+msgstr "La factura lleva %(detail)s días sin pagar"
+
+msgid "Thank-you email with the review link sent to %(detail)s"
+msgstr "Correo de agradecimiento con el enlace de reseñas enviado a %(detail)s"
+
+msgid "Weekly summary emailed to %(detail)s"
+msgstr "Resumen semanal enviado por correo a %(detail)s"
+
+msgid "Recycle Bin: %(detail)s old entries deleted for good"
+msgstr "Papelera: %(detail)s registros viejos eliminados para siempre"
+
+msgid "Automation switched on: %(detail)s"
+msgstr "Automatización encendida: %(detail)s"
+
+msgid "Automation switched off: %(detail)s"
+msgstr "Automatización apagada: %(detail)s"
+
+msgid "Data editor: %(detail)s changes saved"
+msgstr "Editor de datos: %(detail)s cambios guardados"
+
+msgid "Data editor: %(detail)s changes undone"
+msgstr "Editor de datos: %(detail)s cambios deshechos"
+
 msgid "crew"
 msgstr "equipo"
 
@@ -1986,6 +2420,15 @@ msgstr "Se muestra arriba en cada página y se usa en los correos y mensajes."
 
 msgid "new website requests go to"
 msgstr "los pedidos nuevos del sitio web van a"
+
+msgid "if a request waits a whole day, also tell"
+msgstr "si una solicitud espera un día entero, avisar también a"
+
+msgid "Email addresses, separated by commas."
+msgstr "Direcciones de correo, separadas por comas."
+
+msgid "The address of the business's Google review page, for the thank-you email."
+msgstr "La dirección de la página de reseñas de Google del negocio, para el correo de agradecimiento."
 
 msgid "company details"
 msgstr "datos de la compañía"
@@ -2214,6 +2657,15 @@ msgstr "artículo de la lista de precios"
 
 msgid "price book items"
 msgstr "artículos de la lista de precios"
+
+msgid "Mirrored SSDs"
+msgstr "Discos SSD en espejo"
+
+msgid "OneDrive"
+msgstr "OneDrive"
+
+msgid "USB drive"
+msgstr "Unidad USB"
 
 msgid "No customer found"
 msgstr "No se encontró un cliente"
@@ -2589,6 +3041,9 @@ msgstr "Dar seguimiento a %(name)s: la propuesta se envió hace %(days)s días"
 
 msgid "Schedule job #%(number)s for %(name)s"
 msgstr "Programar el trabajo #%(number)s de %(name)s"
+
+msgid "Send the invoice for job #%(number)s: %(name)s"
+msgstr "Enviar la factura del trabajo #%(number)s: %(name)s"
 
 msgid "%(name)s: the invoice has been unpaid for %(days)s days"
 msgstr "%(name)s: la factura lleva %(days)s días sin pagar"

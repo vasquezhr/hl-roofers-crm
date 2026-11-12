@@ -103,3 +103,22 @@ document.addEventListener("DOMContentLoaded", function () {
   if (!window.bootstrap) return;
   document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (mark) { new bootstrap.Tooltip(mark, { container: "body" }); });
 });
+
+/* 11. The data editor: a box that was changed turns yellow, and the button counts the changes */
+function countEdits(form) {
+  var changed = 0;
+  form.querySelectorAll("[data-was]").forEach(function (box) {
+    var differs = box.value !== box.dataset.was;
+    box.classList.toggle("border-warning", differs);
+    box.classList.toggle("bg-warning-subtle", differs);
+    if (differs) changed += 1;
+  });
+  form.querySelector("[data-count]").textContent = changed;
+}
+document.addEventListener("input", function (event) {
+  var form = event.target.closest("[data-editor]");
+  if (form) countEdits(form);
+});
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll("[data-editor]").forEach(countEdits);
+});

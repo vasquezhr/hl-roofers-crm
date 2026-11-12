@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "System status" %}{% endblock %}
+
+{# A quick check that the app, its scheduled command and its backups are healthy. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'admin_home' %}">‹ {% trans "Admin" %}</a>
+<div class="mb-3">
+  <h1 class="h4 mb-0">{% trans "System status" %}</h1>
+  <div class="text-body-secondary small">{% trans "A quick check that the app, its reminders and its backups are healthy." %}</div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "Backups" %}</h2>
+    <div class="list-group list-group-flush small">
+      {% for copy in copies %}
+      <div class="list-group-item d-flex gap-2 align-items-start px-0">
+        <div class="flex-grow-1"><div class="fw-semibold">{{ copy.label }}</div>
+          <div class="text-body-secondary">{% if copy.last %}{% trans "Last report" %}: {{ copy.last.ran_at|day_time }}{% if copy.last.note %} · {{ copy.last.note }}{% endif %}{% else %}{% trans "No backup has reported yet." %}{% endif %}</div></div>
+        {% include "crm/_state.html" with state=copy.state %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="form-text">{% trans "The app does not make the backups. The backup job tells the app when a copy is done, with the command python manage.py backup_ran. A copy with no report for a day and a half shows as Late." %}</div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "Reminders by the clock" %}</h2>
+    <div class="d-flex gap-2 align-items-start small">
+      <div class="flex-grow-1">{% if company.last_tick_at %}{% trans "The scheduled command last ran" %}: {{ company.last_tick_at|day_time }}{% else %}{% trans "The scheduled command has not run yet." %}{% endif %}
+        <div class="text-body-secondary">{% trans "Windows Task Scheduler runs python manage.py tick every 15 minutes. It sends the lead reminders and the weekly summary, notes overdue invoices and empties the Recycle Bin after 30 days." %}</div></div>
+      {% include "crm/_state.html" with state=clock %}
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "The app" %}</h2>
+    <dl class="row small mb-0">
+      <dt class="col-5 col-md-4 text-body-secondary fw-normal">{% trans "Address" %}</dt><dd class="col-7 col-md-8 mb-1">{{ address }}</dd>
+      <dt class="col-5 col-md-4 text-body-secondary fw-normal">{% trans "Database" %}</dt><dd class="col-7 col-md-8 mb-1">{{ database }}</dd>
+      <dt class="col-5 col-md-4 text-body-secondary fw-normal">{% trans "Mode" %}</dt><dd class="col-7 col-md-8 mb-1">{% if debug %}{% trans "Trying it on a PC (DEBUG is on)" %}{% else %}{% trans "Server" %}{% endif %}</dd>
+      <dt class="col-5 col-md-4 text-body-secondary fw-normal">{% trans "Email" %}</dt><dd class="col-7 col-md-8 mb-1">{% if email_ready %}{% trans "Set up" %}{% else %}{% trans "Not set up: nothing is emailed" %}{% endif %}</dd>
+      <dt class="col-5 col-md-4 text-body-secondary fw-normal">{% trans "Website request form" %}</dt><dd class="col-7 col-md-8 mb-1">{% if form_key %}{% trans "Set up" %}{% else %}{% trans "Not set up: the website cannot send requests yet" %}{% endif %}</dd>
+      <dt class="col-5 col-md-4 text-body-secondary fw-normal">{% trans "Last price upload" %}</dt><dd class="col-7 col-md-8 mb-1">{% if last_upload %}{{ last_upload.file_name }} · {{ last_upload.uploaded_at|day_time }}{% else %}{% trans "None" %}{% endif %}</dd>
+      <dt class="col-5 col-md-4 text-body-secondary fw-normal">{% trans "Logins that can sign in" %}</dt><dd class="col-7 col-md-8 mb-1">{{ logins }}</dd>
+      <dt class="col-5 col-md-4 text-body-secondary fw-normal">{% trans "Records" %}</dt><dd class="col-7 col-md-8 mb-1">{% trf "%(accounts)s accounts · %(jobs)s jobs · %(leads)s leads" accounts=counts.accounts jobs=counts.jobs leads=counts.leads %}</dd>
+      <dt class="col-5 col-md-4 text-body-secondary fw-normal">{% trans "Imported notes waiting" %}</dt><dd class="col-7 col-md-8 mb-1">{{ notes_waiting }}</dd>
+      <dt class="col-5 col-md-4 text-body-secondary fw-normal">{% trans "In the Recycle Bin" %}</dt><dd class="col-7 col-md-8 mb-1">{{ in_bin }}</dd>
+    </dl>
+  </div>
+</div>
+{% endblock %}

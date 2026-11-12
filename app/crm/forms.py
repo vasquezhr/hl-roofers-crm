@@ -285,14 +285,16 @@ class CompanyForm(Bootstrap, forms.ModelForm):
     class Meta:
         model = Company
         fields = ["name", "tagline", "legal_name", "license_number", "address", "phone",
-                  "proposal_terms_en", "proposal_terms_es", "invoice_terms_en", "invoice_terms_es", "lead_owner"]
+                  "proposal_terms_en", "proposal_terms_es", "invoice_terms_en", "invoice_terms_es", "lead_owner", "lead_backup",
+                  "summary_emails", "review_link"]
         widgets = {field: forms.Textarea(attrs={"rows": 2}) for field in
                    ["proposal_terms_en", "proposal_terms_es", "invoice_terms_en", "invoice_terms_es"]}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["lead_owner"].queryset = self.fields["lead_owner"].queryset.exclude(profile="crew").filter(is_active=True)
-        self.fields["lead_owner"].label_from_instance = lambda user: user.label
+        for name in ("lead_owner", "lead_backup"):
+            self.fields[name].queryset = self.fields[name].queryset.exclude(profile="crew").filter(is_active=True)
+            self.fields[name].label_from_instance = lambda user: user.label
 
 
 # ---------- logins and their permission sets

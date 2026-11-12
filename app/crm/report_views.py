@@ -18,7 +18,8 @@ from django.utils import formats
 
 from . import reports, scheduling
 from .access import admin_only, office_only
-from .models import Job, Opportunity, PriceUpload
+from .admin_views import backup_copies, clock_state
+from .models import Company, Job, Opportunity, PriceUpload
 from .views import today, today_counts
 
 
@@ -50,6 +51,7 @@ def dashboard(request):
         "jobs_week": Job.objects.filter(first_day__lte=week[-1], last_day__gte=week[0], crew__isnull=False, stage__in=scheduling.ON_SCHEDULE).count(),
         "inspections_open": Opportunity.objects.filter(stage=Opportunity.Stage.INSPECTION).count(),
         "last_upload": PriceUpload.objects.filter(rolled_back_at__isnull=True).first(),
+        "copies": backup_copies(), "clock": clock_state(Company.load()),
     })
 
 

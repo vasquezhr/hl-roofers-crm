@@ -180,7 +180,7 @@ The Bootstrap mockup is `mockup/hl-roofers-mockup.html`. Each phase is tested in
 | 1 · Customer records and search | Accounts (person or company) with contacts, properties and Details from imported notes; Opportunities and Jobs on one stage bar; a signed proposal creates the Job; warranty jobs; outside numbers; one search box; Office and Crew views; Call, Text, Directions | Built, Nov 9 |
 | 2 · Leads, proposals, invoices, pricing | Leads list and page; Convert creates the account, contact, property and opportunity, reuses an existing customer, and can add a request to that customer's open job; proposal builder with Price Book lines, the printed proposal, email, and the customer's Accept page; change orders; deposits, payments and balance due; invoice; crews record payments they collect; Price Book with upload review, full history and roll back; Company details that fill the placeholders | Built, Nov 9 |
 | 3 · Scheduling and crew | Week calendar of five work days with a filter per crew; suggested inspection times ranked by distance to that day's other stops, with a small map; suggested start days for a job when the crew is free; booking from a suggestion; "Changed" notice with Notify crew and the crew's Got it; extra workers recorded on a job; the crew's My Day; calendar feed link | Built, Nov 10 |
-| 4 · Reports, dashboard, automations, admin | Admin dashboard with tiles and two charts; eight reports with a date range and a real spreadsheet export; ten automations with on/off switches; users, profiles and permission sets; the Apple Notes import review queue; the data editor with held changes, review, a change log and undo; system status | Built, Nov 10 |
+| 4 · Reports, dashboard, automations, admin | Users and permissions with seven permission sets; Delete with a permission and the Recycle Bin; Setup history; the dashboard; the Reports page with eight reports and their spreadsheet export; ten automations and the scheduled command; the data editor with review, change log and undo; system status | Built, Nov 12 |
 
 **Choices made in the mockup that the user should confirm:**
 
@@ -329,7 +329,7 @@ The user: "there should be a way to delete records as well, but with a permissio
 - **What can be deleted:** a lead, an account, an opportunity or a job, a contact, a property and a note in Details. The page asks first and lists what goes along.
 - **What goes together:** an account takes its opportunities, its jobs and the website requests that became them. An opportunity and its job are one deal with one number, so they go together, with the job's warranty jobs. A job takes its change orders, payments and invoice.
 - **Nothing is erased by Delete.** The record goes to the Recycle Bin and is hidden everywhere: lists, Search, Today, the schedule, the reports and the calendar files. This follows the breakdown ("Deletes go to a Recycle Bin for 30 days, the way Salesforce does it; only Admin empties it").
-- **Restore** puts everything back exactly as it was. Anyone with the Delete permission can restore; only the administrator deletes for good. After 30 days the bin empties itself (this needs the scheduled command, which comes with the automations).
+- **Restore** puts everything back exactly as it was. Anyone with the Delete permission can restore; only the administrator deletes for good. After 30 days the bin empties itself, when the scheduled command runs (`python manage.py tick`).
 - **An address with opportunities or jobs on it cannot be deleted** on its own.
 - **A payment recorded by mistake** is taken off by a login with the Billing set. It does not go to the bin; the history keeps what it was.
 - Every delete, restore and delete-for-good is in the record's history and in the Setup history, with who and when.
@@ -344,8 +344,8 @@ The user: "there should be a way to delete records as well, but with a permissio
 | --- | --- | --- |
 | Manage Price Book | Office | Open the Price Book, upload price files, type prices, roll an upload back. Gives the login its own Price Book tab |
 | View Costs and Margins | Office | Read the Price Book (cost, selling price, margin) and see each item's cost when writing a proposal. Changes nothing |
-| Billing | Office | Remove a payment recorded by mistake. Later: get the "job done, ready to invoice" email |
-| Data Editor | Office | Use the data editor (to build) |
+| Billing | Office | Remove a payment recorded by mistake, and get the "ready to invoice" and "invoice overdue" emails |
+| Data Editor | Office | Use the data editor, which gives the login its own Data editor tab |
 | Inspector | Office | See "Inspections nobody has taken" on Today and take one, which puts the login's name on it |
 | Delete records | Office | Delete, and restore from the Recycle Bin |
 | Crew Lead | Crew | Start and finish jobs, record a payment, change extra workers, tap Got it. On by default. Without it, a crew login only reads its crew's jobs and adds notes |
@@ -371,3 +371,22 @@ The user: "there should be a way to delete records as well, but with a permissio
 - **The administrator signs in to the dashboard;** the office signs in to Today; a crew to My Day.
 - **The demo data has six months of made-up past jobs** for four of the made-up customers, so the charts are not empty.
 - Chart colors were checked for color-blind readers and for contrast on the light and the dark theme. Each chart has a table behind it, and each bar says its value when the pointer or the keyboard is on it.
+
+### Phase 4 of the app, automations, data editor and system status: choices to confirm
+
+- **The ten automations are the mockup's ten,** with what each really does written next to its switch. "Convert lead" and "Proposal signed" are how the app works and cannot be switched off. "Review request" starts off, as in the mockup.
+- **Emails need addresses.** An email to a person goes to the address typed on that person's login. The weekly summary goes to addresses typed under Company details. An automation with nobody to email, or with no email set up, does nothing and writes nothing in the history.
+- **Emails to the staff are in English and Spanish,** one after the other, because the app does not know a login's language (the EN / ES choice is kept on the device). An email to a customer is in the customer's language.
+- **Reminders count clock hours, not business hours.** A request that arrives at 9 pm is "still new after 2 hours" at 11 pm. The mockup said "2 business hours"; with Friday hours and Sundays still open, business hours could not be defined.
+- **"Invoice overdue" writes a line in the job's history at 15 and 30 days and emails the Billing logins.** Nothing goes to the customer. Today still lists every invoice unpaid for a week.
+- **The weekly summary** goes out on the first run of the scheduled command after 7 am on Monday: last week's requests, finished jobs, money received, and the unpaid total at that moment.
+- **The scheduled command must be set up on the server** (Windows Task Scheduler, every 15 minutes). The step is in `app/README.md`. On a PC, run `python manage.py tick` by hand to see what it does.
+- **The data editor changes four fields,** as in the mockup: a customer's name, the main contact's phone and email, and the language. A phone needs 10 digits. A change is skipped, and said so, when someone else changed the field in the meantime. Undo puts a value back only where the field still holds what that set wrote.
+- **System status cannot see the backups by itself.** The backup tools are not chosen yet, so the page shows what the backup job reports with `python manage.py backup_ran`. Until then it says no backup has reported. The mockup showed sample values and a "Back up now" button; the app has no such button, because it does not run the backups.
+- **The Billing set now also means "gets the ready-to-invoice and overdue emails".**
+
+**Checked for Phase 4 and the Nov 12 requests:** 266 automated tests pass on PostgreSQL 16 (265 on SQLite, one skipped). The browser test passes with 81 checks. Every page was opened as Admin, Office and a crew, in English and Spanish. The new pages were looked at in light and dark, at computer and phone size. Not checked: Safari on a Mac or iPhone, Windows, real email delivery (the tests use a pretend mailbox), the Task Scheduler command on a real Windows machine, and a calendar subscription from a real phone.
+
+### The app and the mockup now differ
+
+The mockup was not changed for anything built after Nov 10. The app has these and the mockup does not: a crew's note on a job and "Notes from the crews" on Today; the Documents list on the account and the job, with the signed proposal open to the crew; change orders as a page and a PDF with their own Accept page; the time and the old value in the history, "Created / Last change", and Setup history; Add a login, and permission sets that change what a login can do; Delete and the Recycle Bin; real numbers in the reports; the job's length and the crew picker when booking; the calendar address for each crew. The mockup has these and the app does not: sample values for backups and a "Back up now" button. **To decide with the user: whether the mockup should be brought up to date for the owners' review, or retired in favor of showing the app with its demo data.**

@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from crm import recycle, reports
-from crm.models import Job, Lead, Opportunity, Payment, PriceEntry, PriceItem
+from crm.models import Lead, Payment, PriceEntry, PriceItem
 
 from .base import Base
 

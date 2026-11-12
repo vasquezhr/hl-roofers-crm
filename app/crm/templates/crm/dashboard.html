@@ -35,5 +35,19 @@
 
 {% include "crm/_charts.html" %}
 
-{% block status %}{% endblock %}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <div class="d-flex align-items-baseline gap-2 mb-2">
+      <h2 class="h6 mb-0 flex-grow-1">{% trans "System status" %}</h2>
+      <a class="small" href="{% url 'status' %}">{% trans "More" %}</a>
+    </div>
+    <dl class="row small mb-0">
+      {% for copy in copies %}
+      <dt class="col-6 col-md-4 text-body-secondary fw-normal">{% trans "Backup" %}: {{ copy.label }}</dt><dd class="col-6 col-md-8 mb-1">{% include "crm/_state.html" with state=copy.state %}</dd>
+      {% endfor %}
+      <dt class="col-6 col-md-4 text-body-secondary fw-normal">{% trans "Reminders by the clock" %}</dt><dd class="col-6 col-md-8 mb-1">{% include "crm/_state.html" with state=clock %}</dd>
+      <dt class="col-6 col-md-4 text-body-secondary fw-normal">{% trans "Last price upload" %}</dt><dd class="col-6 col-md-8 mb-1">{% if last_upload %}{{ last_upload.file_name }} · {{ last_upload.uploaded_at|day }}{% else %}{% trans "None" %}{% endif %}</dd>
+    </dl>
+  </div>
+</div>
 {% endblock %}

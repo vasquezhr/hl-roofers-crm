@@ -29,7 +29,7 @@ class WebsiteForm(Base):
         lead = Lead.objects.get()
         self.assertEqual((lead.name, lead.status, lead.source, lead.job_type, lead.owner), ("Mina Seo", "new", "web", "gutters", self.office))
         self.assertEqual((lead.street, lead.city, lead.zip_code, lead.phone_digits), ("3214 Broad St Rd", "Short Pump", "23233", "8045550178"))
-        self.assertEqual(lead.activities.get().kind, "lead_in")
+        self.assertEqual([line.text for line in lead.activities.order_by("id")], ["Request received from the website", "Assigned to office by the routing rule"])
 
     def test_it_can_be_sent_as_json_and_in_spanish(self):
         body = json.dumps({**REQUEST, "language": "es", "service": "Canaletas"})

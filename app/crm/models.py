@@ -209,6 +209,22 @@ class Company(models.Model):
     lead_owner = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("new website requests go to"), null=True, blank=True,
                                    on_delete=models.SET_NULL, related_name="+")
     feed_token = models.CharField(max_length=64, blank=True, db_index=True, editable=False)     # the office's calendar address
+    # what the automations need
+    lead_backup = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("if a request waits a whole day, also tell"), null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="+")
+    summary_emails = models.CharField(_("the weekly summary goes to"), max_length=300, blank=True,
+                                      help_text=_("Email addresses, separated by commas."))
+    review_link = models.URLField(_("review link"), blank=True, help_text=_("The address of the business's Google review page, for the thank-you email."))
+    # the automations that can be switched off (Admin > Automations). "Convert lead" and "Proposal signed" are always on.
+    auto_route = models.BooleanField(default=True)
+    auto_remind = models.BooleanField(default=True)
+    auto_follow_up = models.BooleanField(default=True)
+    auto_changed = models.BooleanField(default=True)
+    auto_job_done = models.BooleanField(default=True)
+    auto_overdue = models.BooleanField(default=True)
+    auto_review = models.BooleanField(default=False)                # off until the wording of the email is approved
+    auto_weekly = models.BooleanField(default=True)
+    last_tick_at = models.DateTimeField(null=True, blank=True, editable=False)      # when the scheduled command last ran
 
     class Meta:
         verbose_name, verbose_name_plural = _("company details"), _("company details")
@@ -930,6 +946,40 @@ class BinEntry(models.Model):
         return self.label
 
 
+# ---------------------------------------------------------------- the data editor's change log, and backups that reported in
+class ChangeSet(models.Model):
+    """One confirmed set of changes from the data editor: who made it, when, why, and each field's value before and after,
+    so the whole set can be undone."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    actor = models.CharField(max_length=80, blank=True)
+    at = models.DateTimeField(default=timezone.now)
+    reason = models.CharField(max_length=200, blank=True)
+    changes = models.JSONField(default=list)                    # [{"account": 12, "name": "Denise Wyckoff", "field": "phone", "old": "...", "new": "..."}]
+    undone_at = models.DateTimeField(null=True, blank=True)
+    undone_by = models.CharField(max_length=80, blank=True)
+
+    class Meta:
+        ordering = ["-at", "-id"]
+
+
+class BackupRun(models.Model):
+    """A backup that reported in: which copy, when, and whether it worked. The backup job tells the app with
+    `python manage.py backup_ran`."""
+
+    class Copy(models.TextChoices):
+        SSD = "ssd", _("Mirrored SSDs")
+        CLOUD = "cloud", _("OneDrive")
+        USB = "usb", _("USB drive")
+
+    copy = models.CharField(max_length=6, choices=Copy.choices)
+    ran_at = models.DateTimeField(default=timezone.now)
+    ok = models.BooleanField(default=True)
+    note = models.CharField(max_length=200, blank=True)
+
+    class Meta:
+        ordering = ["-ran_at", "-id"]
+
+
 # ---------------------------------------------------------------- history
 class Activity(models.Model):
     """One line of history: what happened, who did it (`user` and `actor`) and the date and time (`at`).
@@ -980,6 +1030,17 @@ class Activity(models.Model):
         "record_deleted": _("Deleted: %(detail)s"), "record_restored": _("Restored: %(detail)s"),
         "record_purged": _("Deleted for good: %(detail)s"),
         "payment_removed": _("Payment removed: %(detail)s"), "inspection_taken": _("Took the inspection"),
+        # what the automations did (Admin > Automations, "What ran lately")
+        "auto_routed": _("Assigned to %(detail)s by the routing rule"),
+        "auto_reminded": _("Still new after 2 hours: %(detail)s was reminded"),
+        "auto_escalated": _("Still new after a day: %(detail)s was told"),
+        "auto_job_done": _("Ready to invoice: %(detail)s was told"),
+        "auto_overdue": _("The invoice has been unpaid for %(detail)s days"),
+        "auto_review": _("Thank-you email with the review link sent to %(detail)s"),
+        "auto_weekly": _("Weekly summary emailed to %(detail)s"),
+        "auto_bin": _("Recycle Bin: %(detail)s old entries deleted for good"),
+        "auto_switched_on": _("Automation switched on: %(detail)s"), "auto_switched_off": _("Automation switched off: %(detail)s"),
+        "data_edited": _("Data editor: %(detail)s changes saved"), "data_undone": _("Data editor: %(detail)s changes undone"),
     }
     # how the stored detail of some kinds is put into words when it is read
     READERS = {"changed": range_from_code, "booked": booking_text, "inspection_booked": when_text,

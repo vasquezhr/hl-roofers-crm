@@ -22,10 +22,11 @@ from django.utils.crypto import constant_time_compare
 from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 
+from . import automations
 from .access import office_only
 from .forms import ConvertForm, LeadForm, UnfitForm
 from .importer import find_account
-from .models import JOB_TYPES, Account, Company, Contact, Job, Lead, Opportunity, Property, log, street_key
+from .models import JOB_TYPES, Account, Contact, Job, Lead, Opportunity, Property, log, street_key
 from .views import filter_pills, form_page, page_of, saved
 
 
@@ -202,7 +203,7 @@ def lead_in(request):
     again = Lead.objects.filter(received_at__gte=timezone.now() - timedelta(days=1), name__iexact=lead.name, message=lead.message,
                                 phone=lead.phone, email__iexact=lead.email)
     if not again.exists():
-        lead.owner = Company.load().lead_owner                        # routing: new requests go to this person
         lead.save()
         log(lead, "lead_in", actor="Web")
+        automations.lead_arrived(lead)                                  # routing: it goes to the person named in Company details
     return answer({"ok": True})

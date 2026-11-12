@@ -27,7 +27,24 @@
         <div><div class="fw-semibold">{% trans "Users and permissions" %}</div><div class="small text-body-secondary">{% trans "Who can sign in, their profile and their add-on permission sets." %}</div></div></div>
     </a>
   </div>
-  {% block more_cards %}{% endblock %}
+  <div class="col">
+    <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'automations' %}">
+      <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "bell" %}</span>
+        <div><div class="fw-semibold">{% trans "Automations" %}</div><div class="small text-body-secondary">{% trans "Ready-made automations with an on/off switch." %}</div></div></div>
+    </a>
+  </div>
+  <div class="col">
+    <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'editor' %}">
+      <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "edit" %}</span>
+        <div><div class="fw-semibold">{% trans "Data editor" %}</div><div class="small text-body-secondary">{% trans "Change fields for many customers at once, with a review before anything is saved." %}</div></div></div>
+    </a>
+  </div>
+  <div class="col">
+    <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'status' %}">
+      <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "shield" %}</span>
+        <div><div class="fw-semibold">{% trans "System status" %}</div><div class="small text-body-secondary">{% trans "Backups, the reminders by the clock, email and the last price upload." %}</div></div></div>
+    </a>
+  </div>
   <div class="col">
     <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'recycle_bin' %}">
       <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "trash" %}</span>
