@@ -168,7 +168,8 @@ class Command(BaseCommand):
         for name in EXTRA_WORKERS:
             workers[name] = Worker.objects.create(name=name)
         User.objects.create_user("admin", password=PASSWORD, first_name="Admin", profile=User.Profile.ADMIN)
-        office = User.objects.create_user("office", password=PASSWORD, first_name="Office", profile=User.Profile.OFFICE)
+        office = User.objects.create_user("office", password=PASSWORD, first_name="Office", profile=User.Profile.OFFICE,
+                                          can_billing=True, can_price_book=True)          # two permission sets, as in the mockup
         company = Company.load()
         company.lead_owner = office                                        # website requests go to the office
         company.save()

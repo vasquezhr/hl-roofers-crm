@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Delete" %}{% endblock %}
+
+{# Asks before a delete, and says what goes along. Needs: label, also, problem, back. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{{ back }}">‹ {% trans "Back" %}</a>
+<div class="row">
+  <div class="col-lg-9 col-xl-8">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h1 class="h5 mb-2">{% trf "Delete %(what)s?" what=label %}</h1>
+        {% if problem %}
+        <div class="alert alert-warning small mb-3">{{ problem }}</div>
+        <a class="btn btn-outline-secondary" href="{{ back }}">{% trans "Back" %}</a>
+        {% else %}
+        {% if also %}<p class="small mb-2">{% trans "These go to the Recycle Bin with it" %}: <span class="fw-semibold">{{ also }}</span>. {% trans "A job takes its change orders, payments and invoice along." %}</p>{% endif %}
+        <p class="small text-body-secondary mb-3">{% trans "It leaves every list, Search, the schedule and the reports. It stays in the Recycle Bin for 30 days and can be restored from there, exactly as it was." %}</p>
+        <form method="post" class="d-flex gap-2 justify-content-end">
+          {% csrf_token %}
+          <a class="btn btn-outline-secondary" href="{{ back }}">{% trans "Cancel" %}</a>
+          <button type="submit" class="btn btn-danger">{% icon "trash" %} {% trans "Delete" %}</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

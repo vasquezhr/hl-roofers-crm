@@ -31,6 +31,9 @@ msgstr "No se encontró esa página o ese registro."
 msgid "Admin site"
 msgstr "Sitio de administración"
 
+msgid "Recycle Bin"
+msgstr "Papelera"
+
 msgid "Sign out"
 msgstr "Cerrar sesión"
 
@@ -175,6 +178,9 @@ msgstr "Cuentas"
 msgid "Customer since %(year)s"
 msgstr "Cliente desde %(year)s"
 
+msgid "Delete"
+msgstr "Eliminar"
+
 msgid "Edit"
 msgstr "Editar"
 
@@ -262,6 +268,15 @@ msgstr "Datos de la compañía"
 msgid "The name, license, address, phone and terms printed on proposals and invoices."
 msgstr "El nombre, la licencia, la dirección, el teléfono y los términos que se imprimen en las propuestas y facturas."
 
+msgid "Users and permissions"
+msgstr "Usuarios y permisos"
+
+msgid "Who can sign in, their profile and their add-on permission sets."
+msgstr "Quién puede entrar, su perfil y sus permisos adicionales."
+
+msgid "Deleted records, for 30 days. Restore one, or delete it for good."
+msgstr "Registros eliminados, durante 30 días. Restaure uno, o elimínelo para siempre."
+
 msgid "Who changed prices, company details, logins and other settings, and when."
 msgstr "Quién cambió precios, datos de la empresa, usuarios y otros ajustes, y cuándo."
 
@@ -274,14 +289,29 @@ msgstr "Pasar las notas del negocio a los Detalles de cada cliente, con un paso 
 msgid "%(count)s waiting for review."
 msgstr "%(count)s esperan revisión."
 
-msgid "Logins, crews and records"
-msgstr "Usuarios, equipos y registros"
+msgid "Crews, workers and corrections"
+msgstr "Equipos, trabajadores y correcciones"
 
-msgid "Add or change logins, crews and workers, or correct a record, in the admin site."
-msgstr "En el sitio de administración puede agregar o cambiar usuarios, equipos y trabajadores, o corregir un registro."
+msgid "Add or change crews and workers, or correct a record, in the admin site."
+msgstr "En el sitio de administración puede agregar o cambiar equipos y trabajadores, o corregir un registro."
 
 msgid "Back"
 msgstr "Volver"
+
+msgid "Delete %(what)s?"
+msgstr "¿Eliminar %(what)s?"
+
+msgid "These go to the Recycle Bin with it"
+msgstr "Esto va a la Papelera junto con el registro"
+
+msgid "A job takes its change orders, payments and invoice along."
+msgstr "Un trabajo se lleva sus órdenes de cambio, pagos y factura."
+
+msgid "It leaves every list, Search, the schedule and the reports. It stays in the Recycle Bin for 30 days and can be restored from there, exactly as it was."
+msgstr "Sale de todas las listas, de Buscar, de la agenda y de los reportes. Se queda en la Papelera 30 días y desde ahí se puede restaurar, tal como estaba."
+
+msgid "Cancel"
+msgstr "Cancelar"
 
 msgid "Email goes to"
 msgstr "El correo va a"
@@ -300,9 +330,6 @@ msgstr "Ya hay un cliente en la app con el mismo teléfono, correo o dirección:
 
 msgid "This is a different customer: create the new account anyway"
 msgstr "Es un cliente distinto: crear la cuenta nueva de todos modos"
-
-msgid "Cancel"
-msgstr "Cancelar"
 
 msgid "Already on the schedule"
 msgstr "Ya en la agenda"
@@ -333,6 +360,12 @@ msgstr "Trabajo de hoy"
 
 msgid "Nothing is scheduled for today."
 msgstr "No hay nada programado hoy."
+
+msgid "Inspections nobody has taken"
+msgstr "Inspecciones que nadie ha tomado"
+
+msgid "I'll take it"
+msgstr "Yo la tomo"
 
 msgid "Notes from the crews"
 msgstr "Notas de los equipos"
@@ -610,6 +643,12 @@ msgstr "Una orden de cambio cuenta en el total cuando el cliente la firma."
 msgid "Payments"
 msgstr "Pagos"
 
+msgid "Remove this payment? Use this only for a payment recorded by mistake."
+msgstr "¿Quitar este pago? Use esto solo para un pago registrado por error."
+
+msgid "Remove this payment"
+msgstr "Quitar este pago"
+
 msgid "Balance due"
 msgstr "Saldo pendiente"
 
@@ -772,6 +811,12 @@ msgstr "Inspección"
 msgid "No inspection date yet."
 msgstr "Todavía no hay fecha de inspección."
 
+msgid "Inspector"
+msgstr "Inspector"
+
+msgid "Nobody has taken this inspection yet."
+msgstr "Nadie ha tomado esta inspección todavía."
+
 msgid "Change the time"
 msgstr "Cambiar la hora"
 
@@ -850,6 +895,9 @@ msgstr "Subir un archivo de precios"
 msgid "Unit"
 msgstr "Unidad"
 
+msgid "Margin"
+msgstr "Margen"
+
 msgid "No prices yet. Upload a price file or add an item."
 msgstr "Todavía no hay precios. Suba un archivo de precios o agregue un artículo."
 
@@ -889,11 +937,35 @@ msgstr "Agregar línea"
 msgid "Add from the Price Book"
 msgstr "Agregar de la Lista de precios"
 
+msgid "cost"
+msgstr "costo"
+
 msgid "Leave the amount empty on lines that are included in the price. A line from the Price Book uses today's price, and the proposal keeps that price even if the Price Book changes later."
 msgstr "Deje el monto vacío en las líneas que ya están incluidas en el precio. Una línea de la Lista de precios usa el precio de hoy, y la propuesta conserva ese precio aunque la lista cambie después."
 
 msgid "Save and preview"
 msgstr "Guardar y ver"
+
+msgid "Deleted records stay here for %(days)s days. Restore puts one back exactly as it was. After that, or when the administrator deletes it for good, it is gone."
+msgstr "Los registros eliminados se quedan aquí %(days)s días. Restaurar devuelve uno tal como estaba. Después de ese tiempo, o cuando el administrador lo elimina para siempre, desaparece."
+
+msgid "Deleted"
+msgstr "Eliminado"
+
+msgid "%(days)s days left"
+msgstr "quedan %(days)s días"
+
+msgid "Restore"
+msgstr "Restaurar"
+
+msgid "Delete it for good? This cannot be undone."
+msgstr "¿Eliminarlo para siempre? Esto no se puede deshacer."
+
+msgid "Delete for good"
+msgstr "Eliminar para siempre"
+
+msgid "The Recycle Bin is empty."
+msgstr "La Papelera está vacía."
 
 msgid "Schedule"
 msgstr "Agenda"
@@ -994,6 +1066,93 @@ msgstr "se escribe parecido"
 msgid "Only the first 25 are shown. Type more to narrow it down."
 msgstr "Solo se muestran los primeros 25. Escriba más para reducir la lista."
 
+msgid "Each login has one profile. Permission sets add to it."
+msgstr "Cada usuario tiene un perfil. Los permisos adicionales se suman."
+
+msgid "Add a login"
+msgstr "Agregar un usuario"
+
+msgid "Login"
+msgstr "Usuario"
+
+msgid "Profile"
+msgstr "Perfil"
+
+msgid "Permission sets"
+msgstr "Permisos adicionales"
+
+msgid "Last signed in"
+msgstr "Última entrada"
+
+msgid "shared login"
+msgstr "usuario compartido"
+
+msgid "cannot sign in"
+msgstr "no puede entrar"
+
+msgid "Everything"
+msgstr "Todo"
+
+msgid "Never"
+msgstr "Nunca"
+
+msgid "What each profile allows"
+msgstr "Qué permite cada perfil"
+
+msgid "Administrator"
+msgstr "Administrador"
+
+msgid "Can see"
+msgstr "Puede ver"
+
+msgid "Everything."
+msgstr "Todo."
+
+msgid "Can do"
+msgstr "Puede hacer"
+
+msgid "Everything, plus logins, permission sets, prices, company details, the notes import and the Recycle Bin."
+msgstr "Todo, y además usuarios, permisos adicionales, precios, datos de la empresa, la importación de notas y la Papelera."
+
+msgid "All leads, accounts, opportunities, jobs, the schedule, proposals, invoices and reports."
+msgstr "Todos los prospectos, cuentas, oportunidades, trabajos, la agenda, propuestas, facturas y reportes."
+
+msgid "Create and edit records, convert leads, book, send proposals and invoices, record payments."
+msgstr "Crear y editar registros, convertir prospectos, agendar, enviar propuestas y facturas, registrar pagos."
+
+msgid "Cannot"
+msgstr "No puede"
+
+msgid "Manage logins or change settings. Deleting, the Price Book, costs and removing a payment each need a permission set."
+msgstr "Administrar usuarios ni cambiar ajustes. Eliminar, la Lista de precios, los costos y quitar un pago necesitan cada uno un permiso adicional."
+
+msgid "Only the jobs scheduled to their crew, with everything needed to finish them: customer, scope, price, change orders, deposits, the signed proposal, the invoice and the balance due."
+msgstr "Solo los trabajos programados para su equipo, con todo lo necesario para terminarlos: cliente, alcance, precio, órdenes de cambio, anticipos, la propuesta firmada, la factura y el saldo pendiente."
+
+msgid "Call, text, get directions, add notes. With Crew Lead: start and finish a job, change the extra workers, record a payment they collect, confirm changes."
+msgstr "Llamar, enviar mensajes, ver cómo llegar, agregar notas. Con Líder de equipo: empezar y terminar un trabajo, cambiar los trabajadores extra, registrar un pago que cobren, confirmar cambios."
+
+msgid "See H & L's costs or margins, the Price Book, leads, other crews' jobs, reports or the dashboard."
+msgstr "Ver los costos o márgenes de H & L, la Lista de precios, los prospectos, los trabajos de otros equipos, los reportes ni el panel."
+
+msgid "Rules for every login"
+msgstr "Reglas para todos los usuarios"
+
+msgid "The office and the administrator each have their own login, so the history shows who changed what."
+msgstr "La oficina y el administrador tienen cada uno su propio usuario, para que el historial muestre quién cambió qué."
+
+msgid "A crew can share one login: the history then shows the crew, not the person. A login made for one person on a crew shows that person."
+msgstr "Un equipo puede compartir un usuario: el historial muestra entonces el equipo, no la persona. Un usuario creado para una persona del equipo muestra a esa persona."
+
+msgid "Deleted records go to the Recycle Bin for 30 days. Only the administrator deletes them for good."
+msgstr "Los registros eliminados van a la Papelera por 30 días. Solo el administrador los elimina para siempre."
+
+msgid "A phone stays signed in for 30 days, so nobody types a password on a roof."
+msgstr "Un teléfono se queda con la sesión abierta 30 días, para que nadie escriba una contraseña en un techo."
+
+msgid "To take a login away, turn off 'Can sign in'. Its name stays in the history."
+msgstr "Para retirar un usuario, apague 'Puede entrar'. Su nombre se queda en el historial."
+
 msgid "Sign in"
 msgstr "Entrar"
 
@@ -1017,6 +1176,21 @@ msgstr "Perfil de H & L"
 
 msgid "Dates"
 msgstr "Fechas"
+
+msgid "Each login has one profile. Permission sets add to it: the first six are for an Office login, and Crew Lead is for a Crew login. The Administrator profile has all of them."
+msgstr "Cada usuario tiene un perfil. Los permisos adicionales se suman: los primeros seis son para un usuario de Oficina, y Líder de equipo es para un usuario de Equipo. El perfil Administrador los tiene todos."
+
+msgid "Deleted for good: %(detail)s"
+msgstr "Eliminado para siempre: %(detail)s"
+
+msgid "Login added: %(detail)s"
+msgstr "Usuario agregado: %(detail)s"
+
+msgid "%(what)s is in the Recycle Bin. It can be restored for 30 days."
+msgstr "%(what)s está en la Papelera. Se puede restaurar durante 30 días."
+
+msgid "Restored: %(detail)s"
+msgstr "Restaurado: %(detail)s"
 
 msgid "Dashboard"
 msgstr "Panel"
@@ -1077,6 +1251,9 @@ msgstr "Pagada el %(day)s"
 
 msgid "Workers who help on this job. They have no login; this records who worked."
 msgstr "Trabajadores que ayudan en este trabajo. No tienen usuario; aquí se anota quién trabajó."
+
+msgid "For the Crew profile: the crew whose jobs this login sees."
+msgstr "Para el perfil Equipo: el equipo cuyos trabajos ve este usuario."
 
 msgid "Pick a work day, Monday to Friday."
 msgstr "Elija un día de trabajo, de lunes a viernes."
@@ -1153,6 +1330,21 @@ msgstr "Proveedor"
 msgid "Product line"
 msgstr "Línea de producto"
 
+msgid "At least 10 characters. For a login that exists, leave this empty to keep its password."
+msgstr "Al menos 10 caracteres. Para un usuario que ya existe, déjelo vacío para conservar su contraseña."
+
+msgid "Can sign in"
+msgstr "Puede entrar"
+
+msgid "Turn this off instead of deleting a login. Its name stays in the history."
+msgstr "Apague esto en vez de eliminar un usuario. Su nombre se queda en el historial."
+
+msgid "For a login made for one person. The history then shows this name."
+msgstr "Para un usuario creado para una sola persona. El historial muestra entonces este nombre."
+
+msgid "Where the app sends this person's reminders. It can stay empty."
+msgstr "A dónde la app envía los recordatorios de esta persona. Puede quedar vacío."
+
 msgid "Enter a number of days from 1 to 60."
 msgstr "Escriba un número de días del 1 al 60."
 
@@ -1176,6 +1368,12 @@ msgstr "Eso es más que el saldo pendiente."
 
 msgid "Start a new opportunity"
 msgstr "Empezar una oportunidad nueva"
+
+msgid "A new login needs a password."
+msgstr "Un usuario nuevo necesita una contraseña."
+
+msgid "This is the only administrator. Add another administrator before changing this one."
+msgstr "Este es el único administrador. Agregue otro administrador antes de cambiar este."
 
 msgid "Add the request to job #%(number)s"
 msgstr "Agregar el pedido al trabajo #%(number)s"
@@ -1302,6 +1500,24 @@ msgstr "activo"
 
 msgid "profile"
 msgstr "perfil"
+
+msgid "Manage Price Book"
+msgstr "Administrar Lista de precios"
+
+msgid "View Costs and Margins"
+msgstr "Ver costos y márgenes"
+
+msgid "Billing"
+msgstr "Cobranza"
+
+msgid "Data Editor"
+msgstr "Editor de datos"
+
+msgid "Delete records"
+msgstr "Eliminar registros"
+
+msgid "Crew Lead"
+msgstr "Líder de equipo"
 
 msgid "short name"
 msgstr "nombre corto"
@@ -1471,9 +1687,6 @@ msgstr "artículo"
 msgid "unit"
 msgstr "unidad"
 
-msgid "cost"
-msgstr "costo"
-
 msgid "selling price"
 msgstr "precio de venta"
 
@@ -1615,6 +1828,15 @@ msgstr "Propiedad cambiada: %(detail)s"
 msgid "Note added to Details"
 msgstr "Nota agregada a Detalles"
 
+msgid "Contact deleted: %(detail)s"
+msgstr "Contacto eliminado: %(detail)s"
+
+msgid "Property deleted: %(detail)s"
+msgstr "Propiedad eliminada: %(detail)s"
+
+msgid "Note deleted from Details"
+msgstr "Nota eliminada de Detalles"
+
 msgid "Proposal written: %(detail)s"
 msgstr "Propuesta escrita: %(detail)s"
 
@@ -1648,6 +1870,27 @@ msgstr "Notas importadas guardadas sin cliente: %(detail)s"
 msgid "Calendar address replaced: %(detail)s"
 msgstr "Dirección del calendario reemplazada: %(detail)s"
 
+msgid "Login changed: %(detail)s"
+msgstr "Usuario cambiado: %(detail)s"
+
+msgid "Password changed for %(detail)s"
+msgstr "Contraseña cambiada para %(detail)s"
+
+msgid "Moved to the Recycle Bin"
+msgstr "Enviado a la Papelera"
+
+msgid "Restored from the Recycle Bin"
+msgstr "Restaurado de la Papelera"
+
+msgid "Deleted: %(detail)s"
+msgstr "Eliminado: %(detail)s"
+
+msgid "Payment removed: %(detail)s"
+msgstr "Pago quitado: %(detail)s"
+
+msgid "Took the inspection"
+msgstr "Tomó la inspección"
+
 msgid "crew"
 msgstr "equipo"
 
@@ -1663,11 +1906,29 @@ msgstr "trabajador"
 msgid "workers"
 msgstr "trabajadores"
 
-msgid "Administrator"
-msgstr "Administrador"
-
 msgid "Set this only for a crew's shared login."
 msgstr "Llénelo solo para el usuario compartido de un equipo."
+
+msgid "Open the Price Book, upload price files, type prices and roll an upload back."
+msgstr "Abrir la Lista de precios, subir archivos de precios, escribir precios y revertir una subida."
+
+msgid "See supplier costs and the margin, in the Price Book and when writing a proposal. For someone who prices jobs."
+msgstr "Ver los costos de proveedor y el margen, en la Lista de precios y al escribir una propuesta. Para quien pone precio a los trabajos."
+
+msgid "Remove a payment recorded by mistake, and get the email when a job is done and ready to invoice."
+msgstr "Quitar un pago registrado por error, y recibir el correo cuando un trabajo está terminado y listo para facturar."
+
+msgid "Use the data editor for single and bulk changes."
+msgstr "Usar el editor de datos para cambios de uno o de varios registros."
+
+msgid "See the inspections nobody has taken, and take them."
+msgstr "Ver las inspecciones que nadie ha tomado, y tomarlas."
+
+msgid "Delete leads, accounts, opportunities and jobs. They go to the Recycle Bin and can be restored for 30 days."
+msgstr "Eliminar prospectos, cuentas, oportunidades y trabajos. Van a la Papelera y se pueden restaurar durante 30 días."
+
+msgid "Start and finish the crew's jobs, record a payment, change the extra workers and confirm changes. Without it, a crew login only reads its crew's jobs and adds notes."
+msgstr "Empezar y terminar los trabajos del equipo, registrar un pago, cambiar los trabajadores extra y confirmar cambios. Sin él, un usuario de equipo solo lee los trabajos de su equipo y agrega notas."
 
 msgid "Shown at the top of every page and used in emails and texts."
 msgstr "Se muestra arriba en cada página y se usa en los correos y mensajes."
@@ -1791,6 +2052,9 @@ msgstr "El cliente pone los materiales."
 
 msgid "One line for each item."
 msgstr "Una línea por cada cosa."
+
+msgid "inspector"
+msgstr "inspector"
 
 msgid "opportunity"
 msgstr "oportunidad"
@@ -2067,6 +2331,15 @@ msgstr "No se encontraron filas con artículo, costo y precio en la hoja."
 
 msgid "This file could not be read. Upload an Excel file (.xlsx)."
 msgstr "No se pudo leer este archivo. Suba un archivo de Excel (.xlsx)."
+
+msgid "This address has opportunities or jobs. Delete those first, or give them another address."
+msgstr "Esta dirección tiene oportunidades o trabajos. Elimínelos primero, o póngales otra dirección."
+
+msgid "Automation"
+msgstr "Automatización"
+
+msgid "Its customer is in the Recycle Bin too. Restore the account first: %(name)s"
+msgstr "Su cliente también está en la Papelera. Restaure primero la cuenta: %(name)s"
 
 msgid "The calendar has a new address. The old one no longer works."
 msgstr "El calendario tiene una dirección nueva. La anterior ya no funciona."

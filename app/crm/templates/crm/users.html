@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Users and permissions" %}{% endblock %}
+
+{# Every login, its profile and its permission sets. The administrator adds a login and changes one here. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'admin_home' %}">‹ {% trans "Admin" %}</a>
+<div class="d-flex align-items-start gap-2 mb-3">
+  <div class="flex-grow-1 hl-minw0">
+    <h1 class="h4 mb-0">{% trans "Users and permissions" %}</h1>
+    <div class="text-body-secondary small">{% trans "Each login has one profile. Permission sets add to it." %}</div>
+  </div>
+  <a class="btn btn-primary btn-sm text-nowrap" href="{% url 'user_new' %}">{% icon "plus" %} {% trans "Add a login" %}</a>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="table-responsive">
+    <table class="table align-middle small mb-0">
+      <thead><tr><th class="ps-3">{% trans "Login" %}</th><th>{% trans "Profile" %}</th><th>{% trans "Permission sets" %}</th><th class="text-nowrap">{% trans "Last signed in" %}</th><th></th></tr></thead>
+      <tbody>
+        {% for login in logins %}
+        <tr{% if not login.is_active %} class="text-body-secondary"{% endif %}>
+          <td class="ps-3"><span class="fw-semibold">{{ login.label }}</span>{% if login.is_crew_profile and not login.first_name %} <span class="text-body-secondary">· {% trans "shared login" %}</span>{% endif %}
+            <br><span class="text-body-secondary">{{ login.username }}{% if not login.is_active %} · {% trans "cannot sign in" %}{% endif %}</span></td>
+          <td>{% if login.is_admin_profile %}{% badge login.get_profile_display "primary" %}{% else %}{% badge login.get_profile_display "secondary" %}{% endif %}</td>
+          <td>{% if login.is_admin_profile %}<span class="text-body-secondary">{% trans "Everything" %}</span>{% else %}{% for name in login.sets %}{% badge name "info" %} {% empty %}<span class="text-body-secondary">{% trans "None" %}</span>{% endfor %}{% endif %}</td>
+          <td class="text-nowrap">{% if login.last_login %}{{ login.last_login|day_time }}{% else %}<span class="text-body-secondary">{% trans "Never" %}</span>{% endif %}</td>
+          <td class="text-end pe-3"><a class="btn btn-outline-secondary btn-sm" href="{% url 'user_edit' login.pk %}">{% icon "edit" %} {% trans "Edit" %}</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h2 class="h6 mt-4 mb-2">{% trans "What each profile allows" %}</h2>
+<div class="row g-3 mb-3">
+  <div class="col-lg-4">
+    <div class="card shadow-sm h-100"><div class="card-body small">
+      <h3 class="h6">{% trans "Administrator" %}</h3>
+      <div class="text-body-secondary">{% trans "Can see" %}</div><p>{% trans "Everything." %}</p>
+      <div class="text-body-secondary">{% trans "Can do" %}</div><p class="mb-0">{% trans "Everything, plus logins, permission sets, prices, company details, the notes import and the Recycle Bin." %}</p>
+    </div></div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card shadow-sm h-100"><div class="card-body small">
+      <h3 class="h6">{% trans "Office" %}</h3>
+      <div class="text-body-secondary">{% trans "Can see" %}</div><p>{% trans "All leads, accounts, opportunities, jobs, the schedule, proposals, invoices and reports." %}</p>
+      <div class="text-body-secondary">{% trans "Can do" %}</div><p>{% trans "Create and edit records, convert leads, book, send proposals and invoices, record payments." %}</p>
+      <div class="text-body-secondary">{% trans "Cannot" %}</div><p class="mb-0">{% trans "Manage logins or change settings. Deleting, the Price Book, costs and removing a payment each need a permission set." %}</p>
+    </div></div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card shadow-sm h-100"><div class="card-body small">
+      <h3 class="h6">{% trans "Crew" %}</h3>
+      <div class="text-body-secondary">{% trans "Can see" %}</div><p>{% trans "Only the jobs scheduled to their crew, with everything needed to finish them: customer, scope, price, change orders, deposits, the signed proposal, the invoice and the balance due." %}</p>
+      <div class="text-body-secondary">{% trans "Can do" %}</div><p>{% trans "Call, text, get directions, add notes. With Crew Lead: start and finish a job, change the extra workers, record a payment they collect, confirm changes." %}</p>
+      <div class="text-body-secondary">{% trans "Cannot" %}</div><p class="mb-0">{% trans "See H & L's costs or margins, the Price Book, leads, other crews' jobs, reports or the dashboard." %}</p>
+    </div></div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3"><div class="card-body">
+  <h2 class="h6 mb-2">{% trans "Rules for every login" %}</h2>
+  <ul class="small mb-0 ps-3">
+    <li>{% trans "The office and the administrator each have their own login, so the history shows who changed what." %}</li>
+    <li>{% trans "A crew can share one login: the history then shows the crew, not the person. A login made for one person on a crew shows that person." %}</li>
+    <li>{% trans "Deleted records go to the Recycle Bin for 30 days. Only the administrator deletes them for good." %}</li>
+    <li>{% trans "A phone stays signed in for 30 days, so nobody types a password on a roof." %}</li>
+    <li>{% trans "To take a login away, turn off 'Can sign in'. Its name stays in the history." %}</li>
+  </ul>
+</div></div>
+{% endblock %}

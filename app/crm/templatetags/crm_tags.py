@@ -49,6 +49,7 @@ ICONS = {
     "bell": '<path d="M6 9a6 6 0 1112 0c0 6 2 7 2 7H4s2-1 2-7z"/><path d="M10 20a2 2 0 004 0"/>',
     "undo": '<path d="M4 8v5h5"/><path d="M4.5 13A8 8 0 1112 20"/>',
     "download": '<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>',
+    "trash": '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
 }
 ICONS["my_jobs"] = ICONS["jobs"]
 
@@ -57,6 +58,12 @@ ICONS["my_jobs"] = ICONS["jobs"]
 def icon(name):
     return mark_safe('<svg class="hl-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
                      f'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{ICONS.get(name, "")}</svg>')
+
+
+@register.filter
+def can(user, what):
+    """{% if user|can:"delete" %}: true when this login has the permission set. The Admin profile has every one."""
+    return bool(getattr(user, "is_authenticated", False)) and user.can(what)
 
 
 # ---------- words with a value inside: {% trf "Customer since %(year)s" year=2021 %} ----------
@@ -95,6 +102,14 @@ def month_day(value):
 def money(value):
     """9050 -> $9,050   685.5 -> $685.50   -250 -> −$250"""
     return "" if value in (None, "") else documents.money(value)
+
+
+@register.filter
+def margin(item):
+    """The margin on a Price Book item: what is left of the selling price after the cost, as a percent."""
+    if not item.price:
+        return "—"
+    return f"{round((item.price - item.cost) / item.price * 100)}%"
 
 
 @register.filter

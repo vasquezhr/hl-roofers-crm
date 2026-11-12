@@ -21,7 +21,19 @@
         <div><div class="fw-semibold">{% trans "Company details" %}</div><div class="small text-body-secondary">{% trans "The name, license, address, phone and terms printed on proposals and invoices." %}</div></div></div>
     </a>
   </div>
+  <div class="col">
+    <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'users' %}">
+      <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "accounts" %}</span>
+        <div><div class="fw-semibold">{% trans "Users and permissions" %}</div><div class="small text-body-secondary">{% trans "Who can sign in, their profile and their add-on permission sets." %}</div></div></div>
+    </a>
+  </div>
   {% block more_cards %}{% endblock %}
+  <div class="col">
+    <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'recycle_bin' %}">
+      <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "trash" %}</span>
+        <div><div class="fw-semibold">{% trans "Recycle Bin" %}</div><div class="small text-body-secondary">{% trans "Deleted records, for 30 days. Restore one, or delete it for good." %}</div></div></div>
+    </a>
+  </div>
   <div class="col">
     <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'admin_history' %}">
       <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "doc" %}</span>
@@ -37,7 +49,7 @@
   <div class="col">
     <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'admin:index' %}">
       <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "accounts" %}</span>
-        <div><div class="fw-semibold">{% trans "Logins, crews and records" %}</div><div class="small text-body-secondary">{% trans "Add or change logins, crews and workers, or correct a record, in the admin site." %}</div></div></div>
+        <div><div class="fw-semibold">{% trans "Crews, workers and corrections" %}</div><div class="small text-body-secondary">{% trans "Add or change crews and workers, or correct a record, in the admin site." %}</div></div></div>
     </a>
   </div>
 </div>

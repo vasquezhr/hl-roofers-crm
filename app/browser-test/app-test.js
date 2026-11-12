@@ -272,6 +272,35 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   const officeImports = await office.goto(base + '/imports/');
   check('the office cannot open the Admin page', officeImports.status() === 403);
 
+  console.log('Logins, permission sets and the Recycle Bin');
+  await admin.goto(base + '/manage/users/');
+  check('the administrator sees every login', (await main(admin)).includes('crew1') && (await main(admin)).includes('Permission sets'));
+  await admin.click('a:has-text("Add a login")');
+  await admin.fill('#id_username', 'wilmer');
+  await admin.fill('#id_new_password', 'roofing-demo-2');
+  await admin.fill('#id_first_name', 'Wilmer');
+  await admin.selectOption('#id_profile', 'crew');
+  await admin.selectOption('#id_crew', { label: 'Crew 1' });
+  await admin.click('button:has-text("Save")');
+  await admin.waitForLoadState('networkidle');
+  check('a login is added for one person on a crew', (await main(admin)).includes('Wilmer (Crew 1)'));
+  check('the office has no Delete button without the permission', await office.goto(base + '/leads/?show=all').then(async () => {
+    await office.click('a.list-group-item:has-text("Naomi Iturralde")'); await office.waitForLoadState('networkidle');
+    return await office.locator('a[href^="/delete/"]').count() === 0; }));
+  await admin.goto(office.url());
+  await admin.click('a[href^="/delete/lead/"]');
+  await admin.click('button:has-text("Delete")');
+  await admin.waitForLoadState('networkidle');
+  check('a deleted lead leaves the list', admin.url().endsWith('/leads/') && !(await admin.goto(base + '/leads/?show=all').then(() => main(admin))).includes('Naomi Iturralde'));
+  await admin.goto(base + '/recycle-bin/');
+  check('and waits in the Recycle Bin, with who deleted it', (await main(admin)).includes('Naomi Iturralde') && (await main(admin)).includes('Admin'));
+  await admin.click('button:has-text("Restore")');
+  await admin.waitForLoadState('networkidle');
+  check('Restore brings it back', (await admin.goto(base + '/leads/?show=all').then(() => main(admin))).includes('Naomi Iturralde'));
+  await admin.goto(base + '/manage/history/');
+  const setup = await main(admin);
+  check('the Setup history says who did it', ['Login added: wilmer', 'Deleted: Naomi Iturralde', 'Restored: Naomi Iturralde'].every(words => setup.includes(words)), setup);
+
   const problems = [office, crew, other, admin].flatMap(p => p.problems).filter(p => !p.includes('404') && !p.includes('403'));
   check('no errors in the browser', problems.length === 0, problems.join(' | '));
   await browser.close();

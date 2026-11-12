@@ -11,6 +11,7 @@ from datetime import timezone as world_clock
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -142,7 +143,7 @@ def book(request):
 def job_seen(request, number):
     """The crew's "Got it" button on a job that was moved. The office then sees that the change was seen."""
     job = job_or_404(request.user, number)
-    if request.user.is_crew_profile and job.change_unseen:
+    if request.user.is_crew_profile and request.user.can("crew_lead") and job.change_unseen:
         job.seen_at = timezone.now()
         job.save()
         log(job, "got_it", request.user)
@@ -159,6 +160,8 @@ def job_seen(request, number):
 def job_worker(request, number):
     """Add or take off an extra worker. The office or the job's crew can, until the job is done."""
     job = job_or_404(request.user, number)
+    if request.user.is_crew_profile and not request.user.can("crew_lead"):
+        raise PermissionDenied                                          # a crew login without Crew Lead only reads and adds notes
     if not job.is_finished and job.crew_id:
         worker = get_object_or_404(Worker, pk=request.POST.get("worker") or 0, crew__isnull=True)
         if request.POST.get("do") == "remove":
@@ -184,7 +187,7 @@ def my_day(request):
               "can_pay": stop.record.can_take_payment(request.user)} for stop in booked.get(day, [])]
     on_today = {item["job"].pk for item in stops}
     return render(request, "crm/my_day.html", {
-        "crew": crew, "day": day, "next_day": next_day, "stops": stops,
+        "crew": crew, "day": day, "next_day": next_day, "stops": stops, "can_confirm": request.user.can("crew_lead"),
         "next_jobs": [stop.record for stop in booked.get(next_day, [])],
         "members": crew.members.filter(active=True) if crew else [],
         "changes": [job for job in jobs_for(request.user).filter(changed_at__isnull=False, seen_at__isnull=True) if job.pk not in on_today],

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Recycle Bin" %}{% endblock %}
+
+{# What was deleted, by whom and when. Restore puts it back as it was; the administrator can delete it for good. #}
+{% block content %}
+<div class="mb-3">
+  <h1 class="h4 mb-0">{% trans "Recycle Bin" %}</h1>
+  <div class="text-body-secondary small">{% trf "Deleted records stay here for %(days)s days. Restore puts one back exactly as it was. After that, or when the administrator deletes it for good, it is gone." days=keep_days %}</div>
+</div>
+{% if entries %}
+<div class="list-group shadow-sm mb-3">
+  {% for row in entries %}
+  <div class="list-group-item d-flex flex-wrap align-items-center gap-2">
+    <div class="flex-grow-1 hl-minw0">
+      <div class="fw-semibold">{{ row.entry.label }}</div>
+      <div class="small text-body-secondary">{% trans "Deleted" %}: {{ row.entry.deleted_at|day_time }} · {{ row.entry.actor|default:"—" }}{% if row.also %} · {{ row.also }}{% endif %} · {% trf "%(days)s days left" days=row.days_left %}</div>
+    </div>
+    <form method="post" action="{% url 'bin_restore' row.entry.pk %}">{% csrf_token %}
+      <button type="submit" class="btn btn-outline-primary btn-sm">{% icon "undo" %} {% trans "Restore" %}</button></form>
+    {% if user.is_admin_profile %}
+    <form method="post" action="{% url 'bin_purge' row.entry.pk %}">{% csrf_token %}
+      <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="{% trans 'Delete it for good? This cannot be undone.' %}">{% icon "trash" %} {% trans "Delete for good" %}</button></form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card shadow-sm"><div class="card-body text-center text-body-secondary py-4">{% trans "The Recycle Bin is empty." %}</div></div>
+{% endif %}
+{% endblock %}

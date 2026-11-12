@@ -73,6 +73,23 @@
 <div class="card shadow-sm mb-3"><div class="card-body text-center text-body-secondary py-4">{% trans "Nothing is scheduled for today." %}</div></div>
 {% endif %}
 
+{% if open_inspections %}
+{# for a login with the Inspector permission #}
+<h2 class="h6 mt-4 mb-2">{% trans "Inspections nobody has taken" %}</h2>
+<div class="list-group shadow-sm mb-3">
+  {% for opp in open_inspections %}
+  <div class="list-group-item d-flex align-items-center gap-2">
+    <div class="flex-grow-1 hl-minw0">
+      <a class="fw-semibold text-decoration-none" href="{% url 'opp' opp.number %}">{{ opp.account.name }}</a>
+      <div class="small text-body-secondary text-truncate">#{{ opp.number }} · {{ opp.get_job_type_display }} · {{ opp.place.full_address }}{% if opp.inspection_at %} · {{ opp.inspection_at|day_time }}{% endif %}</div>
+    </div>
+    <form method="post" action="{% url 'take_inspection' opp.number %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'home' %}">
+      <button type="submit" class="btn btn-outline-primary btn-sm text-nowrap">{% trans "I'll take it" %}</button></form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 {% if crew_notes %}
 <h2 class="h6 mt-4 mb-2">{% trans "Notes from the crews" %}</h2>
 <div class="list-group shadow-sm mb-3">

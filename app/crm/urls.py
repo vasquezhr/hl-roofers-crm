@@ -2,7 +2,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from . import import_views, lead_views, money_views, price_views, schedule_views, views
+from . import admin_views, import_views, lead_views, money_views, price_views, schedule_views, views
 from .forms import LoginForm
 
 urlpatterns = [
@@ -39,6 +39,7 @@ urlpatterns = [
     path("opportunities/<str:number>/proposal/send/", money_views.opp_send, name="opp_send"),
     path("opportunities/<str:number>/sign/", views.opp_sign, name="opp_sign"),
     path("opportunities/<str:number>/lost/", views.opp_lost, name="opp_lost"),
+    path("opportunities/<str:number>/take/", admin_views.take_inspection, name="take_inspection"),
 
     # jobs: the office sees all of them, a crew only its own
     path("jobs/", views.jobs, name="jobs"),
@@ -53,6 +54,7 @@ urlpatterns = [
     path("jobs/<str:number>/change-orders/<int:n>/", money_views.change_order, name="change_order"),
     path("jobs/<str:number>/change-orders/<int:n>/send/", money_views.change_order_send, name="change_order_send"),
     path("jobs/<str:number>/payment/", money_views.payment_new, name="payment_new"),
+    path("jobs/<str:number>/payments/<int:pk>/remove/", money_views.payment_remove, name="payment_remove"),
     path("jobs/<str:number>/invoice/", money_views.invoice, name="invoice"),
     path("jobs/<str:number>/invoice/send/", money_views.invoice_send, name="invoice_send"),
     path("jobs/<str:number>/got-it/", schedule_views.job_seen, name="job_seen"),
@@ -66,6 +68,12 @@ urlpatterns = [
     path("schedule/calendar-address/", schedule_views.calendar_reset, name="calendar_reset"),
     path("calendar/<str:token>.ics", schedule_views.calendar_feed, name="calendar_feed"),      # no login: the long random word is the key
 
+    # deleting, for a login with the "Delete records" permission, and the Recycle Bin
+    path("delete/<str:kind>/<str:ident>/", admin_views.record_delete, name="record_delete"),
+    path("recycle-bin/", admin_views.recycle_bin, name="recycle_bin"),
+    path("recycle-bin/<int:pk>/restore/", admin_views.bin_restore, name="bin_restore"),
+    path("recycle-bin/<int:pk>/delete/", admin_views.bin_purge, name="bin_purge"),
+
     # everyone
     path("search/", views.search, name="search"),
     path("touch/", views.touch, name="touch"),
@@ -78,6 +86,9 @@ urlpatterns = [
     path("manage/", price_views.admin_home, name="admin_home"),
     path("manage/company/", price_views.company_details, name="company_details"),
     path("manage/history/", price_views.admin_history, name="admin_history"),
+    path("manage/users/", admin_views.users, name="users"),
+    path("manage/users/new/", admin_views.user_new, name="user_new"),
+    path("manage/users/<int:pk>/", admin_views.user_edit, name="user_edit"),
     path("manage/prices/", price_views.pricebook_list, name="pricebook"),
     path("manage/prices/new/", price_views.price_item_new, name="price_item_new"),
     path("manage/prices/upload/", price_views.price_upload, name="price_upload"),

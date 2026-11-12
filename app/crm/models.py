@@ -62,6 +62,16 @@ JOB_TYPES = [
 DAYS_BY_TYPE = {"replacement": 2, "tpo": 2, "metal": 2, "siding": 3}
 
 
+# ---------------------------------------------------------------- the Recycle Bin
+class Visible(models.Manager):
+    """The everyday list of a kind of record: everything except what is in the Recycle Bin.
+    A deleted record stays in the database, pointing at its entry in the bin, until it is restored or deleted for good.
+    `Model.objects` is this list; `Model.everything` also has the deleted ones."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(bin__isnull=True)
+
+
 # ---------------------------------------------------------------- people who sign in, and crews
 class Crew(models.Model):
     name = models.CharField(_("name"), max_length=60, unique=True)
@@ -111,6 +121,34 @@ class User(AbstractUser):
     profile = models.CharField(_("profile"), max_length=10, choices=Profile.choices, default=Profile.OFFICE)
     crew = models.ForeignKey(Crew, verbose_name=_("crew"), null=True, blank=True, on_delete=models.SET_NULL, related_name="logins",
                              help_text=_("Set this only for a crew's shared login."))
+    # Permission sets: add-ons to the profile, switched on for one login at a time. The Admin profile has all of them.
+    can_price_book = models.BooleanField(_("Manage Price Book"), default=False,
+                                         help_text=_("Open the Price Book, upload price files, type prices and roll an upload back."))
+    can_costs = models.BooleanField(_("View Costs and Margins"), default=False,
+                                    help_text=_("See supplier costs and the margin, in the Price Book and when writing a proposal. For someone who prices jobs."))
+    can_billing = models.BooleanField(_("Billing"), default=False,
+                                      help_text=_("Remove a payment recorded by mistake, and get the email when a job is done and ready to invoice."))
+    can_data_editor = models.BooleanField(_("Data Editor"), default=False, help_text=_("Use the data editor for single and bulk changes."))
+    can_inspect = models.BooleanField(_("Inspector"), default=False, help_text=_("See the inspections nobody has taken, and take them."))
+    can_delete = models.BooleanField(_("Delete records"), default=False,
+                                     help_text=_("Delete leads, accounts, opportunities and jobs. They go to the Recycle Bin and can be restored for 30 days."))
+    can_crew_lead = models.BooleanField(_("Crew Lead"), default=True,
+                                        help_text=_("Start and finish the crew's jobs, record a payment, change the extra workers and confirm changes. "
+                                                    "Without it, a crew login only reads its crew's jobs and adds notes."))
+    OFFICE_SETS = ["price_book", "costs", "billing", "data_editor", "inspect", "delete"]       # these add to the Office profile
+    CREW_SETS = ["crew_lead"]                                                                  # this one adds to the Crew profile
+
+    def can(self, what):
+        """True when this login has a permission set: user.can("price_book"). The Admin profile has every one."""
+        if self.is_admin_profile:
+            return True
+        return what in (self.CREW_SETS if self.is_crew_profile else self.OFFICE_SETS) and getattr(self, f"can_{what}")
+
+    @property
+    def sets(self):
+        """The names of the permission sets this login has, for the Users page."""
+        names = self.CREW_SETS if self.is_crew_profile else self.OFFICE_SETS
+        return [self._meta.get_field(f"can_{name}").verbose_name for name in names if getattr(self, f"can_{name}")]
 
     def clean(self):
         super().clean()
@@ -233,6 +271,10 @@ class Account(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    bin = models.ForeignKey("BinEntry", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
+    objects = Visible()                                         # leaves out what is in the Recycle Bin
+    everything = models.Manager()
+
     class Meta:
         ordering = ["name"]
         verbose_name, verbose_name_plural = _("account"), _("accounts")
@@ -283,6 +325,10 @@ class Contact(models.Model):
     email = models.EmailField(_("email"), blank=True)
     is_primary = models.BooleanField(_("main contact"), default=False)
 
+    bin = models.ForeignKey("BinEntry", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
+    objects = Visible()                                         # leaves out what is in the Recycle Bin
+    everything = models.Manager()
+
     class Meta:
         ordering = ["-is_primary", "id"]
         verbose_name, verbose_name_plural = _("contact"), _("contacts")
@@ -309,6 +355,10 @@ class Property(models.Model):
     access_notes = models.CharField(_("access notes"), max_length=255, blank=True)
     site_phone_digits = models.CharField(max_length=20, blank=True, editable=False)
     street_key = models.CharField(max_length=160, blank=True, editable=False, db_index=True)
+
+    bin = models.ForeignKey("BinEntry", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
+    objects = Visible()                                         # leaves out what is in the Recycle Bin
+    everything = models.Manager()
 
     class Meta:
         ordering = ["id"]
@@ -345,6 +395,10 @@ class Note(models.Model):
     source = models.CharField(max_length=12, choices=Source.choices, default=Source.APP)
     actor = models.CharField(max_length=80, blank=True)          # who typed it, as shown at the time
     created_at = models.DateTimeField(auto_now_add=True)
+
+    bin = models.ForeignKey("BinEntry", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
+    objects = Visible()                                         # leaves out what is in the Recycle Bin
+    everything = models.Manager()
 
     class Meta:
         ordering = ["-noted_on", "-id"]
@@ -415,6 +469,8 @@ class Opportunity(models.Model):
     description = models.TextField(_("what the proposal covers"), blank=True, help_text=_("One line for each item."))
     total = models.DecimalField(_("price"), max_digits=10, decimal_places=2, null=True, blank=True)
     inspection_at = models.DateTimeField(_("inspection"), null=True, blank=True)
+    inspector = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("inspector"), null=True, blank=True, on_delete=models.SET_NULL,
+                                  related_name="inspections")
     sent_on = models.DateField(null=True, blank=True)
     signed_on = models.DateField(null=True, blank=True)
     signed_how = models.CharField(_("how it was signed"), max_length=6, choices=SignedHow.choices, blank=True)
@@ -425,6 +481,10 @@ class Opportunity(models.Model):
     signed_by = models.CharField(_("name typed by the customer"), max_length=120, blank=True)
     signed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    bin = models.ForeignKey("BinEntry", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
+    objects = Visible()                                         # leaves out what is in the Recycle Bin
+    everything = models.Manager()
 
     class Meta:
         ordering = ["-created_at"]
@@ -545,6 +605,10 @@ class Job(models.Model):
     paid_on = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    bin = models.ForeignKey("BinEntry", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
+    objects = Visible()                                         # leaves out what is in the Recycle Bin
+    everything = models.Manager()
+
     class Meta:
         ordering = ["first_day", "id"]
         verbose_name, verbose_name_plural = _("job"), _("jobs")
@@ -624,7 +688,7 @@ class Job(models.Model):
         if self.is_warranty or self.balance <= 0:
             return False
         if user.is_crew_profile:
-            return self.stage in (self.Stage.IN_PROGRESS, self.Stage.DONE, self.Stage.INVOICED)
+            return user.can("crew_lead") and self.stage in (self.Stage.IN_PROGRESS, self.Stage.DONE, self.Stage.INVOICED)
         return self.stage != self.Stage.PAID
 
     def settle(self):
@@ -753,6 +817,10 @@ class Lead(models.Model):
     opportunity = models.ForeignKey(Opportunity, null=True, blank=True, on_delete=models.SET_NULL, related_name="leads")
     job = models.ForeignKey(Job, null=True, blank=True, on_delete=models.SET_NULL, related_name="leads")
 
+    bin = models.ForeignKey("BinEntry", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
+    objects = Visible()                                         # leaves out what is in the Recycle Bin
+    everything = models.Manager()
+
     class Meta:
         ordering = ["-received_at"]
         verbose_name, verbose_name_plural = _("lead"), _("leads")
@@ -844,6 +912,24 @@ class PriceEntry(models.Model):
         ordering = ["effective_on", "id"]
 
 
+# ---------------------------------------------------------------- the Recycle Bin's entries
+class BinEntry(models.Model):
+    """One delete: what was deleted, who deleted it and when. The deleted records point at their entry (their `bin` field)
+    and are hidden everywhere until the entry is restored. Deleting an entry for good deletes its records."""
+    kind = models.CharField(max_length=12)                      # lead, account, deal (an opportunity and its job), contact, property, note
+    label = models.CharField(max_length=200)                    # what it was: "Denise Wyckoff", "#26-104 · Walt & Joan Pruett"
+    also = models.CharField(max_length=200, blank=True)         # what went with it, as counts: "opportunities=2,jobs=1"
+    deleted_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    actor = models.CharField(max_length=80, blank=True)         # who deleted it, as shown at the time
+    deleted_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-deleted_at", "-id"]
+
+    def __str__(self):
+        return self.label
+
+
 # ---------------------------------------------------------------- history
 class Activity(models.Model):
     """One line of history: what happened, who did it (`user` and `actor`) and the date and time (`at`).
@@ -877,6 +963,8 @@ class Activity(models.Model):
         "contact_added": _("Contact added: %(detail)s"), "contact_edited": _("Contact changed: %(detail)s"),
         "property_added": _("Property added: %(detail)s"), "property_edited": _("Property changed: %(detail)s"),
         "note_added": _("Note added to Details"),
+        "contact_deleted": _("Contact deleted: %(detail)s"), "property_deleted": _("Property deleted: %(detail)s"),
+        "note_deleted": _("Note deleted from Details"),
         "proposal_written": _("Proposal written: %(detail)s"), "proposal_edited": _("Proposal changed: %(detail)s"),
         # the app's own setup: these lines have no record and are on Admin > Setup history
         "company_edited": _("Company details changed: %(detail)s"),
@@ -885,11 +973,18 @@ class Activity(models.Model):
         "notes_uploaded": _("Notes file uploaded: %(detail)s"), "notes_skipped": _("Imported notes skipped: %(detail)s"),
         "notes_unlinked": _("Imported notes kept with no customer: %(detail)s"),
         "calendar_reset": _("Calendar address replaced: %(detail)s"),
+        "login_added": _("Login added: %(detail)s"), "login_edited": _("Login changed: %(detail)s"),
+        "login_password": _("Password changed for %(detail)s"),
+        # deleting, and the Recycle Bin
+        "deleted": _("Moved to the Recycle Bin"), "restored": _("Restored from the Recycle Bin"),
+        "record_deleted": _("Deleted: %(detail)s"), "record_restored": _("Restored: %(detail)s"),
+        "record_purged": _("Deleted for good: %(detail)s"),
+        "payment_removed": _("Payment removed: %(detail)s"), "inspection_taken": _("Took the inspection"),
     }
     # how the stored detail of some kinds is put into words when it is read
     READERS = {"changed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
                "edited": changes_text, "contact_edited": changes_text, "property_edited": changes_text,
-               "company_edited": changes_text, "price_set": changes_text}
+               "company_edited": changes_text, "price_set": changes_text, "login_edited": changes_text}
 
     lead = models.ForeignKey("Lead", null=True, blank=True, on_delete=models.CASCADE, related_name="activities")
     account = models.ForeignKey(Account, null=True, blank=True, on_delete=models.CASCADE, related_name="activities")

@@ -42,7 +42,14 @@ Documents that go to a customer (the emailed PDF, the email's words, the Accept 
 - **Extra workers:** the office or the job's crew adds and takes off extra workers on a job until it is done.
 - **Calendar address:** the office and each crew have an address the Calendar app on an iPhone or Mac subscribes to. It shows names, addresses and the type of work, never prices or phone numbers. The office can give a calendar a new address, which closes the old one.
 
-**Not built yet** (Phase 4): reports and the dashboard, automations, permission sets, the Users page and the data editor. Photos and the Recycle Bin are not built either.
+**Logins, permission sets and deleting (Phase 4, first part)**
+
+- **Users and permissions** (Admin): every login with its profile and permission sets. **Add a login**, change one, give it a new password, or switch it off.
+- **Permission sets** add to a profile, one login at a time. For an Office login: Manage Price Book, View Costs and Margins, Billing (remove a payment recorded by mistake), Data Editor, Inspector (take an inspection nobody has taken) and Delete records. For a Crew login: Crew Lead (start and finish jobs, record a payment, change the extra workers, confirm changes); without it a crew login only reads its crew's jobs and adds notes. The Administrator has all of them.
+- **Delete, with the permission:** a Delete button on a lead, an account, an opportunity or job, a contact, a property and a Details note. The page asks first and says what goes along. An account takes its opportunities and jobs; an opportunity and its job go together.
+- **Recycle Bin:** deleted records are hidden everywhere and wait 30 days. Restore puts one back exactly as it was. Only the administrator deletes for good.
+
+**Not built yet** (the rest of Phase 4): reports and the dashboard, automations, the data editor and the system status page. Photos are not built either.
 
 ## Try it on your Windows PC
 
@@ -76,7 +83,7 @@ Run the tests. They build their own empty database, so they never touch your dat
 python manage.py test
 ```
 
-It should end with `OK (skipped=1)`. There are 211 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
+It should end with `OK (skipped=1)`. There are 232 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
 
 Then click through it:
 
@@ -120,14 +127,15 @@ Keep the real export out of this repository and out of this folder: it holds rea
 
 ## Logins, crews and numbers
 
-The administrator sets these up in the **admin site** (user menu › Admin site, or `/admin/`):
+**Logins** are on **Admin › Users and permissions**: add one, pick its profile (Administrator, Office or Crew), and switch on its permission sets. A crew login also needs its crew. There is no limit on the number of logins. `demo` gives the `office` login two sets, Billing and Manage Price Book.
+
+The administrator sets the rest up in the **admin site** (user menu › Admin site, or `/admin/`):
 
 - **Crews** and their **workers**. A worker with no crew is an extra worker who can be added to a job.
-- **Logins.** Each login has one profile: Admin, Office or Crew. A crew login also needs its crew. The Admin profile is what opens the admin site. There is no limit on the number of logins.
 - **Who shows in the history.** The history names the login. A crew's shared login shows as the crew ("Crew 1"). To see a person's name instead, give that person their own login with the Crew profile, the same crew and their first name: the history then shows "Wilmer (Crew 1)".
 - **Number sequences.** The app numbers opportunities and jobs by year: 26-101, 26-102. To carry on from numbers the business already used this year, add a row for the year (26) with the last number used.
 
-Passwords need at least 10 characters. The administrator resets a forgotten password in the admin site.
+Passwords need at least 10 characters. The administrator types a new password for someone on Users and permissions. A password is stored scrambled and is never written in the history.
 
 ## Spanish
 
@@ -149,7 +157,8 @@ The tests fail if a label has no Spanish.
 | `crm\lead_views.py` | Leads, Convert, and the address the website's form sends requests to |
 | `crm\money_views.py` | The proposal builder, change orders, payments, invoices, and the customer's Accept pages |
 | `crm\documents.py`, `crm\mail.py` | A proposal, invoice or change order as a page and as a PDF; sending email |
-| `crm\price_views.py`, `crm\pricebook.py` | The Admin hub, Company details and the Price Book; reading and comparing a price file |
+| `crm\price_views.py`, `crm\pricebook.py` | The Admin hub, Company details, Setup history and the Price Book; reading and comparing a price file |
+| `crm\admin_views.py`, `crm\recycle.py` | Users and permissions, the Delete page, the Recycle Bin and "take an inspection"; what a delete takes with it, restoring and deleting for good |
 | `crm\import_views.py`, `crm\importer.py` | The Apple Notes import: the pages, and the reading and matching rules |
 | `crm\search.py` | Search |
 | `crm\access.py` | Who may open what |

@@ -23,10 +23,10 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from . import documents
-from .access import job_or_404, office_only
+from .access import job_or_404, office_only, with_permission
 from .forms import ChangeOrderForm, PaymentForm
 from .mail import send
-from .models import ChangeOrder, Company, Job, Opportunity, PriceItem, log
+from .models import ChangeOrder, Company, Job, Opportunity, Payment, PriceItem, log
 from .views import form_page, opp_or_404, saved, today
 
 
@@ -119,7 +119,7 @@ def opp_proposal(request, number):
             return redirect("opp_document", number=opp.number)
     rows = list(rows) + [("", None)] * max(2, 4 - len(rows))          # always a few empty rows to type in
     return render(request, "crm/proposal_builder.html", {"opp": opp, "account": opp.account, "rows": rows, "problem": problem,
-                                                         "price_items": PriceItem.objects.all()})
+                                                         "price_items": PriceItem.objects.all(), "show_costs": request.user.can("costs")})
 
 
 @office_only
@@ -350,6 +350,22 @@ def payment_new(request, number):
     intro = _("Balance due: %(amount)s") % {"amount": documents.money(balance)}
     return form_page(request, form, _("Record payment"), reverse("job", args=[job.number]), intro=intro,
                      sub=f"#{job.number} · {job.account.name}", save_label=_("Record payment"))
+
+
+@with_permission("billing")
+@require_POST
+def payment_remove(request, number, pk):
+    """Take off a payment that was recorded by mistake. For a login with the Billing permission. The history keeps what it was."""
+    payment = get_object_or_404(Payment, pk=pk, job__number=number)
+    what = f"{documents.money(payment.amount)} · {documents.payment_label(payment)}"
+    payment.delete()
+    job = get_object_or_404(Job.objects.prefetch_related("change_orders", "payments"), number=number)
+    if job.stage == Job.Stage.PAID and job.balance > 0:                # no longer paid in full: back to where it was
+        job.stage, job.paid_on = (Job.Stage.INVOICED if job.invoiced_on else Job.Stage.DONE), None
+        job.save()
+    log(job, "payment_removed", request.user, detail=what)
+    saved(request)
+    return redirect("job", number=job.number)
 
 
 # ---------------------------------------------------------------- the invoice

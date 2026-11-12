@@ -13,6 +13,7 @@
     <h1 class="h4 mb-0">{{ account.name }}</h1>
     <div class="text-body-secondary small">#{{ job.number }} · {{ job.get_job_type_display }} {% job_tags job %}</div>
   </div>
+  {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm" href="{% url 'record_delete' 'job' job.number %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">{% icon "trash" %}</a>{% endif %}
   {% stage_badge job %}
 </div>
 
@@ -164,7 +165,8 @@
           {% for payment in payments %}
           <div class="d-flex justify-content-between gap-3">
             <span>{{ payment.paid_on|date }} · {{ payment.get_kind_display }} · {{ payment.get_method_display }}{% if payment.check_number %} #{{ payment.check_number }}{% endif %} <span class="text-body-secondary">· {{ payment.actor }}</span></span>
-            <span class="text-nowrap">−{{ payment.amount|money }}</span>
+            <span class="text-nowrap">−{{ payment.amount|money }}{% if can_remove_payment %}
+              <form method="post" action="{% url 'payment_remove' job.number payment.pk %}" class="d-inline">{% csrf_token %}<button type="submit" class="btn btn-link btn-sm text-danger p-0 ms-1 align-baseline" data-confirm="{% trans 'Remove this payment? Use this only for a payment recorded by mistake.' %}" aria-label="{% trans 'Remove this payment' %}">{% icon "trash" %}</button></form>{% endif %}</span>
           </div>
           {% endfor %}
           {% endif %}

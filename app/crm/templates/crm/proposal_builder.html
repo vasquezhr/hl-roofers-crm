@@ -37,7 +37,7 @@
         <select class="form-select form-select-sm w-auto" data-add-item aria-label="{% trans 'Add from the Price Book' %}">
           <option value="">{% trans "Add from the Price Book" %}…</option>
           {% for item in price_items %}
-          <option data-text="{{ item.name }}{% if item.unit %} ({{ item.unit }}){% endif %}" data-amount="{{ item.price|unlocalize }}">{{ item.name }} · {{ item.price|money }}{% if item.unit %}/{{ item.unit }}{% endif %}</option>
+          <option data-text="{{ item.name }}{% if item.unit %} ({{ item.unit }}){% endif %}" data-amount="{{ item.price|unlocalize }}">{{ item.name }} · {{ item.price|money }}{% if item.unit %}/{{ item.unit }}{% endif %}{% if show_costs %} · {% trans "cost" %} {{ item.cost|money }}{% endif %}</option>
           {% endfor %}
         </select>
         {% endif %}

@@ -17,7 +17,9 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from . import pricebook
-from .access import admin_only
+from django.core.exceptions import PermissionDenied
+
+from .access import admin_only, with_permission
 from .forms import CompanyForm, NewPriceForm, PriceItemForm, PriceUploadForm
 from .history import changes, field_changes
 from .models import Activity, Company, ImportedNote, PriceEntry, PriceItem, PriceUpload, log
@@ -68,7 +70,9 @@ def admin_history(request):
 
 
 # ---------------------------------------------------------------- the Price Book
-@admin_only
+# The administrator, and an office login with "Manage Price Book", can change it.
+# An office login with "View Costs and Margins" can read it.
+@with_permission("price_book", "costs")
 def pricebook_list(request):
     show = request.GET.get("show", "all")
     items = PriceItem.objects.all()
@@ -77,16 +81,19 @@ def pricebook_list(request):
     uploads = list(PriceUpload.objects.all()[:30])
     latest = next((upload for upload in uploads if not upload.rolled_back_at), None)
     return render(request, "crm/pricebook.html", {
-        "items": chosen, "uploads": uploads, "latest": latest, "show": show,
+        "items": chosen, "uploads": uploads, "latest": latest, "show": show, "can_manage": request.user.can("price_book"),
         "pills": filter_pills(show if show in suppliers else "all",
                               [("all", _("All"), items.count())] + [(name, name, items.filter(supplier=name).count()) for name in suppliers]),
     })
 
 
-@admin_only
+@with_permission("price_book", "costs")
 def price_item(request, pk):
     """One item: every price it has had, and a box to type a new one."""
     item = get_object_or_404(PriceItem, pk=pk)
+    can_manage = request.user.can("price_book")
+    if request.method == "POST" and not can_manage:
+        raise PermissionDenied
     form = NewPriceForm(request.POST or None, initial={"cost": item.cost, "price": item.price})
     if form.is_valid():
         cost, price = form.cleaned_data["cost"], form.cleaned_data["price"]
@@ -104,10 +111,10 @@ def price_item(request, pk):
         before = entry
     for line in history:
         line["big"] = line["percent"] is not None and abs(line["percent"]) > 10
-    return render(request, "crm/price_item.html", {"item": item, "history": reversed(history), "form": form})
+    return render(request, "crm/price_item.html", {"item": item, "history": reversed(history), "form": form, "can_manage": can_manage})
 
 
-@admin_only
+@with_permission("price_book")
 def price_item_new(request):
     form = PriceItemForm(request.POST or None)
     if form.is_valid():
@@ -119,7 +126,7 @@ def price_item_new(request):
     return form_page(request, form, _("New item"), reverse("pricebook"))
 
 
-@admin_only
+@with_permission("price_book")
 def price_upload(request):
     """Step 1: pick the file. Step 2: the review page shows what it would change. Nothing is saved until Confirm."""
     form = PriceUploadForm(request.POST or None, request.FILES or None)
@@ -138,7 +145,7 @@ def price_upload(request):
                      multipart=True, suppliers=sorted(set(PriceItem.objects.values_list("supplier", flat=True))))
 
 
-@admin_only
+@with_permission("price_book")
 def price_review(request):
     held = request.session.get(HELD)
     if not held:
@@ -153,7 +160,7 @@ def price_review(request):
     return render(request, "crm/price_review.html", {"held": held, "found": found, "nothing": not (found["added"] or found["changed"])})
 
 
-@admin_only
+@with_permission("price_book")
 @require_POST
 def price_rollback(request, pk):
     """Made a mistake? Rolling back removes the newest upload's prices. Only the newest one can be rolled back."""
@@ -168,7 +175,7 @@ def price_rollback(request, pk):
     return redirect("pricebook")
 
 
-@admin_only
+@with_permission("price_book")
 def price_blank_file(request):
     out = io.BytesIO()
     pricebook.blank_file().save(out)

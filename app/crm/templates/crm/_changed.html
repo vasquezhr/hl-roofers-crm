@@ -6,7 +6,9 @@
   <div class="flex-grow-1">{% icon "bell" %} <span class="fw-semibold">{% trans "Changed" %}.</span> {% trans "Before" %}: {% was_dates job %}.
     {% if not crew_view and job.change_unseen %}<span class="text-body-secondary">{% trf "%(crew)s has not seen it yet." crew=job.crew.name %}</span>{% endif %}
   </div>
-  {% if crew_view %}
+  {% if crew_view and not can_confirm %}
+  {# a crew login without Crew Lead reads the notice; the crew lead confirms it #}
+  {% elif crew_view %}
   <form method="post" action="{% url 'job_seen' job.number %}">
     {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
     <button type="submit" class="btn btn-warning btn-sm">{% icon "check" %} {% trans "Got it" %}</button>

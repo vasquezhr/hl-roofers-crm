@@ -100,15 +100,18 @@ def home(request):
                           "text": _("%(crew)s has not seen the change to job #%(number)s") % {"crew": job.crew.name, "number": job.number}})
     # notes the crews wrote on their jobs, since the start of the last work day
     since = timezone.make_aware(datetime.combine(scheduling.work_day(-1, day), datetime.min.time()))
-    crew_notes = (Activity.objects.filter(kind="note", job__isnull=False, user__profile="crew", at__gte=since)
+    crew_notes = (Activity.objects.filter(kind="note", job__isnull=False, job__bin__isnull=True, user__profile="crew", at__gte=since)
                   .select_related("job__account")[:12])
+    # for a login with the Inspector permission: the inspections nobody has taken yet
+    open_inspections = (list(opps.filter(stage=Opportunity.Stage.INSPECTION, inspector__isnull=True).order_by("created_at"))
+                        if request.user.can("inspect") else [])
     waiting = ImportedNote.objects.filter(status=ImportedNote.Status.PENDING).count() if request.user.is_admin_profile else 0
     if waiting:
         attention.append({"icon": "upload", "url": reverse("import_queue"),
                           "text": _("%(count)s imported notes are waiting for review") % {"count": waiting}})
 
     return render(request, "crm/home.html", {
-        "day": day, "inspections": inspections, "working": working, "attention": attention, "crew_notes": crew_notes,
+        "day": day, "inspections": inspections, "working": working, "attention": attention, "crew_notes": crew_notes, "open_inspections": open_inspections,
         "proposals_out": opps.filter(stage=Opportunity.Stage.PROPOSAL).count(),
         "to_schedule": jobs.filter(stage=Job.Stage.SIGNED).count(),
         "in_progress": jobs.filter(stage=Job.Stage.IN_PROGRESS).count(),
@@ -199,7 +202,8 @@ def contact_edit(request, pk):
             log(contact.account, "contact_edited", request.user, detail=what)
         saved(request)
         return redirect("account", pk=contact.account_id)
-    return form_page(request, form, _("Edit the contact"), reverse("account", args=[contact.account_id]))
+    return form_page(request, form, _("Edit the contact"), reverse("account", args=[contact.account_id]),
+                     delete_url=reverse("record_delete", args=["contact", contact.pk]))
 
 
 @office_only
@@ -227,7 +231,8 @@ def property_edit(request, pk):
             log(place.account, "property_edited", request.user, detail=what)
         saved(request)
         return redirect("account", pk=place.account_id)
-    return form_page(request, form, _("Edit the property"), reverse("account", args=[place.account_id]))
+    return form_page(request, form, _("Edit the property"), reverse("account", args=[place.account_id]),
+                     delete_url=reverse("record_delete", args=["property", place.pk]))
 
 
 @office_only
@@ -374,8 +379,8 @@ CREW_STEPS = [Job.Stage.SCHEDULED, Job.Stage.IN_PROGRESS]        # a crew may st
 
 def next_step(job, user):
     """The next step this person may take on the job, or None."""
-    if job.stage not in NEXT_STEP or (user.is_crew_profile and job.stage not in CREW_STEPS):
-        return None
+    if job.stage not in NEXT_STEP or (user.is_crew_profile and (job.stage not in CREW_STEPS or not user.can("crew_lead"))):
+        return None                                                 # a crew login without Crew Lead only reads and adds notes
     to, label, kind, date_field = NEXT_STEP[job.stage]
     return {"to": to, "label": label, "kind": kind, "date_field": date_field}
 
@@ -387,6 +392,7 @@ def job(request, number):
     office = not request.user.is_crew_profile
     orders = list(job.change_orders.all())
     lines = list(job.activities.all())
+    may_change_workers = job.crew_id is not None and not job.is_finished and (office or request.user.can("crew_lead"))
     return render(request, "crm/job.html", {
         "job": job, "account": job.account, "crew_view": not office, "step": next_step(job, request.user),
         "can_schedule": office and not job.is_finished,
@@ -400,8 +406,10 @@ def job(request, number):
         # the job's paperwork: its signed proposal, its change orders and its invoice. The crew can open them too.
         "documents": document_rows([job.opportunity] if job.opportunity_id else [], [job]),
         # extra workers can be added or taken off, by the office or the crew, until the job is done
-        "can_change_workers": job.crew_id is not None and not job.is_finished,
-        "free_workers": Worker.objects.filter(active=True, crew__isnull=True).exclude(jobs=job) if job.crew_id and not job.is_finished else [],
+        "can_change_workers": may_change_workers,
+        "free_workers": Worker.objects.filter(active=True, crew__isnull=True).exclude(jobs=job) if may_change_workers else [],
+        "can_confirm": not office and request.user.can("crew_lead"),             # the Got it button on a moved job
+        "can_remove_payment": office and request.user.can("billing"),
         "notify_href": scheduling.notify_href(job, Company.load()) if job.change_unseen and office else "",
         "members": job.crew.members.filter(active=True) if job.crew else [],
         "workers": job.workers.all(),

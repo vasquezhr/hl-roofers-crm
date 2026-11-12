@@ -28,6 +28,7 @@
           {% endif %}
           {% include "crm/_fields.html" %}
           <div class="d-flex gap-2 justify-content-end">
+            {% if delete_url and user|can:"delete" %}<a class="btn btn-outline-danger me-auto" href="{{ delete_url }}">{% icon "trash" %} {% trans "Delete" %}</a>{% endif %}
             <a class="btn btn-outline-secondary" href="{{ back }}">{% trans "Cancel" %}</a>
             <button type="submit" class="btn btn-primary">{{ save_label }}</button>
           </div>

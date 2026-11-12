@@ -1,11 +1,12 @@
 """The forms people fill in. Each one gets Bootstrap's form styling automatically."""
 from django import forms
 from django.conf import settings
+from django.contrib.auth import password_validation
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils.translation import gettext_lazy as _
 
 from .models import (JOB_TYPES, LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Opportunity, Payment, PriceItem, Property,
-                     Worker)
+                     User, Worker)
 
 JOB_TYPES_TO_SELL = [choice for choice in JOB_TYPES if choice[0] != "warranty"]      # a warranty visit is opened from a job, never sold
 
@@ -292,3 +293,61 @@ class CompanyForm(Bootstrap, forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["lead_owner"].queryset = self.fields["lead_owner"].queryset.exclude(profile="crew").filter(is_active=True)
         self.fields["lead_owner"].label_from_instance = lambda user: user.label
+
+
+# ---------- logins and their permission sets
+class LoginDetailsForm(Bootstrap, forms.ModelForm):
+    """A login: who it is for, its profile, its permission sets, and (when typed) a new password.
+    The password box is not one of the login's own fields: a password is only ever saved through set_password, which scrambles it."""
+    new_password = forms.CharField(label=_("Password"), required=False, strip=False,
+                                   widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+                                   help_text=_("At least 10 characters. For a login that exists, leave this empty to keep its password."))
+    field_order = ["username", "new_password"]
+
+    class Meta:
+        model = User
+        fields = ["username", "first_name", "last_name", "email", "profile", "crew", "is_active",
+                  "can_price_book", "can_costs", "can_billing", "can_data_editor", "can_inspect", "can_delete", "can_crew_lead"]
+        labels = {"is_active": _("Can sign in")}
+        help_texts = {"is_active": _("Turn this off instead of deleting a login. Its name stays in the history."),
+                      "first_name": _("For a login made for one person. The history then shows this name."),
+                      "email": _("Where the app sends this person's reminders. It can stay empty.")}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["crew"].queryset = Crew.objects.filter(active=True)
+        self.fields["crew"].help_text = _("For the Crew profile: the crew whose jobs this login sees.")
+        if self.instance.pk:                                        # a login that exists shows only the sets for its profile
+            for name in User.OFFICE_SETS + User.CREW_SETS:
+                if name not in self.sets_for(self.instance.profile):
+                    del self.fields[f"can_{name}"]
+
+    @staticmethod
+    def sets_for(profile):
+        return [] if profile == User.Profile.ADMIN else User.CREW_SETS if profile == User.Profile.CREW else User.OFFICE_SETS
+
+    def clean_new_password(self):
+        password = self.cleaned_data["new_password"]
+        if password:
+            password_validation.validate_password(password, self.instance)
+        elif not self.instance.pk:
+            raise forms.ValidationError(_("A new login needs a password."))
+        return password
+
+    def clean(self):
+        data = super().clean()
+        user = self.instance
+        if user.pk and user.is_admin_profile and (data.get("profile") != User.Profile.ADMIN or not data.get("is_active")):
+            if not User.objects.filter(profile=User.Profile.ADMIN, is_active=True).exclude(pk=user.pk).exists():
+                raise forms.ValidationError(_("This is the only administrator. Add another administrator before changing this one."))
+        return data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        for name in User.OFFICE_SETS + User.CREW_SETS:              # a set that is not for this profile goes back to how a new login starts
+            if name not in self.sets_for(user.profile):
+                setattr(user, f"can_{name}", User._meta.get_field(f"can_{name}").default)
+        if self.cleaned_data["new_password"]:
+            user.set_password(self.cleaned_data["new_password"])
+        user.save()
+        return user

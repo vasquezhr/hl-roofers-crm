@@ -9,6 +9,7 @@
     <h1 class="h4 mb-0">{{ account.name }}</h1>
     <div class="text-body-secondary small">#{{ opp.number }} · {{ opp.get_job_type_display }}{% if opp.labor_only %} · {% trans "Labor only" %}{% endif %}</div>
   </div>
+  {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm" href="{% url 'record_delete' 'opp' opp.number %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">{% icon "trash" %}</a>{% endif %}
   {% stage_badge opp %}
 </div>
 
@@ -55,6 +56,13 @@
         <div class="fw-semibold">{{ opp.inspection_at|day }} · {{ opp.inspection_at|time:"g:i A" }}</div>
         {% else %}
         <div class="small text-body-secondary">{% trans "No inspection date yet." %}</div>
+        {% endif %}
+        {% if opp.inspector %}
+        <div class="small">{% trans "Inspector" %}: <span class="fw-semibold">{{ opp.inspector.label }}</span></div>
+        {% elif opp.stage == "inspection" and user|can:"inspect" %}
+        <form method="post" action="{% url 'take_inspection' opp.number %}" class="mt-1">{% csrf_token %}
+          <button type="submit" class="btn btn-outline-primary btn-sm">{% icon "user" %} {% trans "I'll take it" %}</button>
+          <span class="small text-body-secondary ms-1">{% trans "Nobody has taken this inspection yet." %}</span></form>
         {% endif %}
         {% if opp.stage == "inspection" %}
         <a class="btn {% if opp.inspection_at %}btn-outline-secondary{% else %}btn-primary{% endif %} btn-sm mt-2" href="{% url 'schedule' %}?book=opp:{{ opp.number }}#book">{% icon "schedule" %} {% if opp.inspection_at %}{% trans "Change the time" %}{% else %}{% trans "Book the inspection" %}{% endif %}</a>

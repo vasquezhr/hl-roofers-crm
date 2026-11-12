@@ -37,6 +37,20 @@ def admin_only(view):
     return wrapper
 
 
+def with_permission(*names):
+    """Pages for the administrator, and for a login that has one of these permission sets:
+    @with_permission("price_book", "costs")"""
+    def decorate(view):
+        @wraps(view)
+        @login_required
+        def wrapper(request, *args, **kwargs):
+            if not any(request.user.can(name) for name in names):
+                raise PermissionDenied
+            return view(request, *args, **kwargs)
+        return wrapper
+    return decorate
+
+
 def jobs_for(user):
     """The jobs this login may see: every job for the office; only its own crew's jobs for a crew."""
     jobs = Job.objects.select_related("account", "place", "crew", "opportunity").prefetch_related("change_orders", "payments")

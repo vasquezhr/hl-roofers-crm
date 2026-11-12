@@ -221,7 +221,7 @@ On Nov 10, 2026 the user wrote "go ahead and create phase 1 of the actual app". 
 | 1 · Customer records and search | Accounts (person or company) with contacts, properties and Details; Opportunities and Jobs on one stage bar; a signed proposal creates the Job with the same number; scheduling to a crew for whole work days; warranty jobs; outside numbers; one search box; Admin, Office and Crew profiles; Call, Text, Directions with history; English and Spanish; the Apple Notes import with a review queue | Built, Nov 10 |
 | 2 · Leads, proposals, invoices, pricing | Leads with the website's request address, Convert and "Not a fit"; the proposal builder with Price Book lines; the proposal as a page and a PDF, emailed or marked sent; the customer's Accept page; change orders; deposits, payments and balance due; the invoice; crews record payments they collect; the Price Book with an Excel upload, review, full history and roll back; Company details that fill the placeholders; an Admin hub | Built, Nov 11 |
 | 3 · Scheduling and crew | The Schedule page (five work days, a filter for each crew and the inspections); "Schedule a visit" with suggested times for inspections and jobs; rough distances by ZIP code; "Changed" on a moved job, Notify crew and Got it; the crew's My Day; extra workers added and taken off; a calendar address for the office and for each crew | Built, Nov 12 |
-| 4 · Reports, dashboard, automations, admin | — | Not started |
+| 4 · Reports, dashboard, automations, admin | Built so far: Users and permissions with seven permission sets, Delete with a permission and the Recycle Bin, Setup history. To build: dashboard, reports, automations, data editor, system status | In progress, Nov 12 |
 
 **Built with:** Python 3.13, Django 5.2 (the long-term-support release), PostgreSQL on the server and a single SQLite file on a PC, Bootstrap 5.3.8 served from the app's own files, Waitress and WhiteNoise for the Windows server. Server-rendered pages; about 50 lines of JavaScript.
 
@@ -321,8 +321,38 @@ The user: "history should show WHO made the changes and at what time ... any upd
 - **Photos are not built yet.** When they are, an upload gets its line the same way.
 - Records made before this change keep the lines they already had; the lines missing for old edits cannot be recovered.
 
-**3. Delete, with a permission** (to build, with the permission sets). The breakdown already says deleted records go to a Recycle Bin for 30 days and only the Admin empties it.
+**3. Delete, with a permission** (built Nov 12, with the permission sets)
+
+The user: "there should be a way to delete records as well, but with a permission."
+
+- **"Delete records" is a permission set** the administrator switches on for an Office login. The Administrator always has it. A crew login never does.
+- **What can be deleted:** a lead, an account, an opportunity or a job, a contact, a property and a note in Details. The page asks first and lists what goes along.
+- **What goes together:** an account takes its opportunities, its jobs and the website requests that became them. An opportunity and its job are one deal with one number, so they go together, with the job's warranty jobs. A job takes its change orders, payments and invoice.
+- **Nothing is erased by Delete.** The record goes to the Recycle Bin and is hidden everywhere: lists, Search, Today, the schedule, the reports and the calendar files. This follows the breakdown ("Deletes go to a Recycle Bin for 30 days, the way Salesforce does it; only Admin empties it").
+- **Restore** puts everything back exactly as it was. Anyone with the Delete permission can restore; only the administrator deletes for good. After 30 days the bin empties itself (this needs the scheduled command, which comes with the automations).
+- **An address with opportunities or jobs on it cannot be deleted** on its own.
+- **A payment recorded by mistake** is taken off by a login with the Billing set. It does not go to the bin; the history keeps what it was.
+- Every delete, restore and delete-for-good is in the record's history and in the Setup history, with who and when.
+- Choices to confirm: the 30 days; that deleting an account is allowed even when it has paid jobs (they return if restored, and are gone for good after the bin empties); that restoring is open to everyone who may delete.
+
+**3b. Permission sets and the Users page** (built Nov 12; Phase 4)
+
+- **Logins are added in the app now** (Admin › Users and permissions › Add a login), which the mockup did not show. The administrator also changes a login, types a new password for it, or switches it off. Switching off replaces deleting a login, so its name stays in the history.
+- **The seven permission sets and what each really does:**
+
+| Set | For | What it allows |
+| --- | --- | --- |
+| Manage Price Book | Office | Open the Price Book, upload price files, type prices, roll an upload back. Gives the login its own Price Book tab |
+| View Costs and Margins | Office | Read the Price Book (cost, selling price, margin) and see each item's cost when writing a proposal. Changes nothing |
+| Billing | Office | Remove a payment recorded by mistake. Later: get the "job done, ready to invoice" email |
+| Data Editor | Office | Use the data editor (to build) |
+| Inspector | Office | See "Inspections nobody has taken" on Today and take one, which puts the login's name on it |
+| Delete records | Office | Delete, and restore from the Recycle Bin |
+| Crew Lead | Crew | Start and finish jobs, record a payment, change extra workers, tap Got it. On by default. Without it, a crew login only reads its crew's jobs and adds notes |
+
+- **These differ from the mockup,** where the six sets were labels only. Choices to confirm: the Office profile still creates and sends invoices and records payments without Billing, as the mockup's own description of the Office profile says, so Billing adds only the removal of a payment; "Inspector" adds a name on the inspection, which the app did not have; "Delete records" is new.
+- **A password is never written in the history,** not even scrambled. The last administrator cannot be switched off or changed to another profile.
 
 **4. Crew notes on a job, for the office to see** (built Nov 12). A crew could already add a note on its job. Now the job has a Notes box, apart from the history, where each note shows who wrote it and when; the crew's box is labeled "Add a note for the office"; and the office's Today page lists what the crews wrote since the start of the last work day. Choice to confirm: notes leave Today by age, not by someone marking them read.
 
-**5. Adding logins.** Logins are added in the admin site today. The app's own Users page (Phase 4) gets an "Add a login" button, which the mockup does not show.
+**5. Adding logins** (built Nov 12). See 3b.
