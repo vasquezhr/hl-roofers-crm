@@ -114,6 +114,20 @@ JOBS = {
 }
 
 
+# Older work, so the dashboard and the reports have six months to show. These are paid jobs for the customers who have been
+# with the business longest: months ago, account, which property, type, price, crew, labor only
+PAST_JOBS = [
+    (6, "A3", 0, "replacement", 2100, "Crew 2", True), (6, "A5", 0, "gutters", 1480, "Crew 1", False), (6, "A6", 0, "repair", 640, "Crew 2", False),
+    (5, "A3", 1, "replacement", 2350, "Crew 2", True), (5, "A2", 0, "repair", 520, "Crew 1", False), (5, "A6", 0, "siding", 2890, "Crew 1", False),
+    (4, "A3", 0, "replacement", 2250, "Crew 2", True), (4, "A5", 0, "repair", 760, "Crew 1", False), (4, "A6", 0, "siding", 1840, "Crew 2", False),
+    (3, "A3", 1, "replacement", 2600, "Crew 2", True), (3, "A2", 0, "gutters", 1350, "Crew 1", False), (3, "A6", 0, "repair", 480, "Crew 2", False),
+    (2, "A3", 0, "replacement", 2450, "Crew 2", True), (2, "A5", 0, "chimney", 1120, "Crew 1", False), (2, "A6", 0, "skylight", 1675, "Crew 1", False),
+    (1, "A3", 1, "replacement", 2800, "Crew 2", True), (1, "A2", 0, "repair", 690, "Crew 1", False), (1, "A6", 0, "siding", 3050, "Crew 2", False),
+]
+# two more proposals the customer turned down: months ago, account, type, price, reason
+PAST_LOST = [(3, "A2", "replacement", 9800, "timing"), (2, "A5", "siding", 6400, "noresponse")]
+WAITS = [25, 95, 180, 40, 300, 70, 15, 130, 55, 210]        # minutes from a request arriving to the first call, for the demo's leads
+
 # requests from the website: name, phone, email, street, city, zip, type, language, status, hours ago, message, reason
 LEADS = [
     ("Mina Seo", "(804) 555-0178", "mseo@example.com", "3214 Broad St Rd", "Short Pump", "23233", "inspection", "en", "new", 3,
@@ -158,6 +172,20 @@ class Command(BaseCommand):
 
         def at(day):
             return timezone.make_aware(datetime.combine(day, time(9, 30)))
+
+        def lead_for(opp, received):
+            """Every opportunity began as a request. This adds the lead it was converted from, so the lead reports have something to count."""
+            contact, wait = opp.account.main_contact, WAITS[Lead.objects.count() % len(WAITS)]
+            answered = received + timedelta(minutes=wait)
+            lead = Lead.objects.create(
+                name=contact.name if contact else opp.account.name, phone=contact.phone if contact else "", email=contact.email if contact else "",
+                street=opp.place.street, city=opp.place.city, zip_code=opp.place.zip_code, job_type=opp.job_type, language=opp.account.language,
+                source=opp.source, status="converted", owner=office, received_at=received, first_contact_at=answered,
+                account=opp.account, opportunity=opp, message=opp.description.splitlines()[0] if opp.description else "")
+            from_web = opp.source == "web"
+            Activity.objects.create(lead=lead, kind="lead_in" if from_web else "lead_typed", actor="Web" if from_web else "Office", at=received)
+            Activity.objects.create(lead=lead, kind="call", actor="Office", at=answered)
+            Activity.objects.create(lead=lead, kind="converted", actor="Office", at=answered + timedelta(hours=1))
 
         # crews, workers and logins
         crews, workers = {}, {}
@@ -204,6 +232,7 @@ class Command(BaseCommand):
             if sent is not None:
                 opp.link()                                                 # a sent proposal has its Accept page
             history(opp, "opp_created", ago(created))
+            lead_for(opp, at(ago(created)) - timedelta(hours=3))
             if sent is not None:
                 history(opp, "proposal_sent", ago(sent))
             if stage == "lost":
@@ -232,6 +261,46 @@ class Command(BaseCommand):
                 job.paid_on = job.last_day + timedelta(days=3)
                 history(job, "paid", job.paid_on)
             job.save()
+
+        # six months of older, paid work, and two more lost proposals
+        def month_day(months_ago, day):
+            """A work day in the month that many months back: the given day, or the Monday after if it falls on a weekend."""
+            first = timezone.localdate().replace(day=1)
+            for _month in range(months_ago):
+                first = (first - timedelta(days=1)).replace(day=1)
+            when = first.replace(day=day)
+            return when + timedelta(days={5: 2, 6: 1}.get(when.weekday(), 0))
+
+        count = 30
+        for months_ago, key, which, job_type, price, crew, labor_only in PAST_JOBS:
+            count += 1
+            created, signed, worked = month_day(months_ago, 2), month_day(months_ago, 6), month_day(months_ago, 12)
+            words = dict(Opportunity._meta.get_field("job_type").flatchoices)[job_type]
+            opp = Opportunity.objects.create(
+                number=f"{created.year % 100:02d}-{count:03d}", account=accounts[key], place=places[key][which], job_type=job_type, stage="won",
+                source={"A3": "contractor", "A6": "warranty"}.get(key, "repeat"), labor_only=labor_only, sent_on=month_day(months_ago, 4),
+                signed_on=signed, signed_how="po" if key in ("A3", "A6") else "paper")
+            opp.set_lines([(str(words), price)])
+            history(opp, "opp_created", created)
+            lead_for(opp, at(created) - timedelta(hours=2))
+            history(opp, "signed", signed)
+            done = Job.objects.create(number=opp.number, opportunity=opp, account=opp.account, place=opp.place, job_type=job_type, stage="paid",
+                                      price=price, labor_only=labor_only, scope=str(words), crew=crews[crew], first_day=worked, days=1,
+                                      started_on=worked, done_on=worked, invoiced_on=worked, paid_on=month_day(months_ago, 16))
+            for kind, day, actor in [("job_created", signed, "Office"), ("started", worked, crew), ("done", worked, crew), ("invoiced", worked, "Office"),
+                                     ("paid", done.paid_on, "Office")]:
+                history(done, kind, day, actor=actor)
+            Payment.objects.create(job=done, paid_on=done.paid_on, amount=price, method="check", check_number=str(1000 + count), kind="payment",
+                                   user=office, actor="Office")
+        for months_ago, key, job_type, price, reason in PAST_LOST:
+            count += 1
+            created = month_day(months_ago, 8)
+            lost = Opportunity.objects.create(number=f"{created.year % 100:02d}-{count:03d}", account=accounts[key], place=places[key][0], job_type=job_type,
+                                              stage="lost", source="repeat", sent_on=month_day(months_ago, 10), lost_on=month_day(months_ago, 20), lost_reason=reason)
+            lost.set_lines([(str(dict(Opportunity._meta.get_field("job_type").flatchoices)[job_type]), price)])
+            history(lost, "opp_created", created)
+            lead_for(lost, at(created) - timedelta(hours=4))
+            history(lost, "lost", lost.lost_on)
 
         # one inspection tomorrow, and a warranty job on the finished skylight
         inspection = Opportunity.objects.get(number=number("124"))
@@ -297,6 +366,8 @@ class Command(BaseCommand):
         # new numbers continue after the demo's last one
         Sequence.objects.update_or_create(year=yy, defaults={"last": 127})
 
-        self.stdout.write(self.style.SUCCESS("Demo data loaded: 12 customers, 4 leads, 13 opportunities, 10 jobs, 2 crews and a Price Book."))
+        self.stdout.write(self.style.SUCCESS(
+            f"Demo data loaded: {Account.objects.count()} customers, {Lead.objects.count()} leads, {Opportunity.objects.count()} opportunities, "
+            f"{Job.objects.count()} jobs, 2 crews and a Price Book. It includes six months of older, paid work for the reports."))
         self.stdout.write(f"Logins (password for all four: {PASSWORD}):  admin   office   crew1   crew2")
         self.stdout.write("These logins are for trying the app on your PC. Never load the demo data on the real server.")

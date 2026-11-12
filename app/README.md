@@ -49,7 +49,14 @@ Documents that go to a customer (the emailed PDF, the email's words, the Accept 
 - **Delete, with the permission:** a Delete button on a lead, an account, an opportunity or job, a contact, a property and a Details note. The page asks first and says what goes along. An account takes its opportunities and jobs; an opportunity and its job go together.
 - **Recycle Bin:** deleted records are hidden everywhere and wait 30 days. Restore puts one back exactly as it was. Only the administrator deletes for good.
 
-**Not built yet** (the rest of Phase 4): reports and the dashboard, automations, the data editor and the system status page. Photos are not built either.
+**Dashboard and reports (Phase 4, second part)**
+
+- **Dashboard:** the administrator's first page. The day's counts, last month's revenue against the month before, the jobs in the next five work days, the open inspections, and two charts.
+- **Reports** (office and administrator, never crews): the two charts and eight ready-made reports: leads by source, lead response time, close rate, revenue by month, unpaid invoices, jobs finished per crew, lost reasons and price changes. Each has three periods (this month, the last 3 months, this year) and **Export**, which gives the table as a spreadsheet file for Excel or Numbers.
+- **The numbers are counted from the records** each time a page opens. **Revenue means money received:** the payments recorded, by the day each came in.
+- Each chart has its table: **See the numbers** opens the report behind it.
+
+**Not built yet** (the rest of Phase 4): automations, the data editor and the system status page. Photos are not built either.
 
 ## Try it on your Windows PC
 
@@ -69,7 +76,7 @@ python manage.py runserver
 
 4. Open **http://127.0.0.1:8000** in a browser.
 
-`demo` fills the empty database with made-up customers, two crews and four logins: `admin`, `office`, `crew1` and `crew2`. The password for all four is `roofing-demo`. Nothing is installed besides Python: on your PC the database is one file, `db.sqlite3`, in this folder.
+`demo` fills the empty database with made-up customers, six months of made-up past work (so the reports have something to count), two crews and four logins: `admin`, `office`, `crew1` and `crew2`. The password for all four is `roofing-demo`. Nothing is installed besides Python: on your PC the database is one file, `db.sqlite3`, in this folder.
 
 - **To start over:** stop the server (Ctrl+C), delete `db.sqlite3`, then run `migrate` and `demo` again.
 - **To start empty with your own login** instead of the demo data: skip `demo` and run `python manage.py createsuperuser`.
@@ -83,7 +90,7 @@ Run the tests. They build their own empty database, so they never touch your dat
 python manage.py test
 ```
 
-It should end with `OK (skipped=1)`. There are 232 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
+It should end with `OK (skipped=1)`. There are 247 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, the dashboard and the reports, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
 
 Then click through it:
 
@@ -158,6 +165,7 @@ The tests fail if a label has no Spanish.
 | `crm\money_views.py` | The proposal builder, change orders, payments, invoices, and the customer's Accept pages |
 | `crm\documents.py`, `crm\mail.py` | A proposal, invoice or change order as a page and as a PDF; sending email |
 | `crm\price_views.py`, `crm\pricebook.py` | The Admin hub, Company details, Setup history and the Price Book; reading and comparing a price file |
+| `crm\report_views.py`, `crm\reports.py` | The dashboard, the Reports page, each report and its spreadsheet file; how every number and both charts are counted |
 | `crm\admin_views.py`, `crm\recycle.py` | Users and permissions, the Delete page, the Recycle Bin and "take an inspection"; what a delete takes with it, restoring and deleting for good |
 | `crm\import_views.py`, `crm\importer.py` | The Apple Notes import: the pages, and the reading and matching rules |
 | `crm\search.py` | Search |

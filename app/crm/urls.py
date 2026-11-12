@@ -2,7 +2,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from . import admin_views, import_views, lead_views, money_views, price_views, schedule_views, views
+from . import admin_views, import_views, lead_views, money_views, price_views, report_views, schedule_views, views
 from .forms import LoginForm
 
 urlpatterns = [
@@ -12,6 +12,10 @@ urlpatterns = [
 
     # the office
     path("", views.home, name="home"),
+    path("start/", report_views.start, name="start"),
+    path("dashboard/", report_views.dashboard, name="dashboard"),
+    path("reports/", report_views.report_list, name="reports"),
+    path("reports/<slug:key>/", report_views.report, name="report"),
     path("accounts/", views.accounts, name="accounts"),
     path("accounts/new/", views.account_new, name="account_new"),
     path("accounts/<int:pk>/", views.account, name="account"),

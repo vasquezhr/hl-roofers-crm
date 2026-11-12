@@ -98,3 +98,15 @@
 .hl-map text { font-size: 10px; fill: var(--bs-body-color); paint-order: stroke; stroke: var(--bs-tertiary-bg); stroke-width: 3px; }
 .hl-map .hl-here { fill: var(--bs-success); font-weight: 700; }
 .hl-map circle.hl-here { stroke: var(--bs-body-bg); stroke-width: 2; paint-order: normal; }
+
+/* charts: one color for the marks, checked on the light and the dark theme. Words and grid lines stay gray. */
+[data-bs-theme=light] { --hl-chart: #b05a22; }
+[data-bs-theme=dark] { --hl-chart: #cf7a40; }
+.hl-chart line { stroke: var(--bs-border-color); stroke-width: 1; }
+.hl-chart text { font-size: 11px; fill: var(--bs-secondary-color); }
+.hl-chart .hl-value { font-weight: 600; fill: var(--bs-body-color); }
+.hl-mark { fill: var(--hl-chart); pointer-events: none; }
+.hl-hit { fill: transparent; outline: none; }                      /* the area that answers the pointer: wider than the bar */
+.hl-hit:hover + .hl-mark, .hl-hit:focus + .hl-mark { opacity: .7; }
+.hl-bar { --bs-progress-bar-bg: var(--hl-chart); min-width: 2px; }
+.hl-bar:hover, .hl-bar:focus { opacity: .7; outline: none; }

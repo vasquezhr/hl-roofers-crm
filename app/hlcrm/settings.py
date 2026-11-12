@@ -112,7 +112,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ---------- people and sign-in ----------
 AUTH_USER_MODEL = "crm.User"
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "home"
+LOGIN_REDIRECT_URL = "start"                    # the dashboard, Today or My Day, by profile
 LOGOUT_REDIRECT_URL = "login"
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 30          # stay signed in for 30 days, so nobody types a password on a roof
 AUTH_PASSWORD_VALIDATORS = [

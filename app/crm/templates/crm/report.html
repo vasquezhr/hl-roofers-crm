@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{{ spec.name }}{% endblock %}
+
+{# One report: a table for a period, and the same table as a spreadsheet file. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'reports' %}">‹ {% trans "Reports" %}</a>
+<div class="d-flex align-items-start gap-2 mb-3">
+  <div class="flex-grow-1 hl-minw0">
+    <h1 class="h4 mb-0">{{ spec.name }}</h1>
+    <div class="text-body-secondary small">{{ spec.about }}</div>
+  </div>
+  <a class="btn btn-outline-secondary btn-sm text-nowrap" href="?range={{ chosen }}&amp;export=1">{% icon "download" %} {% trans "Export" %}</a>
+</div>
+
+{% if spec.live %}
+<p class="small text-body-secondary">{% trans "As of today." %}</p>
+{% else %}
+<div class="d-flex flex-wrap align-items-center gap-1 mb-2">
+  {% for value, label in ranges %}
+  <a class="btn btn-sm rounded-pill text-nowrap {% if value == chosen %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="?range={{ value }}">{{ label }}</a>
+  {% endfor %}
+  <span class="small text-body-secondary ms-2">{{ start_day|date }} – {{ end_day|date }}</span>
+</div>
+{% endif %}
+
+<div class="card shadow-sm mb-3">
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle small mb-0">
+      <thead><tr>{% for label, kind in columns %}<th class="{% if forloop.first %}ps-3{% else %}text-end{% endif %}{% if forloop.last %} pe-3{% endif %}">{{ label }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for row in table %}
+        <tr{% if spec.total and forloop.last %} class="fw-bold"{% endif %}>
+          {% for cell in row %}<td class="{% if forloop.first %}ps-3{% else %}text-end text-nowrap{% endif %}{% if forloop.last %} pe-3{% endif %}">{{ cell }}</td>{% endfor %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="{{ columns|length }}" class="text-center text-body-secondary py-3">{% trans "Nothing in this period." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

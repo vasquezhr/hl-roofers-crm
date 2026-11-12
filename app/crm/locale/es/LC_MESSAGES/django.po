@@ -61,6 +61,24 @@ msgstr "Avisar al equipo"
 msgid "Seen by %(crew)s"
 msgstr "Visto por %(crew)s"
 
+msgid "Revenue by month, last six months"
+msgstr "Ingresos por mes, últimos seis meses"
+
+msgid "See the numbers"
+msgstr "Ver los números"
+
+msgid "Payments received, by the month they came in."
+msgstr "Pagos recibidos, según el mes en que entraron."
+
+msgid "No payments were recorded in the last six months."
+msgstr "No se registraron pagos en los últimos seis meses."
+
+msgid "Leads by source, last 90 days"
+msgstr "Prospectos por origen, últimos 90 días"
+
+msgid "No requests came in the last 90 days."
+msgstr "No llegaron solicitudes en los últimos 90 días."
+
 msgid "Call"
 msgstr "Llamar"
 
@@ -153,6 +171,21 @@ msgstr "Creado"
 
 msgid "Last change"
 msgstr "Último cambio"
+
+msgid "New leads"
+msgstr "Prospectos nuevos"
+
+msgid "Proposals out"
+msgstr "Propuestas enviadas"
+
+msgid "Jobs to schedule"
+msgstr "Trabajos por programar"
+
+msgid "Jobs in progress"
+msgstr "Trabajos en progreso"
+
+msgid "Unpaid invoices"
+msgstr "Facturas sin pagar"
 
 msgid "Accepted. Thank you."
 msgstr "Aceptada. Gracias."
@@ -295,6 +328,27 @@ msgstr "Equipos, trabajadores y correcciones"
 msgid "Add or change crews and workers, or correct a record, in the admin site."
 msgstr "En el sitio de administración puede agregar o cambiar equipos y trabajadores, o corregir un registro."
 
+msgid "Dashboard"
+msgstr "Panel"
+
+msgid "Revenue in %(month)s"
+msgstr "Ingresos en %(month)s"
+
+msgid "up"
+msgstr "subió"
+
+msgid "down"
+msgstr "bajó"
+
+msgid "vs. %(month)s"
+msgstr "frente a %(month)s"
+
+msgid "Jobs in the next five work days"
+msgstr "Trabajos en los próximos cinco días de trabajo"
+
+msgid "Inspections open"
+msgstr "Inspecciones abiertas"
+
 msgid "Back"
 msgstr "Volver"
 
@@ -339,21 +393,6 @@ msgstr "Todavía no hay nada programado."
 
 msgid "Today"
 msgstr "Hoy"
-
-msgid "New leads"
-msgstr "Prospectos nuevos"
-
-msgid "Proposals out"
-msgstr "Propuestas enviadas"
-
-msgid "Jobs to schedule"
-msgstr "Trabajos por programar"
-
-msgid "Jobs in progress"
-msgstr "Trabajos en progreso"
-
-msgid "Unpaid invoices"
-msgstr "Facturas sin pagar"
 
 msgid "Today's work"
 msgstr "Trabajo de hoy"
@@ -967,6 +1006,24 @@ msgstr "Eliminar para siempre"
 msgid "The Recycle Bin is empty."
 msgstr "La Papelera está vacía."
 
+msgid "Reports"
+msgstr "Reportes"
+
+msgid "Export"
+msgstr "Exportar"
+
+msgid "As of today."
+msgstr "Al día de hoy."
+
+msgid "Nothing in this period."
+msgstr "Nada en este periodo."
+
+msgid "Counted from the records as they are now. Every chart has its table, and every report exports to a spreadsheet."
+msgstr "Contado a partir de los registros tal como están ahora. Cada gráfica tiene su tabla, y cada reporte se exporta a una hoja de cálculo."
+
+msgid "Ready-made reports"
+msgstr "Reportes listos"
+
 msgid "Schedule"
 msgstr "Agenda"
 
@@ -1191,12 +1248,6 @@ msgstr "%(what)s está en la Papelera. Se puede restaurar durante 30 días."
 
 msgid "Restored: %(detail)s"
 msgstr "Restaurado: %(detail)s"
-
-msgid "Dashboard"
-msgstr "Panel"
-
-msgid "Reports"
-msgstr "Reportes"
 
 msgid "D, M j"
 msgstr "D, j M"
@@ -2340,6 +2391,114 @@ msgstr "Automatización"
 
 msgid "Its customer is in the Recycle Bin too. Restore the account first: %(name)s"
 msgstr "Su cliente también está en la Papelera. Restaure primero la cuenta: %(name)s"
+
+msgid "This month"
+msgstr "Este mes"
+
+msgid "Last 3 months"
+msgstr "Últimos 3 meses"
+
+msgid "This year"
+msgstr "Este año"
+
+msgid "0–30 days"
+msgstr "0–30 días"
+
+msgid "Leads by source"
+msgstr "Prospectos por origen"
+
+msgid "Which sources actually bring work"
+msgstr "Qué orígenes traen trabajo de verdad"
+
+msgid "Lead response time"
+msgstr "Tiempo de respuesta a prospectos"
+
+msgid "From the request arriving to the first call or text"
+msgstr "Desde que llega la solicitud hasta la primera llamada o mensaje"
+
+msgid "Close rate"
+msgstr "Tasa de cierre"
+
+msgid "Proposals signed against proposals sent, by type of work"
+msgstr "Propuestas firmadas frente a propuestas enviadas, por tipo de trabajo"
+
+msgid "Revenue by month"
+msgstr "Ingresos por mes"
+
+msgid "Payments received, by month and type of work"
+msgstr "Pagos recibidos, por mes y tipo de trabajo"
+
+msgid "Open balances by how old the invoice is"
+msgstr "Saldos abiertos según la antigüedad de la factura"
+
+msgid "Jobs finished per crew"
+msgstr "Trabajos terminados por equipo"
+
+msgid "Finished jobs and work days for each crew"
+msgstr "Trabajos terminados y días de trabajo de cada equipo"
+
+msgid "Lost reasons"
+msgstr "Motivos de pérdida"
+
+msgid "Why opportunities were lost, and what they were worth"
+msgstr "Por qué se perdieron las oportunidades, y cuánto valían"
+
+msgid "Price changes"
+msgstr "Cambios de precio"
+
+msgid "Supplier costs that moved, biggest first, from the Price Book history"
+msgstr "Costos de proveedor que cambiaron, el mayor primero, según el historial de la Lista de precios"
+
+msgid "%(h)s h %(m)s min"
+msgstr "%(h)s h %(m)s min"
+
+msgid "%(m)s min"
+msgstr "%(m)s min"
+
+msgid "31–60 days"
+msgstr "31–60 días"
+
+msgid "over 60 days"
+msgstr "más de 60 días"
+
+msgid "Source"
+msgstr "Origen"
+
+msgid "Rate"
+msgstr "Tasa"
+
+msgid "Month"
+msgstr "Mes"
+
+msgid "Typical time to first contact"
+msgstr "Tiempo típico hasta el primer contacto"
+
+msgid "Within 2 hours"
+msgstr "En menos de 2 horas"
+
+msgid "Proposals sent"
+msgstr "Propuestas enviadas"
+
+msgid "Sent"
+msgstr "Enviada"
+
+msgid "Age"
+msgstr "Antigüedad"
+
+msgid "Jobs finished"
+msgstr "Trabajos terminados"
+
+msgid "Value"
+msgstr "Valor"
+
+msgid "Now"
+msgstr "Ahora"
+
+msgid "Change"
+msgstr "Cambio"
+
+msgid "Leads: %(leads)s · Converted: %(converted)s (%(rate)s%%)"
+msgstr "Prospectos: %(leads)s · Convertidos: %(converted)s (%(rate)s%%)"
 
 msgid "The calendar has a new address. The old one no longer works."
 msgstr "El calendario tiene una dirección nueva. La anterior ya no funciona."

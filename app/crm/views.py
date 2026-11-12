@@ -69,6 +69,18 @@ def saved(request, text=""):
 
 
 # ---------------------------------------------------------------- Today
+def today_counts():
+    """The five numbers at the top of Today and of the dashboard."""
+    unpaid = Job.objects.filter(stage=Job.Stage.INVOICED).prefetch_related("change_orders", "payments")
+    return {
+        "new_leads": Lead.objects.filter(status=Lead.Status.NEW).count(),
+        "proposals_out": Opportunity.objects.filter(stage=Opportunity.Stage.PROPOSAL).count(),
+        "to_schedule": Job.objects.filter(stage=Job.Stage.SIGNED).count(),
+        "in_progress": Job.objects.filter(stage=Job.Stage.IN_PROGRESS).count(),
+        "unpaid_count": unpaid.count(), "unpaid_total": sum(job.balance for job in unpaid),
+    }
+
+
 @office_only
 def home(request):
     day, week_ago = today(), today() - timedelta(days=7)
@@ -112,10 +124,7 @@ def home(request):
 
     return render(request, "crm/home.html", {
         "day": day, "inspections": inspections, "working": working, "attention": attention, "crew_notes": crew_notes, "open_inspections": open_inspections,
-        "proposals_out": opps.filter(stage=Opportunity.Stage.PROPOSAL).count(),
-        "to_schedule": jobs.filter(stage=Job.Stage.SIGNED).count(),
-        "in_progress": jobs.filter(stage=Job.Stage.IN_PROGRESS).count(),
-        "new_leads": new_leads.count(), "unpaid_count": unpaid.count(), "unpaid_total": sum(job.balance for job in unpaid),
+        **today_counts(),
     })
 
 

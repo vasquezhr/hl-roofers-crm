@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Reports" %}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <h1 class="h4 mb-0">{% trans "Reports" %}</h1>
+  <div class="text-body-secondary small">{% trans "Counted from the records as they are now. Every chart has its table, and every report exports to a spreadsheet." %}</div>
+</div>
+
+{% include "crm/_charts.html" %}
+
+<h2 class="h6 mt-2 mb-2">{% trans "Ready-made reports" %}</h2>
+<div class="list-group shadow-sm mb-3">
+  {% for one in reports %}
+  <a class="list-group-item list-group-item-action d-flex align-items-center gap-2" href="{% url 'report' one.key %}">
+    <div class="flex-grow-1"><div class="fw-semibold">{{ one.name }}</div><div class="small text-body-secondary">{{ one.about }}</div></div>
+    <span class="text-body-secondary">›</span>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% load i18n crm_tags %}
+{# The two charts. Needs: revenue_chart (see column_chart in reports.py) and lead_bars. Each chart has its table: "See the numbers". #}
+<div class="row g-3 mb-3">
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-baseline gap-2 mb-2">
+          <h2 class="h6 mb-0 flex-grow-1">{% trans "Revenue by month, last six months" %}</h2>
+          <a class="small text-nowrap" href="{% url 'report' 'revenue' %}?range=y">{% trans "See the numbers" %}</a>
+        </div>
+        {% if revenue_chart %}
+        {% with c=revenue_chart %}
+        <svg class="hl-chart w-100" viewBox="0 0 {{ c.width }} {{ c.height }}" role="img" aria-label="{% trans 'Revenue by month, last six months' %}">
+          {% for tick in c.ticks %}<line x1="{{ c.left }}" x2="{{ c.right }}" y1="{{ tick.y }}" y2="{{ tick.y }}"/><text x="{{ c.left|add:-6 }}" y="{{ tick.y|add:4 }}" text-anchor="end">{{ tick.label }}</text>{% endfor %}
+          {% for col in c.columns %}
+          <rect class="hl-hit" x="{{ col.hit_x }}" y="{{ col.hit_y }}" width="{{ col.hit_w }}" height="{{ col.hit_h }}" tabindex="0" data-bs-toggle="tooltip" data-bs-title="{{ col.tip }}"/>
+          <path class="hl-mark" d="{{ col.path }}"/>
+          <text x="{{ col.mid }}" y="{{ c.base|add:15 }}" text-anchor="middle">{{ col.label }}</text>
+          {% if col.value %}<text class="hl-value" x="{{ col.mid }}" y="{{ col.top|add:-6 }}" text-anchor="middle">{{ col.value }}</text>{% endif %}
+          {% endfor %}
+        </svg>
+        {% endwith %}
+        <div class="form-text">{% trans "Payments received, by the month they came in." %}</div>
+        {% else %}
+        <div class="small text-body-secondary py-4 text-center">{% trans "No payments were recorded in the last six months." %}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-baseline gap-2 mb-3">
+          <h2 class="h6 mb-0 flex-grow-1">{% trans "Leads by source, last 90 days" %}</h2>
+          <a class="small text-nowrap" href="{% url 'report' 'leads-by-source' %}">{% trans "See the numbers" %}</a>
+        </div>
+        {% for row in lead_bars %}
+        <div class="row g-2 align-items-center small mb-2">
+          <div class="col-6 col-sm-5 text-truncate">{{ row.label }}</div>
+          <div class="col d-flex align-items-center gap-2">
+            <div class="progress hl-bar bg-transparent rounded-0" style="width: {{ row.percent }}%" role="img" aria-label="{{ row.label }}: {{ row.value }}" tabindex="0" data-bs-toggle="tooltip" data-bs-title="{{ row.tip }}">
+              <div class="progress-bar rounded-end w-100"></div>
+            </div>
+            <span class="fw-semibold">{{ row.value }}</span>
+          </div>
+        </div>
+        {% empty %}
+        <div class="small text-body-secondary py-4 text-center">{% trans "No requests came in the last 90 days." %}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>

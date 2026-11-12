@@ -272,6 +272,21 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   const officeImports = await office.goto(base + '/imports/');
   check('the office cannot open the Admin page', officeImports.status() === 403);
 
+  console.log('The dashboard and the reports');
+  const boss = await signIn(browser, 'admin');
+  check('the administrator lands on the dashboard', (await text(boss, 'h1')) === 'Dashboard');
+  check('the revenue chart has a column for each of six months', await boss.locator('.hl-chart .hl-mark').count() === 6);
+  await boss.locator('.hl-chart .hl-hit').nth(5).hover();
+  await boss.waitForTimeout(400);
+  check('pointing at a column names its month and amount', /\$[\d,]+ · \w+ \d{4}/.test(await boss.locator('.tooltip').innerText()));
+  await boss.click('a:has-text("See the numbers") >> nth=0');
+  await boss.waitForLoadState('networkidle');
+  check('See the numbers opens the report behind the chart', (await text(boss, 'h1')) === 'Revenue by month' && (await main(boss)).includes('Total'));
+  const sheet = await boss.request.get(base + '/reports/revenue/?range=y&export=1');
+  check('Export gives a spreadsheet file', (sheet.headers()['content-type'] || '').startsWith('text/csv') && (await sheet.text()).includes('Roof replacement'));
+  await office.goto(base + '/reports/');
+  check('the office has the reports, and eight of them', await office.locator('main .list-group a[href^="/reports/"]').count() === 8);
+
   console.log('Logins, permission sets and the Recycle Bin');
   await admin.goto(base + '/manage/users/');
   check('the administrator sees every login', (await main(admin)).includes('crew1') && (await main(admin)).includes('Permission sets'));
@@ -301,7 +316,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   const setup = await main(admin);
   check('the Setup history says who did it', ['Login added: wilmer', 'Deleted: Naomi Iturralde', 'Restored: Naomi Iturralde'].every(words => setup.includes(words)), setup);
 
-  const problems = [office, crew, other, admin].flatMap(p => p.problems).filter(p => !p.includes('404') && !p.includes('403'));
+  const problems = [office, crew, other, admin, boss].flatMap(p => p.problems).filter(p => !p.includes('404') && !p.includes('403'));
   check('no errors in the browser', problems.length === 0, problems.join(' | '));
   await browser.close();
   console.log(failed ? `\n${failed} check(s) FAILED` : '\nAll checks passed');

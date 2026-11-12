@@ -221,7 +221,7 @@ On Nov 10, 2026 the user wrote "go ahead and create phase 1 of the actual app". 
 | 1 · Customer records and search | Accounts (person or company) with contacts, properties and Details; Opportunities and Jobs on one stage bar; a signed proposal creates the Job with the same number; scheduling to a crew for whole work days; warranty jobs; outside numbers; one search box; Admin, Office and Crew profiles; Call, Text, Directions with history; English and Spanish; the Apple Notes import with a review queue | Built, Nov 10 |
 | 2 · Leads, proposals, invoices, pricing | Leads with the website's request address, Convert and "Not a fit"; the proposal builder with Price Book lines; the proposal as a page and a PDF, emailed or marked sent; the customer's Accept page; change orders; deposits, payments and balance due; the invoice; crews record payments they collect; the Price Book with an Excel upload, review, full history and roll back; Company details that fill the placeholders; an Admin hub | Built, Nov 11 |
 | 3 · Scheduling and crew | The Schedule page (five work days, a filter for each crew and the inspections); "Schedule a visit" with suggested times for inspections and jobs; rough distances by ZIP code; "Changed" on a moved job, Notify crew and Got it; the crew's My Day; extra workers added and taken off; a calendar address for the office and for each crew | Built, Nov 12 |
-| 4 · Reports, dashboard, automations, admin | Built so far: Users and permissions with seven permission sets, Delete with a permission and the Recycle Bin, Setup history. To build: dashboard, reports, automations, data editor, system status | In progress, Nov 12 |
+| 4 · Reports, dashboard, automations, admin | Built so far: Users and permissions with seven permission sets, Delete with a permission and the Recycle Bin, Setup history, the dashboard, the Reports page with eight reports and their spreadsheet export. To build: automations, data editor, system status | In progress, Nov 12 |
 
 **Built with:** Python 3.13, Django 5.2 (the long-term-support release), PostgreSQL on the server and a single SQLite file on a PC, Bootstrap 5.3.8 served from the app's own files, Waitress and WhiteNoise for the Windows server. Server-rendered pages; about 50 lines of JavaScript.
 
@@ -356,3 +356,18 @@ The user: "there should be a way to delete records as well, but with a permissio
 **4. Crew notes on a job, for the office to see** (built Nov 12). A crew could already add a note on its job. Now the job has a Notes box, apart from the history, where each note shows who wrote it and when; the crew's box is labeled "Add a note for the office"; and the office's Today page lists what the crews wrote since the start of the last work day. Choice to confirm: notes leave Today by age, not by someone marking them read.
 
 **5. Adding logins** (built Nov 12). See 3b.
+
+### Phase 4 of the app, dashboard and reports: choices to confirm
+
+- **The numbers are real,** counted from the records each time a page opens. The mockup showed sample numbers.
+- **"Revenue" is money received:** the payments recorded, on the day each came in. A deposit counts in the month it was paid. The other possible meaning, the total of each invoice on the day it was sent, was not used. This is the first thing to confirm with whoever keeps the books.
+- **The chart shows the last six complete months;** the month in progress is in the report ("This month"). The tile compares last month with the month before.
+- **Periods:** this month, the last 3 calendar months including this one, this year. Each ends today. Unpaid invoices are always "as of today".
+- **Lead response time** is the clock time from a request arriving to the first call or text logged in the app, weekends and nights included. "Typical" is the middle value, so one very slow answer does not move it.
+- **Close rate** counts the proposals sent in the period and how many of those are signed now.
+- **Jobs finished per crew** counts jobs by the day they were marked done.
+- **Price changes** compares each item's cost at the start of the period with its cost now.
+- **Export gives a .csv file** with plain numbers, so a spreadsheet can add them up. Excel and Numbers both open it.
+- **The administrator signs in to the dashboard;** the office signs in to Today; a crew to My Day.
+- **The demo data has six months of made-up past jobs** for four of the made-up customers, so the charts are not empty.
+- Chart colors were checked for color-blind readers and for contrast on the light and the dark theme. Each chart has a table behind it, and each bar says its value when the pointer or the keyboard is on it.

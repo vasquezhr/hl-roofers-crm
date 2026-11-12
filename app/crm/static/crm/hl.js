@@ -96,3 +96,10 @@ document.addEventListener("click", function (event) {
 document.addEventListener("change", function (event) {
   if (event.target.matches("[data-submit-on-change]") && event.target.value !== "") event.target.form.submit();
 });
+
+
+/* 10. Charts: the small box that names a bar when the pointer or the keyboard is on it (Bootstrap's tooltip) */
+document.addEventListener("DOMContentLoaded", function () {
+  if (!window.bootstrap) return;
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (mark) { new bootstrap.Tooltip(mark, { container: "body" }); });
+});
