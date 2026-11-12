@@ -40,6 +40,24 @@ msgstr "Más"
 msgid "Close"
 msgstr "Cerrar"
 
+msgid "Changed"
+msgstr "Cambió"
+
+msgid "Before"
+msgstr "Antes"
+
+msgid "%(crew)s has not seen it yet."
+msgstr "%(crew)s todavía no lo ha visto."
+
+msgid "Got it"
+msgstr "Enterado"
+
+msgid "Notify crew"
+msgstr "Avisar al equipo"
+
+msgid "Seen by %(crew)s"
+msgstr "Visto por %(crew)s"
+
 msgid "Call"
 msgstr "Llamar"
 
@@ -63,6 +81,33 @@ msgstr "Teléfono"
 
 msgid "Email"
 msgstr "Correo"
+
+msgid "Add to my phone's calendar"
+msgstr "Agregar al calendario de mi teléfono"
+
+msgid "Subscribe once and these jobs show in the Calendar app on an iPhone or a Mac. The calendar refreshes by itself a few times a day, so a change on the same day still comes by text."
+msgstr "Suscríbase una vez y estos trabajos aparecen en la app Calendario de un iPhone o una Mac. El calendario se actualiza solo unas veces al día, así que un cambio del mismo día igual llega por mensaje."
+
+msgid "Calendar address"
+msgstr "Dirección del calendario"
+
+msgid "Copy"
+msgstr "Copiar"
+
+msgid "Subscribe"
+msgstr "Suscribirse"
+
+msgid "Give this calendar a new address? Every phone that uses the old one must subscribe again."
+msgstr "¿Dar una dirección nueva a este calendario? Cada teléfono que use la anterior tendrá que suscribirse otra vez."
+
+msgid "New address"
+msgstr "Dirección nueva"
+
+msgid "Anyone who has this address can see the schedule, so share it only with the people who need it. It shows names, addresses and the type of work, never prices."
+msgstr "Cualquiera que tenga esta dirección puede ver la agenda, así que compártala solo con quien la necesite. Muestra nombres, direcciones y el tipo de trabajo, nunca precios."
+
+msgid "Send each crew its own address, so its phones show only that crew's jobs."
+msgstr "Envíe a cada equipo su propia dirección, para que sus teléfonos muestren solo los trabajos de ese equipo."
 
 msgid "None"
 msgstr "Ninguno"
@@ -207,9 +252,6 @@ msgstr "El correo va a"
 
 msgid "The customer's page for accepting it"
 msgstr "La página del cliente para aceptar"
-
-msgid "Copy"
-msgstr "Copiar"
 
 msgid "Open the page"
 msgstr "Abrir la página"
@@ -439,8 +481,8 @@ msgstr "Todavía no se ha leído ningún archivo."
 msgid "My Jobs"
 msgstr "Mis trabajos"
 
-msgid "Schedule"
-msgstr "Programar"
+msgid "Schedule the job"
+msgstr "Programar el trabajo"
 
 msgid "%(action)s?"
 msgstr "¿%(action)s?"
@@ -471,6 +513,12 @@ msgstr "Encargado"
 
 msgid "Extra workers"
 msgstr "Trabajadores extra"
+
+msgid "Take %(name)s off this job"
+msgstr "Quitar a %(name)s de este trabajo"
+
+msgid "Add a worker"
+msgstr "Agregar trabajador"
 
 msgid "When"
 msgstr "Cuándo"
@@ -619,8 +667,20 @@ msgstr "Prospecto nuevo"
 msgid "Returning customer"
 msgstr "Cliente que regresa"
 
+msgid "My Day"
+msgstr "Mi día"
+
 msgid "This login is not linked to a crew yet. Ask the administrator."
 msgstr "Este usuario todavía no está ligado a un equipo. Pregunte al administrador."
+
+msgid "Changes to your jobs"
+msgstr "Cambios en sus trabajos"
+
+msgid "day %(i)s of %(n)s"
+msgstr "día %(i)s de %(n)s"
+
+msgid "Next work day"
+msgstr "Próximo día de trabajo"
 
 msgid "Coming up"
 msgstr "Próximos"
@@ -661,11 +721,11 @@ msgstr "Inspección"
 msgid "No inspection date yet."
 msgstr "Todavía no hay fecha de inspección."
 
-msgid "Change the date"
-msgstr "Cambiar la fecha"
+msgid "Change the time"
+msgstr "Cambiar la hora"
 
-msgid "Set the date"
-msgstr "Poner la fecha"
+msgid "Book the inspection"
+msgstr "Agendar la inspección"
 
 msgid "Proposal"
 msgstr "Propuesta"
@@ -739,9 +799,6 @@ msgstr "Subir un archivo de precios"
 msgid "Unit"
 msgstr "Unidad"
 
-msgid "Changed"
-msgstr "Cambió"
-
 msgid "No prices yet. Upload a price file or add an item."
 msgstr "Todavía no hay precios. Suba un archivo de precios o agregue un artículo."
 
@@ -786,6 +843,90 @@ msgstr "Deje el monto vacío en las líneas que ya están incluidas en el precio
 
 msgid "Save and preview"
 msgstr "Guardar y ver"
+
+msgid "Schedule"
+msgstr "Agenda"
+
+msgid "Earlier"
+msgstr "Antes"
+
+msgid "Later"
+msgstr "Después"
+
+msgid "Inspections"
+msgstr "Inspecciones"
+
+msgid "Schedule a visit"
+msgstr "Programar una visita"
+
+msgid "Nothing is waiting to be scheduled."
+msgstr "No hay nada pendiente de programar."
+
+msgid "What are you scheduling?"
+msgstr "¿Qué va a programar?"
+
+msgid "Inspections to book"
+msgstr "Inspecciones por agendar"
+
+msgid "Work days"
+msgstr "Días de trabajo"
+
+msgid "Show the times"
+msgstr "Ver los horarios"
+
+msgid "Suggested times"
+msgstr "Horarios sugeridos"
+
+msgid "About %(miles)s mi from %(name)s"
+msgstr "A unas %(miles)s mi de %(name)s"
+
+msgid "In the same ZIP code as %(name)s"
+msgstr "En el mismo código postal que %(name)s"
+
+msgid "There are other stops that day; how far is not known"
+msgstr "Hay otras paradas ese día; no se sabe a qué distancia"
+
+msgid "No other stops that day"
+msgstr "No hay otras paradas ese día"
+
+msgid "Best choice"
+msgstr "Mejor opción"
+
+msgid "%(crew)s is free for the whole job"
+msgstr "%(crew)s está libre para todo el trabajo"
+
+msgid "The day before: %(name)s"
+msgstr "El día anterior: %(name)s"
+
+msgid "The day before: %(name)s, about %(miles)s mi away"
+msgstr "El día anterior: %(name)s, a unas %(miles)s mi"
+
+msgid "The day before: %(name)s, in the same ZIP code"
+msgstr "El día anterior: %(name)s, en el mismo código postal"
+
+msgid "Nothing scheduled the day before"
+msgstr "Nada programado el día anterior"
+
+msgid "Book"
+msgstr "Agendar"
+
+msgid "No free days were found in the next three weeks. Pick the days yourself."
+msgstr "No se encontraron días libres en las próximas tres semanas. Escoja los días usted."
+
+msgid "Inspections take one hour, any hour from 9 am to 4 pm. Days are ranked by how close the visit is to that day's other stops, then by soonest. Distances are rough: they go by ZIP code."
+msgstr "Las inspecciones duran una hora, a cualquier hora entre 9 am y 4 pm. Los días se ordenan según qué tan cerca queda la visita de las otras paradas de ese día, y luego por el más próximo. Las distancias son aproximadas: se calculan por código postal."
+
+msgid "Type a day and time yourself"
+msgstr "Escribir el día y la hora usted"
+
+msgid "A rough map of the other stops that day"
+msgstr "Mapa aproximado de las otras paradas de ese día"
+
+msgid "The job gets whole work days, Monday to Friday. A job that needs more than one day continues on the next work day."
+msgstr "El trabajo ocupa días de trabajo completos, de lunes a viernes. Un trabajo de más de un día sigue el próximo día de trabajo."
+
+msgid "Pick the days yourself"
+msgstr "Escoger los días usted"
 
 msgid "Searches the jobs scheduled to your crew: name, address, phone, job number."
 msgstr "Busca en los trabajos programados para su equipo: nombre, dirección, teléfono, número de trabajo."
@@ -832,8 +973,11 @@ msgstr "Panel"
 msgid "Reports"
 msgstr "Reportes"
 
-msgid "My Day"
-msgstr "Mi día"
+msgid "D, M j"
+msgstr "D, j M"
+
+msgid "M j"
+msgstr "j M"
 
 msgid "Change order"
 msgstr "Orden de cambio"
@@ -1357,6 +1501,21 @@ msgstr "Orden de cambio %(detail)s firmada"
 msgid "Payment recorded: %(detail)s"
 msgstr "Pago registrado: %(detail)s"
 
+msgid "Dates changed (before: %(detail)s)"
+msgstr "Fechas cambiadas (antes: %(detail)s)"
+
+msgid "The crew was told by text"
+msgstr "Se avisó al equipo por mensaje"
+
+msgid "The crew saw the change"
+msgstr "El equipo confirmó el cambio"
+
+msgid "Extra worker added: %(detail)s"
+msgstr "Trabajador extra agregado: %(detail)s"
+
+msgid "Extra worker removed: %(detail)s"
+msgstr "Trabajador extra quitado: %(detail)s"
+
 msgid "crew"
 msgstr "equipo"
 
@@ -1765,11 +1924,23 @@ msgstr "No se encontraron filas con artículo, costo y precio en la hoja."
 msgid "This file could not be read. Upload an Excel file (.xlsx)."
 msgstr "No se pudo leer este archivo. Suba un archivo de Excel (.xlsx)."
 
+msgid "The calendar has a new address. The old one no longer works."
+msgstr "El calendario tiene una dirección nueva. La anterior ya no funciona."
+
+msgid "Booked"
+msgstr "Agendado"
+
+msgid "The office can see that you got it"
+msgstr "La oficina ya ve que está enterado"
+
+msgid "Everything: every crew and the inspections"
+msgstr "Todo: todos los equipos y las inspecciones"
+
+msgid "%(company)s: job #%(number)s (%(name)s) changed. Now: %(now)s. Before: %(was)s. Please tap Got it in the app."
+msgstr "%(company)s: cambió el trabajo #%(number)s (%(name)s). Ahora: %(now)s. Antes: %(was)s. Por favor toque Enterado en la app."
+
 msgid "Notes not linked to a customer"
 msgstr "Notas sin cliente"
-
-msgid "D, M j"
-msgstr "D, j M"
 
 msgid "%(n)s days ago"
 msgstr "hace %(n)s días"
@@ -1785,9 +1956,6 @@ msgstr "Garantía"
 
 msgid "Opened"
 msgstr "Abierto"
-
-msgid "The job gets whole work days, Monday to Friday. A job that needs more than one day continues on the next work day."
-msgstr "El trabajo ocupa días de trabajo completos, de lunes a viernes. Un trabajo de más de un día sigue el próximo día de trabajo."
 
 msgid "Edit the account"
 msgstr "Editar la cuenta"
@@ -1848,6 +2016,9 @@ msgstr "Programar el trabajo #%(number)s de %(name)s"
 
 msgid "%(name)s: the invoice has been unpaid for %(days)s days"
 msgstr "%(name)s: la factura lleva %(days)s días sin pagar"
+
+msgid "%(crew)s has not seen the change to job #%(number)s"
+msgstr "%(crew)s no ha visto el cambio del trabajo #%(number)s"
 
 msgid "%(count)s imported notes are waiting for review"
 msgstr "%(count)s notas importadas esperan revisión"

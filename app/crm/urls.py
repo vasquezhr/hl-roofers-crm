@@ -2,7 +2,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from . import import_views, lead_views, money_views, price_views, views
+from . import import_views, lead_views, money_views, price_views, schedule_views, views
 from .forms import LoginForm
 
 urlpatterns = [
@@ -54,7 +54,16 @@ urlpatterns = [
     path("jobs/<str:number>/payment/", money_views.payment_new, name="payment_new"),
     path("jobs/<str:number>/invoice/", money_views.invoice, name="invoice"),
     path("jobs/<str:number>/invoice/send/", money_views.invoice_send, name="invoice_send"),
+    path("jobs/<str:number>/got-it/", schedule_views.job_seen, name="job_seen"),
+    path("jobs/<str:number>/workers/", schedule_views.job_worker, name="job_worker"),
     path("my-jobs/", views.my_jobs, name="my_jobs"),
+    path("my-day/", schedule_views.my_day, name="my_day"),
+
+    # the schedule
+    path("schedule/", schedule_views.schedule, name="schedule"),
+    path("schedule/book/", schedule_views.book, name="book"),
+    path("schedule/calendar-address/", schedule_views.calendar_reset, name="calendar_reset"),
+    path("calendar/<str:token>.ics", schedule_views.calendar_feed, name="calendar_feed"),      # no login: the long random word is the key
 
     # everyone
     path("search/", views.search, name="search"),

@@ -1,6 +1,6 @@
 # H & L Roofers CRM: the app
 
-This folder is the real app (Python, Django, PostgreSQL, Bootstrap). **Phases 1 and 2 are built.** The clickable mockup in `../mockup` shows all four phases; this app does the first two for real, with a database and logins.
+This folder is the real app (Python, Django, PostgreSQL, Bootstrap). **Phases 1 to 3 are built.** The clickable mockup in `../mockup` shows all four phases; this app does the first three for real, with a database and logins.
 
 ## What it does
 
@@ -29,7 +29,17 @@ This folder is the real app (Python, Django, PostgreSQL, Bootstrap). **Phases 1 
 
 Documents that go to a customer (the emailed PDF, the email's words, the Accept page) are in the customer's language. On screen they follow the language of the person looking.
 
-**Not built yet** (Phases 3 and 4): the week calendar and suggested times, the crew's My Day and "Changed" notices, the calendar feed, reports and the dashboard, automations, permission sets and the data editor. Photos and the Recycle Bin are not built either.
+**Scheduling and crew (Phase 3)**
+
+- **Schedule:** five work days at a time, Monday to Friday, with every crew's jobs and the inspections. It can show one crew, or only the inspections, and later weeks.
+- **Suggested times:** "Schedule a visit" lists every inspection and job waiting for a date. An inspection gets the best hour on each of the next work days, ranked by how close it is to that day's other stops. A job gets the next days when the chosen crew is free for all of it, and says where that crew is the day before. One press books it. Typing the days by hand still works.
+- **Distances are rough, by ZIP code.** Each address is placed at the middle of its ZIP code by a small library that needs no internet, so no address leaves the server.
+- **Changed:** when the office moves a job that was already scheduled, the job shows "Changed" with its old dates. **Notify crew** opens a text to the crew lead, ready to send. The crew taps **Got it**, and the office sees that it was seen. Today lists the changes a crew has not seen.
+- **My Day:** the crew's first page. Today's stops with the address, who is on the job, the balance due, Call, Text and Directions, Start job and Mark done; then the next work day.
+- **Extra workers:** the office or the job's crew adds and takes off extra workers on a job until it is done.
+- **Calendar address:** the office and each crew have an address the Calendar app on an iPhone or Mac subscribes to. It shows names, addresses and the type of work, never prices or phone numbers. The office can give a calendar a new address, which closes the old one.
+
+**Not built yet** (Phase 4): reports and the dashboard, automations, permission sets, the Users page and the data editor. Photos and the Recycle Bin are not built either.
 
 ## Try it on your Windows PC
 
@@ -63,20 +73,22 @@ Run the tests. They build their own empty database, so they never touch your dat
 python manage.py test
 ```
 
-It should end with `OK (skipped=1)`. There are 143 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the Price Book, the notes import, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
+It should end with `OK (skipped=1)`. There are 183 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
 
 Then click through it:
 
 1. Sign in as `office`. Open **Leads**, open Mina Seo and press **Convert**. An opportunity appears for a new customer.
 2. Press **Write the proposal**, type a line with an amount, add one from the Price Book, then **Save and preview**. Look at **Download the PDF**, then press **Mark as sent**.
 3. Open **The customer's page** link in a private window (no login). Type a name and accept. Back in the app, a job with the same number is waiting to be scheduled.
-4. **Schedule** the job to Crew 1 for today. Sign out, sign in as `crew1`: the job is under **My Jobs**, with its price. `crew2` does not see it. As `crew1`, press **Start job**, **Mark done**, then **Record payment**.
-5. As `office`, open the job, **Create the invoice**, then **Mark invoice sent**. Record the rest of the balance: the job becomes Paid.
-6. As `crew1`, try `http://127.0.0.1:8000/accounts/`. A crew is sent back to My Jobs.
-7. Press **ES** in the top bar. Every label changes to Spanish.
-8. **Search** for `grove`, `804 555`, a job number, or `paipas` (a word inside a note).
-9. Sign in as `admin`. Under **Admin › Price Book**, upload `sample\price-file-sample.xlsx` (supplier `ABC Supply`, product line `GAF HDZ`) and look at the review page.
-10. Under **Admin › Import Apple Notes**, upload `sample\notes-sample.json`. `sample\README.md` lists what should happen to each of its ten made-up notes.
+4. Press **Schedule the job**. The Schedule page opens with the job picked: choose a crew and the number of work days, then press **Book** on a suggested time. Open the job again, press **Change the schedule** and move it: the job now shows **Changed** and **Notify crew**.
+5. Sign out, sign in as `crew1`. **My Day** shows today's stop and, under "Changes to your jobs", the job you moved: tap **Got it**. The job is also under **My Jobs**, with its price; `crew2` does not see it. As `crew1`, press **Start job**, **Mark done**, then **Record payment**.
+6. As `office`, the job now says "Seen by Crew 1". **Create the invoice**, then **Mark invoice sent**. Record the rest of the balance: the job becomes Paid.
+7. As `crew1`, try `http://127.0.0.1:8000/accounts/`. A crew is sent back to My Day.
+8. On **Schedule**, open **Add to my phone's calendar**. On an iPhone or a Mac, **Subscribe** opens the Calendar app; on your Windows PC, paste the address into a browser with `http://` in place of `webcal://` to see the calendar file.
+9. Press **ES** in the top bar. Every label changes to Spanish.
+10. **Search** for `grove`, `804 555`, a job number, or `paipas` (a word inside a note).
+11. Sign in as `admin`. Under **Admin › Price Book**, upload `sample\price-file-sample.xlsx` (supplier `ABC Supply`, product line `GAF HDZ`) and look at the review page.
+12. Under **Admin › Import Apple Notes**, upload `sample\notes-sample.json`. `sample\README.md` lists what should happen to each of its ten made-up notes.
 
 On your PC no email is sent: when you press an Email button, the email is written to the window where `runserver` is running, so you can read it there.
 
@@ -128,7 +140,8 @@ The tests fail if a label has no Spanish.
 | --- | --- |
 | `hlcrm\settings.py` | Settings. Anything that differs between your PC and the server comes from the `.env` file |
 | `crm\models.py` | The data model: accounts, contacts, properties, notes, opportunities, jobs, crews, workers, logins, history |
-| `crm\views.py` | The office's and the crew's pages: Today, accounts, opportunities, jobs, search |
+| `crm\views.py` | The office's and the crew's pages: Today, accounts, opportunities, jobs, My Jobs, search |
+| `crm\schedule_views.py`, `crm\scheduling.py` | The Schedule page, booking, "Changed" and Got it, extra workers, My Day and the calendar address; work days, distances and suggested times |
 | `crm\lead_views.py` | Leads, Convert, and the address the website's form sends requests to |
 | `crm\money_views.py` | The proposal builder, change orders, payments, invoices, and the customer's Accept pages |
 | `crm\documents.py`, `crm\mail.py` | A proposal, invoice or change order as a page and as a PDF; sending email |
@@ -139,8 +152,8 @@ The tests fail if a label has no Spanish.
 | `crm\forms.py` | The forms |
 | `crm\urls.py` | The address of every page |
 | `crm\templates\` | The pages' HTML. `base.html` is the frame around every page |
-| `crm\templatetags\crm_tags.py` | Small helpers for the templates: icons, dates, money, badges, the stage bar |
-| `crm\static\crm\` | Bootstrap 5.3.8 (its own copy, so no internet is needed), `hl.css` (the H & L colors and the few pieces Bootstrap lacks), `hl.js` (about 50 lines) and the app icon |
+| `crm\templatetags\crm_tags.py`, `crm\dates.py` | Small helpers for the templates: icons, dates, money, badges, the stage bar |
+| `crm\static\crm\` | Bootstrap 5.3.8 (its own copy, so no internet is needed), `hl.css` (the H & L colors and the few pieces Bootstrap lacks), `hl.js` (about 100 lines) and the app icon |
 | `crm\admin.py` | What the admin site shows |
 | `crm\management\commands\` | `demo` (made-up data) and `spanish` (checks and builds the Spanish file) |
 | `crm\tests\` | The tests |
@@ -168,6 +181,8 @@ waitress-serve --listen=127.0.0.1:8000 hlcrm.wsgi:application
 4. Point the Cloudflare Tunnel at `http://127.0.0.1:8000`, and run the `waitress-serve` line as a Windows service so it starts with the server.
 
 - **Never run `demo` on the server.** It refuses to run when `DEBUG` is off.
+- **Work days** are Monday to Friday: `WORK_WEEKDAYS` in `hlcrm\settings.py`. Saturdays are never offered. Sundays are not decided yet.
+- **Calendar addresses** use the address the page was opened at, so on the server they start with `webcal://app.handlroofers.com/`. A calendar app decides how often it looks for changes. Not yet tried on a real iPhone.
 - **The website's request form.** Set `LEAD_FORM_KEY` in `.env`, and have the website send each request as a POST to `https://app.handlroofers.com/leads/in/` with these fields: `key`, `name`, `phone`, `email`, `address`, `city`, `zip`, `service`, `message`, `language`. The top of `crm\lead_views.py` (`lead_in`) says exactly what it accepts. A key inside a web page can be read by anyone who looks, so it only keeps casual robots out; Cloudflare's rate limiting is the real guard.
 - **The Price Book's file reader was built without a real supplier file.** It needs a row of column names with Item, Cost and Price (Code and Unit are optional), in English or Spanish. Try it with one real file before relying on it.
 - `python manage.py check --deploy` gives two warnings, about sending visitors to HTTPS. Cloudflare does that part: turn on **Always Use HTTPS** for the domain.

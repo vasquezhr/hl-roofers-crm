@@ -6,12 +6,13 @@ import re
 from urllib.parse import quote
 
 from django import template
-from django.utils import formats, timezone
+from django.utils import timezone
 from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 
 from crm import documents
+from crm.dates import day_text, month_day_text, range_text
 from crm.models import Company, Job, Lead, Opportunity, digits
 
 register = template.Library()
@@ -68,9 +69,13 @@ def trf(message, **values):
 @register.filter(expects_localtime=True)
 def day(value):
     """Mon, Nov 9   (lun, 9 nov in Spanish)"""
-    if not value:
-        return ""
-    return formats.date_format(value, _("D, M j"))
+    return day_text(value)
+
+
+@register.filter
+def month_day(value):
+    """Nov 9   (9 Nov in Spanish)"""
+    return month_day_text(value)
 
 
 @register.filter
@@ -167,12 +172,13 @@ def job_tags(job):
 
 @register.simple_tag
 def job_dates(job):
-    """Mon, Nov 9   or   Mon, Nov 9 – Wed, Nov 11"""
-    if not job.first_day:
-        return _("Not scheduled yet")
-    if job.last_day == job.first_day:
-        return day(job.first_day)
-    return f"{day(job.first_day)} – {day(job.last_day)}"
+    return range_text(job.first_day, job.last_day) if job.first_day else _("Not scheduled yet")
+
+
+@register.simple_tag
+def was_dates(job):
+    """The dates a moved job had before."""
+    return range_text(job.was_first_day, job.was_last_day)
 
 
 # ---------- the stage bar: one bar from Inspection to Paid ----------

@@ -173,7 +173,7 @@ class MoneyOnAJob(Base):
         self.assertTrue(response.content.startswith(b"%PDF"))
         self.sign_in(self.login1)                                                # the job's own crew reads the invoice, and cannot send it
         self.assertContains(self.client.get(reverse("invoice", args=[self.work.number])), "Balance due")
-        self.assertRedirects(self.client.post(reverse("invoice_send", args=[self.work.number]), {"do": "sent"}), reverse("my_jobs"))
+        self.assertRedirects(self.client.post(reverse("invoice_send", args=[self.work.number]), {"do": "sent"}), reverse("my_day"))
         self.sign_in(self.login2)
         self.assertEqual(self.client.get(reverse("invoice", args=[self.work.number])).status_code, 404)
 

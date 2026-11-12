@@ -11,7 +11,8 @@ class SignedOut(Base):
     def test_every_page_asks_for_a_login(self):
         job = self.job(self.crew1, "scheduled")
         for name, args in [("home", []), ("accounts", []), ("account", [self.account.pk]), ("opps", []), ("jobs", []),
-                           ("job", [job.number]), ("my_jobs", []), ("search", []), ("imports", []), ("import_queue", [])]:
+                           ("job", [job.number]), ("my_jobs", []), ("my_day", []), ("schedule", []), ("search", []), ("imports", []),
+                           ("import_queue", [])]:
             response = self.client.get(reverse(name, args=args))
             self.assertRedirects(response, f"{reverse('login')}?next={reverse(name, args=args)}", msg_prefix=name)
         self.assertEqual(self.client.post(reverse("touch"), {"kind": "job", "id": job.number, "how": "call"}).status_code, 302)
@@ -22,7 +23,7 @@ class SignedOut(Base):
         self.assertEqual(response.request["PATH_INFO"], reverse("home"))
         self.client.post(reverse("logout"))
         response = self.client.post(reverse("login"), {"username": "crew1", "password": "x"}, follow=True)
-        self.assertEqual(response.request["PATH_INFO"], reverse("my_jobs"))
+        self.assertEqual(response.request["PATH_INFO"], reverse("my_day"))                    # a crew starts on My Day
 
 
 class CrewLogin(Base):
@@ -42,8 +43,8 @@ class CrewLogin(Base):
                            ("opp", [self.mine.number]), ("jobs", []), ("job_schedule", [self.mine.number]),
                            ("job_ref", [self.mine.number]), ("job_warranty", [self.mine.number]), ("leads", []), ("lead_new", []),
                            ("opp_proposal", [self.mine.number]), ("opp_document", [self.mine.number]),
-                           ("change_order_new", [self.mine.number])]:
-            self.assertRedirects(self.client.get(reverse(name, args=args)), reverse("my_jobs"), msg_prefix=name)
+                           ("change_order_new", [self.mine.number]), ("schedule", [])]:
+            self.assertRedirects(self.client.get(reverse(name, args=args)), reverse("my_day"), msg_prefix=name)
 
     def test_the_admin_pages_are_closed(self):
         for page in ["imports", "import_queue", "admin_home", "pricebook", "company_details"]:

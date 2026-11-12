@@ -12,6 +12,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
+from crm.dates import range_code
 from crm.models import (Account, Activity, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment, PriceEntry, PriceItem,
                         PriceUpload, Property, Sequence, User, Worker)
 
@@ -244,9 +245,16 @@ class Command(BaseCommand):
         history(warranty, "scheduled", ago(2))
         Activity.objects.create(job=original, kind="warranty_opened", detail=warranty.number, actor="Office", at=at(ago(2)))
 
-        # money: a change order waiting for a signature, a deposit, and a job paid in full
         def job(n):
             return Job.objects.get(number=number(n))
+
+        # the schedule: one job was moved a day later, and its crew has not tapped Got it yet
+        moved = job("104")
+        moved.was_first_day, moved.was_last_day, moved.changed_at = work_day(1), work_day(2), at(ago(1))
+        moved.save()
+        Activity.objects.create(job=moved, kind="changed", detail=range_code(work_day(1), work_day(2)), actor="Office", at=at(ago(1)))
+
+        # money: a change order waiting for a signature, a deposit, and a job paid in full
 
         order = ChangeOrder.objects.create(job=job("112"), description="Replace 6 more sheets of rotted plywood found at tear-off", amount=390,
                                            sent_on=work_day(-1))

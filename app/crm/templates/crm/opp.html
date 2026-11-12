@@ -57,7 +57,7 @@
         <div class="small text-body-secondary">{% trans "No inspection date yet." %}</div>
         {% endif %}
         {% if opp.stage == "inspection" %}
-        <a class="btn {% if opp.inspection_at %}btn-outline-secondary{% else %}btn-primary{% endif %} btn-sm mt-2" href="{% url 'opp_inspection' opp.number %}">{% icon "schedule" %} {% if opp.inspection_at %}{% trans "Change the date" %}{% else %}{% trans "Set the date" %}{% endif %}</a>
+        <a class="btn {% if opp.inspection_at %}btn-outline-secondary{% else %}btn-primary{% endif %} btn-sm mt-2" href="{% url 'schedule' %}?book=opp:{{ opp.number }}#book">{% icon "schedule" %} {% if opp.inspection_at %}{% trans "Change the time" %}{% else %}{% trans "Book the inspection" %}{% endif %}</a>
         {% endif %}
       </div>
     </div>

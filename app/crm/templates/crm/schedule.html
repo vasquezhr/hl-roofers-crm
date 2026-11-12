@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Schedule" %}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-start gap-2 mb-3">
+  <div class="flex-grow-1 hl-minw0">
+    <h1 class="h4 mb-0">{% trans "Schedule" %}</h1>
+    <div class="text-body-secondary small">{{ first|day }} – {{ last|day }}</div>
+  </div>
+  <div class="btn-group btn-group-sm">
+    {% if offset %}<a class="btn btn-outline-secondary" href="?week={{ offset|add:-1 }}&amp;show={{ show }}" aria-label="{% trans 'Earlier' %}">‹</a>
+    {% else %}<span class="btn btn-outline-secondary disabled" aria-hidden="true">‹</span>{% endif %}
+    <a class="btn btn-outline-secondary" href="?week={{ offset|add:1 }}&amp;show={{ show }}" aria-label="{% trans 'Later' %}">›</a>
+  </div>
+</div>
+
+{# All, one crew, or the inspections #}
+<div class="d-flex flex-nowrap gap-1 overflow-auto pb-2 mb-2">
+  {% for pill in pills %}
+  <a class="btn btn-sm rounded-pill text-nowrap {% if pill.active %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="?show={{ pill.value }}&amp;week={{ offset }}">{{ pill.label }}</a>
+  {% endfor %}
+</div>
+
+{# five work days #}
+<div class="row row-cols-1 row-cols-md-5 g-2 mb-3">
+  {% for column in columns %}
+  <div class="col">
+    <div class="card h-100{% if column.is_today %} border-primary{% endif %}">
+      <div class="card-header d-flex justify-content-between py-1 px-2 small"><span class="fw-semibold text-uppercase">{{ column.day|date:"D" }}</span><span>{{ column.day|month_day }}</span></div>
+      <div class="card-body d-flex flex-column gap-1 p-2">
+        {% for item in column.stops %}
+        {% with stop=item.stop record=item.stop.record %}
+        {% if stop.kind == "inspection" %}
+        <a href="{% url 'opp' record.number %}" class="d-block text-decoration-none text-reset small rounded-end border-start border-3 p-1 border-{{ item.tone }} bg-{{ item.tone }}-subtle"><span class="fw-semibold">{{ stop.starts|time:"g:i A" }}</span> · {% trans "Inspection" %}<br>{{ record.account.name }}</a>
+        {% else %}
+        <a href="{% url 'job' record.number %}" class="d-block text-decoration-none text-reset small rounded-end border-start border-3 p-1 border-{{ item.tone }} bg-{{ item.tone }}-subtle"><span class="fw-semibold">{{ record.crew.name }}</span>{% if record.days > 1 %} · {% trf "day %(i)s of %(n)s" i=stop.day_number n=record.days %}{% endif %}<br>{{ record.account.name }} · {{ record.get_job_type_display }}{% if record.change_unseen %}<br>{% trans "Changed" as changed %}{% badge changed "warning" %}{% endif %}</a>
+        {% endif %}
+        {% endwith %}
+        {% empty %}
+        <div class="small text-body-secondary">—</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="d-flex flex-wrap gap-3 small text-body-secondary mb-3">
+  {% for tone, name in legend %}<span><span class="badge bg-{{ tone }} rounded-circle p-1">&nbsp;</span> {{ name }}</span>{% endfor %}
+  <span><span class="badge bg-info rounded-circle p-1">&nbsp;</span> {% trans "Inspections" %}</span>
+</div>
+
+{# everything waiting to be booked, with suggested times #}
+<div class="card shadow-sm mb-3" id="book">
+  <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "Schedule a visit" %}</h2>
+    {% if not book %}
+    <div class="small text-body-secondary">{% trans "Nothing is waiting to be scheduled." %}</div>
+    {% else %}
+    <form method="get" action="#book" class="row g-2 align-items-end mb-3">
+      <input type="hidden" name="week" value="{{ offset }}"><input type="hidden" name="show" value="{{ show }}">
+      <div class="col-md">
+        <label class="form-label small fw-semibold mb-1" for="bookPick">{% trans "What are you scheduling?" %}</label>
+        <select class="form-select" name="book" id="bookPick" data-submit-on-change>
+          {% if book_opps %}<optgroup label="{% trans 'Inspections to book' %}">
+            {% for opp in book_opps %}<option value="opp:{{ opp.number }}"{% if book_kind == "opp" and opp == book %} selected{% endif %}>{{ opp.account.name }} — {{ opp.get_job_type_display }} · {{ opp.place.street }}</option>{% endfor %}
+          </optgroup>{% endif %}
+          {% if book_jobs %}<optgroup label="{% trans 'Jobs to schedule' %}">
+            {% for job in book_jobs %}<option value="job:{{ job.number }}"{% if book_kind == "job" and job == book %} selected{% endif %}>{{ job.account.name }} — {{ job.get_job_type_display }} · {{ job.place.street }}</option>{% endfor %}
+          </optgroup>{% endif %}
+        </select>
+      </div>
+      {% if book_kind == "job" %}
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold mb-1" for="bookCrew">{% trans "Crew" %}</label>
+        <select class="form-select" name="crew" id="bookCrew" data-submit-on-change>
+          {% for crew in crews %}<option value="{{ crew.pk }}"{% if crew == book_crew %} selected{% endif %}>{{ crew.name }}{% if crew.lead_name %} · {{ crew.lead_name }}{% endif %}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold mb-1" for="bookDays">{% trans "Work days" %}</label>
+        <select class="form-select" name="days" id="bookDays" data-submit-on-change>
+          {% for n in day_choices %}<option value="{{ n }}"{% if n == book_days %} selected{% endif %}>{{ n }}</option>{% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="col-auto"><button type="submit" class="btn btn-outline-secondary">{% trans "Show the times" %}</button></div>
+    </form>
+
+    <div class="fw-semibold mb-2">{% trans "Suggested times" %}</div>
+    {% if suggestions %}
+    <div class="list-group mb-2">
+      {% for s in suggestions %}
+      <form method="post" action="{% url 'book' %}" class="list-group-item d-flex flex-wrap flex-md-nowrap align-items-center gap-2 gap-md-3{% if forloop.first %} list-group-item-success{% endif %}">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="{{ book_kind }}"><input type="hidden" name="number" value="{{ book.number }}">
+        {% if book_kind == "opp" %}
+        <input type="hidden" name="day" value="{{ s.day|date:'Y-m-d' }}"><input type="hidden" name="hour" value="{{ s.hour }}">
+        <div class="fw-bold text-nowrap">{{ s.day|day }}<div class="small fw-normal text-body-secondary">{{ s.time|time:"g:i A" }}</div></div>
+        <div class="small hl-minw0 col-12 col-md order-1 order-md-0">
+          {% if s.near %}{% if s.near.0 %}{% trf "About %(miles)s mi from %(name)s" miles=s.near.0 name=s.near.1.account.name %}{% else %}{% trf "In the same ZIP code as %(name)s" name=s.near.1.account.name %}{% endif %}{% if s.near.1.kind == "inspection" %} ({{ s.near.1.starts|time:"g:i A" }}){% endif %}
+          {% elif s.has_stops %}{% trans "There are other stops that day; how far is not known" %}
+          {% else %}{% trans "No other stops that day" %}{% endif %}
+          {% if forloop.first %}<br>{% trans "Best choice" as best %}{% badge best "success" %}{% endif %}
+        </div>
+        {% else %}
+        <input type="hidden" name="day" value="{{ s.first|date:'Y-m-d' }}"><input type="hidden" name="crew" value="{{ book_crew.pk }}"><input type="hidden" name="days" value="{{ book_days }}">
+        <div class="fw-bold text-nowrap">{{ s.first|day }}{% if s.last != s.first %} – {{ s.last|day }}{% endif %}</div>
+        <div class="small hl-minw0 col-12 col-md order-1 order-md-0">
+          {% trf "%(crew)s is free for the whole job" crew=book_crew.name %}<br>
+          {% if s.before %}{% if s.miles is None %}{% trf "The day before: %(name)s" name=s.before.account.name %}{% elif s.miles %}{% trf "The day before: %(name)s, about %(miles)s mi away" name=s.before.account.name miles=s.miles %}{% else %}{% trf "The day before: %(name)s, in the same ZIP code" name=s.before.account.name %}{% endif %}
+          {% else %}{% trans "Nothing scheduled the day before" %}{% endif %}
+          {% if forloop.first %}<br>{% trans "Best choice" as best %}{% badge best "success" %}{% endif %}
+        </div>
+        {% endif %}
+        <button type="submit" class="btn btn-sm ms-auto {% if forloop.first %}btn-primary{% else %}btn-outline-secondary{% endif %}">{% trans "Book" %}</button>
+      </form>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="small text-body-secondary mb-2">{% trans "No free days were found in the next three weeks. Pick the days yourself." %}</div>
+    {% endif %}
+
+    {% if book_kind == "opp" %}
+    <div class="form-text">{% trans "Inspections take one hour, any hour from 9 am to 4 pm. Days are ranked by how close the visit is to that day's other stops, then by soonest. Distances are rough: they go by ZIP code." %}
+      <a href="{% url 'opp_inspection' book.number %}">{% trans "Type a day and time yourself" %}</a></div>
+    {% if map %}
+    <div class="row"><div class="col-md-7 col-lg-6">
+      <svg class="hl-map w-100 border rounded bg-body-tertiary mt-3" viewBox="0 0 {{ map.width }} {{ map.height }}" role="img" aria-label="{% trans 'A rough map of the other stops that day' %}">
+        {% for stop in map.stops %}<line x1="{{ map.x }}" y1="{{ map.y }}" x2="{{ stop.x }}" y2="{{ stop.y }}"/>{% endfor %}
+        {% for stop in map.stops %}<circle cx="{{ stop.x }}" cy="{{ stop.y }}" r="6"/><text x="{{ stop.x|add:9 }}" y="{{ stop.y|add:4 }}">{{ stop.label }}</text>{% endfor %}
+        <circle class="hl-here" cx="{{ map.x }}" cy="{{ map.y }}" r="7"/>
+        <text class="hl-here" x="{{ map.x|add:10 }}" y="{{ map.y|add:-7 }}">{{ book.account.first_name }}</text>
+      </svg>
+    </div></div>
+    {% endif %}
+    {% else %}
+    <div class="form-text">{% trans "The job gets whole work days, Monday to Friday. A job that needs more than one day continues on the next work day." %}
+      <a href="{% url 'job_schedule' book.number %}">{% trans "Pick the days yourself" %}</a></div>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+{% include "crm/_feed.html" %}
+{% endblock %}

@@ -55,10 +55,10 @@ class BothLanguages(Base):
                   ("job", [done.number]), ("job_warranty", [done.number]), ("search", []),
                   ("leads", []), ("lead_new", []), ("lead", [lead.pk]), ("lead_convert", [lead.pk]), ("lead_unfit", [lead.pk]),
                   ("opp_document", [open_opp.number]), ("change_order_new", [job.number]), ("change_order", [job.number, order.number]),
-                  ("payment_new", [job.number]), ("invoice", [done.number])]
+                  ("payment_new", [job.number]), ("invoice", [done.number]), ("schedule", [])]
         admin = [("imports", []), ("import_queue", []), ("import_note", [note.pk]), ("admin_home", []), ("company_details", []),
                  ("pricebook", []), ("price_item", [item.pk]), ("price_item_new", []), ("price_upload", [])]
-        crew = [("my_jobs", []), ("job", [job.number]), ("search", []), ("invoice", [done.number])]
+        crew = [("my_day", []), ("my_jobs", []), ("job", [job.number]), ("search", []), ("invoice", [done.number])]
         return office, admin, crew
 
     def batch(self):

@@ -1,0 +1,28 @@
+{% load i18n crm_tags %}
+{# Calendar addresses for a phone. Needs: feeds, a list of {label, address, which}. `which` is set only where the address can be replaced. #}
+{% if feeds %}
+<details class="small mb-3" id="calendars"{% if request.GET.calendars %} open{% endif %}>
+  <summary class="text-primary">{% icon "schedule" %} {% trans "Add to my phone's calendar" %}</summary>
+  <div class="card shadow-sm mt-2">
+    <div class="card-body py-2">
+      <p class="mb-2">{% trans "Subscribe once and these jobs show in the Calendar app on an iPhone or a Mac. The calendar refreshes by itself a few times a day, so a change on the same day still comes by text." %}</p>
+      {% for feed in feeds %}
+      <div class="mb-2">
+        {% if feeds|length > 1 %}<label class="form-label fw-semibold mb-1" for="feedLink{{ forloop.counter }}">{{ feed.label }}</label>{% endif %}
+        <div class="input-group input-group-sm">
+          <input class="form-control font-monospace" id="feedLink{{ forloop.counter }}" readonly value="{{ feed.address }}" aria-label="{% trans 'Calendar address' %}">
+          <button type="button" class="btn btn-outline-secondary" data-copy="#feedLink{{ forloop.counter }}">{% trans "Copy" %}</button>
+          <a class="btn btn-outline-secondary" href="{{ feed.address }}">{% trans "Subscribe" %}</a>
+          {% if feed.which %}<button type="submit" form="feedReset{{ forloop.counter }}" class="btn btn-outline-secondary" data-confirm="{% trans 'Give this calendar a new address? Every phone that uses the old one must subscribe again.' %}">{% trans "New address" %}</button>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      <div class="form-text">{% trans "Anyone who has this address can see the schedule, so share it only with the people who need it. It shows names, addresses and the type of work, never prices." %}
+        {% if feeds|length > 1 %}{% trans "Send each crew its own address, so its phones show only that crew's jobs." %}{% endif %}</div>
+      {% for feed in feeds %}{% if feed.which %}
+      <form method="post" action="{% url 'calendar_reset' %}" id="feedReset{{ forloop.counter }}">{% csrf_token %}<input type="hidden" name="which" value="{{ feed.which }}"></form>
+      {% endif %}{% endfor %}
+    </div>
+  </div>
+</details>
+{% endif %}

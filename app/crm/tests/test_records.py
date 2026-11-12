@@ -204,7 +204,7 @@ class Jobs(Base):
     def test_changing_the_schedule_is_noted_in_the_history(self):
         job = self.job(self.crew1, "scheduled")
         self.schedule(job, FRIDAY)
-        self.assertEqual(job.activities.first().kind, "rescheduled")
+        self.assertEqual(job.activities.first().kind, "changed")
 
     def test_a_step_cannot_be_taken_twice(self):
         job = self.job(self.crew1, "scheduled")

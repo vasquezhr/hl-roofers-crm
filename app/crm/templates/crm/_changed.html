@@ -1,0 +1,21 @@
+{% load i18n crm_tags %}
+{# The notice on a job that was moved. Needs: job, crew_view; the office's page also gives notify_href. #}
+{% if job.changed_at %}
+{% if not crew_view or job.change_unseen %}
+<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 py-2 small mb-2">
+  <div class="flex-grow-1">{% icon "bell" %} <span class="fw-semibold">{% trans "Changed" %}.</span> {% trans "Before" %}: {% was_dates job %}.
+    {% if not crew_view and job.change_unseen %}<span class="text-body-secondary">{% trf "%(crew)s has not seen it yet." crew=job.crew.name %}</span>{% endif %}
+  </div>
+  {% if crew_view %}
+  <form method="post" action="{% url 'job_seen' job.number %}">
+    {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+    <button type="submit" class="btn btn-warning btn-sm">{% icon "check" %} {% trans "Got it" %}</button>
+  </form>
+  {% elif job.change_unseen %}
+  {% if notify_href %}<a class="btn btn-outline-dark btn-sm" href="{{ notify_href }}" data-touch="notified" data-kind="job" data-id="{{ job.number }}">{% icon "msg" %} {% trans "Notify crew" %}</a>{% endif %}
+  {% else %}
+  {% trf "Seen by %(crew)s" crew=job.crew.name as seen %}{% badge seen "success" %}
+  {% endif %}
+</div>
+{% endif %}
+{% endif %}

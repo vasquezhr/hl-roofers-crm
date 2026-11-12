@@ -17,11 +17,12 @@
 </div>
 
 {% stage_bar job %}
+{% include "crm/_changed.html" %}
 
 {# the buttons for this stage, for the person looking #}
 <div class="d-flex flex-wrap gap-2 mb-3">
   {% if can_schedule and job.stage == "signed" %}
-  <a class="btn btn-primary" href="{% url 'job_schedule' job.number %}">{% icon "schedule" %} {% trans "Schedule" %}</a>
+  <a class="btn btn-primary" href="{% url 'schedule' %}?book=job:{{ job.number }}#book">{% icon "schedule" %} {% trans "Schedule the job" %}</a>
   {% endif %}
   {% if step %}
   <form method="post" action="{% url 'job_stage' job.number %}">
@@ -64,7 +65,29 @@
           <dt class="col-4 text-body-secondary fw-normal">{% trans "Crew" %}</dt>
           <dd class="col-8 mb-1"><span class="fw-semibold">{{ job.crew.name }}</span>{% if job.crew.lead_name %} · {% trans "Lead" %}: {{ job.crew.lead_name }}{% endif %}
             {% if members %}<br><span class="text-body-secondary">{% for worker in members %}{{ worker.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>{% endif %}</dd>
-          {% if workers %}
+          {% if can_change_workers %}
+          {# the office or the crew adds and takes off extra workers until the job is done #}
+          <dt class="col-4 text-body-secondary fw-normal">{% trans "Extra workers" %}</dt>
+          <dd class="col-8 mb-1">
+            <div class="d-flex flex-wrap align-items-center gap-1">
+              {% for worker in workers %}
+              <form method="post" action="{% url 'job_worker' job.number %}" class="badge text-bg-secondary fw-normal d-inline-flex align-items-center gap-1">
+                {% csrf_token %}<input type="hidden" name="worker" value="{{ worker.pk }}"><input type="hidden" name="do" value="remove">
+                {{ worker.name }}<button type="submit" class="btn btn-link btn-sm p-0 lh-1 text-reset text-decoration-none" aria-label="{% trf 'Take %(name)s off this job' name=worker.name %}">×</button>
+              </form>
+              {% endfor %}
+              {% if free_workers %}
+              <form method="post" action="{% url 'job_worker' job.number %}" class="d-inline-flex gap-1">
+                {% csrf_token %}<input type="hidden" name="do" value="add">
+                <select class="form-select form-select-sm w-auto" name="worker" aria-label="{% trans 'Add a worker' %}" data-submit-on-change>
+                  <option value="">+ {% trans "Add a worker" %}</option>
+                  {% for worker in free_workers %}<option value="{{ worker.pk }}">{{ worker.name }}</option>{% endfor %}
+                </select>
+              </form>
+              {% endif %}
+            </div>
+          </dd>
+          {% elif workers %}
           <dt class="col-4 text-body-secondary fw-normal">{% trans "Extra workers" %}</dt>
           <dd class="col-8 mb-1">{% for worker in workers %}{{ worker.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd>
           {% endif %}

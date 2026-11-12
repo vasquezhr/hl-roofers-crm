@@ -16,12 +16,12 @@ from .models import Job
 
 
 def office_only(view):
-    """Pages for the Office and Admin profiles. A crew login is sent to its own first page."""
+    """Pages for the Office and Admin profiles. A crew login is sent to its own first page, My Day."""
     @wraps(view)
     @login_required
     def wrapper(request, *args, **kwargs):
         if request.user.is_crew_profile:
-            return redirect("my_jobs")
+            return redirect("my_day")
         return view(request, *args, **kwargs)
     return wrapper
 

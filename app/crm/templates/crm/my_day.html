@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "My Day" %}{% endblock %}
+
+{# The crew's first page: today's stops with everything needed on site, then the next work day. #}
+{% block content %}
+<div class="text-body-secondary small">{{ day|day }}</div>
+<div class="mb-3">
+  <h1 class="h4 mb-0">{% trans "My Day" %}</h1>
+  {% if crew %}<div class="text-body-secondary small">{{ crew.name }}{% if crew.lead_name %} · {{ crew.lead_name }}{% endif %}</div>{% endif %}
+</div>
+
+{% if not crew %}
+<div class="alert alert-warning">{% trans "This login is not linked to a crew yet. Ask the administrator." %}</div>
+{% else %}
+
+{% if changes %}
+<h2 class="h6 mb-2">{% trans "Changes to your jobs" %}</h2>
+{% for job in changes %}
+<div class="card shadow-sm mb-3">
+  <div class="card-body py-2">
+    <a class="fw-semibold text-decoration-none d-block mb-2" href="{% url 'job' job.number %}">#{{ job.number }} · {{ job.account.name }} · {% job_dates job %}</a>
+    {% include "crm/_changed.html" with crew_view=True %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% for item in stops %}
+{% with job=item.job stop=item.stop %}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <div class="d-flex align-items-center gap-2 mb-1">
+      {% if job.days > 1 %}<span class="small text-body-secondary">{% trf "day %(i)s of %(n)s" i=stop.day_number n=job.days %}</span>{% endif %}
+      <span class="ms-auto">{% stage_badge job %}</span>
+    </div>
+    <a class="h5 d-block text-decoration-none mb-0" href="{% url 'job' job.number %}">{{ job.account.name }}</a>
+    <div class="small text-body-secondary">{{ job.place.full_address }}</div>
+    <div class="small mb-2">#{{ job.number }} · {{ job.get_job_type_display }} {% job_tags job %}</div>
+    {% include "crm/_changed.html" with crew_view=True %}
+    <div class="small mb-1">{% icon "accounts" %} {% for worker in members %}{{ worker.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% for worker in job.workers.all %}, {{ worker.name }}{% endfor %}</div>
+    {% if not job.is_warranty and job.balance > 0 %}<div class="small mb-1">{% icon "dollar" %} {% trans "Balance due" %}: <span class="fw-semibold">{{ job.balance|money }}</span></div>{% endif %}
+    <div class="mt-2">{% contact_buttons job.account job.place "job" job.number small=True %}</div>
+    <div class="d-flex flex-wrap gap-2 mt-2">
+      {% if item.step %}
+      <form method="post" action="{% url 'job_stage' job.number %}">{% csrf_token %}<input type="hidden" name="to" value="{{ item.step.to }}">
+        <button type="submit" class="btn btn-primary btn-sm" data-confirm="{% trf '%(action)s?' action=item.step.label %}">{% icon "check" %} {{ item.step.label }}</button></form>
+      {% endif %}
+      {% if item.can_pay %}
+      <a class="btn btn-outline-primary btn-sm" href="{% url 'payment_new' job.number %}">{% icon "dollar" %} {% trans "Record payment" %}</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endwith %}
+{% empty %}
+<div class="card shadow-sm mb-3"><div class="card-body text-center text-body-secondary py-4">{% trans "Nothing is scheduled for today." %}</div></div>
+{% endfor %}
+
+<h2 class="h6 mt-4 mb-2">{% trans "Next work day" %} · {{ next_day|day }}</h2>
+{% if next_jobs %}<div class="list-group shadow-sm mb-3">{% for job in next_jobs %}{% include "crm/_job_row.html" %}{% endfor %}</div>
+{% else %}<div class="small text-body-secondary mb-3">{% trans "None" %}</div>{% endif %}
+
+{% include "crm/_feed.html" %}
+{% endif %}
+{% endblock %}

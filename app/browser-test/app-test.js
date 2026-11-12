@@ -35,6 +35,10 @@ async function signIn(browser, who, options = {}) {
   return page;
 }
 const text = async (page, selector) => (await page.locator(selector).first().innerText()).replace(/\s+/g, ' ').trim();
+const main = async page => await page.locator('main').innerText();
+// do something that loads a new page (picking from a list that acts at once), and wait for that page
+const andWait = async (page, action) => { await Promise.all([page.waitForEvent('framenavigated'), action()]); await page.waitForLoadState('networkidle'); };
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const snap = async (page, name) => { if (shots) await page.screenshot({ path: path.join(shots, name + '.png'), fullPage: true }); };
 
 (async () => {
@@ -100,15 +104,27 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   check('signing opens the job with the same number', office.url().endsWith(`/jobs/${number}/`));
   check('the job waits to be scheduled', (await text(office, 'main .badge')) === 'To schedule');
 
-  await office.click('a:has-text("Schedule")');
-  await office.selectOption('#id_crew', { label: 'Crew 1' });
-  const monday = (() => { const d = new Date(); do { d.setDate(d.getDate() + 1); } while (d.getDay() !== 1); return d.toISOString().slice(0, 10); })();
+  // the Schedule page suggests the days when the crew is free for the whole job
+  await office.click('a:has-text("Schedule the job")');
+  await office.waitForLoadState('networkidle');
+  check('Schedule the job opens the schedule with this job picked', (await office.inputValue('#bookPick')) === 'job:' + number);
+  await andWait(office, () => office.selectOption('#bookDays', '2'));
+  check('times are suggested for a two-day job', (await office.locator('#book').innerText()).includes('Crew 1 is free for the whole job'));
+  await office.locator('#book button:has-text("Book")').first().click();
+  await office.waitForLoadState('networkidle');
+  check('booking a suggested time schedules the job', office.url().endsWith(`/jobs/${number}/`) && (await text(office, '.hl-stage .cur')) === 'Scheduled');
+  check('two work days are shown', (await main(office)).includes('2 work days'));
+  await andWait(office, () => office.selectOption('select[name=worker]', { label: 'Fermín' }));
+  check('an extra worker is added to the job', (await main(office)).includes('Extra worker added: Fermín'));
+
+  // moving a job that is already scheduled: the crew must see it
+  await office.click('a:has-text("Change the schedule")');
+  const monday = (() => { const d = new Date(); d.setDate(d.getDate() + 21); do { d.setDate(d.getDate() + 1); } while (d.getDay() !== 1); return iso(d); })();
   await office.fill('#id_first_day', monday);
-  await office.fill('#id_days', '2');
   await office.click('button:has-text("Save")');
   await office.waitForLoadState('networkidle');
-  check('the job is scheduled', (await text(office, '.hl-stage .cur')) === 'Scheduled');
-  check('two work days are shown', (await office.locator('main').innerText()).includes('2 work days'));
+  check('moving a scheduled job marks it Changed', (await main(office)).includes('Crew 1 has not seen it yet.'));
+  check('Notify crew opens a text to the crew lead', ((await office.locator('a:has-text("Notify crew")').getAttribute('href')) || '').startsWith('sms:8045550111&body='));
 
   // Call adds a line to the history (the link itself would open the phone's dialer)
   await office.evaluate(() => document.querySelector('[data-touch=call]').addEventListener('click', e => e.preventDefault()));
@@ -120,10 +136,19 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
 
   console.log('Crew 1: its own jobs only');
   const crew = await signIn(browser, 'crew1', { viewport: { width: 390, height: 844 } });
-  check('a crew lands on My Jobs', (await text(crew, 'h1')) === 'My Jobs');
-  check('the new job is listed', (await crew.locator('main').innerText()).includes(number));
+  check('a crew lands on My Day', (await text(crew, 'h1')) === 'My Day');
+  check('My Day shows the crew\'s work', (await main(crew)).includes('Denise Wyckoff') && (await main(crew)).includes('Next work day'));
+  check('and the changes it has not seen', (await main(crew)).includes('Changes to your jobs') && (await main(crew)).includes(number));
+  await snap(crew, 'my-day-phone');
+  await crew.click(`form[action="/jobs/${number}/got-it/"] button`);
+  await crew.waitForLoadState('networkidle');
+  check('Got it clears the notice', crew.url().endsWith('/my-day/') && await crew.locator(`form[action="/jobs/${number}/got-it/"]`).count() === 0);
+  await crew.click('nav.hl-tabbar a:has-text("My Jobs")');
+  await crew.waitForLoadState('networkidle');
+  check('the new job is listed in My Jobs', (await text(crew, 'h1')) === 'My Jobs' && (await main(crew)).includes(number));
   await crew.goto(base + '/accounts/');
-  check('an office page sends the crew back', crew.url().endsWith('/my-jobs/'));
+  check('an office page sends the crew back', crew.url().endsWith('/my-day/'));
+  await crew.goto(base + '/my-jobs/');
   await crew.click(`a.list-group-item:has-text("${number}")`);
   check('the crew sees the price', (await crew.locator('main').innerText()).includes('$1,960'));
   await crew.click('button:has-text("Start job")');
@@ -145,6 +170,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
 
   console.log('Office: invoice, payment, warranty, search');
   await office.reload();
+  check('the office sees that the crew got the change', (await main(office)).includes('Seen by Crew 1'));
   await office.click('text=Add change order');
   await office.fill('#id_description', 'Add a downspout at the back corner');
   await office.fill('#id_amount', '140');
@@ -182,6 +208,24 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await office.click('button:has-text("Convert")');
   await office.waitForLoadState('networkidle');
   check('Convert opens the new opportunity', /\/opportunities\/\d\d-\d+\/$/.test(office.url()) && (await text(office, 'h1')) === 'Mina Seo', office.url());
+  await office.click('a:has-text("Book the inspection")');
+  await office.waitForLoadState('networkidle');
+  check('Book the inspection suggests times', (await office.locator('#book').innerText()).includes('Best choice'));
+  await office.locator('#book button:has-text("Book")').first().click();
+  await office.waitForLoadState('networkidle');
+  check('booking one puts the time on the opportunity', /\/opportunities\/\d\d-\d+\/$/.test(office.url()) && (await main(office)).includes('Change the time'));
+
+  console.log('The schedule and the calendar address');
+  await office.goto(base + '/schedule/');
+  check('the schedule shows five work days', await office.locator('.row-cols-md-5 .card-header').count() === 5);
+  const week = await main(office);
+  check('with both crews and the inspections', ['Crew 1', 'Crew 2', 'Inspection', 'Mina Seo'].every(words => week.includes(words)));
+  await snap(office, 'schedule');
+  const feedAddress = (await office.inputValue('#feedLink1')).replace(/^webcal:\/\/[^/]+/, base);
+  const feed = await (await browser.newContext()).request.get(feedAddress);          // signed out, as a phone's calendar app is
+  const feedText = await feed.text();
+  check('the calendar address gives a calendar file without a login', (feed.headers()['content-type'] || '').startsWith('text/calendar') && feedText.includes('BEGIN:VEVENT'));
+  check('the calendar file has no prices', !/\$\d/.test(feedText));
   await office.goto(base + '/opportunities/?show=proposal');
   await office.click('a.list-group-item:has-text("Anjali Raman")');
   await office.click('a:has-text("View the proposal")');

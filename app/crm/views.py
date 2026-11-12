@@ -21,11 +21,13 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
+from . import scheduling
 from .access import job_or_404, jobs_for, office_only
+from .dates import range_code
 from .forms import (AccountForm, ContactForm, InspectionForm, LostForm, NewAccountForm, NoteForm, OpportunityForm, PropertyForm,
                     RefForm, ScheduleForm, SignForm, WarrantyForm)
 from .importer import find_account
-from .models import Account, Activity, Contact, ImportedNote, Job, Lead, Note, Opportunity, Property, log
+from .models import Account, Activity, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, Property, Worker, log
 from .search import search as find_records
 from .templatetags.crm_tags import ago
 
@@ -91,6 +93,9 @@ def home(request):
     for job in unpaid.filter(invoiced_on__lte=week_ago).order_by("invoiced_on"):
         attention.append({"icon": "dollar", "url": reverse("job", args=[job.number]),
                           "text": _("%(name)s: the invoice has been unpaid for %(days)s days") % {"name": job.account.name, "days": (day - job.invoiced_on).days}})
+    for job in jobs.filter(changed_at__isnull=False, seen_at__isnull=True, crew__isnull=False):
+        attention.append({"icon": "bell", "url": reverse("job", args=[job.number]),
+                          "text": _("%(crew)s has not seen the change to job #%(number)s") % {"crew": job.crew.name, "number": job.number}})
     waiting = ImportedNote.objects.filter(status=ImportedNote.Status.PENDING).count() if request.user.is_admin_profile else 0
     if waiting:
         attention.append({"icon": "upload", "url": reverse("import_queue"),
@@ -371,6 +376,10 @@ def job(request, number):
         "can_pay": job.can_take_payment(request.user),
         "can_invoice": office and job.stage == Job.Stage.DONE and not job.is_warranty,
         "has_invoice": job.invoiced_on is not None,
+        # extra workers can be added or taken off, by the office or the crew, until the job is done
+        "can_change_workers": job.crew_id is not None and not job.is_finished,
+        "free_workers": Worker.objects.filter(active=True, crew__isnull=True).exclude(jobs=job) if job.crew_id and not job.is_finished else [],
+        "notify_href": scheduling.notify_href(job, Company.load()) if job.change_unseen and office else "",
         "members": job.crew.members.filter(active=True) if job.crew else [],
         "workers": job.workers.all(),
         "warranty_jobs": job.warranty_jobs.all(),
@@ -401,7 +410,7 @@ def job_schedule(request, number):
     job = get_object_or_404(Job.objects.select_related("account"), number=number)
     if job.is_finished:
         return redirect("job", number=job.number)
-    before = (job.crew_id, job.first_day, job.days)
+    before = (job.crew_id, job.first_day, job.days)                 # to tell afterwards whether the schedule changed
     form = ScheduleForm(request.POST or None, instance=job)
     if form.is_valid():
         job = form.save(commit=False)
@@ -413,13 +422,17 @@ def job_schedule(request, number):
         if new:
             log(job, "scheduled", request.user)
         elif (job.crew_id, job.first_day, job.days) != before:
-            log(job, "rescheduled", request.user)
+            # the crew sees "Changed" on the job until it taps Got it
+            was_first, was_last = before[1], Job(first_day=before[1], days=before[2]).work_days[-1]
+            job.mark_changed(was_first, was_last)
+            job.save()
+            log(job, "changed", request.user, detail=range_code(was_first, was_last))
         saved(request)
         return redirect("job", number=job.number)
     coming = (Job.objects.filter(stage__in=[Job.Stage.SCHEDULED, Job.Stage.IN_PROGRESS], last_day__gte=today())
               .exclude(pk=job.pk).select_related("account", "crew").order_by("first_day")[:40])
     intro = _("The job gets whole work days, Monday to Friday. A job that needs more than one day continues on the next work day.")
-    return form_page(request, form, _("Schedule"), reverse("job", args=[job.number]), intro=intro,
+    return form_page(request, form, _("Schedule the job"), reverse("job", args=[job.number]), intro=intro,
                      sub=f"#{job.number} · {job.account.name} · {job.get_job_type_display()}", coming=coming)
 
 
@@ -497,8 +510,10 @@ def search(request):
 def touch(request):
     """Tapping Call, Text or Directions adds a line to the record's history. The link itself opens the phone's own app."""
     kind, ident, how = request.POST.get("kind"), request.POST.get("id", ""), request.POST.get("how")
-    if how not in ("call", "text", "nav"):
+    if how not in ("call", "text", "nav", "notified"):
         raise Http404
+    if how == "notified" and (kind != "job" or request.user.is_crew_profile):
+        raise Http404                                            # "Notify crew" is the office's button, on a job
     if kind == "job":
         record = job_or_404(request.user, ident)
     elif request.user.is_crew_profile:

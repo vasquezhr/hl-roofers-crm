@@ -146,6 +146,6 @@ class Leads(Base):
 
     def test_a_crew_never_sees_leads(self):
         self.sign_in(self.login1)
-        self.assertRedirects(self.client.get(reverse("lead", args=[self.lead.pk])), reverse("my_jobs"))
+        self.assertRedirects(self.client.get(reverse("lead", args=[self.lead.pk])), reverse("my_day"))
         self.assertNotContains(self.client.get(reverse("search"), {"q": "Mina"}), "Mina Seo")
         self.assertEqual(self.client.post(reverse("touch"), {"kind": "lead", "id": self.lead.pk, "how": "call"}).status_code, 404)

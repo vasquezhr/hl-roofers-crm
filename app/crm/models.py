@@ -29,6 +29,8 @@ from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from .dates import range_from_code
+
 # ---------------------------------------------------------------- small helpers
 STREET_WORDS = [("street", "st"), ("avenue", "ave"), ("road", "rd"), ("drive", "dr"), ("lane", "ln"), ("court", "ct"),
                 ("circle", "cir"), ("place", "pl"), ("boulevard", "blvd"), ("parkway", "pkwy"), ("turnpike", "tpke"),
@@ -65,6 +67,7 @@ class Crew(models.Model):
     lead_name = models.CharField(_("crew lead"), max_length=80, blank=True)
     phone = models.CharField(_("phone"), max_length=30, blank=True)
     active = models.BooleanField(_("active"), default=True)
+    feed_token = models.CharField(max_length=64, blank=True, db_index=True, editable=False)     # the secret word in the crew's calendar address
 
     class Meta:
         ordering = ["name"]
@@ -72,6 +75,13 @@ class Crew(models.Model):
 
     def __str__(self):
         return self.name
+
+    def calendar_token(self):
+        """The long random word in this crew's calendar address. Made the first time it is needed."""
+        if not self.feed_token:
+            self.feed_token = secrets.token_urlsafe(24)
+            self.save(update_fields=["feed_token"])
+        return self.feed_token
 
 
 class Worker(models.Model):
@@ -157,6 +167,7 @@ class Company(models.Model):
     invoice_terms_es = models.TextField(_("invoice terms, in Spanish"), blank=True)
     lead_owner = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("new website requests go to"), null=True, blank=True,
                                    on_delete=models.SET_NULL, related_name="+")
+    feed_token = models.CharField(max_length=64, blank=True, db_index=True, editable=False)     # the office's calendar address
 
     class Meta:
         verbose_name, verbose_name_plural = _("company details"), _("company details")
@@ -167,6 +178,13 @@ class Company(models.Model):
     @classmethod
     def load(cls):
         return cls.objects.get_or_create(pk=1)[0]
+
+    def calendar_token(self):
+        """The long random word in the office's calendar address. Made the first time it is needed."""
+        if not self.feed_token:
+            self.feed_token = secrets.token_urlsafe(24)
+            self.save(update_fields=["feed_token"])
+        return self.feed_token
 
     # what prints on a document: the detail, or its {placeholder} while it is empty
     @property
@@ -511,6 +529,11 @@ class Job(models.Model):
     # the outside number a job can carry: a claim, a purchase order or a work order
     ref_type = models.CharField(_("kind of number"), max_length=6, choices=RefType.choices, blank=True)
     ref_number = models.CharField(_("outside number"), max_length=60, blank=True)
+    # when the office moves a job that is already scheduled, the crew sees "Changed" until it taps Got it
+    changed_at = models.DateTimeField(null=True, blank=True)
+    was_first_day = models.DateField(null=True, blank=True)
+    was_last_day = models.DateField(null=True, blank=True)
+    seen_at = models.DateTimeField(null=True, blank=True)
     # the day each step happened
     started_on = models.DateField(null=True, blank=True)
     done_on = models.DateField(null=True, blank=True)
@@ -558,6 +581,21 @@ class Job(models.Model):
 
     def on_day(self, day):
         return day in self.work_days
+
+    def day_number(self, day):
+        """Which day of the job this is: 2 on the second work day. 0 when the job is not on that day."""
+        days = self.work_days
+        return days.index(day) + 1 if day in days else 0
+
+    @property
+    def change_unseen(self):
+        return self.changed_at is not None and self.seen_at is None
+
+    def mark_changed(self, was_first_day, was_last_day):
+        """The dates or the crew of a scheduled job changed. The first change's "before" is kept until the crew has seen it."""
+        if not self.change_unseen:
+            self.was_first_day, self.was_last_day = was_first_day, was_last_day
+        self.changed_at, self.seen_at = timezone.now(), None
 
     # ----- money: what the job costs the customer, what has been paid, what is still owed
     @property
@@ -822,6 +860,9 @@ class Activity(models.Model):
         "emailed": _("Emailed to %(detail)s"), "accepted": _("Accepted online by %(detail)s"),
         "co_sent": _("Change order %(detail)s sent for signature"), "co_signed": _("Change order %(detail)s signed"),
         "payment": _("Payment recorded: %(detail)s"),
+        # the schedule
+        "changed": _("Dates changed (before: %(detail)s)"), "notified": _("The crew was told by text"), "got_it": _("The crew saw the change"),
+        "worker_added": _("Extra worker added: %(detail)s"), "worker_removed": _("Extra worker removed: %(detail)s"),
     }
 
     lead = models.ForeignKey("Lead", null=True, blank=True, on_delete=models.CASCADE, related_name="activities")
@@ -840,7 +881,8 @@ class Activity(models.Model):
     @property
     def text(self):
         label = str(self.KINDS.get(self.kind, self.kind))
-        return label % {"detail": self.detail} if "%(detail)s" in label else label
+        detail = range_from_code(self.detail) if self.kind == "changed" else self.detail      # dates read in the reader's language
+        return label % {"detail": detail} if "%(detail)s" in label else label
 
 
 def log(record, kind, user=None, detail="", actor=""):

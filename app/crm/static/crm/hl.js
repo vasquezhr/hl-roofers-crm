@@ -91,3 +91,8 @@ document.addEventListener("click", function (event) {
   if (!button || !navigator.clipboard) return;
   navigator.clipboard.writeText(document.querySelector(button.dataset.copy).value);
 });
+
+/* 9. A list that acts as soon as something is picked: <select data-submit-on-change> */
+document.addEventListener("change", function (event) {
+  if (event.target.matches("[data-submit-on-change]") && event.target.value !== "") event.target.form.submit();
+});
