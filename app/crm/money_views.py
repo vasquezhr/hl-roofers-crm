@@ -194,14 +194,16 @@ def job_proposal(request, number):
     opp = job.opportunity
     if opp is None:                                                   # a warranty job has no proposal
         return redirect("job", number=job.number)
-    document = documents.proposal_document(opp, company, translation.get_language())
+    copy = documents.kept("proposal", opportunity=opp)                  # the proposal exactly as it was signed
+    document, firm = (copy.data, documents.firm_of(copy)) if copy else (documents.proposal_document(opp, company, translation.get_language()), company)
     if request.GET.get("pdf"):
-        return pdf_response(document, company, f"proposal-{opp.number}.pdf")
+        return pdf_response(document, firm, f"proposal-{opp.number}.pdf")
     signed = _("Signed %(day)s") % {"day": documents.date_text(opp.signed_on)} + f" · {opp.get_signed_how_display()}"
     if opp.signed_by:
         signed += f" · {opp.signed_by}"
     return render(request, "crm/document.html", {
-        "document": document, "title": f"{_('Proposal')} #{opp.number}", "note": signed, "back": reverse("job", args=[job.number]),
+        "document": document, "firm": firm, "title": f"{_('Proposal')} #{opp.number}", "note": signed, "kept": copy, "not_kept": copy is None,
+        "back": reverse("job", args=[job.number]),
         "actions": [action(_("Download the PDF"), reverse("job_proposal", args=[job.number]) + "?pdf=1", icon="doc")],
     })
 
@@ -218,6 +220,8 @@ def accept_proposal(request, token):
             problem = _("Type your full name to accept.")
         else:
             job = opp.sign(Opportunity.SignedHow.LINK, by=name)
+            documents.keep("proposal", lambda language: documents.proposal_document(opp, company, language), opp.account, company,
+                           actor=name, opportunity=opp, job=job)
             log(opp, "accepted", detail=name, actor=name)
             log(job, "job_created", actor=name)
     state = "open" if opp.stage == Stage.PROPOSAL else "accepted" if opp.stage == Stage.WON else "closed"
@@ -256,8 +260,10 @@ def change_order(request, number, n):
     job_or_404(request.user, number)                                  # a crew only reaches its own jobs
     order, company = order_or_404(number, n), Company.load()
     job, office = order.job, not request.user.is_crew_profile
+    copy = documents.kept("change", change_order=order) if order.is_signed else None
+    document, firm = (copy.data, documents.firm_of(copy)) if copy else (documents.change_order_document(order, company, translation.get_language()), company)
     if request.GET.get("pdf"):
-        return pdf_response(documents.change_order_document(order, company, translation.get_language()), company, f"change-order-{job.number}-{order.label}.pdf")
+        return pdf_response(document, firm, f"change-order-{job.number}-{order.label}.pdf")
     here, actions = reverse("change_order", args=[job.number, order.number]), []
     if office and not order.is_signed:
         actions += [action(_("Email to the customer"), post="email", style="primary", icon="mail"), action(_("Mark signed"), post="signed", icon="check")]
@@ -267,7 +273,7 @@ def change_order(request, number, n):
     else:
         note = order.get_status_display()
     return render(request, "crm/document.html", {
-        "document": documents.change_order_document(order, company, translation.get_language()), "actions": actions, "note": note,
+        "document": document, "firm": firm, "kept": copy, "not_kept": order.is_signed and copy is None, "actions": actions, "note": note,
         "title": f"{_('Change order')} {order.label} · #{job.number}", "back": reverse("job", args=[job.number]),
         "send_to": reverse("change_order_send", args=[job.number, order.number]),
         "accept_link": settings.SITE_URL + reverse("accept_change", args=[order.accept_token]) if office and order.accept_token and not order.is_signed else "",
@@ -284,6 +290,7 @@ def change_order_send(request, number, n):
         return redirect("job", number=job.number)
     if how == "signed":
         order.sign()
+        keep_change_order(order, company, request.user.label)
         log(job, "co_signed", request.user, detail=order.label)
         saved(request)
         return redirect("job", number=job.number)
@@ -307,6 +314,14 @@ def change_order_send(request, number, n):
     return redirect("change_order", number=job.number, n=order.number)
 
 
+def keep_change_order(order, company, actor):
+    """A change order is kept exactly as it was signed."""
+    job = Job.objects.prefetch_related("change_orders", "payments").select_related("account", "place").get(pk=order.job_id)
+    order.job = job                                                     # the job's total, now with this change order in it
+    documents.keep("change", lambda language: documents.change_order_document(order, company, language), job.account, company,
+                   actor=actor, change_order=order, job=job)
+
+
 def accept_change(request, token):
     """The customer's own page for a change order."""
     order = get_object_or_404(ChangeOrder.objects.select_related("job__account", "job__place"), accept_token=token)
@@ -319,6 +334,7 @@ def accept_change(request, token):
             problem = _("Type your full name to accept.")
         else:
             order.sign(by=name)
+            keep_change_order(order, company, name)
             log(job, "co_signed", detail=order.label, actor=name)
     return render(request, "crm/accept.html", {
         "document": documents.change_order_document(order, company, translation.get_language()), "state": "accepted" if order.is_signed else "open",
@@ -330,7 +346,7 @@ def accept_change(request, token):
 @login_required
 def payment_new(request, number):
     """Record money received. The office can at any point; a crew can on its own job once the work has started."""
-    job = job_or_404(request.user, number)
+    job, company = job_or_404(request.user, number), Company.load()
     if not job.can_take_payment(request.user):
         return redirect("job", number=job.number)
     balance = job.balance
@@ -343,6 +359,9 @@ def payment_new(request, number):
         payment.save()
         log(job, "payment", request.user, detail=documents.money(payment.amount))
         job = job_or_404(request.user, number)                          # read the job again, now with this payment
+        payment.job = job
+        documents.keep("receipt", lambda language: documents.receipt_document(payment, company, language), job.account, company,
+                       actor=request.user.label, payment=payment, job=job)
         if job.settle():
             log(job, "paid", request.user)
         saved(request, _("Payment recorded"))
@@ -376,6 +395,15 @@ def invoice(request, number):
     office = not request.user.is_crew_profile
     if job.is_warranty or not job.is_finished:
         return redirect("job", number=job.number)
+    copy = documents.kept("invoice", job=job)
+    if request.GET.get("sent") and copy:                                # the invoice exactly as it was sent
+        if request.GET.get("pdf"):
+            return pdf_response(copy.data, documents.firm_of(copy), f"invoice-{job.number}-as-sent.pdf")
+        return render(request, "crm/document.html", {
+            "document": copy.data, "firm": documents.firm_of(copy), "kept": copy, "title": f"{_('Invoice')} #{job.number}",
+            "note": _("As it was sent on %(day)s") % {"day": documents.date_text(job.invoiced_on)}, "back": reverse("invoice", args=[job.number]),
+            "actions": [action(_("Download the PDF"), reverse("invoice", args=[job.number]) + "?sent=1&pdf=1", icon="doc")],
+        })
     if request.GET.get("pdf"):
         return pdf_response(documents.invoice_document(job, company, translation.get_language()), company, f"invoice-{job.number}.pdf")
     here, actions = reverse("invoice", args=[job.number]), []
@@ -384,8 +412,11 @@ def invoice(request, number):
     if job.stage != Job.Stage.DONE and job.can_take_payment(request.user):
         actions.append(action(_("Record payment"), reverse("payment_new", args=[job.number]), style="primary", icon="dollar"))
     actions.append(action(_("Download the PDF"), here + "?pdf=1", icon="doc"))
+    if copy:
+        actions.append(action(_("The copy that was sent"), here + "?sent=1", icon="doc"))
     return render(request, "crm/document.html", {
         "document": documents.invoice_document(job, company, translation.get_language()), "actions": actions,
+        "note": _("With the payments received so far.") if copy else "",
         "title": f"{_('Invoice')} #{job.number}", "back": reverse("job", args=[job.number]), "send_to": reverse("invoice_send", args=[job.number]),
         "email": email_of(job.account) if office else "",
     })
@@ -416,8 +447,69 @@ def invoice_send(request, number):
             return redirect("invoice", number=job.number)
         log(job, "emailed", request.user, detail=email_of(account))
     job.save()
+    job = Job.objects.select_related("account", "place").prefetch_related("change_orders", "payments").get(pk=job.pk)
+    documents.keep("invoice", lambda language: documents.invoice_document(job, company, language), account, company,
+                   actor=request.user.label, job=job)                   # the invoice is kept exactly as it went out
     log(job, "invoiced", request.user)
     if job.settle():                                                  # already paid in full by deposits
         log(job, "paid", request.user)
     saved(request, _("Invoice sent"))
     return redirect("job", number=job.number)
+
+
+# ---------------------------------------------------------------- the receipt for a payment
+def payment_or_404(user, number, pk):
+    job = job_or_404(user, number)                                      # a crew only reaches the payments of its own jobs
+    payment = get_object_or_404(Payment, pk=pk, job=job)
+    payment.job = job
+    return payment
+
+
+def receipt_parts(payment, company, language):
+    """The receipt and the business's details to print on it: the copy kept when the payment was recorded, when there is one."""
+    copy = documents.kept("receipt", payment=payment)
+    if copy:
+        return copy.data, documents.firm_of(copy), copy
+    return documents.receipt_document(payment, company, language), company, None
+
+
+@login_required
+def receipt(request, number, pk):
+    """The receipt for one payment. The office can email it; the job's own crew can open it and hand it over. ?pdf=1 gives the PDF."""
+    payment, company = payment_or_404(request.user, number, pk), Company.load()
+    job, office = payment.job, not request.user.is_crew_profile
+    document, firm, copy = receipt_parts(payment, company, translation.get_language())
+    if request.GET.get("pdf"):
+        return pdf_response(document, firm, f"receipt-{job.number}-{payment.pk}.pdf")
+    here, actions = reverse("receipt", args=[job.number, payment.pk]), []
+    if office:
+        actions.append(action(_("Email to the customer"), post="email", style="primary", icon="mail"))
+    actions.append(action(_("Download the PDF"), here + "?pdf=1", icon="doc"))
+    return render(request, "crm/document.html", {
+        "document": document, "firm": firm, "kept": copy, "actions": actions, "title": f"{_('Receipt')} #{document['number']}",
+        "back": reverse("job", args=[job.number]), "send_to": reverse("receipt_send", args=[job.number, payment.pk]),
+        "email": email_of(job.account) if office else "",
+    })
+
+
+@office_only
+@require_POST
+def receipt_send(request, number, pk):
+    """Email the receipt to the customer as a PDF, in the customer's language."""
+    payment, company = payment_or_404(request.user, number, pk), Company.load()
+    job, account = payment.job, payment.job.account
+    if not cannot_email(request, account):
+        def build():
+            document, firm, _copy = receipt_parts(payment, company, account.language)
+            body = _("Hello %(name)s,\n\nAttached is the receipt for your payment of %(amount)s on job #%(number)s.\n\nThank you.\n%(company)s") % {
+                "name": account.first_name, "amount": documents.money(payment.amount), "number": job.number, "company": company.name}
+            subject = _("Receipt from %(company)s") % {"company": company.name}
+            return subject, body, documents.pdf(document, firm)
+
+        subject, body, pdf = in_customers_language(account, build)
+        if send(email_of(account), subject, body, (f"receipt-{job.number}-{payment.pk}.pdf", pdf)):
+            log(job, "emailed", request.user, detail=email_of(account))
+            saved(request, _("Emailed to %(detail)s") % {"detail": email_of(account)})
+        else:
+            messages.error(request, _("The email could not be sent. Check the email settings, or mark it sent."))
+    return redirect("receipt", number=job.number, pk=payment.pk)

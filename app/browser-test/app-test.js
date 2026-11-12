@@ -199,6 +199,12 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await office.click('button:has-text("Record payment")');
   await office.waitForLoadState('networkidle');
   check('the payment that clears the balance ends the job at Paid', (await text(office, '.hl-stage .cur')) === 'Paid');
+  await office.click('a:has-text("Receipt") >> nth=0');
+  await office.waitForLoadState('networkidle');
+  check('the payment has a receipt', (await main(office)).includes('RECEIPT #' + number) && (await main(office)).includes('Thank you for your payment.'));
+  await office.goto(`${base}/jobs/${number}/proposal/`);
+  check('the signed proposal is the copy that was kept', (await main(office)).includes('This is the copy kept on'));
+  await office.goto(`${base}/jobs/${number}/`);
   await office.click('text=New warranty job');
   await office.fill('#id_problem', 'A joint is dripping at the corner');
   await office.click('button:has-text("Save")');

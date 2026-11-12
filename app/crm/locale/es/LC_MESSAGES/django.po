@@ -454,6 +454,12 @@ msgstr "Sale de todas las listas, de Buscar, de la agenda y de los reportes. Se 
 msgid "Cancel"
 msgstr "Cancelar"
 
+msgid "This is the copy kept on %(when)s. It stays as it was, whatever changes later."
+msgstr "Esta es la copia guardada el %(when)s. Se queda como estaba, cambie lo que cambie después."
+
+msgid "Drawn from today's records: it was signed before copies were kept."
+msgstr "Hecha con los datos de hoy: se firmó antes de que se guardaran copias."
+
 msgid "Email goes to"
 msgstr "El correo va a"
 
@@ -825,6 +831,9 @@ msgstr "Una orden de cambio cuenta en el total cuando el cliente la firma."
 
 msgid "Payments"
 msgstr "Pagos"
+
+msgid "Receipt"
+msgstr "Recibo"
 
 msgid "Remove this payment? Use this only for a payment recorded by mistake."
 msgstr "¿Quitar este pago? Use esto solo para un pago registrado por error."
@@ -1662,6 +1671,9 @@ msgstr "Esta orden de cambio pasa a ser parte del trabajo cuando el cliente la f
 msgid "Invoice"
 msgstr "Factura"
 
+msgid "Thank you for your payment."
+msgstr "Gracias por su pago."
+
 msgid "Customer's signature and date"
 msgstr "Firma del cliente y fecha"
 
@@ -1686,11 +1698,23 @@ msgstr "Facturar a"
 msgid "Work done at"
 msgstr "Trabajo hecho en"
 
+msgid "Received from"
+msgstr "Recibido de"
+
+msgid "Job total"
+msgstr "Total del trabajo"
+
+msgid "Paid so far"
+msgstr "Pagado hasta ahora"
+
 msgid "Signed %(day)s"
 msgstr "Firmada el %(day)s"
 
 msgid "Not accepted"
 msgstr "No aceptada"
+
+msgid "Received %(day)s"
+msgstr "Recibido el %(day)s"
 
 msgid "Sent %(day)s"
 msgstr "Enviada el %(day)s"
@@ -2772,6 +2796,12 @@ msgstr "Enviar la factura por correo"
 msgid "Mark invoice sent"
 msgstr "Marcar factura enviada"
 
+msgid "The copy that was sent"
+msgstr "La copia que se envió"
+
+msgid "With the payments received so far."
+msgstr "Con los pagos recibidos hasta ahora."
+
 msgid ""
 "Hello %(name)s,\n"
 "\n"
@@ -2790,11 +2820,32 @@ msgstr ""
 msgid "Invoice #%(number)s from %(company)s"
 msgstr "Factura #%(number)s de %(company)s"
 
+msgid ""
+"Hello %(name)s,\n"
+"\n"
+"Attached is the receipt for your payment of %(amount)s on job #%(number)s.\n"
+"\n"
+"Thank you.\n"
+"%(company)s"
+msgstr ""
+"Hola %(name)s,\n"
+"\n"
+"Adjunto va el recibo de su pago de %(amount)s del trabajo #%(number)s.\n"
+"\n"
+"Gracias.\n"
+"%(company)s"
+
+msgid "Receipt from %(company)s"
+msgstr "Recibo de %(company)s"
+
 msgid "Email again"
 msgstr "Enviar de nuevo"
 
 msgid "Mark as sent"
 msgstr "Marcar como enviada"
+
+msgid "As it was sent on %(day)s"
+msgstr "Tal como se envió el %(day)s"
 
 msgid "An amount is not a number: %(amount)s"
 msgstr "Un monto no es un número: %(amount)s"

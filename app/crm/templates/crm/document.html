@@ -6,7 +6,9 @@
 {% block content %}
 <a class="small text-decoration-none d-inline-block mb-2" href="{{ back }}">‹ {% trans "Back" %}</a>
 <h1 class="h4 {% if note %}mb-1{% else %}mb-3{% endif %}">{{ title }}</h1>
-{% if note %}<div class="small text-body-secondary mb-3">{{ note }}</div>{% endif %}
+{% if note %}<div class="small text-body-secondary {% if kept or not_kept %}mb-1{% else %}mb-3{% endif %}">{{ note }}</div>{% endif %}
+{% if kept %}<div class="small text-body-secondary mb-3">{% icon "shield" %} {% trf "This is the copy kept on %(when)s. It stays as it was, whatever changes later." when=kept.kept_at|day_time %}</div>
+{% elif not_kept %}<div class="small text-body-secondary mb-3">{% trans "Drawn from today's records: it was signed before copies were kept." %}</div>{% endif %}
 
 <form method="post" action="{{ send_to|default:'' }}" class="d-flex flex-wrap gap-2 mb-3">
   {% csrf_token %}

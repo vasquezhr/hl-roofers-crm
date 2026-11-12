@@ -304,7 +304,7 @@ The user: "the change order should produce a pdf, same as an invoice. the signed
 - **The job has the same list for its own documents,** and its "Linked records" box now links the signed proposal next to the opportunity.
 - **The job's own crew can open all three** (the page and the PDF) and nothing else: no Email or Mark signed buttons, no customer link, and not another crew's job. The opportunity stays an office page.
 - Choices to confirm: a proposal still being written is not listed until it is sent; a proposal the customer turned down stays on the account's list, marked "Not accepted"; the invoice is listed once it has been sent.
-- Still open, as ideas put to the user: keeping a frozen copy of each signed document, a receipt for a payment, and attaching a photo of a paper signature.
+- The three ideas put to the user (a frozen copy of each signed document, a receipt for a payment, a photo of a paper signature) were approved on Nov 12: "go ahead with your better ideas". See "Kept copies and receipts" and "Photos and files" below.
 
 **2. History shows who, the date and the time, on every record** (built Nov 12)
 
@@ -390,3 +390,12 @@ The user: "there should be a way to delete records as well, but with a permissio
 ### The app and the mockup now differ
 
 The mockup was not changed for anything built after Nov 10. The app has these and the mockup does not: a crew's note on a job and "Notes from the crews" on Today; the Documents list on the account and the job, with the signed proposal open to the crew; change orders as a page and a PDF with their own Accept page; the time and the old value in the history, "Created / Last change", and Setup history; Add a login, and permission sets that change what a login can do; Delete and the Recycle Bin; real numbers in the reports; the job's length and the crew picker when booking; the calendar address for each crew. The mockup has these and the app does not: sample values for backups and a "Back up now" button. **To decide with the user: whether the mockup should be brought up to date for the owners' review, or retired in favor of showing the app with its demo data.**
+
+### Kept copies and receipts (built Nov 12, approved by the user as "your better ideas")
+
+- **A document is kept as it was at the moment that matters:** a proposal and a change order when they are signed (on paper, by PO or online), an invoice when it is sent, a receipt when the payment is recorded. The copy holds every word and amount, the terms, and the business's name, license, address and phone as they were. From then on the page and the PDF are drawn from the copy.
+- **The copy is in the customer's language,** because it is the customer's document. An office login reading in English still sees a Spanish-speaking customer's copy in Spanish.
+- **The invoice has two views:** the live one, which follows the payments, and "The copy that was sent".
+- **Receipts are the fourth document.** Numbered by job: #26-104 · R1, R2. A receipt shows the payment, the job total, what has been paid so far and the balance. The office emails it as a PDF; the job's crew can open it. Taking a payment off (Billing) removes its receipt.
+- **Records from before this change have no copy.** Their pages say "Drawn from today's records". The demo data keeps copies, as real use will.
+- Choices to confirm: the copy is kept at signing, not at sending, so a proposal can still be corrected until it is signed; a receipt is made for every payment, deposits included.

@@ -9,13 +9,15 @@ The labels follow the language that is switched on when the document is built. T
 in the customer's language:   with translation.override(account.language): ...
 """
 import io
+import json
 import os
 from datetime import date
+from types import SimpleNamespace
 from xml.sax.saxutils import escape
 
 import reportlab
 from django.urls import reverse
-from django.utils import formats, timezone
+from django.utils import formats, timezone, translation
 from django.utils.translation import gettext as _
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -24,6 +26,8 @@ from reportlab.lib.units import inch
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+from .models import KeptDocument
 
 
 # ---------------------------------------------------------------- the data
@@ -90,6 +94,46 @@ def invoice_document(job, company, language="en"):
     }
 
 
+def receipt_number(payment):
+    """26-104 · R2: the job's number, and which of the job's payments this is."""
+    return f"{payment.job.number} · R{payment.job.payments.filter(id__lte=payment.id).count()}"
+
+
+def receipt_document(payment, company, language="en"):
+    """A receipt for one payment: what was received, and what is still owed after it."""
+    job = payment.job
+    paid = sum((other.amount for other in job.payments.all() if other.id <= payment.id), 0)
+    how = payment.get_method_display() + (f" #{payment.check_number}" if payment.check_number else "")
+    return {
+        "title": _("Receipt"), "number": receipt_number(payment), "date": date_text(payment.paid_on),
+        "blocks": [(_("Received from"), customer_lines(job.account)),
+                   (_("Job"), [f"#{job.number} · {job.get_job_type_display()}", job.place.full_address])],
+        "lines": [(f"{payment.get_kind_display()} · {how}", money(payment.amount))],
+        "totals": [(_("Job total"), money(job.total)), (_("Paid so far"), money(paid)), (_("Balance due"), money(job.total - paid))],
+        "terms": "", "note": _("Thank you for your payment."), "signature": "",
+    }
+
+
+# ---------------------------------------------------------------- copies kept as they were
+def keep(kind, build, account, company, actor="", **record):
+    """Keep a document exactly as it is at this moment, in the customer's language. `build` makes the document for a language;
+    `record` says what it belongs to (opportunity=, job=, change_order=, payment=). Returns the copy."""
+    with translation.override(account.language):
+        data = json.loads(json.dumps(build(account.language), default=str))      # every word settled in that language, as plain text
+    facts = {"name": company.name, "legal": company.legal, "license": company.license, "street": company.street, "tel": company.tel}
+    return KeptDocument.objects.create(kind=kind, language=account.language, data=data, company=facts, actor=actor, **record)
+
+
+def kept(kind, **record):
+    """The copy that was kept, or None for a record from before copies were kept."""
+    return KeptDocument.objects.filter(kind=kind, **record).first()
+
+
+def firm_of(copy):
+    """The business's details as they were when a copy was kept, for the top of the page and of the PDF."""
+    return SimpleNamespace(**copy.company)
+
+
 # ---------------------------------------------------------------- the list of documents
 def document_rows(opps=(), jobs=()):
     """The three kinds of document a customer's work goes through, as rows for a list, newest first:
@@ -125,6 +169,9 @@ def document_rows(opps=(), jobs=()):
             else:
                 add(_("Change order"), f"#{job.number} · {order.label}", order.description, order.get_status_display(), "warning", order.sent_on,
                     order.amount, url)
+        for n, payment in enumerate(sorted(job.payments.all(), key=lambda payment: payment.id), 1):
+            add(_("Receipt"), f"#{job.number} · R{n}", payment_label(payment), _("Received %(day)s") % {"day": date_text(payment.paid_on)}, "success",
+                payment.paid_on, payment.amount, reverse("receipt", args=[job.number, payment.pk]))
         if job.invoiced_on:
             paid = job.paid_on is not None
             add(_("Invoice"), f"#{job.number}", job.get_job_type_display(),
@@ -194,7 +241,10 @@ def pdf(document, company):
                                ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))
     story.append(table)
 
-    story += [Paragraph(safe(_("Terms").upper()), LABEL), Paragraph(safe(document["terms"]), SMALL)]
+    if document.get("terms"):
+        story += [Paragraph(safe(_("Terms").upper()), LABEL), Paragraph(safe(document["terms"]), SMALL)]
+    if document.get("note"):                                    # a receipt says thank you instead of terms
+        story += [Spacer(1, 10), Paragraph(safe(document["note"]), BODY)]
 
     if document["signature"]:                                    # two lines to sign on
         sign = Table([[Paragraph(safe(document["signature"]), SMALL), "", Paragraph(safe(company.legal), SMALL)]],

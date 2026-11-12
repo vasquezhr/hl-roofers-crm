@@ -1,10 +1,12 @@
 """The three documents of a customer's work: proposals, change orders and invoices.
 Each is a page and a PDF, listed on the account and on the job, and open to the job's own crew."""
+from django.core import mail
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import translation
 
 from crm.documents import document_rows
-from crm.models import ChangeOrder, Job
+from crm.models import ChangeOrder, Company, Job, KeptDocument, Payment
 
 from .base import Base
 
@@ -123,3 +125,145 @@ class Documents(Base):
         with translation.override("es"):
             statuses = {row["kind"]: row["status"] for row in document_rows([self.roof.opportunity], [self.roof])}
         self.assertTrue(statuses["Propuesta"].startswith("Firmada el "))
+
+
+@override_settings(EMAIL_READY=True, SITE_URL="https://app.example")
+class KeptCopies(Base):
+    """A proposal and a change order are kept as they were signed, an invoice as it was sent, a receipt as the payment was recorded."""
+
+    def setUp(self):
+        self.sign_in(self.admin)
+        self.client.post(reverse("company_details"), {"name": "H & L Roofers", "tagline": "", "legal_name": "Sample Roofing Company", "license_number": "2705-000000",
+                                                      "address": "100 Sample St, Richmond VA", "phone": "(804) 555-0100", "proposal_terms_en": "Price valid for 30 days."})
+        self.sign_in(self.office)
+        self.opp = self.opportunity(job_type="gutters")
+        self.client.post(reverse("opp_proposal", args=[self.opp.number]), {"text": ["Install seamless gutters"], "amount": ["1960"]})
+        self.client.post(reverse("opp_send", args=[self.opp.number]), {"do": "sent"})
+
+    def sign(self):
+        self.client.post(reverse("opp_sign", args=[self.opp.number]), {"signed_how": "paper"})
+        return Job.objects.get(number=self.opp.number)
+
+    def rename_the_business(self):
+        company = Company.load()
+        company.legal_name, company.proposal_terms_en, company.invoice_terms_en = "Another Name LLC", "New terms.", "New invoice terms."
+        company.save()
+
+    def test_a_signed_proposal_does_not_change_when_the_business_details_do(self):
+        job = self.sign()
+        copy = KeptDocument.objects.get()
+        self.assertEqual((copy.kind, copy.opportunity, copy.job, copy.actor, copy.language), ("proposal", self.opp, job, "office", "en"))
+        self.rename_the_business()
+        page = self.client.get(reverse("job_proposal", args=[job.number]))
+        for words in ["Sample Roofing Company", "Price valid for 30 days.", "Install seamless gutters", "$1,960", "This is the copy kept on"]:
+            self.assertContains(page, words)
+        self.assertNotContains(page, "Another Name LLC")
+        self.assertEqual(self.client.get(reverse("job_proposal", args=[job.number]), {"pdf": 1})["Content-Type"], "application/pdf")
+        # a proposal that is still open follows today's details
+        other = self.opportunity()
+        self.client.post(reverse("opp_proposal", args=[other.number]), {"text": ["Repair"], "amount": ["500"]})
+        self.assertContains(self.client.get(reverse("opp_document", args=[other.number])), "Another Name LLC")
+
+    def test_the_copy_is_in_the_customers_language(self):
+        self.account.language = "es"
+        self.account.save()
+        job = self.sign()
+        page = self.client.get(reverse("job_proposal", args=[job.number]))          # the office reads in English; the copy is what the customer signed
+        self.assertContains(page, "Propuesta para")
+        self.assertContains(page, "PROPUESTA".title())
+
+    def test_accepting_online_keeps_the_copy_with_the_typed_name(self):
+        self.opp.refresh_from_db()
+        self.client.logout()
+        self.client.post(reverse("accept_proposal", args=[self.opp.accept_token]), {"name": "Denise Wyckoff"})
+        copy = KeptDocument.objects.get()
+        self.assertEqual(copy.actor, "Denise Wyckoff")
+        self.assertIn("Denise Wyckoff", copy.data["signature"])
+
+    def test_a_proposal_signed_before_copies_were_kept_says_so(self):
+        old = self.job(self.crew1, "scheduled")                                     # made without the signing page: no copy
+        page = self.client.get(reverse("job_proposal", args=[old.number]))
+        self.assertContains(page, "Drawn from today's records")
+        self.assertNotContains(page, "This is the copy kept on")
+
+    def test_a_change_order_is_kept_when_it_is_signed(self):
+        job = self.sign()
+        self.client.post(reverse("change_order_new", args=[job.number]), {"description": "Add a downspout", "amount": "140"})
+        address = reverse("change_order", args=[job.number, 1])
+        self.assertNotContains(self.client.get(address), "This is the copy kept on")            # not signed yet: still live
+        self.client.post(reverse("change_order_send", args=[job.number, 1]), {"do": "signed"})
+        copy = KeptDocument.objects.get(kind="change")
+        self.assertEqual(copy.data["totals"][-1][1], "$2,100")                      # the job's total with this change in it
+        self.rename_the_business()
+        page = self.client.get(address)
+        self.assertContains(page, "Sample Roofing Company")
+        self.assertContains(page, "This is the copy kept on")
+
+    def test_the_invoice_is_kept_as_it_was_sent_and_the_live_one_follows_the_payments(self):
+        job = self.sign()
+        Job.objects.filter(pk=job.pk).update(stage="done")
+        self.client.post(reverse("invoice_send", args=[job.number]), {"do": "sent"})
+        self.client.post(reverse("payment_new", args=[job.number]), {"amount": "960", "method": "check", "check_number": "1048", "paid_on": "2026-11-12"})
+        self.rename_the_business()
+        live = self.client.get(reverse("invoice", args=[job.number]))
+        for words in ["$1,000", "Another Name LLC", "The copy that was sent"]:      # the balance after the payment, and today's details
+            self.assertContains(live, words)
+        sent = self.client.get(reverse("invoice", args=[job.number]), {"sent": 1})
+        for words in ["Sample Roofing Company", "As it was sent on", "$1,960"]:
+            self.assertContains(sent, words)
+        self.assertNotContains(sent, "$1,000")
+        self.assertEqual(self.client.get(reverse("invoice", args=[job.number]), {"sent": 1, "pdf": 1})["Content-Type"], "application/pdf")
+
+    def test_every_payment_has_a_receipt(self):
+        job = self.sign()
+        for amount in ("500", "460"):
+            self.client.post(reverse("payment_new", args=[job.number]), {"amount": amount, "method": "check", "check_number": "2217", "paid_on": "2026-11-12"})
+        first, second = Payment.objects.order_by("id")
+        page = self.client.get(reverse("receipt", args=[job.number, second.pk]))
+        for words in [f"Receipt #{job.number} · R2", "Received from", "Denise Wyckoff", "Deposit · Check #2217", "$460", "Paid so far", "$960", "$1,000",
+                      "Thank you for your payment.", "Email to the customer"]:
+            self.assertContains(page, words)
+        self.assertEqual(KeptDocument.objects.filter(kind="receipt").count(), 2)
+        self.assertEqual(self.client.get(reverse("receipt", args=[job.number, first.pk]), {"pdf": 1})["Content-Type"], "application/pdf")
+        # the job and the account list the receipts; the job's payments link to them
+        job_page = self.client.get(reverse("job", args=[job.number]))
+        self.assertContains(job_page, reverse("receipt", args=[job.number, first.pk]))
+        self.assertEqual([row["number"] for row in job_page.context["documents"] if row["kind"] == "Receipt"], [f"#{job.number} · R1", f"#{job.number} · R2"])
+        self.assertContains(self.client.get(reverse("account", args=[self.account.pk])), f"Receipt #{job.number} · R1")
+
+    def test_the_receipt_is_emailed_in_the_customers_language(self):
+        self.account.language = "es"
+        self.account.save()
+        job = self.sign()
+        self.client.post(reverse("payment_new", args=[job.number]), {"amount": "500", "method": "cash", "paid_on": "2026-11-12"})
+        payment = Payment.objects.get()
+        self.client.post(reverse("receipt_send", args=[job.number, payment.pk]), {"do": "email"})
+        message = mail.outbox[-1]
+        self.assertEqual((message.to, message.subject), (["dwyckoff@example.com"], "Recibo de H & L Roofers"))
+        name, content, kind = message.attachments[0]
+        self.assertEqual((name, kind, content[:4]), (f"receipt-{job.number}-{payment.pk}.pdf", "application/pdf", b"%PDF"))
+        self.assertEqual(job.activities.first().kind, "emailed")
+
+    def test_who_may_open_a_receipt(self):
+        job = self.sign()
+        Job.objects.filter(pk=job.pk).update(crew=self.crew1, stage="inprogress")
+        self.sign_in(self.login1)                                                   # the crew collects a check and hands over the receipt
+        self.client.post(reverse("payment_new", args=[job.number]), {"amount": "500", "method": "check", "check_number": "88", "paid_on": "2026-11-12"})
+        payment = Payment.objects.get()
+        page = self.client.get(reverse("receipt", args=[job.number, payment.pk]))
+        self.assertContains(page, "Download the PDF")
+        self.assertNotContains(page, "Email to the customer")                       # sending is the office's
+        self.assertRedirects(self.client.post(reverse("receipt_send", args=[job.number, payment.pk])), reverse("my_day"))
+        self.sign_in(self.login2)
+        self.assertEqual(self.client.get(reverse("receipt", args=[job.number, payment.pk])).status_code, 404)
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse("receipt", args=[job.number, payment.pk])).status_code, 302)
+
+    def test_a_payment_taken_off_takes_its_receipt_with_it(self):
+        job = self.sign()
+        self.client.post(reverse("payment_new", args=[job.number]), {"amount": "500", "method": "check", "check_number": "88", "paid_on": "2026-11-12"})
+        self.office.can_billing = True
+        self.office.save()
+        self.client.post(reverse("payment_remove", args=[job.number, Payment.objects.get().pk]))
+        self.assertFalse(KeptDocument.objects.filter(kind="receipt").exists())
+        self.assertNotIn("Receipt", [row["kind"] for row in self.client.get(reverse("job", args=[job.number])).context["documents"]])

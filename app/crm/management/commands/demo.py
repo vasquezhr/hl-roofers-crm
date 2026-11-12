@@ -13,6 +13,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from crm.dates import range_code
+from crm.documents import invoice_document, keep, proposal_document, receipt_document
 from crm.models import (Account, Activity, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment, PriceEntry, PriceItem,
                         PriceUpload, Property, Sequence, User, Worker)
 
@@ -362,6 +363,16 @@ class Command(BaseCommand):
         for upload in uploads.values():
             upload.changed, upload.same = upload.entries.count(), PriceItem.objects.filter(supplier=upload.supplier, line=upload.line).count() - upload.entries.count()
             upload.save()
+
+        # as in real use, each signed proposal, each invoice that went out and each payment has its kept copy
+        firm = Company.load()
+        for opp in Opportunity.objects.filter(stage="won").select_related("account", "place"):
+            keep("proposal", lambda language, opp=opp: proposal_document(opp, firm, language), opp.account, firm, actor="Office", opportunity=opp, job=opp.job)
+        for sent in Job.objects.filter(invoiced_on__isnull=False).select_related("account", "place").prefetch_related("change_orders", "payments"):
+            keep("invoice", lambda language, sent=sent: invoice_document(sent, firm, language), sent.account, firm, actor="Office", job=sent)
+        for payment in Payment.objects.select_related("job__account", "job__place"):
+            keep("receipt", lambda language, payment=payment: receipt_document(payment, firm, language), payment.job.account, firm, actor="Office",
+                 payment=payment, job=payment.job)
 
         # new numbers continue after the demo's last one
         Sequence.objects.update_or_create(year=yy, defaults={"last": 127})

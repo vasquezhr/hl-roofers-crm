@@ -946,6 +946,33 @@ class BinEntry(models.Model):
         return self.label
 
 
+# ---------------------------------------------------------------- documents kept as they were
+class KeptDocument(models.Model):
+    """A document exactly as it was at the moment that matters: a proposal or a change order when it was signed, an invoice
+    when it was sent, a receipt when the payment was recorded. `data` holds every word and amount of it, in the customer's
+    language, and `company` the business's details as they were. Nothing done later changes what this copy says."""
+
+    class Kind(models.TextChoices):
+        PROPOSAL = "proposal", _("Proposal")
+        CHANGE = "change", _("Change order")
+        INVOICE = "invoice", _("Invoice")
+        RECEIPT = "receipt", _("Receipt")
+
+    kind = models.CharField(max_length=10, choices=Kind.choices)
+    opportunity = models.ForeignKey(Opportunity, null=True, blank=True, on_delete=models.CASCADE, related_name="kept")
+    job = models.ForeignKey(Job, null=True, blank=True, on_delete=models.CASCADE, related_name="kept")
+    change_order = models.ForeignKey(ChangeOrder, null=True, blank=True, on_delete=models.CASCADE, related_name="kept")
+    payment = models.ForeignKey(Payment, null=True, blank=True, on_delete=models.CASCADE, related_name="kept")
+    language = models.CharField(max_length=2, choices=LANGS, default="en")
+    data = models.JSONField()
+    company = models.JSONField()
+    kept_at = models.DateTimeField(default=timezone.now)
+    actor = models.CharField(max_length=80, blank=True)
+
+    class Meta:
+        ordering = ["-kept_at", "-id"]
+
+
 # ---------------------------------------------------------------- the data editor's change log, and backups that reported in
 class ChangeSet(models.Model):
     """One confirmed set of changes from the data editor: who made it, when, why, and each field's value before and after,

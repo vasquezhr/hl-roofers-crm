@@ -22,7 +22,7 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from . import automations, scheduling
-from .documents import document_rows
+from .documents import document_rows, keep, proposal_document
 from .access import job_or_404, jobs_for, office_only
 from .dates import range_code
 from .history import booking_code, changes, when_code
@@ -337,6 +337,9 @@ def opp_sign(request, number):
     form = SignForm(request.POST or None, opportunity=opp)
     if form.is_valid():
         job = opp.sign(form.cleaned_data["signed_how"])
+        company = Company.load()                                        # the proposal is kept exactly as it was signed
+        keep("proposal", lambda language: proposal_document(opp, company, language), opp.account, company,
+             actor=request.user.label, opportunity=opp, job=job)
         log(opp, "signed", request.user)
         log(job, "job_created", request.user)
         saved(request, _("Job #%(number)s created") % {"number": job.number})
