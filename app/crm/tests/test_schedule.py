@@ -187,7 +187,7 @@ class Booking(OnMonday):
         self.assertContains(page, "Booked")
         visit.refresh_from_db()
         self.assertEqual(timezone.localtime(visit.inspection_at).strftime("%Y-%m-%d %H:%M"), "2026-11-10 11:00")
-        self.assertEqual(visit.activities.first().kind, "inspection_set")
+        self.assertEqual(visit.activities.first().text, "Inspection booked: Tue, Nov 10, 11:00 AM")        # who booked it is on the line too
 
     def test_a_saturday_or_an_odd_hour_is_refused(self):
         visit = self.inspection(self.account, self.place)
@@ -204,7 +204,7 @@ class Booking(OnMonday):
         self.assertRedirects(page, reverse("job", args=[job.number]))
         job.refresh_from_db()
         self.assertEqual((job.stage, job.crew, job.first_day, job.last_day, job.days), ("scheduled", self.crew2, THURSDAY, FRIDAY, 2))
-        self.assertEqual(job.activities.first().kind, "scheduled")
+        self.assertEqual(job.activities.first().text, "Put on the schedule: Crew 2 · Thu, Nov 12 – Fri, Nov 13")
         self.assertIsNone(job.changed_at)                                           # the first booking is not a change
 
     def test_a_job_already_on_the_schedule_is_not_booked_again(self):

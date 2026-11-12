@@ -21,6 +21,7 @@ from django.views.decorators.http import require_POST
 
 from . import scheduling
 from .access import job_or_404, jobs_for, office_only
+from .history import booking_code, when_code
 from .models import Company, Crew, Job, Opportunity, Worker, log
 from .views import filter_pills, next_step, saved, today
 
@@ -120,7 +121,7 @@ def book(request):
             raise Http404
         opp.inspection_at = timezone.make_aware(datetime.combine(day, time(hour, 0)))
         opp.save()
-        log(opp, "inspection_set", request.user)
+        log(opp, "inspection_booked", request.user, detail=when_code(timezone.localtime(opp.inspection_at)))
         saved(request, _("Booked"))
         return redirect("opp", number=opp.number)
     if kind == "job":
@@ -129,7 +130,7 @@ def book(request):
         job.first_day, job.stage = day, Job.Stage.SCHEDULED
         job.days = job_length(request.POST.get("days"), job.days)
         job.save()
-        log(job, "scheduled", request.user)
+        log(job, "booked", request.user, detail=booking_code(job))
         saved(request, _("Booked"))
         return redirect("job", number=job.number)
     raise Http404
@@ -201,6 +202,7 @@ def calendar_reset(request):
     owner = Company.load() if which == "office" else get_object_or_404(Crew, pk=which if which.isdigit() else 0)
     owner.feed_token = ""
     owner.calendar_token()
+    log(None, "calendar_reset", request.user, detail=owner.name)
     saved(request, _("The calendar has a new address. The old one no longer works."))
     return redirect(reverse("schedule") + "?calendars=1#calendars")
 

@@ -1,0 +1,8 @@
+{% load i18n crm_tags %}
+{# Who created a record and who changed it last. Needs: created and changed, two history lines (see the stamp tag). #}
+{% if created %}
+<div class="small text-body-secondary mb-2">
+  {% trans "Created" %}: {{ created.at|day_time }} · {{ created.actor|default:"—" }}
+  {% if changed.pk != created.pk %}<br>{% trans "Last change" %}: {{ changed.at|day_time }} · {{ changed.actor|default:"—" }}{% endif %}
+</div>
+{% endif %}

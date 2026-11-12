@@ -8,16 +8,19 @@ selling price. Crews never see it.
 import io
 
 from django.contrib import messages
+from django.contrib.admin.models import LogEntry
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.text import capfirst
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from . import pricebook
 from .access import admin_only
 from .forms import CompanyForm, NewPriceForm, PriceItemForm, PriceUploadForm
-from .models import Company, ImportedNote, PriceEntry, PriceItem, PriceUpload
+from .history import changes, field_changes
+from .models import Activity, Company, ImportedNote, PriceEntry, PriceItem, PriceUpload, log
 from .views import filter_pills, form_page, saved
 
 HELD = "price_upload"          # where a file that was read waits (in the session) until it is confirmed
@@ -36,10 +39,32 @@ def company_details(request):
     form = CompanyForm(request.POST or None, instance=company)
     if form.is_valid():
         form.save()
+        what = changes(form)
+        if what:
+            log(None, "company_edited", request.user, detail=what)
         saved(request)
         return redirect("company_details")
     intro = _("These print on every proposal and invoice. Until one is filled in, its {placeholder} prints instead.")
-    return form_page(request, form, _("Company details"), reverse("admin_home"), intro=intro)
+    last = Activity.objects.filter(kind="company_edited").first()            # who changed these last, and when
+    return form_page(request, form, _("Company details"), reverse("admin_home"), intro=intro, last_change=last)
+
+
+@admin_only
+def admin_history(request):
+    """Setup history: who changed the app's own setup, and when. Prices, the company's details, calendar addresses and
+    the notes import are logged by the app; logins, crews and anything corrected in the admin site are logged there.
+    Both are shown here in one list, newest first."""
+    ours = [{"at": line.at, "who": line.actor, "what": line.text}
+            for line in Activity.objects.filter(lead=None, account=None, opportunity=None, job=None)[:300]]
+    theirs = []
+    for entry in LogEntry.objects.select_related("user", "content_type")[:300]:
+        did = _("added in the admin site") if entry.is_addition() else _("deleted in the admin site") if entry.is_deletion() else _("changed in the admin site")
+        what = f"{capfirst(entry.content_type.name) if entry.content_type else ''} · {entry.object_repr}: {did}"
+        if entry.is_change() and entry.get_change_message():
+            what += f" ({entry.get_change_message()})"
+        theirs.append({"at": entry.action_time, "who": entry.user.label, "what": what})
+    rows = sorted(ours + theirs, key=lambda row: row["at"], reverse=True)[:300]
+    return render(request, "crm/admin_history.html", {"rows": rows})
 
 
 # ---------------------------------------------------------------- the Price Book
@@ -64,8 +89,14 @@ def price_item(request, pk):
     item = get_object_or_404(PriceItem, pk=pk)
     form = NewPriceForm(request.POST or None, initial={"cost": item.cost, "price": item.price})
     if form.is_valid():
-        item.set_price(form.cleaned_data["cost"], form.cleaned_data["price"])
-        saved(request)
+        cost, price = form.cleaned_data["cost"], form.cleaned_data["price"]
+        what = field_changes("priceitem", item.name, [("cost", item.cost, cost), ("price", item.price, price)])
+        if what:                                                    # the same numbers again add nothing to the history
+            item.set_price(cost, price, actor=request.user.label)
+            log(None, "price_set", request.user, detail=what)
+            saved(request)
+        else:
+            messages.info(request, _("That is the price it already has."))
         return redirect("price_item", pk=item.pk)
     history, before = [], None
     for entry in item.history.select_related("upload"):
@@ -81,7 +112,8 @@ def price_item_new(request):
     form = PriceItemForm(request.POST or None)
     if form.is_valid():
         item = form.save()
-        PriceEntry.objects.create(item=item, cost=item.cost, price=item.price)
+        PriceEntry.objects.create(item=item, cost=item.cost, price=item.price, actor=request.user.label)
+        log(None, "price_item_added", request.user, detail=item.name)
         saved(request)
         return redirect("price_item", pk=item.pk)
     return form_page(request, form, _("New item"), reverse("pricebook"))
@@ -114,6 +146,7 @@ def price_review(request):
     found = pricebook.compare(held["rows"], held["supplier"], held["line"])
     if request.method == "POST":
         upload = pricebook.apply(held["rows"], held["file_name"], held["supplier"], held["line"], request.user)
+        log(None, "price_file", request.user, detail=upload.file_name)
         del request.session[HELD]
         saved(request, _("%(count)s prices added or changed") % {"count": upload.added + upload.changed})
         return redirect("pricebook")
@@ -130,6 +163,7 @@ def price_rollback(request, pk):
         messages.warning(request, _("Only the newest upload can be rolled back."))
     else:
         pricebook.roll_back(upload)
+        log(None, "price_rollback", request.user, detail=upload.file_name)
         saved(request, _("Rolled back"))
     return redirect("pricebook")
 

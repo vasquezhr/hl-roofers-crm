@@ -1,7 +1,7 @@
 """Dates as people read them, in the reader's language."""
 from datetime import date
 
-from django.utils import formats
+from django.utils import formats, timezone
 from django.utils.translation import gettext as _
 
 
@@ -13,6 +13,16 @@ def day_text(value):
 def month_day_text(value):
     """Nov 9   (9 Nov in Spanish)"""
     return formats.date_format(value, _("M j")) if value else ""
+
+
+def stamp_text(when):
+    """The date and time of a history line: Wed, Nov 11, 2:35 PM. Another year is said: Tue, Mar 4, 2025, 9:10 AM."""
+    if not when:
+        return ""
+    if timezone.is_aware(when):
+        when = timezone.localtime(when)
+    year = "" if when.year == timezone.localdate().year else f", {when.year}"
+    return f"{day_text(when)}{year}, {formats.time_format(when, 'g:i A')}"
 
 
 def range_text(first, last):

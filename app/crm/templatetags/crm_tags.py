@@ -12,7 +12,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 
 from crm import documents
-from crm.dates import day_text, month_day_text, range_text
+from crm.dates import day_text, month_day_text, range_text, stamp_text
 from crm.models import Company, Job, Lead, Opportunity, digits
 
 register = template.Library()
@@ -70,6 +70,19 @@ def trf(message, **values):
 def day(value):
     """Mon, Nov 9   (lun, 9 nov in Spanish)"""
     return day_text(value)
+
+
+@register.filter
+def day_time(value):
+    """Wed, Nov 11, 2:35 PM: the date and time of a history line, on the business's clock."""
+    return stamp_text(value)
+
+
+@register.inclusion_tag("crm/_stamp.html")
+def stamp(record):
+    """Who created a record and who changed it last, with the date and the time. Both are read from its history."""
+    lines = record.activities.order_by("at", "id")
+    return {"created": lines.first(), "changed": lines.last()}
 
 
 @register.filter

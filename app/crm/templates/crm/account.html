@@ -70,7 +70,7 @@
         <h2 class="h6 mb-2">{% trans "Details" %}</h2>
         {% for note in account.notes.all %}
         <div class="mb-2">
-          <div class="small text-body-secondary mb-1">{{ note.get_source_display }}{% if note.noted_on %} · {{ note.noted_on|date }}{% endif %}</div>
+          <div class="small text-body-secondary mb-1">{{ note.get_source_display }}{% if note.source == "app" %} · {{ note.created_at|day_time }}{% if note.actor %} · {{ note.actor }}{% endif %}{% elif note.noted_on %} · {{ note.noted_on|date }}{% endif %}</div>
           <pre class="hl-pre small bg-body-tertiary border rounded p-2 mb-0">{{ note.text }}</pre>
         </div>
         {% empty %}
@@ -108,6 +108,7 @@
 <div class="card shadow-sm mb-3">
   <div class="card-body">
     <h2 class="h6 mb-2">{% trans "History" %}</h2>
+    {% stamp account %}
     {% include "crm/_history.html" %}
   </div>
 </div>

@@ -145,6 +145,12 @@ msgstr "Fecha"
 msgid "Terms"
 msgstr "Términos"
 
+msgid "Created"
+msgstr "Creado"
+
+msgid "Last change"
+msgstr "Último cambio"
+
 msgid "Accepted. Thank you."
 msgstr "Aceptada. Gracias."
 
@@ -220,8 +226,26 @@ msgstr "Trabajos: %(jobs)s · Oportunidades abiertas: %(open)s"
 msgid "No accounts yet. Add the first one with New account."
 msgstr "Todavía no hay cuentas. Agregue la primera con Cuenta nueva."
 
+msgid "Setup history"
+msgstr "Historial de configuración"
+
 msgid "Admin"
 msgstr "Administración"
+
+msgid "Who changed prices, company details, logins, crews and other settings, and when. The history of a customer, lead, opportunity or job is on its own page."
+msgstr "Quién cambió precios, datos de la empresa, usuarios, equipos y otros ajustes, y cuándo. El historial de un cliente, prospecto, oportunidad o trabajo está en su propia página."
+
+msgid "When"
+msgstr "Cuándo"
+
+msgid "Who"
+msgstr "Quién"
+
+msgid "What"
+msgstr "Qué"
+
+msgid "Nothing has been changed yet."
+msgstr "Todavía no se ha cambiado nada."
 
 msgid "Settings and tools for the administrator."
 msgstr "Ajustes y herramientas para el administrador."
@@ -237,6 +261,9 @@ msgstr "Datos de la compañía"
 
 msgid "The name, license, address, phone and terms printed on proposals and invoices."
 msgstr "El nombre, la licencia, la dirección, el teléfono y los términos que se imprimen en las propuestas y facturas."
+
+msgid "Who changed prices, company details, logins and other settings, and when."
+msgstr "Quién cambió precios, datos de la empresa, usuarios y otros ajustes, y cuándo."
 
 msgid "Import Apple Notes"
 msgstr "Importar Notas de Apple"
@@ -306,6 +333,9 @@ msgstr "Trabajo de hoy"
 
 msgid "Nothing is scheduled for today."
 msgstr "No hay nada programado hoy."
+
+msgid "Notes from the crews"
+msgstr "Notas de los equipos"
 
 msgid "Needs attention"
 msgstr "Requiere atención"
@@ -529,9 +559,6 @@ msgstr "Quitar a %(name)s de este trabajo"
 msgid "Add a worker"
 msgstr "Agregar trabajador"
 
-msgid "When"
-msgstr "Cuándo"
-
 msgid "%(days)s work days"
 msgstr "%(days)s días de trabajo"
 
@@ -606,6 +633,18 @@ msgstr "Garantía del trabajo #%(number)s"
 
 msgid "Warranty job #%(number)s"
 msgstr "Trabajo de garantía #%(number)s"
+
+msgid "Notes"
+msgstr "Notas"
+
+msgid "Add a note for the office"
+msgstr "Agregar una nota para la oficina"
+
+msgid "The office sees it here and on its Today page."
+msgstr "La oficina la ve aquí y en su página Hoy."
+
+msgid "The crew on this job sees it too."
+msgstr "El equipo de este trabajo también la ve."
 
 msgid "The work side. A job starts when its proposal is signed and keeps the same number."
 msgstr "El lado del trabajo. Un trabajo empieza cuando se firma su propuesta y conserva el mismo número."
@@ -1141,6 +1180,15 @@ msgstr "Empezar una oportunidad nueva"
 msgid "Add the request to job #%(number)s"
 msgstr "Agregar el pedido al trabajo #%(number)s"
 
+msgid "empty"
+msgstr "vacío"
+
+msgid "yes"
+msgstr "sí"
+
+msgid "no"
+msgstr "no"
+
 msgid "Tick at least one note first."
 msgstr "Primero marque al menos una nota."
 
@@ -1540,6 +1588,66 @@ msgstr "Trabajador extra agregado: %(detail)s"
 msgid "Extra worker removed: %(detail)s"
 msgstr "Trabajador extra quitado: %(detail)s"
 
+msgid "Put on the schedule: %(detail)s"
+msgstr "Puesto en la agenda: %(detail)s"
+
+msgid "Crew changed: %(detail)s"
+msgstr "Cambio de equipo: %(detail)s"
+
+msgid "Inspection booked: %(detail)s"
+msgstr "Inspección agendada: %(detail)s"
+
+msgid "Changed: %(detail)s"
+msgstr "Cambio: %(detail)s"
+
+msgid "Contact added: %(detail)s"
+msgstr "Contacto agregado: %(detail)s"
+
+msgid "Contact changed: %(detail)s"
+msgstr "Contacto cambiado: %(detail)s"
+
+msgid "Property added: %(detail)s"
+msgstr "Propiedad agregada: %(detail)s"
+
+msgid "Property changed: %(detail)s"
+msgstr "Propiedad cambiada: %(detail)s"
+
+msgid "Note added to Details"
+msgstr "Nota agregada a Detalles"
+
+msgid "Proposal written: %(detail)s"
+msgstr "Propuesta escrita: %(detail)s"
+
+msgid "Proposal changed: %(detail)s"
+msgstr "Propuesta cambiada: %(detail)s"
+
+msgid "Company details changed: %(detail)s"
+msgstr "Datos de la empresa cambiados: %(detail)s"
+
+msgid "Price changed: %(detail)s"
+msgstr "Precio cambiado: %(detail)s"
+
+msgid "Price Book item added: %(detail)s"
+msgstr "Artículo agregado a la Lista de precios: %(detail)s"
+
+msgid "Price file applied: %(detail)s"
+msgstr "Archivo de precios aplicado: %(detail)s"
+
+msgid "Price file rolled back: %(detail)s"
+msgstr "Archivo de precios revertido: %(detail)s"
+
+msgid "Notes file uploaded: %(detail)s"
+msgstr "Archivo de notas subido: %(detail)s"
+
+msgid "Imported notes skipped: %(detail)s"
+msgstr "Notas importadas omitidas: %(detail)s"
+
+msgid "Imported notes kept with no customer: %(detail)s"
+msgstr "Notas importadas guardadas sin cliente: %(detail)s"
+
+msgid "Calendar address replaced: %(detail)s"
+msgstr "Dirección del calendario reemplazada: %(detail)s"
+
 msgid "crew"
 msgstr "equipo"
 
@@ -1930,11 +2038,23 @@ msgstr "Estos datos se imprimen en cada propuesta y factura. Mientras uno esté 
 msgid "One file for each supplier and product line. Every upload is kept as a new line of history; nothing is overwritten."
 msgstr "Un archivo por cada proveedor y línea de producto. Cada archivo se guarda como una línea nueva del historial; no se borra nada."
 
+msgid "added in the admin site"
+msgstr "agregado en el sitio de administración"
+
 msgid "Check the file"
 msgstr "Revisar el archivo"
 
 msgid "Only the newest upload can be rolled back."
 msgstr "Solo se puede revertir el archivo más reciente."
+
+msgid "deleted in the admin site"
+msgstr "eliminado en el sitio de administración"
+
+msgid "changed in the admin site"
+msgstr "cambiado en el sitio de administración"
+
+msgid "That is the price it already has."
+msgstr "Ese es el precio que ya tiene."
 
 msgid "%(count)s prices added or changed"
 msgstr "%(count)s precios agregados o cambiados"

@@ -165,7 +165,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await crew.fill('#id_text', 'Left the old gutters by the driveway');
   await crew.click('button:has-text("Save the note")');
   await crew.waitForLoadState('networkidle');
-  check('the crew adds a note', (await crew.locator('main').innerText()).includes('Note: Left the old gutters by the driveway'));
+  check('the crew adds a note for the office', (await crew.locator('#notes').innerText()).includes('Left the old gutters by the driveway'));
   await snap(crew, 'job-crew-phone');
   const other = await signIn(browser, 'crew2');
   const response = await other.goto(`${base}/jobs/${number}/`);
@@ -174,7 +174,12 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   check('another crew cannot find the customer', (await other.locator('main').innerText()).includes('Nothing found.'));
 
   console.log('Office: invoice, payment, warranty, search');
-  await office.reload();
+  await office.goto(base + '/');
+  const today = await main(office);
+  check('Today shows the office what the crew wrote', today.includes('Notes from the crews') && today.includes('Left the old gutters by the driveway'));
+  await office.goto(`${base}/jobs/${number}/`);
+  const lines = await office.locator('.card:has(h2:text-is("History"))').innerText();
+  check('the history says who did each thing, and at what time', /\d{1,2}:\d\d [AP]M · Crew 1 — Job started/.test(lines) && /\d{1,2}:\d\d [AP]M · Office — Put on the schedule: Crew 1/.test(lines), lines);
   check('the office sees that the crew got the change', (await main(office)).includes('Seen by Crew 1'));
   await office.click('text=Add change order');
   await office.fill('#id_description', 'Add a downspout at the back corner');

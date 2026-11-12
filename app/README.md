@@ -14,6 +14,8 @@ This folder is the real app (Python, Django, PostgreSQL, Bootstrap). **Phases 1 
 - **Search:** one box for names, addresses, phones typed any way, job numbers, outside numbers, notes and scope. On PostgreSQL it also finds close spellings ("Witcomb" finds Whitcomb).
 - **Three profiles:** Admin, Office and Crew. A crew shares one login and sees only the jobs scheduled to it.
 - **Call, Text and Directions** open the phone's own apps and add a line to the record's history.
+- **History:** every change on a lead, account, opportunity or job adds a line that says who did it, the date and the time. A change to a field says what was there before ("Phone: (804) 555-0110 → (804) 555-0199"). Each record shows who created it and who changed it last. Changes to the setup (prices, company details, logins, crews, calendar addresses, the notes import) are on **Admin › Setup history**.
+- **Notes on a job:** the office and the job's crew can add notes. Each shows who wrote it and when, and the office's Today page lists what the crews wrote since the last work day.
 - **English and Spanish** on every page (EN / ES buttons, remembered on that phone or computer).
 - **Apple Notes import**, for the administrator, with a review queue. Notes that look like logins or passwords are never stored.
 
@@ -74,7 +76,7 @@ Run the tests. They build their own empty database, so they never touch your dat
 python manage.py test
 ```
 
-It should end with `OK (skipped=1)`. There are 193 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
+It should end with `OK (skipped=1)`. There are 211 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
 
 Then click through it:
 
@@ -121,7 +123,8 @@ Keep the real export out of this repository and out of this folder: it holds rea
 The administrator sets these up in the **admin site** (user menu › Admin site, or `/admin/`):
 
 - **Crews** and their **workers**. A worker with no crew is an extra worker who can be added to a job.
-- **Logins.** Each login has one profile: Admin, Office or Crew. A crew login also needs its crew. The Admin profile is what opens the admin site.
+- **Logins.** Each login has one profile: Admin, Office or Crew. A crew login also needs its crew. The Admin profile is what opens the admin site. There is no limit on the number of logins.
+- **Who shows in the history.** The history names the login. A crew's shared login shows as the crew ("Crew 1"). To see a person's name instead, give that person their own login with the Crew profile, the same crew and their first name: the history then shows "Wilmer (Crew 1)".
 - **Number sequences.** The app numbers opportunities and jobs by year: 26-101, 26-102. To carry on from numbers the business already used this year, add a row for the year (26) with the last number used.
 
 Passwords need at least 10 characters. The administrator resets a forgotten password in the admin site.
@@ -150,6 +153,7 @@ The tests fail if a label has no Spanish.
 | `crm\import_views.py`, `crm\importer.py` | The Apple Notes import: the pages, and the reading and matching rules |
 | `crm\search.py` | Search |
 | `crm\access.py` | Who may open what |
+| `crm\history.py` | What a history line says: which fields a form changed, and how a stored change is put into words. The lines themselves are the `Activity` model |
 | `crm\forms.py` | The forms |
 | `crm\urls.py` | The address of every page |
 | `crm\templates\` | The pages' HTML. `base.html` is the frame around every page |

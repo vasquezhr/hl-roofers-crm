@@ -23,6 +23,12 @@
   </div>
   {% block more_cards %}{% endblock %}
   <div class="col">
+    <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'admin_history' %}">
+      <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "doc" %}</span>
+        <div><div class="fw-semibold">{% trans "Setup history" %}</div><div class="small text-body-secondary">{% trans "Who changed prices, company details, logins and other settings, and when." %}</div></div></div>
+    </a>
+  </div>
+  <div class="col">
     <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'imports' %}">
       <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "upload" %}</span>
         <div><div class="fw-semibold">{% trans "Import Apple Notes" %}</div><div class="small text-body-secondary">{% trans "Move the business's notes into each customer's Details, with a review step." %}{% if waiting %} <span class="fw-semibold text-body">{% trf "%(count)s waiting for review." count=waiting %}</span>{% endif %}</div></div></div>

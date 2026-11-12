@@ -20,7 +20,7 @@ from django.utils.translation import gettext as _
 from . import importer
 from .access import admin_only
 from .forms import ImportedNoteForm, ImportForm
-from .models import Account, ImportBatch, ImportedNote
+from .models import Account, ImportBatch, ImportedNote, log
 from .search import account_has, every_word, words_of
 from .views import filter_pills, page_of
 
@@ -42,6 +42,7 @@ def imports(request):
             except importer.ImportProblem as problem:
                 form.add_error("file", str(problem))
             else:
+                log(None, "notes_uploaded", request.user, detail=batch.file_name)
                 messages.success(request, _("The file was read. Review the notes below."))
                 return redirect(reverse("import_queue") + f"?batch={batch.pk}")
         elif not request.FILES:
@@ -135,6 +136,8 @@ def queue_action(request, waiting, in_list, show, here):
         else:
             importer.skip(note)
             done += 1
+    if done and do != "accept":                                      # an accepted note is in its customer's history instead
+        log(None, "notes_unlinked" if do == "unlinked" else "notes_skipped", request.user, detail=str(done))
     if count == 1 and done:                                          # one note: say exactly what happened to it
         text = {"accept": _("Added to the Details of %(name)s") % {"name": account.name if account else ""},
                 "unlinked": _("Kept as an unlinked note"), "skip": _("The note was skipped")}[do]
@@ -169,10 +172,12 @@ def import_note(request, pk):
             return redirect(back)
         if do == "unlinked":
             importer.keep_unlinked(note)
+            log(None, "notes_unlinked", request.user, detail="1")
             messages.success(request, _("Kept as an unlinked note"))
             return redirect(back)
         if do == "skip":
             importer.skip(note)
+            log(None, "notes_skipped", request.user, detail="1")
             messages.success(request, _("The note was skipped"))
             return redirect(back)
     q = " ".join(request.GET.get("q", "").split())[:100]

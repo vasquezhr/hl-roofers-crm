@@ -306,10 +306,23 @@ The user: "the change order should produce a pdf, same as an invoice. the signed
 - Choices to confirm: a proposal still being written is not listed until it is sent; a proposal the customer turned down stays on the account's list, marked "Not accepted"; the invoice is listed once it has been sent.
 - Still open, as ideas put to the user: keeping a frozen copy of each signed document, a receipt for a payment, and attaching a photo of a paper signature.
 
-**2. History shows who, the date and the time, on every record** (to build)
+**2. History shows who, the date and the time, on every record** (built Nov 12)
+
+The user: "history should show WHO made the changes and at what time ... any updates/changes on any record should show who made the change, when, and at what time. this should also be for new records as well. ALL records".
+
+- **Every history line shows the date, the time and who**, for example "Wed, Nov 11, 2:35 PM · Office — Job started". The time is Virginia time. A line from another year also shows the year.
+- **Every change now writes a line.** Before, edits to an account, a contact, a property, a Details note, the company details and a price typed by hand left no line. Now they do, and a change to a field says what was there before: "Contact changed: Joan Pruett · Phone: (804) 555-0110 → (804) 555-0199".
+- **Lines say more:** "Put on the schedule: Crew 1 · Mon, Nov 16 – Tue, Nov 17", "Crew changed: Crew 1 → Crew 2", "Inspection booked: Tue, Nov 10, 10:00 AM", "Proposal changed: $685 → $700".
+- **Each record shows who created it and who changed it last,** above its history. Salesforce calls these Created By and Last Modified By.
+- **Admin › Setup history** lists who changed the setup and when: prices, price files, company details, calendar addresses, the notes import, and everything done in the admin site (logins, crews, workers). Salesforce calls this the Setup Audit Trail.
+- **Notes in a customer's Details and each price in the Price Book** now keep who typed them.
+- The history is stored as plain facts and put into words when it is read, so each person reads it in their own language.
+- **What "who" means for a crew.** Crews share one login, so the history says "Crew 1", not a person. A login made for one person on a crew shows the person: "Wilmer (Crew 1)". This is the trade-off of the shared logins decided on Nov 9.
+- **Photos are not built yet.** When they are, an upload gets its line the same way.
+- Records made before this change keep the lines they already had; the lines missing for old edits cannot be recovered.
 
 **3. Delete, with a permission** (to build, with the permission sets). The breakdown already says deleted records go to a Recycle Bin for 30 days and only the Admin empties it.
 
-**4. Crew notes on a job, for the office to see.** A crew could already add a note on its job; it shows in the job's history under the crew's name. To build: make new crew notes easier for the office to spot.
+**4. Crew notes on a job, for the office to see** (built Nov 12). A crew could already add a note on its job. Now the job has a Notes box, apart from the history, where each note shows who wrote it and when; the crew's box is labeled "Add a note for the office"; and the office's Today page lists what the crews wrote since the start of the last work day. Choice to confirm: notes leave Today by age, not by someone marking them read.
 
 **5. Adding logins.** Logins are added in the admin site today. The app's own Users page (Phase 4) gets an "Add a login" button, which the mockup does not show.

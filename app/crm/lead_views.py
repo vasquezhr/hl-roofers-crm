@@ -112,7 +112,10 @@ def convert(lead, customer, job_type, user):
     # the address of the request: the customer's property at that address, or a new one
     place = next((p for p in customer.properties.all() if lead.street and p.street_key == street_key(lead.street)), None)
     if place is None and lead.street:
+        new_address = customer.properties.exists()                    # a returning customer asking about another address
         place = Property.objects.create(account=customer, street=lead.street, city=lead.city, state=lead.state, zip_code=lead.zip_code)
+        if new_address:
+            log(customer, "property_added", user, detail=place.street)
     if place is None:
         place = customer.main_property or Property.objects.create(account=customer, street=_("Address not given yet"))
     opp = Opportunity.objects.create(account=customer, place=place, job_type=job_type, source=lead.source, description=lead.message)

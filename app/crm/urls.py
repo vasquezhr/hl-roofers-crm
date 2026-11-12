@@ -77,6 +77,7 @@ urlpatterns = [
     # the administrator
     path("manage/", price_views.admin_home, name="admin_home"),
     path("manage/company/", price_views.company_details, name="company_details"),
+    path("manage/history/", price_views.admin_history, name="admin_history"),
     path("manage/prices/", price_views.pricebook_list, name="pricebook"),
     path("manage/prices/new/", price_views.price_item_new, name="price_item_new"),
     path("manage/prices/upload/", price_views.price_upload, name="price_upload"),

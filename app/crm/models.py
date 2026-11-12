@@ -30,6 +30,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .dates import range_from_code
+from .history import booking_text, changes_text, when_text
 
 # ---------------------------------------------------------------- small helpers
 STREET_WORDS = [("street", "st"), ("avenue", "ave"), ("road", "rd"), ("drive", "dr"), ("lane", "ln"), ("court", "ct"),
@@ -140,10 +141,12 @@ class User(AbstractUser):
 
     @property
     def label(self):
-        """The name shown in history lines: the crew's name for a shared crew login."""
+        """The name shown in history lines. A crew's shared login shows the crew ("Crew 1"); a login made for one
+        person on a crew, with that person's name filled in, shows the person and the crew ("Wilmer (Crew 1)")."""
+        name = self.get_full_name()
         if self.is_crew_profile and self.crew:
-            return self.crew.name
-        return self.get_full_name() or self.username
+            return f"{name} ({self.crew.name})" if name else self.crew.name
+        return name or self.username
 
 
 # ---------------------------------------------------------------- the business itself
@@ -340,6 +343,7 @@ class Note(models.Model):
     text = models.TextField(_("text"))
     noted_on = models.DateField(_("date"), null=True, blank=True)
     source = models.CharField(max_length=12, choices=Source.choices, default=Source.APP)
+    actor = models.CharField(max_length=80, blank=True)          # who typed it, as shown at the time
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -819,9 +823,9 @@ class PriceItem(models.Model):
     def __str__(self):
         return self.name
 
-    def set_price(self, cost, price, upload=None):
-        """Record a new price. The old one stays in the history; nothing is overwritten."""
-        PriceEntry.objects.create(item=self, upload=upload, cost=cost, price=price)
+    def set_price(self, cost, price, upload=None, actor=""):
+        """Record a new price. The old one stays in the history; nothing is overwritten. `actor` is who set it."""
+        PriceEntry.objects.create(item=self, upload=upload, cost=cost, price=price, actor=actor)
         self.cost, self.price, self.changed_on = cost, price, timezone.localdate()
         self.save()
 
@@ -833,6 +837,7 @@ class PriceEntry(models.Model):
     cost = models.DecimalField(max_digits=10, decimal_places=2)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     effective_on = models.DateField(default=timezone.localdate)
+    actor = models.CharField(max_length=80, blank=True)          # who set this price, as shown at the time
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -841,7 +846,9 @@ class PriceEntry(models.Model):
 
 # ---------------------------------------------------------------- history
 class Activity(models.Model):
-    """One line of history. The wording comes from `kind`, so it shows in the reader's language."""
+    """One line of history: what happened, who did it (`user` and `actor`) and the date and time (`at`).
+    The wording comes from `kind`, so it shows in the reader's language. A line with no lead, account,
+    opportunity or job is about the app's own setup."""
     KINDS = {
         "call": _("Called"), "text": _("Sent a text"), "nav": _("Opened directions"),
         "acct_created": _("Account created"), "opp_created": _("Opportunity created"),
@@ -863,7 +870,26 @@ class Activity(models.Model):
         # the schedule
         "changed": _("Dates changed (before: %(detail)s)"), "notified": _("The crew was told by text"), "got_it": _("The crew saw the change"),
         "worker_added": _("Extra worker added: %(detail)s"), "worker_removed": _("Extra worker removed: %(detail)s"),
+        "booked": _("Put on the schedule: %(detail)s"), "crew_changed": _("Crew changed: %(detail)s"),
+        "inspection_booked": _("Inspection booked: %(detail)s"),
+        # changes to a record's own fields, and to an account's contacts, properties and notes
+        "edited": _("Changed: %(detail)s"),
+        "contact_added": _("Contact added: %(detail)s"), "contact_edited": _("Contact changed: %(detail)s"),
+        "property_added": _("Property added: %(detail)s"), "property_edited": _("Property changed: %(detail)s"),
+        "note_added": _("Note added to Details"),
+        "proposal_written": _("Proposal written: %(detail)s"), "proposal_edited": _("Proposal changed: %(detail)s"),
+        # the app's own setup: these lines have no record and are on Admin > Setup history
+        "company_edited": _("Company details changed: %(detail)s"),
+        "price_set": _("Price changed: %(detail)s"), "price_item_added": _("Price Book item added: %(detail)s"),
+        "price_file": _("Price file applied: %(detail)s"), "price_rollback": _("Price file rolled back: %(detail)s"),
+        "notes_uploaded": _("Notes file uploaded: %(detail)s"), "notes_skipped": _("Imported notes skipped: %(detail)s"),
+        "notes_unlinked": _("Imported notes kept with no customer: %(detail)s"),
+        "calendar_reset": _("Calendar address replaced: %(detail)s"),
     }
+    # how the stored detail of some kinds is put into words when it is read
+    READERS = {"changed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
+               "edited": changes_text, "contact_edited": changes_text, "property_edited": changes_text,
+               "company_edited": changes_text, "price_set": changes_text}
 
     lead = models.ForeignKey("Lead", null=True, blank=True, on_delete=models.CASCADE, related_name="activities")
     account = models.ForeignKey(Account, null=True, blank=True, on_delete=models.CASCADE, related_name="activities")
@@ -881,15 +907,18 @@ class Activity(models.Model):
     @property
     def text(self):
         label = str(self.KINDS.get(self.kind, self.kind))
-        detail = range_from_code(self.detail) if self.kind == "changed" else self.detail      # dates read in the reader's language
-        return label % {"detail": detail} if "%(detail)s" in label else label
+        if "%(detail)s" not in label:
+            return label
+        reader = self.READERS.get(self.kind)                        # dates and changed fields read in the reader's language
+        return label % {"detail": reader(self.detail) if reader else self.detail}
 
 
 def log(record, kind, user=None, detail="", actor=""):
-    """Add a history line to an account, a lead, an opportunity or a job.
+    """Add a history line to an account, a lead, an opportunity or a job. The date and time are added by themselves.
+    With no record (None), the line is about the app's own setup.
     `actor` names who did it when it was not a login: a customer accepting online, or the website."""
-    field = {Account: "account", Lead: "lead", Opportunity: "opportunity", Job: "job"}[type(record)]
-    return Activity.objects.create(**{field: record}, kind=kind, detail=detail, user=user, actor=actor or (user.label if user else ""))
+    target = {} if record is None else {{Account: "account", Lead: "lead", Opportunity: "opportunity", Job: "job"}[type(record)]: record}
+    return Activity.objects.create(**target, kind=kind, detail=detail, user=user, actor=actor or (user.label if user else ""))
 
 
 # ---------------------------------------------------------------- the Apple Notes import

@@ -18,7 +18,7 @@
           <tbody>
             {% for line in history %}
             <tr>
-              <td>{{ line.entry.effective_on|date }}{% if line.entry.upload %}<br><span class="text-body-secondary">{{ line.entry.upload.file_name }}</span>{% endif %}</td>
+              <td>{{ line.entry.effective_on|date }}{% if line.entry.actor %} <span class="text-body-secondary">· {{ line.entry.created_at|time:"g:i A" }} · {{ line.entry.actor }}</span>{% endif %}{% if line.entry.upload %}<br><span class="text-body-secondary">{{ line.entry.upload.file_name }}</span>{% endif %}</td>
               <td class="text-end">{{ line.entry.cost|money }}</td>
               <td class="text-end">{{ line.entry.price|money }}</td>
               <td class="text-end{% if line.big %} text-danger fw-semibold{% endif %}">{% if line.percent is None %}—{% else %}{% if line.percent > 0 %}+{% endif %}{{ line.percent }}%{% endif %}</td>

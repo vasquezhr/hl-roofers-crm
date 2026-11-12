@@ -25,6 +25,7 @@ from . import scheduling
 from .documents import document_rows
 from .access import job_or_404, jobs_for, office_only
 from .dates import range_code
+from .history import booking_code, changes, when_code
 from .forms import (AccountForm, ContactForm, InspectionForm, LostForm, NewAccountForm, NoteForm, OpportunityForm, PropertyForm,
                     RefForm, ScheduleForm, SignForm, WarrantyForm)
 from .importer import find_account
@@ -97,13 +98,17 @@ def home(request):
     for job in jobs.filter(changed_at__isnull=False, seen_at__isnull=True, crew__isnull=False):
         attention.append({"icon": "bell", "url": reverse("job", args=[job.number]),
                           "text": _("%(crew)s has not seen the change to job #%(number)s") % {"crew": job.crew.name, "number": job.number}})
+    # notes the crews wrote on their jobs, since the start of the last work day
+    since = timezone.make_aware(datetime.combine(scheduling.work_day(-1, day), datetime.min.time()))
+    crew_notes = (Activity.objects.filter(kind="note", job__isnull=False, user__profile="crew", at__gte=since)
+                  .select_related("job__account")[:12])
     waiting = ImportedNote.objects.filter(status=ImportedNote.Status.PENDING).count() if request.user.is_admin_profile else 0
     if waiting:
         attention.append({"icon": "upload", "url": reverse("import_queue"),
                           "text": _("%(count)s imported notes are waiting for review") % {"count": waiting}})
 
     return render(request, "crm/home.html", {
-        "day": day, "inspections": inspections, "working": working, "attention": attention,
+        "day": day, "inspections": inspections, "working": working, "attention": attention, "crew_notes": crew_notes,
         "proposals_out": opps.filter(stage=Opportunity.Stage.PROPOSAL).count(),
         "to_schedule": jobs.filter(stage=Job.Stage.SIGNED).count(),
         "in_progress": jobs.filter(stage=Job.Stage.IN_PROGRESS).count(),
@@ -161,6 +166,9 @@ def account_edit(request, pk):
     form = AccountForm(request.POST or None, instance=account)
     if form.is_valid():
         form.save()
+        what = changes(form)                                        # Name: old → new; Language: English → Spanish
+        if what:
+            log(account, "edited", request.user, detail=what)
         saved(request)
         return redirect("account", pk=account.pk)
     return form_page(request, form, _("Edit the account"), reverse("account", args=[account.pk]))
@@ -174,6 +182,7 @@ def contact_new(request, pk):
         contact = form.save(commit=False)
         contact.account = account
         contact.save()
+        log(account, "contact_added", request.user, detail=contact.name)
         saved(request)
         return redirect("account", pk=account.pk)
     return form_page(request, form, _("New contact"), reverse("account", args=[account.pk]), intro=account.name)
@@ -185,6 +194,9 @@ def contact_edit(request, pk):
     form = ContactForm(request.POST or None, instance=contact)
     if form.is_valid():
         form.save()
+        what = changes(form, name=contact.name)
+        if what:
+            log(contact.account, "contact_edited", request.user, detail=what)
         saved(request)
         return redirect("account", pk=contact.account_id)
     return form_page(request, form, _("Edit the contact"), reverse("account", args=[contact.account_id]))
@@ -198,6 +210,7 @@ def property_new(request, pk):
         place = form.save(commit=False)
         place.account = account
         place.save()
+        log(account, "property_added", request.user, detail=place.street)
         saved(request)
         return redirect("account", pk=account.pk)
     return form_page(request, form, _("New property"), reverse("account", args=[account.pk]), intro=account.name)
@@ -209,6 +222,9 @@ def property_edit(request, pk):
     form = PropertyForm(request.POST or None, instance=place)
     if form.is_valid():
         form.save()
+        what = changes(form, name=place.street)
+        if what:
+            log(place.account, "property_edited", request.user, detail=what)
         saved(request)
         return redirect("account", pk=place.account_id)
     return form_page(request, form, _("Edit the property"), reverse("account", args=[place.account_id]))
@@ -221,7 +237,9 @@ def note_new(request, pk):
     account = get_object_or_404(Account, pk=pk)
     form = NoteForm(request.POST)
     if form.is_valid():
-        Note.objects.create(account=account, text=form.cleaned_data["text"].strip(), noted_on=today(), source=Note.Source.APP)
+        Note.objects.create(account=account, text=form.cleaned_data["text"].strip(), noted_on=today(), source=Note.Source.APP,
+                            actor=request.user.label)
+        log(account, "note_added", request.user)
         saved(request)
     return redirect("account", pk=account.pk)
 
@@ -286,7 +304,7 @@ def opp_inspection(request, number):
     if form.is_valid():
         opp.inspection_at = timezone.make_aware(datetime.combine(form.cleaned_data["day"], form.cleaned_data["time"]))
         opp.save()
-        log(opp, "inspection_set", request.user)
+        log(opp, "inspection_booked", request.user, detail=when_code(timezone.localtime(opp.inspection_at)))
         saved(request)
         return redirect("opp", number=opp.number)
     return form_page(request, form, _("Inspection"), reverse("opp", args=[opp.number]), intro=f"#{opp.number} · {opp.account.name}")
@@ -368,6 +386,7 @@ def job(request, number):
     job = job_or_404(request.user, number)
     office = not request.user.is_crew_profile
     orders = list(job.change_orders.all())
+    lines = list(job.activities.all())
     return render(request, "crm/job.html", {
         "job": job, "account": job.account, "crew_view": not office, "step": next_step(job, request.user),
         "can_schedule": office and not job.is_finished,
@@ -387,7 +406,9 @@ def job(request, number):
         "members": job.crew.members.filter(active=True) if job.crew else [],
         "workers": job.workers.all(),
         "warranty_jobs": job.warranty_jobs.all(),
-        "history": job.activities.all(), "note_form": NoteForm(),
+        # notes typed by the office or the crew are shown apart from the rest of the history
+        "notes": [line for line in lines if line.kind == "note"], "history": [line for line in lines if line.kind != "note"],
+        "note_form": NoteForm(),
     })
 
 
@@ -415,6 +436,7 @@ def job_schedule(request, number):
     if job.is_finished:
         return redirect("job", number=job.number)
     before = (job.crew_id, job.first_day, job.days)                 # to tell afterwards whether the schedule changed
+    crew_before, workers_before = job.crew, set(job.workers.all())
     form = ScheduleForm(request.POST or None, instance=job)
     if form.is_valid():
         job = form.save(commit=False)
@@ -424,13 +446,21 @@ def job_schedule(request, number):
         job.save()
         form.save_m2m()
         if new:
-            log(job, "scheduled", request.user)
+            log(job, "booked", request.user, detail=booking_code(job))
         elif (job.crew_id, job.first_day, job.days) != before:
             # the crew sees "Changed" on the job until it taps Got it
             was_first, was_last = before[1], Job(first_day=before[1], days=before[2]).work_days[-1]
             job.mark_changed(was_first, was_last)
             job.save()
-            log(job, "changed", request.user, detail=range_code(was_first, was_last))
+            if (job.first_day, job.days) != before[1:]:
+                log(job, "changed", request.user, detail=range_code(was_first, was_last))
+            if job.crew_id != before[0]:
+                log(job, "crew_changed", request.user, detail=f"{crew_before.name if crew_before else '—'} → {job.crew.name}")
+        workers_now = set(job.workers.all())
+        for worker in sorted(workers_now - workers_before, key=lambda w: w.name):
+            log(job, "worker_added", request.user, detail=worker.name)
+        for worker in sorted(workers_before - workers_now, key=lambda w: w.name):
+            log(job, "worker_removed", request.user, detail=worker.name)
         saved(request)
         return redirect("job", number=job.number)
     coming = (Job.objects.filter(stage__in=[Job.Stage.SCHEDULED, Job.Stage.IN_PROGRESS], last_day__gte=today())
@@ -447,7 +477,9 @@ def job_ref(request, number):
     form = RefForm(request.POST or None, instance=job)
     if form.is_valid():
         form.save()
-        log(job, "ref_changed", request.user)
+        what = changes(form)                                        # Kind of number: PO → Claim; Outside number: 20315 → NHW-1
+        if what:
+            log(job, "edited", request.user, detail=what)
         saved(request)
         return redirect("job", number=job.number)
     return form_page(request, form, _("Outside number"), reverse("job", args=[job.number]),

@@ -118,11 +118,11 @@ def apply(rows, file_name, supplier, line, user):
     upload = PriceUpload.objects.create(file_name=file_name[:200], supplier=supplier, line=line, uploaded_by=user, actor=user.label,
                                         added=len(found["added"]), changed=len(found["changed"]), same=found["same"])
     for change in found["changed"]:
-        change["item"].set_price(change["cost"], change["price"], upload)
+        change["item"].set_price(change["cost"], change["price"], upload, actor=user.label)
     for row in found["added"]:
         item = PriceItem.objects.create(code=row["code"], name=row["name"], unit=row["unit"], supplier=supplier, line=line,
                                         cost=row["cost"], price=row["price"], added_by=upload)
-        PriceEntry.objects.create(item=item, upload=upload, cost=row["cost"], price=row["price"])
+        PriceEntry.objects.create(item=item, upload=upload, cost=row["cost"], price=row["price"], actor=user.label)
     return upload
 
 

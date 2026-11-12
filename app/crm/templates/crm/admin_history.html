@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Setup history" %}{% endblock %}
+
+{# Who changed the app's setup, and when. A customer's, lead's, opportunity's or job's own history is on its page. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'admin_home' %}">‹ {% trans "Admin" %}</a>
+<div class="mb-3">
+  <h1 class="h4 mb-0">{% trans "Setup history" %}</h1>
+  <div class="text-body-secondary small">{% trans "Who changed prices, company details, logins, crews and other settings, and when. The history of a customer, lead, opportunity or job is on its own page." %}</div>
+</div>
+<div class="card shadow-sm mb-3">
+  <div class="table-responsive">
+    <table class="table table-sm align-middle small mb-0">
+      <thead><tr><th class="ps-3 text-nowrap">{% trans "When" %}</th><th>{% trans "Who" %}</th><th class="pe-3">{% trans "What" %}</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr><td class="ps-3 text-nowrap">{{ row.at|day_time }}</td><td class="text-nowrap">{{ row.who|default:"—" }}</td><td class="pe-3">{{ row.what }}</td></tr>
+        {% empty %}
+        <tr><td colspan="3" class="ps-3 text-body-secondary">{% trans "Nothing has been changed yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

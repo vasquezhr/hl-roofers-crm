@@ -45,7 +45,7 @@
   <div class="list-group-item d-flex gap-2 align-items-start">
     <div class="flex-grow-1 hl-minw0">
       <div class="fw-semibold text-truncate">{{ upload.file_name }}</div>
-      <div class="small text-body-secondary">{{ upload.supplier }}{% if upload.line %} · {{ upload.line }}{% endif %} · {{ upload.uploaded_at|day }} · {{ upload.actor }} · {% trf "%(added)s new, %(changed)s changed, %(same)s the same" added=upload.added changed=upload.changed same=upload.same %}</div>
+      <div class="small text-body-secondary">{{ upload.supplier }}{% if upload.line %} · {{ upload.line }}{% endif %} · {{ upload.uploaded_at|day_time }} · {{ upload.actor }} · {% trf "%(added)s new, %(changed)s changed, %(same)s the same" added=upload.added changed=upload.changed same=upload.same %}</div>
     </div>
     {% if upload.rolled_back_at %}
     {% trans "Rolled back" as rolled %}{% badge rolled "secondary" %}

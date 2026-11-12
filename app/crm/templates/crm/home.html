@@ -73,6 +73,18 @@
 <div class="card shadow-sm mb-3"><div class="card-body text-center text-body-secondary py-4">{% trans "Nothing is scheduled for today." %}</div></div>
 {% endif %}
 
+{% if crew_notes %}
+<h2 class="h6 mt-4 mb-2">{% trans "Notes from the crews" %}</h2>
+<div class="list-group shadow-sm mb-3">
+  {% for line in crew_notes %}
+  <a class="list-group-item list-group-item-action" href="{% url 'job' line.job.number %}#notes">
+    <div class="small text-body-secondary">{{ line.at|day_time }} · {{ line.actor }} · #{{ line.job.number }} {{ line.job.account.name }}</div>
+    <div class="hl-pre">{{ line.detail }}</div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
 <h2 class="h6 mt-4 mb-2">{% trans "Needs attention" %}</h2>
 {% if attention %}
 <div class="list-group shadow-sm">

@@ -106,10 +106,15 @@ def opp_proposal(request, number):
         return redirect("opp", number=opp.number)
     rows, problem = opp.line_items, ""
     if request.method == "POST":
+        had_lines, old_total = opp.proposal_lines.exists(), opp.total
         rows, problem = read_lines(request.POST.getlist("text"), request.POST.getlist("amount"))
         if not problem:
             opp.set_lines(rows)
-            if opp.stage == Opportunity.Stage.PROPOSAL:
+            if not had_lines:
+                log(opp, "proposal_written", request.user, detail=documents.money(opp.total))
+            elif opp.total != old_total:
+                log(opp, "proposal_edited", request.user, detail=f"{documents.money(old_total or 0)} → {documents.money(opp.total)}")
+            else:
                 log(opp, "proposal_changed", request.user)
             return redirect("opp_document", number=opp.number)
     rows = list(rows) + [("", None)] * max(2, 4 - len(rows))          # always a few empty rows to type in

@@ -137,9 +137,9 @@ class FromOpportunityToPaidJob(Base):
 
         # each step left a line in the history, with who did it
         self.assertEqual(list(opp.activities.order_by("id").values_list("kind", flat=True)),
-                         ["opp_created", "inspection_set", "proposal_sent", "signed"])
+                         ["opp_created", "inspection_booked", "proposal_written", "proposal_sent", "signed"])
         self.assertEqual(list(job.activities.order_by("id").values_list("kind", flat=True)),
-                         ["job_created", "scheduled", "started", "done", "invoiced", "payment", "paid"])
+                         ["job_created", "booked", "worker_added", "started", "done", "invoiced", "payment", "paid"])
         self.assertEqual(set(Activity.objects.values_list("actor", flat=True)), {"office"})
         # and the pages show it
         self.assertContains(self.client.get(reverse("job", args=[job.number])), "Paid in full")
@@ -247,10 +247,12 @@ class Jobs(Base):
         self.client.post(reverse("job_ref", args=[job.number]), {"ref_type": "claim", "ref_number": "NHW-118204"})
         self.assertContains(self.client.get(reverse("job", args=[job.number])), "Claim NHW-118204")
 
-    def test_a_note_on_a_job_shows_in_its_history(self):
+    def test_a_note_on_a_job_shows_with_who_wrote_it(self):
         job = self.job()
         self.client.post(reverse("job_note", args=[job.number]), {"text": "Customer wants a call before we start"})
-        self.assertContains(self.client.get(reverse("job", args=[job.number])), "Note: Customer wants a call before we start")
+        page = self.client.get(reverse("job", args=[job.number]))
+        self.assertContains(page, "Customer wants a call before we start")
+        self.assertEqual([(line.actor, line.detail) for line in page.context["notes"]], [("office", "Customer wants a call before we start")])
 
     def test_today_shows_the_work_and_what_needs_attention(self):
         today = timezone.localdate()

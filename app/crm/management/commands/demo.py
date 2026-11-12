@@ -172,7 +172,7 @@ class Command(BaseCommand):
         company = Company.load()
         company.lead_owner = office                                        # website requests go to the office
         company.save()
-        User.objects.create_user("crew1", password=PASSWORD, profile=User.Profile.CREW, crew=crews["Crew 1"])
+        crew1 = User.objects.create_user("crew1", password=PASSWORD, profile=User.Profile.CREW, crew=crews["Crew 1"])
         User.objects.create_user("crew2", password=PASSWORD, profile=User.Profile.CREW, crew=crews["Crew 2"])
 
         # customers
@@ -254,6 +254,10 @@ class Command(BaseCommand):
         moved.save()
         Activity.objects.create(job=moved, kind="changed", detail=range_code(work_day(1), work_day(2)), actor="Office", at=at(ago(1)))
 
+        # a note the crew wrote on the job it is working on: the office sees it on the job and on Today
+        Activity.objects.create(job=job("112"), kind="note", user=crew1, actor="Crew 1", at=timezone.now() - timedelta(hours=1),
+                                detail="Found 6 more sheets of rotted plywood at tear-off, on the back slope. Photos sent to the office.")
+
         # money: a change order waiting for a signature, a deposit, and a job paid in full
 
         order = ChangeOrder.objects.create(job=job("112"), description="Replace 6 more sheets of rotted plywood found at tear-off", amount=390,
@@ -284,7 +288,7 @@ class Command(BaseCommand):
             days, cost, price = prices[-1]
             item = PriceItem.objects.create(code=code, name=name, unit=unit, supplier=supplier, line=line, cost=cost, price=price, changed_on=ago(days))
             for days, cost, price in prices:
-                PriceEntry.objects.create(item=item, upload=uploads.get((supplier, days)), cost=cost, price=price, effective_on=ago(days))
+                PriceEntry.objects.create(item=item, upload=uploads.get((supplier, days)), cost=cost, price=price, effective_on=ago(days), actor="Office")
         for upload in uploads.values():
             upload.changed, upload.same = upload.entries.count(), PriceItem.objects.filter(supplier=upload.supplier, line=upload.line).count() - upload.entries.count()
             upload.save()

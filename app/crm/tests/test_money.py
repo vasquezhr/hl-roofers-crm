@@ -55,7 +55,7 @@ class Proposals(Base):
         self.assertIn(f"https://app.example/p/{self.opp.accept_token}/", message.body)
         name, content, kind = message.attachments[0]
         self.assertEqual((name, kind, content[:4]), (f"proposal-{self.opp.number}.pdf", "application/pdf", b"%PDF"))
-        self.assertEqual(list(self.opp.activities.values_list("kind", flat=True)), ["proposal_sent", "emailed"])
+        self.assertEqual(list(self.opp.activities.values_list("kind", flat=True)), ["proposal_sent", "emailed", "proposal_written"])
 
     def test_no_email_address_means_mark_it_sent(self):
         self.account.contacts.update(email="")

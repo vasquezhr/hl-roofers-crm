@@ -202,16 +202,33 @@
   </div>
 </div>
 
+{# notes typed by the office or the crew: each with who wrote it, the date and the time #}
+<div class="card shadow-sm mb-3" id="notes">
+  <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "Notes" %}</h2>
+    {% for line in notes %}
+    <div class="border-bottom py-2">
+      <div class="small text-body-secondary">{{ line.at|day_time }} · {{ line.actor|default:"—" }}</div>
+      <div class="hl-pre">{{ line.detail }}</div>
+    </div>
+    {% empty %}
+    <div class="small text-body-secondary">{% trans "No notes yet." %}</div>
+    {% endfor %}
+    <form method="post" action="{% url 'job_note' job.number %}" class="mt-3">
+      {% csrf_token %}
+      <label class="form-label small fw-semibold mb-1" for="{{ note_form.text.id_for_label }}">{% if crew_view %}{% trans "Add a note for the office" %}{% else %}{% trans "Add a note" %}{% endif %}</label>
+      {{ note_form.text }}
+      <div class="form-text">{% if crew_view %}{% trans "The office sees it here and on its Today page." %}{% else %}{% trans "The crew on this job sees it too." %}{% endif %}</div>
+      <button type="submit" class="btn btn-outline-secondary btn-sm mt-2">{% trans "Save the note" %}</button>
+    </form>
+  </div>
+</div>
+
 <div class="card shadow-sm mb-3">
   <div class="card-body">
     <h2 class="h6 mb-2">{% trans "History" %}</h2>
+    {% stamp job %}
     {% include "crm/_history.html" %}
-    <form method="post" action="{% url 'job_note' job.number %}" class="mt-3">
-      {% csrf_token %}
-      <label class="form-label small fw-semibold mb-1" for="{{ note_form.text.id_for_label }}">{% trans "Add a note" %}</label>
-      {{ note_form.text }}
-      <button type="submit" class="btn btn-outline-secondary btn-sm mt-2">{% trans "Save the note" %}</button>
-    </form>
   </div>
 </div>
 {% endblock %}
