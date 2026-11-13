@@ -2,7 +2,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from . import admin_views, file_views, import_views, lead_views, money_views, price_views, report_views, schedule_views, views
+from . import admin_views, data_views, file_views, import_views, lead_views, money_views, price_views, report_views, schedule_views, views
 from .forms import LoginForm
 
 urlpatterns = [
@@ -112,6 +112,15 @@ urlpatterns = [
     path("manage/types/", admin_views.work_type_list, name="work_types"),
     path("manage/types/new/", admin_views.work_type_edit, name="work_type_new"),
     path("manage/types/<int:pk>/", admin_views.work_type_edit, name="work_type_edit"),
+    path("manage/import/", data_views.data_import, name="data_import"),
+    path("manage/import/template/<str:kind>.xlsx", data_views.data_template, name="data_template"),
+    path("manage/import/<int:pk>/map/", data_views.data_import_map, name="data_import_map"),
+    path("manage/import/<int:pk>/review/", data_views.data_import_review, name="data_import_review"),
+    path("manage/import/<int:pk>/results/", data_views.data_import_results, name="data_import_results"),
+    path("manage/import/<int:pk>/results.xlsx", data_views.data_import_results_file, name="data_import_results_file"),
+    path("manage/lists/", admin_views.pick_lists, name="pick_lists"),
+    path("manage/lists/<str:which>/new/", admin_views.pick_item_edit, name="pick_item_new"),
+    path("manage/lists/<str:which>/<int:pk>/", admin_views.pick_item_edit, name="pick_item_edit"),
     path("manage/automations/", admin_views.automation_list, name="automations"),
     path("manage/automations/switch/", admin_views.automation_switch, name="automation_switch"),
     path("manage/users/", admin_views.users, name="users"),

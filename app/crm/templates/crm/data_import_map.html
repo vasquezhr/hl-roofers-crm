@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Match the columns" %}{% endblock %}
+
+{# Step 2 of the data import: each column of the file goes to a field, or is not imported. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'data_import' %}">‹ {% trans "Import data" %}</a>
+<h1 class="h4 mb-1">{% trans "Match the columns" %}</h1>
+<div class="text-body-secondary small mb-3">{{ title }} · {{ run.file_name }} · {% trf "%(count)s rows" count=run.rows.count %}. {% trans "The columns whose heading names a field are already matched. Pick “Don't import” for a column you do not need." %}</div>
+{% if problem %}<div class="alert alert-danger small">{{ problem }}</div>{% endif %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="card shadow-sm mb-3">
+    <div class="table-responsive">
+      <table class="table table-sm small align-middle mb-0">
+        <thead><tr><th class="ps-3">{% trans "Column in the file" %}</th><th>{% trans "Examples" %}</th><th>{% trans "Goes to" %}</th></tr></thead>
+        <tbody>
+          {% for column in columns %}
+          <tr>
+            <td class="ps-3 fw-semibold">{{ column.heading|default:"—" }}</td>
+            <td class="text-body-secondary">{{ column.examples|join:" · "|truncatechars:60 }}</td>
+            <td>
+              <select class="form-select form-select-sm" name="column-{{ column.index }}" aria-label="{{ column.heading }}">
+                <option value="">{% trans "Don't import" %}</option>
+                {% for key, label in choices %}<option value="{{ key }}"{% if key == column.chosen %} selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="d-flex gap-2 justify-content-end">
+    <a class="btn btn-outline-secondary" href="{% url 'data_import' %}">{% trans "Cancel" %}</a>
+    <button type="submit" class="btn btn-primary">{% trans "Review the rows" %}</button>
+  </div>
+</form>
+{% endblock %}

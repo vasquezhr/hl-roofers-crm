@@ -4,19 +4,30 @@ from django.conf import settings
 from django.contrib.auth import password_validation
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils.functional import lazy
+from django.utils.text import capfirst
 from django.utils.translation import gettext_lazy as _
 from PIL import Image
 
 from . import logo, look
 from .dates import days_off_text, work_days_text
 from .models import (EDIT_OBJECTS, LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment,
-                     PriceItem, Property, User, Worker, WorkType, home_state, is_day_off, type_choices, work_types)
+                     PickItem, PriceItem, Property, User, Worker, WorkType, home_state, is_day_off, pick_choices, pick_items, type_choices, work_types)
 
 
 
 def type_box():
     """The type of work, picked from the business's own list (Admin > Types of work)."""
     return forms.ChoiceField(label=_("Type of work"), choices=type_choices)
+
+
+def pick_box(which, label, required=True):
+    """A value picked from one of the business's pick lists (Admin > Pick lists). The choices are read each time the form is made."""
+    return forms.ChoiceField(label=label, choices=lambda: pick_choices(which), required=required)
+
+
+def pick_current(form, name, which, blank=False):
+    """On a form for an existing record: its value stays among the choices even when that value has been switched off."""
+    form.fields[name].choices = pick_choices(which, current=getattr(form.instance, name, None) if form.instance.pk else None, blank=blank)
 
 
 class Bootstrap:
@@ -60,7 +71,7 @@ class LoginForm(Bootstrap, AuthenticationForm):
 # ---------- accounts ----------
 class NewAccountForm(Bootstrap, forms.Form):
     """One form creates the account, its first contact and its first property."""
-    kind = forms.ChoiceField(label=_("Type of account"), choices=Account.Kind.choices)
+    kind = pick_box("account_kind", _("Type of account"))
     name = forms.CharField(label=_("Name"), max_length=160)
     phone = forms.CharField(label=_("Phone"), max_length=30, required=False)
     email = forms.EmailField(label=_("Email"), required=False)
@@ -80,9 +91,15 @@ class NewAccountForm(Bootstrap, forms.Form):
 
 
 class AccountForm(Bootstrap, forms.ModelForm):
+    kind = pick_box("account_kind", _("Type of account"))
+
     class Meta:
         model = Account
         fields = ["name", "kind", "language", "customer_since"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        pick_current(self, "kind", "account_kind")
 
 
 class ContactForm(Bootstrap, forms.ModelForm):
@@ -104,6 +121,7 @@ class NoteForm(Bootstrap, forms.Form):
 # ---------- opportunities ----------
 class OpportunityForm(Bootstrap, forms.ModelForm):
     job_type = type_box()
+    source = pick_box("source", capfirst(_("where it came from")))
 
     class Meta:
         model = Opportunity
@@ -116,7 +134,7 @@ class OpportunityForm(Bootstrap, forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["place"].queryset = account.properties.all()
         self.fields["place"].empty_label = None
-        self.fields["source"].choices = [("", "---------")] + list(Opportunity.Source.choices)
+        pick_current(self, "source", "source", blank=True)
 
 
 class InspectionForm(Bootstrap, forms.Form):
@@ -141,7 +159,7 @@ class SignForm(Bootstrap, forms.Form):
 
 
 class LostForm(Bootstrap, forms.Form):
-    lost_reason = forms.ChoiceField(label=_("Reason"), choices=Opportunity.LostReason.choices)
+    lost_reason = pick_box("lost_reason", _("Reason"))
 
 
 # ---------- jobs ----------
@@ -222,6 +240,7 @@ class ImportedNoteForm(Bootstrap, forms.Form):
 class LeadForm(Bootstrap, forms.ModelForm):
     """A request typed in by the office, or sent by the website's form."""
     job_type = type_box()
+    source = pick_box("source", capfirst(_("where it came from")))
 
     class Meta:
         model = Lead
@@ -230,6 +249,7 @@ class LeadForm(Bootstrap, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        pick_current(self, "source", "source")
 
     def clean(self):
         data = super().clean()
@@ -253,7 +273,7 @@ class ConvertForm(Bootstrap, forms.Form):
 
 
 class UnfitForm(Bootstrap, forms.Form):
-    reason = forms.ChoiceField(label=_("Reason"), choices=Lead.Reason.choices)
+    reason = pick_box("unfit_reason", _("Reason"))
 
 
 # ---------- money on a job ----------
@@ -271,6 +291,8 @@ class ChangeOrderForm(Bootstrap, forms.ModelForm):
 
 
 class PaymentForm(Bootstrap, forms.ModelForm):
+    method = pick_box("payment_method", capfirst(_("how it was paid")))
+
     class Meta:
         model = Payment
         fields = ["amount", "method", "check_number", "paid_on"]
@@ -279,6 +301,7 @@ class PaymentForm(Bootstrap, forms.ModelForm):
     def __init__(self, *args, balance, **kwargs):
         super().__init__(*args, **kwargs)
         self.balance = balance
+        pick_current(self, "method", "payment_method")
 
     def clean_amount(self):
         amount = self.cleaned_data["amount"]
@@ -424,6 +447,8 @@ class LeadEditForm(LeadForm):
 
 class OpportunityEditForm(Bootstrap, forms.ModelForm):
     job_type = type_box()
+    source = pick_box("source", capfirst(_("where it came from")))
+    lost_reason = pick_box("lost_reason", capfirst(_("reason")), required=False)
 
     class Meta:
         model = Opportunity
@@ -439,8 +464,11 @@ class OpportunityEditForm(Bootstrap, forms.ModelForm):
         self.fields["place"].empty_label = None
         if opp.proposal_lines.exists():
             del self.fields["description"]                          # the proposal builder keeps it in step with the lines
+        pick_current(self, "source", "source")
         if opp.stage != Opportunity.Stage.LOST:
             del self.fields["lost_reason"]
+        else:
+            pick_current(self, "lost_reason", "lost_reason", blank=True)
 
 
 class JobEditForm(Bootstrap, forms.ModelForm):
@@ -501,6 +529,34 @@ class WorkTypeForm(Bootstrap, forms.ModelForm):
         if not 1 <= days <= 60:
             raise forms.ValidationError(_("Enter a number of days from 1 to 60."))
         return days
+
+
+class DataImportForm(Bootstrap, forms.Form):
+    """Admin › Import data: the kind of records and the file."""
+    kind = forms.ChoiceField(label=_("What is in the file"), choices=[("customers", _("Customers")), ("leads", _("Leads"))])
+    file = forms.FileField(label=_("The spreadsheet"), widget=forms.FileInput(attrs={"accept": ".xlsx,.csv"}),
+                           help_text=_("An Excel file (.xlsx) or a CSV file (.csv), with the field names as the headings."))
+
+
+class PickItemForm(Bootstrap, forms.ModelForm):
+    """A value of a pick list. The built-in ones (the values the code relies on) are always offered."""
+    class Meta:
+        model = PickItem
+        fields = ["name_en", "name_es", "position", "active"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk and self.instance.built_in:
+            del self.fields["active"]
+
+    def clean_active(self):
+        active = self.cleaned_data["active"]
+        item = self.instance
+        if item.pk and item.active and not active:                  # a list must keep at least one value to pick
+            others = [other for other in pick_items(item.pick_list).values() if other.pk != item.pk and other.active]
+            if not others:
+                raise forms.ValidationError(_("A list needs at least one value that is offered."))
+        return active
 
 
 # ---------- the business's look

@@ -2,13 +2,25 @@
 Django's built-in admin site, at /admin/. Only the administrator uses it:
 to add logins and crews, and to look at or correct raw records.
 """
+from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.functional import lazy
 from django.utils.translation import gettext_lazy as _
 
-from .models import (Account, Activity, ChangeOrder, Company, Contact, Crew, ImportBatch, ImportedNote, Job, Lead, Note, Opportunity, Payment,
-                     PriceEntry, PriceItem, PriceUpload, Property, ProposalLine, Sequence, User, Worker)
+from .models import (PICK_FIELDS, Account, Activity, ChangeOrder, Company, Contact, Crew, ImportBatch, ImportedNote, Job, Lead, Note, Opportunity,
+                     Payment, PriceEntry, PriceItem, PriceUpload, Property, ProposalLine, Sequence, User, Worker, pick_items)
+
+
+class PickLists:
+    """In the admin site, a field that holds a value of a pick list (Admin > Pick lists) is a drop-down of that list's values,
+    switched-off ones too: the administrator corrects raw records here."""
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        which = PICK_FIELDS.get((db_field.model._meta.model_name, db_field.name))
+        if which:
+            choices = [(key, item.name) for key, item in pick_items(which).items()]
+            return forms.ChoiceField(label=db_field.verbose_name.capitalize(), required=not db_field.blank, choices=([("", "---------")] if db_field.blank else []) + choices)
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
 
 def site_name():
     """The admin site's title: the business's name from Company details, read each time a page is drawn."""
@@ -61,7 +73,7 @@ class PropertyInline(admin.TabularInline):
 
 
 @admin.register(Account)
-class AccountAdmin(admin.ModelAdmin):
+class AccountAdmin(PickLists, admin.ModelAdmin):
     list_display = ("name", "kind", "language", "customer_since")
     list_filter = ("kind",)
     search_fields = ("name", "contacts__name", "contacts__phone", "properties__street")
@@ -69,7 +81,7 @@ class AccountAdmin(admin.ModelAdmin):
 
 
 @admin.register(Lead)
-class LeadAdmin(admin.ModelAdmin):
+class LeadAdmin(PickLists, admin.ModelAdmin):
     list_display = ("name", "job_type", "status", "source", "owner", "received_at")
     list_filter = ("status", "source")
     search_fields = ("name", "phone", "email", "street")
@@ -81,7 +93,7 @@ class ProposalLineInline(admin.TabularInline):
 
 
 @admin.register(Opportunity)
-class OpportunityAdmin(admin.ModelAdmin):
+class OpportunityAdmin(PickLists, admin.ModelAdmin):
     list_display = ("number", "account", "job_type", "stage", "total", "created_at")
     list_filter = ("stage", "job_type")
     search_fields = ("number", "account__name")

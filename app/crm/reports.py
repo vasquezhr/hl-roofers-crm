@@ -19,7 +19,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
 from .documents import money
-from .models import Crew, Job, Lead, Opportunity, Payment, PriceItem, type_name, work_types
+from .models import Crew, Job, Lead, Opportunity, Payment, PriceItem, pick_items, type_name, work_types
 
 RANGES = [("m", gettext_lazy("This month")), ("q", gettext_lazy("Last 3 months")), ("y", gettext_lazy("This year"))]
 def revenue_types():
@@ -84,7 +84,7 @@ def leads_by_source(start, end):
     found = Lead.objects.filter(received_at__gte=first, received_at__lt=last).values("source").annotate(n=Count("id"))
     won = dict(Lead.objects.filter(received_at__gte=first, received_at__lt=last, status=Lead.Status.CONVERTED)
                .values("source").annotate(n=Count("id")).values_list("source", "n"))
-    names = dict(Opportunity.Source.choices)
+    names = {key: item.name for key, item in pick_items("source").items()}
     rows = [[str(names.get(row["source"], row["source"])), row["n"], won.get(row["source"], 0), percent(won.get(row["source"], 0), row["n"])]
             for row in found]
     rows.sort(key=lambda row: (-row[1], row[0]))                    # the most first; equal counts by name
@@ -159,7 +159,7 @@ def jobs_per_crew(start, end):
 def lost_reasons(start, end):
     lost = (Opportunity.objects.filter(stage=Opportunity.Stage.LOST, lost_on__range=(start, end))
             .values("lost_reason").annotate(n=Count("id"), value=Sum("total")))
-    names = dict(Opportunity.LostReason.choices)
+    names = {key: item.name for key, item in pick_items("lost_reason").items()}
     rows = [[str(names.get(row["lost_reason"], row["lost_reason"] or "—")), row["n"], row["value"] or Decimal("0")] for row in lost]
     rows.sort(key=lambda row: (-row[1], row[0]))
     return [(_("Reason"), "text"), (_("Opportunities"), "count"), (_("Value"), "money")], rows

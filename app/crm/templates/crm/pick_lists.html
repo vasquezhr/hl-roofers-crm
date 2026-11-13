@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Pick lists" %}{% endblock %}
+
+{# The choices in the drop-down boxes. Each business keeps its own. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'admin_home' %}">‹ {% trans "Admin" %}</a>
+<div class="mb-3">
+  <h1 class="h4 mb-0">{% trans "Pick lists" %}</h1>
+  <div class="text-body-secondary small">{% trans "The choices in the drop-down boxes, in English and Spanish. Rename, reorder or add values, or switch one off: records that already have it keep it. Built-in values are the ones the app relies on: they can be renamed but not switched off. The types of work are on their own page." %}
+    <a href="{% url 'work_types' %}">{% trans "Types of work" %}</a></div>
+</div>
+{% for one in lists %}
+<div class="card shadow-sm mb-3">
+  <div class="card-body pb-2">
+    <div class="d-flex align-items-start gap-2">
+      <div class="flex-grow-1 hl-minw0">
+        <h2 class="h6 mb-0">{{ one.title }}</h2>
+        <div class="small text-body-secondary">{{ one.about }}</div>
+      </div>
+      <a class="btn btn-primary btn-sm text-nowrap" href="{% url 'pick_item_new' one.key %}">{% icon "plus" %} {% trans "New value" %}</a>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle small mb-0">
+      <thead><tr><th class="ps-3">{% trans "English" %}</th><th>{% trans "Spanish" %}</th><th class="text-end">{% trans "Place" %}</th><th></th><th></th></tr></thead>
+      <tbody>
+        {% for item in one.items %}
+        <tr{% if not item.active %} class="text-body-secondary"{% endif %}>
+          <td class="ps-3 fw-semibold">{{ item.name_en }}</td>
+          <td>{{ item.name_es }}</td>
+          <td class="text-end">{{ item.position }}</td>
+          <td>{% if item.built_in %}{% trans "Built in" as built %}{% badge built "secondary" %}{% elif not item.active %}{% trans "Not offered" as off %}{% badge off "secondary" %}{% endif %}</td>
+          <td class="text-end pe-3"><a class="btn btn-outline-secondary btn-sm" href="{% url 'pick_item_edit' one.key item.pk %}">{% icon "edit" %} {% trans "Edit" %}</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

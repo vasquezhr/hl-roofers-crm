@@ -21,7 +21,7 @@ from django.db import connection, transaction
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone, translation
 from django.utils.http import urlencode
 from django.utils.text import slugify
 from django.utils.translation import gettext as _
@@ -29,10 +29,10 @@ from django.views.decorators.http import require_POST
 
 from . import automations, health, logo, look, logs, recycle
 from .access import admin_only, with_permission
-from .forms import LoginDetailsForm, LookForm, WorkTypeForm
+from .forms import LoginDetailsForm, LookForm, PickItemForm, WorkTypeForm
 from .history import changes, field_changes
 from .models import (LANGS, Account, Activity, Attachment, BackupRun, BinEntry, ChangeOrder, ChangeSet, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, Payment, PriceUpload,
-                     Property, User, WorkType, digits, log)
+                     PICK_LISTS, PickItem, Property, User, WorkType, digits, log, pick_items)
 from .views import form_page, page_of, saved
 
 
@@ -421,6 +421,55 @@ def work_type_edit(request, pk=None):
     title = _("Edit the type of work") if kind else _("New type of work")
     intro = _("A type of work is offered when a request, an opportunity or a job is made. Its usual days are what a new job gets on the schedule.")
     return form_page(request, form, title, reverse("work_types"), intro=intro)
+
+
+# ---------------------------------------------------------------- pick lists
+@admin_only
+def pick_lists(request):
+    """Admin › Pick lists: every list the business keeps for itself, with its values."""
+    return render(request, "crm/pick_lists.html", {"lists": [
+        {"key": key, "title": one["title"], "about": one["about"], "items": list(pick_items(key).values())} for key, one in PICK_LISTS.items()]})
+
+
+def new_pick_key(which, name):
+    """The word a new value is stored as, made from its English name: "Door hanger" -> door-hanger. Short enough for the field it goes in."""
+    length = PICK_LISTS[which]["length"]
+    base = slugify(name)[:length] or "value"
+    key, n = base, 2
+    while PickItem.objects.filter(pick_list=which, key=key).exists():
+        key, n = f"{base[:length - len(str(n))]}{n}", n + 1
+    return key
+
+
+@admin_only
+def pick_item_edit(request, which, pk=None):
+    """A new value in a list, or a change to one. Every change is a line on Setup history."""
+    if which not in PICK_LISTS:
+        raise Http404
+    item = get_object_or_404(PickItem, pk=pk, pick_list=which) if pk else None
+    last = max((one.position for one in pick_items(which).values()), default=0)
+    form = PickItemForm(request.POST or None, instance=item, initial={} if item else {"position": last + 10})
+    with translation.override("en"):                                    # the history keeps the list's name in one language
+        list_name = str(PICK_LISTS[which]["title"])
+    if form.is_valid():
+        if item is None:
+            created = form.save(commit=False)
+            created.pick_list, created.key = which, new_pick_key(which, created.name_en)
+            created.save()
+            log(None, "pick_added", request.user, detail=f"{list_name} · {created.name_en}")
+        else:
+            form.save()
+            what = changes(form, name=f"{list_name} · {item.name_en}")
+            if what:
+                log(None, "pick_edited", request.user, detail=what)
+        saved(request)
+        return redirect("pick_lists")
+    title = _("Edit the value") if item else _("New value")
+    intro = _("%(list)s. A value that is switched off is no longer offered, and the records that have it keep it. "
+              "The place in the list is a number: the lowest comes first.") % {"list": PICK_LISTS[which]["title"]}
+    if item and item.built_in:
+        intro += " " + _("This value is built in: the app relies on it, so it can be renamed and moved but not switched off.")
+    return form_page(request, form, title, reverse("pick_lists"), intro=intro)
 
 
 # ---------------------------------------------------------------- the business's look

@@ -2721,18 +2721,6 @@ msgstr "datos de la compañía"
 msgid "Price valid for 30 days. Payment is due when the work is finished. (Sample wording: set the final terms under Company details.)"
 msgstr "Precio válido por 30 días. El pago se hace al terminar el trabajo. (Texto de ejemplo: escriba los términos finales en Datos de la compañía.)"
 
-msgid "Homeowner"
-msgstr "Dueño de casa"
-
-msgid "Contractor"
-msgstr "Contratista"
-
-msgid "Home-warranty company"
-msgstr "Compañía de garantía"
-
-msgid "Property manager"
-msgstr "Administrador de propiedades"
-
 msgid "The year. An imported note with an older date moves it back."
 msgstr "El año. Una nota importada con fecha más vieja lo mueve hacia atrás."
 
@@ -2799,15 +2787,6 @@ msgstr "Ganada"
 msgid "Lost"
 msgstr "Perdida"
 
-msgid "Website form"
-msgstr "Formulario del sitio web"
-
-msgid "Referral"
-msgstr "Recomendación"
-
-msgid "Contractor request"
-msgstr "Pedido de contratista"
-
 msgid "on paper"
 msgstr "en papel"
 
@@ -2816,15 +2795,6 @@ msgstr "en línea, desde el enlace del correo"
 
 msgid "their approval or PO"
 msgstr "su aprobación u orden de compra"
-
-msgid "Went with a lower price"
-msgstr "Eligió un precio más bajo"
-
-msgid "Not doing the work now"
-msgstr "No hará el trabajo por ahora"
-
-msgid "Stopped answering"
-msgstr "Dejó de contestar"
 
 msgid "The customer supplies the materials."
 msgstr "El cliente pone los materiales."
@@ -2886,15 +2856,6 @@ msgstr "orden de cambio"
 msgid "change orders"
 msgstr "órdenes de cambio"
 
-msgid "Check"
-msgstr "Cheque"
-
-msgid "Cash"
-msgstr "Efectivo"
-
-msgid "Card"
-msgstr "Tarjeta"
-
 msgid "Deposit"
 msgstr "Depósito"
 
@@ -2912,21 +2873,6 @@ msgstr "Nuevo"
 
 msgid "Contacted"
 msgstr "Contactado"
-
-msgid "Out of the service area"
-msgstr "Fuera del área de servicio"
-
-msgid "Service not offered"
-msgstr "Servicio que no se ofrece"
-
-msgid "No answer after 3 tries"
-msgstr "No contestó después de 3 intentos"
-
-msgid "Only comparing prices"
-msgstr "Solo compara precios"
-
-msgid "Spam or duplicate"
-msgstr "Spam o duplicado"
 
 msgid "assigned to"
 msgstr "asignado a"
@@ -2951,21 +2897,6 @@ msgstr "Apagado, ya no se ofrece, y los registros anteriores lo conservan."
 
 msgid "types of work"
 msgstr "tipos de trabajo"
-
-msgid "During the work"
-msgstr "Durante el trabajo"
-
-msgid "Damage"
-msgstr "Daño"
-
-msgid "Signed proposal, on paper"
-msgstr "Propuesta firmada, en papel"
-
-msgid "Signed change order, on paper"
-msgstr "Orden de cambio firmada, en papel"
-
-msgid "Other document"
-msgstr "Otro documento"
 
 msgid "Mirrored SSDs"
 msgstr "Discos SSD en espejo"
@@ -3578,3 +3509,330 @@ msgstr "Se quitó el logotipo de los documentos"
 
 msgid "The logo could not be saved. The reason is in the error log (Admin, System status)."
 msgstr "No se pudo guardar el logotipo. El motivo está en el registro de errores (Administración, Estado del sistema)."
+
+msgid "Pick lists"
+msgstr "Listas de opciones"
+
+msgid "The choices in the drop-down boxes: where requests come from, why they were lost, ways of paying and more."
+msgstr "Las opciones de los menús desplegables: de dónde vienen las solicitudes, por qué se perdieron, formas de pago y más."
+
+msgid "The choices in the drop-down boxes, in English and Spanish. Rename, reorder or add values, or switch one off: records that already have it keep it. Built-in values are the ones the app relies on: they can be renamed but not switched off. The types of work are on their own page."
+msgstr "Las opciones de los menús desplegables, en inglés y en español. Cambie nombres, reordene, agregue valores o desactive uno: los registros que ya lo tienen lo conservan. Los valores integrados son los que la aplicación necesita: se les puede cambiar el nombre, pero no desactivarlos. Los tipos de trabajo están en su propia página."
+
+msgid "New value"
+msgstr "Valor nuevo"
+
+msgid "Place"
+msgstr "Lugar"
+
+msgid "Edit the value"
+msgstr "Editar el valor"
+
+msgid "%(list)s. A value that is switched off is no longer offered, and the records that have it keep it. The place in the list is a number: the lowest comes first."
+msgstr "%(list)s. Un valor desactivado ya no se ofrece, y los registros que lo tienen lo conservan. El lugar en la lista es un número: el más bajo va primero."
+
+msgid "This value is built in: the app relies on it, so it can be renamed and moved but not switched off."
+msgstr "Este valor está integrado: la aplicación depende de él, así que se le puede cambiar el nombre y moverlo, pero no desactivarlo."
+
+msgid "A list needs at least one value that is offered."
+msgstr "Una lista necesita al menos un valor que se ofrezca."
+
+msgid "Where a request came from"
+msgstr "De dónde vino una solicitud"
+
+msgid "Why an opportunity was lost"
+msgstr "Por qué se perdió una oportunidad"
+
+msgid "Asked when an opportunity is marked lost. The Reports count them."
+msgstr "Se pregunta al marcar una oportunidad como perdida. Los reportes las cuentan."
+
+msgid "Why a lead is not a fit"
+msgstr "Por qué un prospecto no es adecuado"
+
+msgid "Asked when a lead is marked Not a fit."
+msgstr "Se pregunta al marcar un prospecto como No es adecuado."
+
+msgid "Ways of paying"
+msgstr "Formas de pago"
+
+msgid "Asked when a payment is recorded, and printed on the receipt. Check is the starting choice."
+msgstr "Se pregunta al registrar un pago y se imprime en el recibo. Cheque es la opción inicial."
+
+msgid "Kinds of account"
+msgstr "Tipos de cuenta"
+
+msgid "A homeowner is a person; every other kind is a company. A contractor's work is labor only, and a warranty company's requests start with that source."
+msgstr "Un dueño de casa es una persona; cualquier otro tipo es una empresa. El trabajo de un contratista es solo mano de obra, y las solicitudes de una compañía de garantía empiezan con ese origen."
+
+msgid "Kinds of photo or file"
+msgstr "Tipos de foto o archivo"
+
+msgid "What a photo or file on a job or an account is. The signed paper of a proposal or a change order shows on that document."
+msgstr "Qué es una foto o un archivo de un trabajo o de una cuenta. El papel firmado de una propuesta o de una orden de cambio aparece en ese documento."
+
+msgid "Pick list value added: %(detail)s"
+msgstr "Valor agregado a una lista de opciones: %(detail)s"
+
+msgid "Pick list value changed: %(detail)s"
+msgstr "Valor cambiado en una lista de opciones: %(detail)s"
+
+msgid "pick list value"
+msgstr "valor de lista de opciones"
+
+msgid "pick list values"
+msgstr "valores de listas de opciones"
+
+msgid "Import data"
+msgstr "Importar datos"
+
+msgid "Bring customers or leads in from a spreadsheet, with a template, matching and a review before anything is saved."
+msgstr "Traiga clientes o prospectos desde una hoja de cálculo, con una plantilla, asignación de columnas y una revisión antes de guardar nada."
+
+msgid "Bring customers or leads in from a spreadsheet. One row is one record and one column is one field, with the field's name as the heading. You match the columns and review the rows before anything is saved."
+msgstr "Traiga clientes o prospectos desde una hoja de cálculo. Una fila es un registro y una columna es un campo, con el nombre del campo como encabezado. Usted asigna las columnas y revisa las filas antes de guardar nada."
+
+msgid "1. Download the template"
+msgstr "1. Descargue la plantilla"
+
+msgid "Template for %(kind)s"
+msgstr "Plantilla de %(kind)s"
+
+msgid "2. Fill it in and upload it"
+msgstr "2. Llénela y súbala"
+
+msgid "An Excel file (.xlsx) or a CSV file (.csv, saved as UTF-8 or by Excel on Windows). Up to 5,000 rows and 10 MB."
+msgstr "Un archivo de Excel (.xlsx) o un archivo CSV (.csv, guardado como UTF-8 o por Excel en Windows). Hasta 5,000 filas y 10 MB."
+
+msgid "Customers: each row makes the customer, its main contact, its property and, if there is one, a note in Details. A row for a customer already in the app asks what to do."
+msgstr "Clientes: cada fila crea el cliente, su contacto principal, su propiedad y, si la hay, una nota en Detalles. Una fila de un cliente que ya está en la aplicación pregunta qué hacer."
+
+msgid "Leads: each row becomes a lead whose source is Imported."
+msgstr "Prospectos: cada fila se convierte en un prospecto cuyo origen es Importado."
+
+msgid "The file itself is not kept: only its rows, so the results can be listed."
+msgstr "El archivo no se guarda: solo sus filas, para poder mostrar los resultados."
+
+msgid "Imports so far"
+msgstr "Importaciones hasta ahora"
+
+msgid "Status"
+msgstr "Estado"
+
+msgid "%(created)s new, %(added)s added to a customer, %(skipped)s skipped, %(failed)s failed"
+msgstr "%(created)s nuevos, %(added)s agregados a un cliente, %(skipped)s omitidos, %(failed)s con error"
+
+msgid "Not finished"
+msgstr "Sin terminar"
+
+msgid "Results"
+msgstr "Resultados"
+
+msgid "Continue"
+msgstr "Continuar"
+
+msgid "Match the columns"
+msgstr "Asigne las columnas"
+
+msgid "%(count)s rows"
+msgstr "%(count)s filas"
+
+msgid "The columns whose heading names a field are already matched. Pick “Don't import” for a column you do not need."
+msgstr "Las columnas cuyo encabezado nombra un campo ya están asignadas. Elija “No importar” para una columna que no necesite."
+
+msgid "Column in the file"
+msgstr "Columna del archivo"
+
+msgid "Examples"
+msgstr "Ejemplos"
+
+msgid "Goes to"
+msgstr "Va a"
+
+msgid "Don't import"
+msgstr "No importar"
+
+msgid "Review the rows"
+msgstr "Revise las filas"
+
+msgid "Import results"
+msgstr "Resultados de la importación"
+
+msgid "Results file"
+msgstr "Archivo de resultados"
+
+msgid "Row"
+msgstr "Fila"
+
+msgid "Result"
+msgstr "Resultado"
+
+msgid "Message"
+msgstr "Mensaje"
+
+msgid "Nothing is saved until you confirm."
+msgstr "No se guarda nada hasta que usted confirme."
+
+msgid "Already in the app"
+msgstr "Ya están en la aplicación"
+
+msgid "Problems"
+msgstr "Problemas"
+
+msgid "Rows with a problem"
+msgstr "Filas con un problema"
+
+msgid "These are left out. Fix them in the file and import it again, or leave them."
+msgstr "Estas se dejan fuera. Corríjalas en el archivo e impórtelo otra vez, o déjelas."
+
+msgid "Why"
+msgstr "Por qué"
+
+msgid "These match a customer by phone, email, address or name. Skip the row, or add what it has that the customer lacks (the address, if it is new, and the note)."
+msgstr "Estas coinciden con un cliente por teléfono, correo, dirección o nombre. Omita la fila, o agregue lo que tiene y al cliente le falta (la dirección, si es nueva, y la nota)."
+
+msgid "These match a lead with the same phone or email. Skip the row, or add it as a new lead anyway."
+msgstr "Estas coinciden con un prospecto con el mismo teléfono o correo. Omita la fila, o agréguela como prospecto nuevo de todos modos."
+
+msgid "Matches"
+msgstr "Coincide con"
+
+msgid "What to do"
+msgstr "Qué hacer"
+
+msgid "An earlier row of this file"
+msgstr "Una fila anterior de este archivo"
+
+msgid "Add as a new lead"
+msgstr "Agregar como prospecto nuevo"
+
+msgid "The first 50 of %(count)s new rows are shown."
+msgstr "Se muestran las primeras 50 de %(count)s filas nuevas."
+
+msgid "No new rows."
+msgstr "No hay filas nuevas."
+
+msgid "Import these rows now?"
+msgstr "¿Importar estas filas ahora?"
+
+msgid "Confirm the import"
+msgstr "Confirmar la importación"
+
+msgid "Two columns are matched to the same field. Match each field to one column only."
+msgstr "Dos columnas están asignadas al mismo campo. Asigne cada campo a una sola columna."
+
+msgid "Pick a field from the list."
+msgstr "Elija un campo de la lista."
+
+msgid "Some rows were not imported. The results file says why for each one; the error log has them too."
+msgstr "Algunas filas no se importaron. El archivo de resultados dice por qué en cada una; el registro de errores también las tiene."
+
+msgid "No file arrived. A file larger than 10 MB is refused."
+msgstr "No llegó ningún archivo. Un archivo de más de 10 MB se rechaza."
+
+msgid "The file could not be read. The reason is in the error log (Admin, System status)."
+msgstr "No se pudo leer el archivo. El motivo está en el registro de errores (Administración, Estado del sistema)."
+
+msgid "The file needs a column for: %(fields)s."
+msgstr "El archivo necesita una columna para: %(fields)s."
+
+msgid "Customers"
+msgstr "Clientes"
+
+msgid "The file is larger than 10 MB."
+msgstr "El archivo pesa más de 10 MB."
+
+msgid "The file is empty: it needs a row of headings and a row for each record."
+msgstr "El archivo está vacío: necesita una fila de encabezados y una fila por cada registro."
+
+msgid "The file has headings but no rows to import."
+msgstr "El archivo tiene encabezados pero ninguna fila para importar."
+
+msgid "The name is empty."
+msgstr "El nombre está vacío."
+
+msgid "The name is longer than 160 characters."
+msgstr "El nombre tiene más de 160 caracteres."
+
+msgid "address"
+msgstr "dirección"
+
+msgid "Upload an Excel file (.xlsx) or a CSV file (.csv)."
+msgstr "Suba un archivo de Excel (.xlsx) o un archivo CSV (.csv)."
+
+msgid "The file has %(count)s rows. At most 5,000 can be imported at a time."
+msgstr "El archivo tiene %(count)s filas. Se pueden importar como máximo 5,000 a la vez."
+
+msgid "The language must be English or Spanish."
+msgstr "El idioma debe ser inglés o español."
+
+msgid "The street address is empty."
+msgstr "La dirección está vacía."
+
+msgid "Enter a phone number or an email address."
+msgstr "Escriba un número de teléfono o un correo electrónico."
+
+msgid "This file could not be read as an Excel file (.xlsx)."
+msgstr "No se pudo leer este archivo como un archivo de Excel (.xlsx)."
+
+msgid "It could not be saved. The reason is in the error log."
+msgstr "No se pudo guardar. El motivo está en el registro de errores."
+
+msgid "This file could not be read as a CSV file."
+msgstr "No se pudo leer este archivo como un archivo CSV."
+
+msgid "“%(value)s” is not one of the kinds of account."
+msgstr "“%(value)s” no es uno de los tipos de cuenta."
+
+msgid "“%(value)s” is not one of the types of work."
+msgstr "“%(value)s” no es uno de los tipos de trabajo."
+
+msgid "Added as a new lead."
+msgstr "Agregado como prospecto nuevo."
+
+msgid "Already in the app: skipped."
+msgstr "Ya está en la aplicación: omitido."
+
+msgid "Created."
+msgstr "Creado."
+
+msgid "Added to %(name)s: %(what)s"
+msgstr "Agregado a %(name)s: %(what)s"
+
+msgid "What is in the file"
+msgstr "Qué hay en el archivo"
+
+msgid "The spreadsheet"
+msgstr "La hoja de cálculo"
+
+msgid "An Excel file (.xlsx) or a CSV file (.csv), with the field names as the headings."
+msgstr "Un archivo de Excel (.xlsx) o un archivo CSV (.csv), con los nombres de los campos como encabezados."
+
+msgid "On a lead and on an opportunity. The website's form is always Website form, a new lead typed in starts as Referral, and a lead from the data import is Imported."
+msgstr "En un prospecto y en una oportunidad. El formulario del sitio web siempre es Formulario del sitio web, un prospecto nuevo escrito a mano empieza como Recomendación, y un prospecto de la importación de datos es Importado."
+
+msgid "Added by the data import: %(detail)s"
+msgstr "Agregado por la importación de datos: %(detail)s"
+
+msgid "Added from the data import: %(detail)s"
+msgstr "Agregado desde la importación de datos: %(detail)s"
+
+msgid "Data import: %(detail)s"
+msgstr "Importación de datos: %(detail)s"
+
+msgid "Matching the columns"
+msgstr "Asignando las columnas"
+
+msgid "Reviewing the rows"
+msgstr "Revisando las filas"
+
+msgid "Imported"
+msgstr "Importado"
+
+msgid "Problem"
+msgstr "Problema"
+
+msgid "Added to a customer"
+msgstr "Agregado a un cliente"
+
+msgid "Not imported"
+msgstr "No importado"

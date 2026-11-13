@@ -37,7 +37,7 @@ TAB_BY_PAGE = [
     ("account", "accounts"), ("contact", "accounts"), ("property", "accounts"), ("note", "accounts"),
     ("search", "search"), ("report", "reports"), ("my_day", "my_day"), ("my_jobs", "my_jobs"),
     ("admin", "admin"), ("import", "admin"), ("price", "admin"), ("company", "admin"), ("automation", "admin"),
-    ("user", "admin"), ("editor", "admin"), ("status", "admin"), ("recycle", "admin"), ("bin", "admin"),
+    ("user", "admin"), ("pick", "admin"), ("data", "admin"), ("editor", "admin"), ("status", "admin"), ("recycle", "admin"), ("bin", "admin"),
 ]
 
 

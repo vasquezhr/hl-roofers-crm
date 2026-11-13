@@ -92,6 +92,10 @@ def shown(field, text):
         if field.name == "job_type":                                # the type's name in the reader's language
             from .models import type_name
             return type_name(text)
+        from .models import PICK_FIELDS, pick_name
+        which = PICK_FIELDS.get((field.model._meta.model_name, field.name)) if getattr(field, "model", None) else None
+        if which:                                                   # a value of one of the business's pick lists, by its name
+            return pick_name(which, text)
         if field.name == "edit_objects":                            # the kinds of record a login may edit
             from .models import EDIT_OBJECTS
             labels = dict(EDIT_OBJECTS)
@@ -130,9 +134,8 @@ def changes_text(detail):
 def file_text(code):
     """before|IMG_1234.jpg -> Before · IMG_1234.jpg"""
     category, _bar, name = code.partition("|")
-    from .models import Attachment
-    label = dict(Attachment.Category.choices).get(category)
-    return f"{label} · {name}" if label else code
+    from .models import pick_items, pick_name
+    return f"{pick_name('file_kind', category)} · {name}" if category in pick_items("file_kind") else code
 
 
 def when_text(code):

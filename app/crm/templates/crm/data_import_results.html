@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Import results" %}{% endblock %}
+
+{# Step 4 of the data import: what happened to each row. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'data_import' %}">‹ {% trans "Import data" %}</a>
+<div class="d-flex align-items-start gap-2 mb-3">
+  <div class="flex-grow-1 hl-minw0">
+    <h1 class="h4 mb-0">{% trans "Import results" %}</h1>
+    <div class="text-body-secondary small">{{ title }} · {{ run.file_name }} · {{ run.done_at|day_time }}</div>
+  </div>
+  <a class="btn btn-outline-secondary btn-sm text-nowrap" href="{% url 'data_import_results_file' run.pk %}">{% icon "download" %} {% trans "Results file" %}</a>
+</div>
+<div class="alert alert-secondary small">{% trf "%(created)s new, %(added)s added to a customer, %(skipped)s skipped, %(failed)s failed" created=run.counts.created added=run.counts.added skipped=run.counts.skipped failed=run.counts.failed %}</div>
+<div class="card shadow-sm mb-3">
+  <div class="table-responsive">
+    <table class="table table-sm small align-middle mb-0">
+      <thead><tr><th class="ps-3">{% trans "Row" %}</th><th>{% trans "Result" %}</th><th>{% trans "Message" %}</th><th></th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="ps-3">{{ row.number }}</td>
+          <td>{% if row.result == "failed" %}{% badge row.get_result_display "danger" %}{% elif row.result == "skipped" %}{% badge row.get_result_display "secondary" %}{% else %}{% badge row.get_result_display "success" %}{% endif %}</td>
+          <td>{{ row.message }}</td>
+          <td class="text-end pe-3">{% if row.account and row.result != "failed" %}<a href="{% url 'account' row.account.pk %}">{% trans "Open" %}</a>{% elif row.lead and row.result != "failed" %}<a href="{% url 'lead' row.lead.pk %}">{% trans "Open" %}</a>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

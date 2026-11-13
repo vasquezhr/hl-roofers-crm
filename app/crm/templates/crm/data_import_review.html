@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Review the rows" %}{% endblock %}
+
+{# Step 3 of the data import: new rows, rows already in the app, and rows with a problem. Nothing is saved until Confirm. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'data_import_map' run.pk %}">‹ {% trans "Match the columns" %}</a>
+<h1 class="h4 mb-1">{% trans "Review the rows" %}</h1>
+<div class="text-body-secondary small mb-3">{{ title }} · {{ run.file_name }} · {% trf "%(count)s rows" count=total %}. {% trans "Nothing is saved until you confirm." %}</div>
+
+<div class="row g-2 mb-3">
+  <div class="col-4"><div class="card shadow-sm text-center"><div class="card-body py-2"><div class="fs-4 fw-bold">{{ groups.new|length }}</div><div class="small text-body-secondary">{% trans "New" %}</div></div></div></div>
+  <div class="col-4"><div class="card shadow-sm text-center"><div class="card-body py-2"><div class="fs-4 fw-bold">{{ groups.exists|length }}</div><div class="small text-body-secondary">{% trans "Already in the app" %}</div></div></div></div>
+  <div class="col-4"><div class="card shadow-sm text-center"><div class="card-body py-2"><div class="fs-4 fw-bold{% if groups.error %} text-danger{% endif %}">{{ groups.error|length }}</div><div class="small text-body-secondary">{% trans "Problems" %}</div></div></div></div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  {% if groups.error %}
+  <div class="card shadow-sm mb-3 border-danger">
+    <div class="card-body">
+      <h2 class="h6 text-danger">{% trans "Rows with a problem" %}</h2>
+      <div class="small text-body-secondary mb-2">{% trans "These are left out. Fix them in the file and import it again, or leave them." %}</div>
+      <table class="table table-sm small mb-0">
+        <thead><tr><th>{% trans "Row" %}</th><th>{% trans "Name" %}</th><th>{% trans "Why" %}</th></tr></thead>
+        <tbody>{% for row in groups.error %}<tr><td>{{ row.number }}</td><td>{{ row.values.name|default:row.cells.0 }}</td><td>{{ row.reason }}</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if groups.exists %}
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <h2 class="h6">{% trans "Already in the app" %}</h2>
+      <div class="small text-body-secondary mb-2">{% if customers %}{% trans "These match a customer by phone, email, address or name. Skip the row, or add what it has that the customer lacks (the address, if it is new, and the note)." %}{% else %}{% trans "These match a lead with the same phone or email. Skip the row, or add it as a new lead anyway." %}{% endif %}</div>
+      <table class="table table-sm small align-middle mb-0">
+        <thead><tr><th>{% trans "Row" %}</th><th>{% trans "Name" %}</th><th>{% trans "Matches" %}</th><th>{% trans "What to do" %}</th></tr></thead>
+        <tbody>
+          {% for row in groups.exists %}
+          <tr>
+            <td>{{ row.number }}</td><td>{{ row.values.name }}</td>
+            <td>{% if row.account %}<a href="{% url 'account' row.account.pk %}">{{ row.account.name }}</a> · {{ row.reason }}{% elif row.lead %}<a href="{% url 'lead' row.lead.pk %}">{{ row.lead.name }}</a>{% else %}{% trans "An earlier row of this file" %}{% endif %}</td>
+            <td>
+              <select class="form-select form-select-sm" name="choice-{{ row.pk }}" aria-label="{% trans 'What to do' %}">
+                <option value="skip">{% trans "Skip" %}</option>
+                {% if row.account %}<option value="add">{% trans "Add to this customer" %}</option>{% elif row.lead %}<option value="add">{% trans "Add as a new lead" %}</option>{% endif %}
+              </select>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <h2 class="h6">{% trans "New" %}</h2>
+      {% if groups.new %}
+      <div class="table-responsive">
+        <table class="table table-sm small mb-0">
+          <thead><tr><th>{% trans "Row" %}</th><th>{% trans "Name" %}</th><th>{% trans "Phone" %}</th><th>{% trans "Email" %}</th><th>{% trans "Street address" %}</th></tr></thead>
+          <tbody>{% for row in groups.new|slice:":50" %}<tr><td>{{ row.number }}</td><td>{{ row.values.name }}</td><td>{{ row.values.phone }}</td><td>{{ row.values.email }}</td><td>{{ row.values.street }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+      {% if groups.new|length > 50 %}<div class="small text-body-secondary mt-2">{% trf "The first 50 of %(count)s new rows are shown." count=groups.new|length %}</div>{% endif %}
+      {% else %}<div class="small text-body-secondary">{% trans "No new rows." %}</div>{% endif %}
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 justify-content-end">
+    <a class="btn btn-outline-secondary" href="{% url 'data_import_map' run.pk %}">{% trans "Back" %}</a>
+    <button type="submit" class="btn btn-primary" data-confirm="{% trans 'Import these rows now?' %}">{% icon "check" %} {% trans "Confirm the import" %}</button>
+  </div>
+</form>
+{% endblock %}

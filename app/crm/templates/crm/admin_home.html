@@ -34,6 +34,12 @@
     </a>
   </div>
   <div class="col">
+    <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'pick_lists' %}">
+      <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "list" %}</span>
+        <div><div class="fw-semibold">{% trans "Pick lists" %}</div><div class="small text-body-secondary">{% trans "The choices in the drop-down boxes: where requests come from, why they were lost, ways of paying and more." %}</div></div></div>
+    </a>
+  </div>
+  <div class="col">
     <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'users' %}">
       <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "accounts" %}</span>
         <div><div class="fw-semibold">{% trans "Users and permissions" %}</div><div class="small text-body-secondary">{% trans "Who can sign in, their profile and their add-on permission sets." %}</div></div></div>
@@ -67,6 +73,12 @@
     <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'admin_history' %}">
       <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "doc" %}</span>
         <div><div class="fw-semibold">{% trans "Setup history" %}</div><div class="small text-body-secondary">{% trans "Who changed prices, company details, logins and other settings, and when." %}</div></div></div>
+    </a>
+  </div>
+  <div class="col">
+    <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'data_import' %}">
+      <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "upload" %}</span>
+        <div><div class="fw-semibold">{% trans "Import data" %}</div><div class="small text-body-secondary">{% trans "Bring customers or leads in from a spreadsheet, with a template, matching and a review before anything is saved." %}</div></div></div>
     </a>
   </div>
   <div class="col">

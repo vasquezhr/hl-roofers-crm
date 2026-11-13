@@ -97,8 +97,10 @@ def work_types():
 
 
 def forget_work_types():
+    """Forget what was read from the database: the types of work and the pick lists (the tests call this before each test)."""
     global _types
     _types = None
+    forget_pick_lists()
 
 
 def type_name(key):
@@ -115,6 +117,63 @@ def type_choices(sell=True):
 def type_days(key):
     kind = work_types().get(key)
     return kind.days if kind else 1
+
+
+# ---------------------------------------------------------------- pick lists
+# The lists a business keeps for itself on Admin > Pick lists. A record stores the value's key (web, price, check ...), which never
+# changes, so old records and their history stay right when a name is changed or a value is switched off.
+# The built-in values are the ones the code relies on: they can be renamed and moved, but not switched off.
+PICK_LISTS = {
+    "source": {"title": _("Where a request came from"), "length": 12, "built_in": ["web", "referral", "repeat", "contractor", "warranty", "imported"],
+               "about": _("On a lead and on an opportunity. The website's form is always Website form, a new lead typed in starts as Referral, and a lead from the data import is Imported.")},
+    "lost_reason": {"title": _("Why an opportunity was lost"), "length": 12, "built_in": [],
+                    "about": _("Asked when an opportunity is marked lost. The Reports count them.")},
+    "unfit_reason": {"title": _("Why a lead is not a fit"), "length": 12, "built_in": [],
+                     "about": _("Asked when a lead is marked Not a fit.")},
+    "payment_method": {"title": _("Ways of paying"), "length": 12, "built_in": ["check"],
+                       "about": _("Asked when a payment is recorded, and printed on the receipt. Check is the starting choice.")},
+    "account_kind": {"title": _("Kinds of account"), "length": 12, "built_in": ["homeowner", "contractor", "warranty"],
+                     "about": _("A homeowner is a person; every other kind is a company. A contractor's work is labor only, and a warranty company's requests start with that source.")},
+    "file_kind": {"title": _("Kinds of photo or file"), "length": 16, "built_in": ["before", "document", "signed_proposal", "signed_change"],
+                  "about": _("What a photo or file on a job or an account is. The signed paper of a proposal or a change order shows on that document.")},
+}
+# which field of which record holds a value of which list: (the record, the field) -> the list
+PICK_FIELDS = {("account", "kind"): "account_kind", ("opportunity", "source"): "source", ("lead", "source"): "source",
+               ("opportunity", "lost_reason"): "lost_reason", ("lead", "reason"): "unfit_reason", ("payment", "method"): "payment_method",
+               ("attachment", "category"): "file_kind"}
+_picks = None
+
+
+def pick_items(which):
+    """The values of one list, in order: {key: PickItem}."""
+    global _picks
+    if _picks is None:
+        _picks = {}
+        for item in PickItem.objects.all():
+            _picks.setdefault(item.pick_list, {})[item.key] = item
+    return _picks.get(which, {})
+
+
+def forget_pick_lists():
+    global _picks
+    _picks = None
+
+
+def pick_name(which, key):
+    """A value's name in the reader's language: ("source", "web") -> Website form, or Formulario del sitio web. An empty value is empty;
+    a key that is no longer in the list is shown as it is."""
+    if not key:
+        return ""
+    item = pick_items(which).get(key)
+    return item.name if item else key
+
+
+def pick_choices(which, current=None, blank=False):
+    """The values to pick from: the ones offered, and `current` (what the record being edited already has) even when it is switched off."""
+    found = [(key, item.name) for key, item in pick_items(which).items() if item.active or key == current]
+    if current and current not in pick_items(which):
+        found.append((current, current))
+    return ([("", "---------")] if blank else []) + found
 
 
 
@@ -366,14 +425,12 @@ class Company(models.Model):
 
 # ---------------------------------------------------------------- customers
 class Account(models.Model):
-    class Kind(models.TextChoices):
-        HOMEOWNER = "homeowner", _("Homeowner")
-        CONTRACTOR = "contractor", _("Contractor")
-        WARRANTY = "warranty", _("Home-warranty company")
-        MANAGER = "manager", _("Property manager")
+    class Kind:
+        """The kinds of account the code relies on. The list itself, with its names, is on Admin > Pick lists (pick_list "account_kind")."""
+        HOMEOWNER, CONTRACTOR, WARRANTY = "homeowner", "contractor", "warranty"
 
     name = models.CharField(_("name"), max_length=160)
-    kind = models.CharField(_("type of account"), max_length=12, choices=Kind.choices, default=Kind.HOMEOWNER)
+    kind = models.CharField(_("type of account"), max_length=12, default=Kind.HOMEOWNER)
     language = models.CharField(_("language"), max_length=2, choices=LANGS, default="en",
                                 help_text=_("The customer's language. Texts to them start in this language."))
     customer_since = models.PositiveSmallIntegerField(_("customer since"), null=True, blank=True,
@@ -396,6 +453,9 @@ class Account(models.Model):
         if not self.customer_since:
             self.customer_since = timezone.localdate().year
         super().save(*args, **kwargs)
+
+    def get_kind_display(self):
+        return pick_name("account_kind", self.kind)
 
     @property
     def is_company(self):
@@ -549,24 +609,15 @@ class Opportunity(models.Model):
         WON = "won", _("Won")
         LOST = "lost", _("Lost")
 
-    class Source(models.TextChoices):
-        WEB = "web", _("Website form")
-        REFERRAL = "referral", _("Referral")
-        REPEAT = "repeat", _("Returning customer")
-        CONTRACTOR = "contractor", _("Contractor request")
-        WARRANTY = "warranty", _("Home-warranty company")
-        OTHER = "other", _("Other")
+    class Source:
+        """The sources the code relies on (the website's form, a new lead typed in, a returning customer, a contractor, a warranty company).
+        The list itself, with its names, is on Admin > Pick lists (pick_list "source"), for leads and opportunities alike."""
+        WEB, REFERRAL, REPEAT, CONTRACTOR, WARRANTY = "web", "referral", "repeat", "contractor", "warranty"
 
     class SignedHow(models.TextChoices):
         PAPER = "paper", _("on paper")
         LINK = "link", _("online, from the email link")
         PO = "po", _("their approval or PO")
-
-    class LostReason(models.TextChoices):
-        PRICE = "price", _("Went with a lower price")
-        TIMING = "timing", _("Not doing the work now")
-        NO_RESPONSE = "noresponse", _("Stopped answering")
-        OTHER = "other", _("Other")
 
     number = models.CharField(_("number"), max_length=12, unique=True, editable=False)
     account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name="opportunities")
@@ -574,7 +625,7 @@ class Opportunity(models.Model):
     place = models.ForeignKey(Property, verbose_name=_("property"), on_delete=models.PROTECT, related_name="opportunities")
     job_type = models.CharField(_("type of work"), max_length=12, default="repair")
     stage = models.CharField(_("stage"), max_length=10, choices=Stage.choices, default=Stage.INSPECTION)
-    source = models.CharField(_("where it came from"), max_length=10, choices=Source.choices, default=Source.REPEAT)
+    source = models.CharField(_("where it came from"), max_length=12, default=Source.REPEAT)
     labor_only = models.BooleanField(_("labor only"), default=False, help_text=_("The customer supplies the materials."))
     description = models.TextField(_("what the proposal covers"), blank=True, help_text=_("One line for each item."))
     total = models.DecimalField(_("price"), max_digits=10, decimal_places=2, null=True, blank=True)
@@ -585,7 +636,7 @@ class Opportunity(models.Model):
     signed_on = models.DateField(null=True, blank=True)
     signed_how = models.CharField(_("how it was signed"), max_length=6, choices=SignedHow.choices, blank=True)
     lost_on = models.DateField(null=True, blank=True)
-    lost_reason = models.CharField(_("reason"), max_length=10, choices=LostReason.choices, blank=True)
+    lost_reason = models.CharField(_("reason"), max_length=12, blank=True)            # a value of the pick list "lost_reason"
     # the customer's own page for accepting the proposal: a long random word in its web address
     accept_token = models.CharField(max_length=64, blank=True, db_index=True, editable=False)
     signed_by = models.CharField(_("name typed by the customer"), max_length=120, blank=True)
@@ -602,6 +653,12 @@ class Opportunity(models.Model):
 
     def get_job_type_display(self):
         return type_name(self.job_type)
+
+    def get_source_display(self):
+        return pick_name("source", self.source)
+
+    def get_lost_reason_display(self):
+        return pick_name("lost_reason", self.lost_reason)
 
     def __str__(self):
         return f"#{self.number} {self.account}"
@@ -923,11 +980,10 @@ class ChangeOrder(models.Model):
 class Payment(models.Model):
     """Money received on a job. Before the work starts it is a deposit; after that, a payment."""
 
-    class Method(models.TextChoices):
-        CHECK = "check", _("Check")
-        CASH = "cash", _("Cash")
-        CARD = "card", _("Card")
-        OTHER = "other", _("Other")
+    class Method:
+        """The way of paying the code relies on: a check is the starting choice. The list itself, with its names, is on
+        Admin > Pick lists (pick_list "payment_method")."""
+        CHECK = "check"
 
     class Kind(models.TextChoices):
         DEPOSIT = "deposit", _("Deposit")
@@ -936,7 +992,7 @@ class Payment(models.Model):
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="payments")
     paid_on = models.DateField(_("date"), default=timezone.localdate)
     amount = models.DecimalField(_("amount"), max_digits=10, decimal_places=2)
-    method = models.CharField(_("how it was paid"), max_length=6, choices=Method.choices, default=Method.CHECK)
+    method = models.CharField(_("how it was paid"), max_length=12, default=Method.CHECK)
     check_number = models.CharField(_("check number"), max_length=30, blank=True)
     kind = models.CharField(max_length=8, choices=Kind.choices, default=Kind.PAYMENT)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
@@ -954,6 +1010,9 @@ class Payment(models.Model):
     def __str__(self):
         return f"#{self.job.number} {self.amount}"
 
+    def get_method_display(self):
+        return pick_name("payment_method", self.method)
+
     def save(self, *args, **kwargs):
         if not self.number:                                     # the next receipt number on the job, counting any in the Recycle Bin
             self.number = (Payment.everything.filter(job=self.job).aggregate(top=models.Max("number"))["top"] or 0) + 1
@@ -968,13 +1027,6 @@ class Lead(models.Model):
         CONVERTED = "converted", _("Converted")
         UNQUALIFIED = "unqualified", _("Not a fit")
 
-    class Reason(models.TextChoices):
-        AREA = "area", _("Out of the service area")
-        SERVICE = "service", _("Service not offered")
-        NO_RESPONSE = "noresponse", _("No answer after 3 tries")
-        SHOPPING = "shopping", _("Only comparing prices")
-        SPAM = "spam", _("Spam or duplicate")
-
     name = models.CharField(_("name"), max_length=160)
     phone = models.CharField(_("phone"), max_length=30, blank=True)
     phone_digits = models.CharField(max_length=20, blank=True, editable=False, db_index=True)
@@ -986,9 +1038,9 @@ class Lead(models.Model):
     job_type = models.CharField(_("type of work"), max_length=12, default="inspection")
     message = models.TextField(_("what they asked for"), blank=True)
     language = models.CharField(_("language"), max_length=2, choices=LANGS, default="en")
-    source = models.CharField(_("where it came from"), max_length=10, choices=Opportunity.Source.choices, default=Opportunity.Source.WEB)
+    source = models.CharField(_("where it came from"), max_length=12, default=Opportunity.Source.WEB)      # a value of the pick list "source"
     status = models.CharField(_("status"), max_length=12, choices=Status.choices, default=Status.NEW)
-    reason = models.CharField(_("reason"), max_length=10, choices=Reason.choices, blank=True)
+    reason = models.CharField(_("reason"), max_length=12, blank=True)                 # why it is not a fit: a value of the pick list "unfit_reason"
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("assigned to"), null=True, blank=True, on_delete=models.SET_NULL, related_name="leads")
     received_at = models.DateTimeField(_("received"), default=timezone.now)
     first_contact_at = models.DateTimeField(null=True, blank=True)
@@ -1004,6 +1056,12 @@ class Lead(models.Model):
     class Meta:
         ordering = ["-received_at"]
         verbose_name, verbose_name_plural = _("lead"), _("leads")
+
+    def get_source_display(self):
+        return pick_name("source", self.source)
+
+    def get_reason_display(self):
+        return pick_name("unfit_reason", self.reason)
 
     def get_job_type_display(self):
         return type_name(self.job_type)
@@ -1137,6 +1195,44 @@ class WorkType(models.Model):
         return result
 
 
+# ---------------------------------------------------------------- pick lists
+class PickItem(models.Model):
+    """One value of a pick list (PICK_LISTS): where a request came from, why an opportunity was lost, a way of paying ...
+    Each business keeps its own on Admin > Pick lists. Nothing is ever deleted: a value that is switched off is no longer
+    offered, and the records that have it keep it."""
+    pick_list = models.CharField(max_length=20, editable=False)
+    key = models.SlugField(max_length=16, editable=False)       # what records store; it never changes
+    name_en = models.CharField(_("name in English"), max_length=60)
+    name_es = models.CharField(_("name in Spanish"), max_length=60)
+    position = models.PositiveSmallIntegerField(_("place in the list"), default=0)
+    active = models.BooleanField(_("offered"), default=True, help_text=_("Switched off, it is no longer offered, and old records keep it."))
+
+    class Meta:
+        ordering = ["position", "id"]
+        constraints = [models.UniqueConstraint(fields=["pick_list", "key"], name="one_key_in_each_pick_list")]
+        verbose_name, verbose_name_plural = _("pick list value"), _("pick list values")
+
+    def __str__(self):
+        return self.name_en
+
+    @property
+    def name(self):
+        return self.name_es if (translation.get_language() or "").startswith("es") else self.name_en
+
+    @property
+    def built_in(self):
+        return self.key in PICK_LISTS.get(self.pick_list, {}).get("built_in", [])
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        forget_pick_lists()
+
+    def delete(self, *args, **kwargs):
+        result = super().delete(*args, **kwargs)
+        forget_pick_lists()
+        return result
+
+
 # ---------------------------------------------------------------- the Recycle Bin's entries
 class BinEntry(models.Model):
     """One delete: what was deleted, who deleted it and when. The deleted records point at their entry (their `bin` field)
@@ -1200,19 +1296,15 @@ class Attachment(models.Model):
     damage, a photo or scan of a signed paper, or another document. Shown only through the app, to the logins that
     may see that job or account."""
 
-    class Category(models.TextChoices):
-        BEFORE = "before", _("Before")
-        DURING = "during", _("During the work")
-        AFTER = "after", _("After")
-        DAMAGE = "damage", _("Damage")
-        SIGNED_PROPOSAL = "signed_proposal", _("Signed proposal, on paper")
-        SIGNED_CHANGE = "signed_change", _("Signed change order, on paper")
-        DOCUMENT = "document", _("Other document")
+    class Category:
+        """The kinds of photo or file the code relies on: the starting choices, and the signed paper of a proposal or a change order.
+        The list itself, with its names, is on Admin > Pick lists (pick_list "file_kind")."""
+        BEFORE, DOCUMENT, SIGNED_PROPOSAL, SIGNED_CHANGE = "before", "document", "signed_proposal", "signed_change"
 
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="attachments")
     job = models.ForeignKey(Job, null=True, blank=True, on_delete=models.CASCADE, related_name="attachments")
     change_order = models.ForeignKey(ChangeOrder, null=True, blank=True, on_delete=models.CASCADE, related_name="attachments")
-    category = models.CharField(_("what it is"), max_length=16, choices=Category.choices, default=Category.BEFORE)
+    category = models.CharField(_("what it is"), max_length=16, default=Category.BEFORE)         # a value of the pick list "file_kind"
     caption = models.CharField(_("a few words about it"), max_length=200, blank=True)
     file = models.FileField(upload_to=file_path, max_length=200)
     thumb = models.FileField(upload_to=thumb_path, max_length=200, blank=True)     # a small copy of a photo, for the lists
@@ -1231,6 +1323,9 @@ class Attachment(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_category_display(self):
+        return pick_name("file_kind", self.category)
 
     @property
     def is_image(self):
@@ -1331,6 +1426,9 @@ class Activity(models.Model):
         "notes_unlinked": _("Imported notes kept with no customer: %(detail)s"),
         "calendar_reset": _("Calendar address replaced: %(detail)s"),
         "type_added": _("Type of work added: %(detail)s"), "type_edited": _("Type of work changed: %(detail)s"),
+        "imported": _("Added by the data import: %(detail)s"), "import_added": _("Added from the data import: %(detail)s"),
+        "data_imported": _("Data import: %(detail)s"),
+        "pick_added": _("Pick list value added: %(detail)s"), "pick_edited": _("Pick list value changed: %(detail)s"),
         "login_added": _("Login added: %(detail)s"), "login_edited": _("Login changed: %(detail)s"),
         "login_password": _("Password changed for %(detail)s"),
         # deleting, and the Recycle Bin
@@ -1355,7 +1453,7 @@ class Activity(models.Model):
     # how the stored detail of some kinds is put into words when it is read
     READERS = {"file_added": file_text, "changed": range_from_code, "day_added": range_from_code, "day_removed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
                "edited": changes_text, "contact_edited": changes_text, "property_edited": changes_text,
-               "type_edited": changes_text, "company_edited": changes_text, "look_edited": changes_text, "price_set": changes_text, "login_edited": changes_text, "note_edited": changes_text}
+               "type_edited": changes_text, "pick_edited": changes_text, "company_edited": changes_text, "look_edited": changes_text, "price_set": changes_text, "login_edited": changes_text, "note_edited": changes_text}
 
     lead = models.ForeignKey("Lead", null=True, blank=True, on_delete=models.CASCADE, related_name="activities")
     account = models.ForeignKey(Account, null=True, blank=True, on_delete=models.CASCADE, related_name="activities")
@@ -1427,6 +1525,64 @@ class HealthReading(models.Model):
     @property
     def percent_free(self):
         return round(self.free_mb * 100 / self.total_mb) if self.total_mb else 0
+
+
+# ---------------------------------------------------------------- the data import (Admin > Import data)
+class DataImport(models.Model):
+    """One uploaded spreadsheet of customers or leads, from the upload to its results. The file is never kept: only its rows (DataImportRow)."""
+
+    class Kind(models.TextChoices):
+        CUSTOMERS = "customers", _("Customers")
+        LEADS = "leads", _("Leads")
+
+    class Stage(models.TextChoices):
+        MAP = "map", _("Matching the columns")
+        REVIEW = "review", _("Reviewing the rows")
+        DONE = "done", _("Imported")
+
+    kind = models.CharField(max_length=10, choices=Kind.choices)
+    file_name = models.CharField(max_length=200)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    actor = models.CharField(max_length=80, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    stage = models.CharField(max_length=6, choices=Stage.choices, default=Stage.MAP)
+    headings = models.JSONField(default=list)                   # the file's column headings
+    mapping = models.JSONField(default=list)                    # for each column: the field it goes to, or ""
+    counts = models.JSONField(default=dict)
+    done_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+
+class DataImportRow(models.Model):
+    """One row of an uploaded spreadsheet: its cells as text, what the app made of it, and what happened to it."""
+
+    class State(models.TextChoices):
+        NEW = "new", _("New")
+        EXISTS = "exists", _("Already in the app")
+        ERROR = "error", _("Problem")
+
+    class Result(models.TextChoices):
+        CREATED = "created", _("Created")
+        ADDED = "added", _("Added to a customer")
+        SKIPPED = "skipped", _("Skipped")
+        FAILED = "failed", _("Not imported")
+
+    data_import = models.ForeignKey(DataImport, on_delete=models.CASCADE, related_name="rows")
+    number = models.PositiveIntegerField()                      # the row's place in the file, as Excel numbers it (the headings are row 1)
+    cells = models.JSONField(default=list)
+    values = models.JSONField(default=dict)                     # the cells that were mapped to fields, checked and tidied
+    state = models.CharField(max_length=6, choices=State.choices, blank=True)
+    reason = models.CharField(max_length=300, blank=True)       # the problem, or what it matched on (phone, email, address, name)
+    account = models.ForeignKey(Account, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    lead = models.ForeignKey("Lead", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    choice = models.CharField(max_length=4, blank=True)         # for a row already in the app: skip or add
+    result = models.CharField(max_length=8, choices=Result.choices, blank=True)
+    message = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        ordering = ["number"]
 
 
 # ---------------------------------------------------------------- the Apple Notes import

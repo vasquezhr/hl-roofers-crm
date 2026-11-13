@@ -18,7 +18,7 @@ from django.views.decorators.http import require_POST
 
 from . import files
 from .access import job_or_404, office_only
-from .models import Account, Attachment, log
+from .models import Account, Attachment, log, pick_choices
 
 
 def add_all(request, *, account, job=None):
@@ -31,7 +31,7 @@ def add_all(request, *, account, job=None):
         messages.warning(request, _("Add at most %(count)s files at a time.") % {"count": files.MOST})
         return 0
     category = request.POST.get("category", "")
-    if category not in dict(Attachment.Category.choices):
+    if category not in dict(pick_choices("file_kind")):                  # only a kind that is offered
         category = Attachment.Category.DOCUMENT if job is None else Attachment.Category.BEFORE
     change_order = None
     if category == Attachment.Category.SIGNED_CHANGE and job is not None:
