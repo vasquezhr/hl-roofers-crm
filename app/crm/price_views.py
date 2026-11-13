@@ -8,6 +8,7 @@ selling price. Crews never see it.
 import io
 import logging
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.models import LogEntry
 from django.http import HttpResponse
@@ -17,7 +18,7 @@ from django.utils.text import capfirst
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
-from . import pricebook
+from . import logo, pricebook
 from django.core.exceptions import PermissionDenied
 
 from .access import admin_only, with_permission
@@ -41,17 +42,32 @@ def admin_home(request):
 @admin_only
 def company_details(request):
     company = Company.load()
-    form = CompanyForm(request.POST or None, instance=company)
+    form = CompanyForm(request.POST or None, request.FILES or None, instance=company)
     if form.is_valid():
         form.save()
         what = changes(form)
         if what:
             log(None, "company_edited", request.user, detail=what)
+        old_logo = ""
+        try:
+            if form.logo_png:
+                old_logo = logo.store(company, form.logo_png)
+                log(None, "logo_uploaded", request.user)
+            elif form.cleaned_data.get("no_logo"):
+                old_logo = logo.drop(company)
+                log(None, "logo_removed", request.user)
+            if old_logo:
+                logo.discard(old_logo)                              # unless the company or a kept copy of a document still uses it
+        except Exception:
+            logger.exception("The logo could not be saved (by %s, into %s)", request.user.label, settings.MEDIA_ROOT)
+            messages.error(request, _("The logo could not be saved. The reason is in the error log (Admin, System status)."))
+            return redirect("company_details")
         saved(request)
         return redirect("company_details")
     intro = _("These print on every proposal and invoice. Until one is filled in, its {placeholder} prints instead.")
-    last = Activity.objects.filter(kind="company_edited").first()            # who changed these last, and when
-    return form_page(request, form, _("Company details"), reverse("admin_home"), intro=intro, last_change=last)
+    last = Activity.objects.filter(kind__in=["company_edited", "logo_uploaded", "logo_removed"]).first()    # who changed these last, and when
+    return form_page(request, form, _("Company details"), reverse("admin_home"), intro=intro, last_change=last, multipart=True,
+                     logo_now=logo.url_of(company))
 
 
 @admin_only

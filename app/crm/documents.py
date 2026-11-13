@@ -27,6 +27,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+from . import logo
 from .models import KeptDocument, quantity_text
 
 
@@ -132,7 +133,8 @@ def keep(kind, build, account, company, actor="", **record):
     `record` says what it belongs to (opportunity=, job=, change_order=, payment=). Returns the copy."""
     with translation.override(account.language):
         data = json.loads(json.dumps(build(account.language), default=str))      # every word settled in that language, as plain text
-    facts = {"name": company.name, "legal": company.legal, "license": company.license, "street": company.street, "tel": company.tel}
+    facts = {"name": company.name, "legal": company.legal, "license": company.license, "street": company.street, "tel": company.tel,
+             "logo": company.logo.name or ""}                  # the file of the logo it had; logo.discard never deletes it while a copy uses it
     return KeptDocument.objects.create(kind=kind, language=account.language, data=data, company=facts, actor=actor, **record)
 
 
@@ -223,9 +225,11 @@ def pdf(document, company):
     story = []
 
     # the top: the business on the left, the document's title and number on the right
-    business = [Paragraph(safe(company.name.upper()), BRAND),
-                Paragraph(safe(f"{company.legal} · {_('License')} {company.license}"), SMALL),
-                Paragraph(safe(f"{company.street} · {company.tel}"), SMALL)]
+    picture = logo.pdf_image(company, 2.3 * inch, 0.8 * inch)           # the logo, top left, above the name; none for a business without one
+    business = ([picture, Spacer(1, 4)] if picture else []) + [
+        Paragraph(safe(company.name.upper()), BRAND),
+        Paragraph(safe(f"{company.legal} · {_('License')} {company.license}"), SMALL),
+        Paragraph(safe(f"{company.street} · {company.tel}"), SMALL)]
     heading = [Paragraph(safe(f"{document['title'].upper()} #{document['number']}"), TITLE),
                Paragraph(safe(f"{_('Date')}: {document['date']}"), ParagraphStyle("d", parent=SMALL, alignment=2))]
     top = Table([[business, heading]], colWidths=[width * 0.62, width * 0.38])

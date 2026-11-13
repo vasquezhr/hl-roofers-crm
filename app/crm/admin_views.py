@@ -15,6 +15,7 @@ from django.contrib import messages
 from django.core import signing
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.core.validators import validate_email
 from django.db import connection, transaction
 from django.http import FileResponse, Http404, HttpResponse
@@ -26,7 +27,7 @@ from django.utils.text import slugify
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
-from . import automations, health, look, logs, recycle
+from . import automations, health, logo, look, logs, recycle
 from .access import admin_only, with_permission
 from .forms import LoginDetailsForm, LookForm, WorkTypeForm
 from .history import changes, field_changes
@@ -469,3 +470,20 @@ def app_icon(request):
     response["Cache-Control"] = "public, max-age=31536000, immutable" if fresh else "no-cache"
     return response
 
+
+
+def company_logo(request, code):
+    """The business's logo. Anyone may fetch it, signed in or not: the customer's Accept pages show it. Its name comes from
+    its own content, so a copy can be kept for ever: a different logo is a different address."""
+    name = f"logo/{code}.png"
+    if not logo.NAME.fullmatch(name):
+        raise Http404
+    try:
+        with default_storage.open(name, "rb") as stored:
+            data = stored.read()
+    except OSError:
+        raise Http404
+    response = HttpResponse(data, content_type="image/png")
+    response["Cache-Control"] = "public, max-age=31536000, immutable"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response

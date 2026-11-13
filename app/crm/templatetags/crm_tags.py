@@ -11,7 +11,7 @@ from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 
-from crm import documents
+from crm import documents, logo
 from crm.dates import day_text, month_day_text, range_text, stamp_text
 from crm.models import Company, Job, Lead, Opportunity, digits, quantity_text
 
@@ -111,6 +111,12 @@ def month_day(value):
 def money(value):
     """9050 -> $9,050   685.5 -> $685.50   -250 -> −$250"""
     return "" if value in (None, "") else documents.money(value)
+
+
+@register.filter
+def logo_url(firm):
+    """The address of the business's logo (for a company, or for the details kept with a document), or "" when it has none."""
+    return logo.url_of(firm)
 
 
 @register.filter

@@ -476,7 +476,7 @@ The user asked whether the app could be "a shell … same exact CRM concept, jus
 - **The app icon** (the Mac's Dock, a phone's home screen, the browser tab) is a picture the administrator uploads. A square picture fills the icon; any other shape (a wide logo) is fitted whole on a white square. Without an upload, H & L keeps its own icon while its name and colors are its own, and another business gets one drawn from its initials ("Bluebird Gutters" → "BG") in white on its top bar's color.
 - **A Mac or phone that already has the app on its Dock or home screen keeps the old icon** until the app is added there again. The page says so.
 - **Who and when:** each change is a line on **Admin › Setup history** ("Colors changed: Main color: #b05a22 → #2e7d32"; "App icon uploaded").
-- **Not changed:** the proposals, change orders, invoices and receipts still print the business's name as text, in black. A logo on the documents waits for the logo sample the user deferred.
+- **Not changed (then):** the proposals, change orders, invoices and receipts printed the business's name as text, in black. A logo on the documents was built on Nov 13 in the user's third message (below).
 
 **Where the business is, and its work week** (built Nov 13)
 
@@ -546,3 +546,12 @@ The user answered the shell questions and added three things to build: an error 
 - **Admin › System status** shows the latest readings and when they were taken (a problem in red), and an **Error log** card: the last 50 lines of `errors.log`, with links to download `errors.log` and `changes.log` (administrator only). The dashboard's short version has a "Disk space and memory" row.
 - **Choices to confirm:** the three limits (10 GB or 10% of a drive, 500 MB of memory); that the warning, the Setup history line and the email are all once a day; and that the logs are not part of the backups.
 - **Not checked:** on a real Windows server. On Windows a log file cannot be renamed while another program has it open, and the web server and `tick` both write to it; the app then keeps writing to the same file and tries the rotation again later, so a log can grow past 5 MB until the next successful rotation.
+
+**2. The business's logo on the documents** (built Nov 13; the user's item "logos" among the placeholders)
+
+- **Company details has a Logo field** (Admin › Company details): upload a PNG, JPEG or WebP picture at least 200 pixels wide and no larger than 5 MB; any other file, a smaller picture or a bigger file is refused with the reason. The page shows the logo as it is now, and **Stop using the logo** takes it away. Each change is a line on Setup history ("Logo for the documents uploaded").
+- **The picture is not kept as it came:** it is turned the right way up and saved as a PNG, at most 900 pixels wide, in the photos and files folder under `logo/`, with a name made from its own content. The same picture is the same file; a different picture is a different file with a different address.
+- **Every document shows it at the top left, above the business's name,** which prints as it did: the page and the PDF of a proposal, change order, invoice and receipt, and the customer's Accept pages. The Accept pages are public, so the logo has a public address (`/logo/<code>.png`), cached for a year because a new logo gets a new address.
+- **Kept copies keep the logo they were signed or sent with.** The name of the logo file is stored in the kept company details, and the app never deletes a logo file that a kept copy uses, even after the business changes or stops using that logo. A copy kept before logos existed shows none.
+- **With no logo, documents look exactly as before.** A logo whose file is missing leaves the documents working (without it) and writes a line to `errors.log`.
+- **Choices to confirm:** the logo sits above the name (not beside it), at most 3.5 rem high on the page and 0.8 inch high in the PDF; the Accept page of a proposal still open or already accepted shows today's logo, like the rest of today's company details.

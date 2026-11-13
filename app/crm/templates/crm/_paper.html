@@ -5,6 +5,7 @@
   <div class="card-body p-3 p-sm-4">
     <div class="d-flex flex-wrap justify-content-between gap-2 border-bottom border-3 border-dark pb-2 mb-3">
       <div>
+        {% with logo=firm|logo_url %}{% if logo %}<img src="{{ logo }}" alt="" class="d-block mb-2" style="max-height: 3.5rem; max-width: 12rem" onerror="this.hidden = true">{% endif %}{% endwith %}
         <div class="fs-5 fw-bolder">{{ firm.name|brand:"text-primary" }}</div>
         <div class="small text-body-secondary">{{ firm.legal }} · {% trans "License" %} {{ firm.license }}<br>{{ firm.street }} · {{ firm.tel }}</div>
       </div>

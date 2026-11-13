@@ -27,7 +27,7 @@ from django.utils.translation import gettext as _
 from .dates import day_text, range_code, range_from_code
 
 LONG = 80                   # a longer value, such as the terms on a proposal, is cut short in the history
-NEVER = {"password", "new_password"}        # a password is never written in the history, not even scrambled
+NEVER = {"password", "new_password", "logo_upload", "no_logo"}    # a password is never written in the history, not even scrambled; a logo has its own line
 
 
 # ---------------------------------------------------------------- writing: what a form changed

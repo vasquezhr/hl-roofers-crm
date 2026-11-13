@@ -7,7 +7,7 @@ from django.utils.functional import lazy
 from django.utils.translation import gettext_lazy as _
 from PIL import Image
 
-from . import look
+from . import logo, look
 from .dates import days_off_text, work_days_text
 from .models import (EDIT_OBJECTS, LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment,
                      PriceItem, Property, User, Worker, WorkType, home_state, is_day_off, type_choices, work_types)
@@ -308,6 +308,14 @@ class PriceUploadForm(Bootstrap, forms.Form):
 
 
 class CompanyForm(Bootstrap, forms.ModelForm):
+    """Admin › Company details. The logo is not one of the company's own fields: it is checked and made ready by logo.check,
+    and the view keeps it (logo.store)."""
+    logo_upload = forms.ImageField(
+        label=_("Logo"), required=False, widget=forms.FileInput(attrs={"accept": "image/png,image/jpeg,image/webp"}),
+        help_text=_("Shown at the top left of every proposal, change order, invoice and receipt, above the business's name. "
+                    "PNG, JPEG or WebP, at least 200 pixels wide, no larger than 5 MB. A document already signed or sent keeps the logo it had."))
+    no_logo = forms.BooleanField(label=_("Stop using the logo"), required=False)
+
     class Meta:
         model = Company
         fields = ["name", "tagline", "legal_name", "license_number", "address", "phone",
@@ -318,9 +326,19 @@ class CompanyForm(Bootstrap, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.logo_png = None
+        if not self.instance.logo:
+            del self.fields["no_logo"]
         for name in ("lead_owner", "lead_backup"):
             self.fields[name].queryset = self.fields[name].queryset.exclude(profile="crew").filter(is_active=True)
             self.fields[name].label_from_instance = lambda user: user.label
+
+    def clean_logo_upload(self):
+        upload = self.cleaned_data.get("logo_upload")
+        if not upload:
+            return None
+        self.logo_png = logo.check(upload)
+        return upload
 
 
 # ---------- logins and their permission sets

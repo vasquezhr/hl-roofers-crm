@@ -291,6 +291,7 @@ class Company(models.Model):
     bar_color = models.CharField(_("top bar color"), max_length=7, default=look.BAR, validators=[look.readable_color],
                                  help_text=_("The bar at the top of every page, and the background of a drawn icon. White writing goes on it too."))
     icon = models.ImageField(_("app icon"), upload_to="look/", blank=True, editable=False)
+    logo = models.ImageField(_("logo"), upload_to="logo/", blank=True, editable=False)       # on the documents (logo.py)
     legal_name = models.CharField(_("legal name"), max_length=160, blank=True)
     license_number = models.CharField(_("license number"), max_length=60, blank=True)
     address = models.CharField(_("business address"), max_length=200, blank=True)
@@ -1323,6 +1324,7 @@ class Activity(models.Model):
         "company_edited": _("Company details changed: %(detail)s"),
         "look_edited": _("Colors changed: %(detail)s"),
         "icon_uploaded": _("App icon uploaded"), "icon_removed": _("Uploaded app icon taken away"),
+        "logo_uploaded": _("Logo for the documents uploaded"), "logo_removed": _("Logo for the documents taken away"),
         "price_set": _("Price changed: %(detail)s"), "price_item_added": _("Price Book item added: %(detail)s"),
         "price_file": _("Price file applied: %(detail)s"), "price_rollback": _("Price file rolled back: %(detail)s"),
         "notes_uploaded": _("Notes file uploaded: %(detail)s"), "notes_skipped": _("Imported notes skipped: %(detail)s"),

@@ -3542,3 +3542,39 @@ msgstr "Poca memoria (RAM): %(detail)s"
 
 msgid "The prices could not be saved and nothing was changed. The reason is in the error log (Admin, System status)."
 msgstr "No se pudieron guardar los precios y no se cambió nada. El motivo está en el registro de errores (Administración, Estado del sistema)."
+
+msgid "The logo"
+msgstr "El logotipo"
+
+msgid "The logo now. It is on every new document; one already signed or sent keeps the logo it had."
+msgstr "El logotipo actual. Está en cada documento nuevo; uno ya firmado o enviado conserva el logotipo que tenía."
+
+msgid "Logo"
+msgstr "Logotipo"
+
+msgid "Shown at the top left of every proposal, change order, invoice and receipt, above the business's name. PNG, JPEG or WebP, at least 200 pixels wide, no larger than 5 MB. A document already signed or sent keeps the logo it had."
+msgstr "Aparece arriba a la izquierda en cada propuesta, orden de cambio, factura y recibo, sobre el nombre del negocio. PNG, JPEG o WebP, de al menos 200 píxeles de ancho y de no más de 5 MB. Un documento ya firmado o enviado conserva el logotipo que tenía."
+
+msgid "Stop using the logo"
+msgstr "Dejar de usar el logotipo"
+
+msgid "The logo is larger than 5 MB."
+msgstr "El logotipo pesa más de 5 MB."
+
+msgid "The logo must be a PNG, JPEG or WebP picture."
+msgstr "El logotipo debe ser una imagen PNG, JPEG o WebP."
+
+msgid "The logo is too small: it needs to be at least 200 pixels wide."
+msgstr "El logotipo es demasiado pequeño: necesita tener al menos 200 píxeles de ancho."
+
+msgid "logo"
+msgstr "logotipo"
+
+msgid "Logo for the documents uploaded"
+msgstr "Se subió el logotipo de los documentos"
+
+msgid "Logo for the documents taken away"
+msgstr "Se quitó el logotipo de los documentos"
+
+msgid "The logo could not be saved. The reason is in the error log (Admin, System status)."
+msgstr "No se pudo guardar el logotipo. El motivo está en el registro de errores (Administración, Estado del sistema)."

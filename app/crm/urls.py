@@ -8,6 +8,7 @@ from .forms import LoginForm
 urlpatterns = [
     # signing in and out
     path("login/", auth_views.LoginView.as_view(authentication_form=LoginForm), name="login"),
+    path("logo/<str:code>.png", admin_views.company_logo, name="company_logo"),         # the logo on the documents: anyone may fetch it
     path("icon.png", admin_views.app_icon, name="app_icon"),             # the app's icon: anyone may fetch it
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
 

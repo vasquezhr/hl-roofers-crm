@@ -20,6 +20,13 @@
           <div class="small text-body-secondary">{{ icon_now }}</div>
         </div>
         {% endif %}
+        {% if logo_now %}
+        {# Company details: the logo as it is now #}
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <img src="{{ logo_now }}" class="border rounded bg-white p-2 flex-shrink-0" style="max-height: 5rem; max-width: 12rem" alt="{% trans 'The logo' %}">
+          <div class="small text-body-secondary">{% trans "The logo now. It is on every new document; one already signed or sent keeps the logo it had." %}</div>
+        </div>
+        {% endif %}
         <form method="post" novalidate{% if multipart %} enctype="multipart/form-data"{% endif %}>
           {% csrf_token %}
           {% if same %}
