@@ -25,12 +25,12 @@ from . import automations, scheduling
 from .documents import document_rows, keep, proposal_document
 from .access import job_or_404, jobs_for, may_edit, office_only, with_permission
 from .dates import day_text, range_code, work_days_text
-from .history import booking_code, changes, when_code
+from .history import booking_code, changes, field_changes, when_code
 from .forms import (AccountForm, ContactForm, InspectionForm, JobEditForm, LostForm, NewAccountForm, NoteEditForm, NoteForm,
                     OpportunityEditForm, OpportunityForm, PropertyForm,
                     RefForm, ScheduleForm, SignForm, StageForm, WarrantyForm)
 from .importer import find_account
-from .models import Account, Activity, Attachment, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, Property, Worker, is_day_off, log, pick_choices
+from .models import Account, Activity, Attachment, Company, Contact, Crew, ImportedNote, Job, Lead, Note, Opportunity, Property, Worker, is_day_off, log, pick_choices
 from .search import search as find_records
 from .templatetags.crm_tags import ago
 
@@ -328,14 +328,17 @@ def opp_inspection(request, number):
     if opp.stage != Opportunity.Stage.INSPECTION:
         return redirect("opp", number=opp.number)
     at = timezone.localtime(opp.inspection_at) if opp.inspection_at else None
-    form = InspectionForm(request.POST or None, initial={"day": at.date(), "time": at.time()} if at else None)
+    start = {"day": at.date(), "time": at.time()} if at else {}
+    if request.method != "POST" and (day := clicked_day(request)):
+        start["day"] = day                                          # a day clicked on the Schedule calendar; nothing is booked until it is saved
+    form = InspectionForm(request.POST or None, initial=start or None)
     if form.is_valid():
         opp.inspection_at = timezone.make_aware(datetime.combine(form.cleaned_data["day"], form.cleaned_data["time"]))
         opp.save()
         log(opp, "inspection_booked", request.user, detail=when_code(timezone.localtime(opp.inspection_at)))
         saved(request)
         return redirect("opp", number=opp.number)
-    return form_page(request, form, _("Inspection"), reverse("opp", args=[opp.number]), intro=f"#{opp.number} · {opp.account.name}")
+    return form_page(request, form, _("Inspection"), reverse("opp", args=[opp.number]), intro=f"#{opp.number} · {opp.account.name}" + day_off_note(start.get("day")))
 
 
 @office_only
@@ -511,16 +514,37 @@ def job_stage(request, number):
     return redirect("job", number=job.number)
 
 
+def clicked_day(request):
+    """The day picked by clicking a day on the Schedule calendar (?day=2026-11-14), or None when it is missing or not a date."""
+    try:
+        return date.fromisoformat(request.GET.get("day", ""))
+    except ValueError:
+        return None
+
+
+def day_off_note(day):
+    """Said on a form opened from a day off on the calendar."""
+    if day and is_day_off(day):
+        return " " + _("%(day)s is a day off. To book it, tick “Work on a day off”.") % {"day": day_text(day)}
+    return ""
+
+
 @office_only
 def job_schedule(request, number):
     """Put a job on the schedule: the crew, the first day and how many work days."""
     job = get_object_or_404(Job.objects.select_related("account"), number=number)
     if job.is_finished:
         return redirect("job", number=job.number)
-    before = (job.crew_id, job.first_day, job.days)                 # to tell afterwards whether the schedule changed
+    before = (job.crew_id, job.first_day, job.days, job.day_off_ok)  # to tell afterwards whether the schedule changed
     was_first, was_last = job.starts_on, job.last_day
     crew_before, workers_before = job.crew, set(job.workers.all())
-    form = ScheduleForm(request.POST or None, instance=job)
+    start = None
+    if request.method != "POST" and job.stage == Job.Stage.SIGNED and (day := clicked_day(request)):
+        # a day clicked on the Schedule calendar: the form opens with that day (and crew); nothing is booked until it is saved
+        wanted = request.GET.get("crew", "")
+        crew = Crew.objects.filter(pk=int(wanted), active=True).first() if wanted.isdigit() else None       # a bad or foreign crew is ignored
+        start = {"first_day": day, **({"crew": crew} if crew else {})}
+    form = ScheduleForm(request.POST or None, instance=job, initial=start)
     if form.is_valid():
         job = form.save(commit=False)
         new = job.stage == Job.Stage.SIGNED
@@ -530,13 +554,15 @@ def job_schedule(request, number):
         form.save_m2m()
         if new:
             log(job, "booked", request.user, detail=booking_code(job))
-        elif (job.crew_id, job.first_day, job.days) != before:
+        elif (job.crew_id, job.first_day, job.days, job.day_off_ok) != before:
             # the crew sees "Changed" on the job until it taps Got it
             if Company.load().auto_changed:                             # the "Appointment changed" automation
                 job.mark_changed(was_first, was_last)
                 job.save()
-            if (job.first_day, job.days) != before[1:]:
+            if (job.first_day, job.days, job.day_off_ok) != before[1:]:
                 log(job, "changed", request.user, detail=range_code(was_first, was_last))
+            if "day_off_ok" in form.changed_data:                   # Work on a day off: no → yes
+                log(job, "edited", request.user, detail=field_changes("job", "", [("day_off_ok", form.initial.get("day_off_ok"), job.day_off_ok)]))
             if job.crew_id != before[0]:
                 log(job, "crew_changed", request.user, detail=f"{crew_before.name if crew_before else '—'} → {job.crew.name}")
         workers_now = set(job.workers.all())
@@ -549,7 +575,7 @@ def job_schedule(request, number):
     coming = (Job.objects.filter(stage__in=[Job.Stage.SCHEDULED, Job.Stage.IN_PROGRESS], last_day__gte=today())
               .exclude(pk=job.pk).select_related("account", "crew").order_by("first_day")[:40])
     intro = _("The job gets whole work days (%(days)s). A job that needs more than one day continues on the next work day.") % {"days": work_days_text()}
-    return form_page(request, form, _("Schedule the job"), reverse("job", args=[job.number]), intro=intro,
+    return form_page(request, form, _("Schedule the job"), reverse("job", args=[job.number]), intro=intro + day_off_note(start and start["first_day"]),
                      sub=f"#{job.number} · {job.account.name} · {job.get_job_type_display()}", coming=coming)
 
 

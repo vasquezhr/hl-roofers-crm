@@ -27,7 +27,7 @@
   {% for column in columns %}
   <div class="col">
     <div class="card h-100{% if column.is_today %} border-primary{% endif %}">
-      <div class="card-header d-flex justify-content-between py-1 px-2 small{% if column.day_off %} bg-warning-subtle{% endif %}"><span class="fw-semibold text-uppercase">{{ column.day|date:"D" }}{% if column.day_off %} · {% trans "Day off" %}{% endif %}</span><span>{{ column.day|month_day }}</span></div>
+      <div class="card-header d-flex justify-content-between py-1 px-2 small{% if column.day_off %} bg-warning-subtle{% endif %}"><span class="fw-semibold text-uppercase">{{ column.day|date:"D" }}{% if column.day_off %} · {% trans "Day off" %}{% endif %}</span><span>{% if column.click %}<a class="text-reset" href="{{ column.click }}" title="{% trans 'Book this day' %}" aria-label="{% trans 'Book this day' %}">{{ column.day|month_day }} +</a>{% else %}{{ column.day|month_day }}{% endif %}</span></div>
       <div class="card-body d-flex flex-column gap-1 p-2">
         {% for item in column.stops %}
         {% with stop=item.stop record=item.stop.record %}
@@ -49,6 +49,7 @@
 <div class="d-flex flex-wrap gap-3 small text-body-secondary mb-3">
   {% for tone, name in legend %}<span><span class="badge bg-{{ tone }} rounded-circle p-1">&nbsp;</span> {{ name }}</span>{% endfor %}
   <span><span class="badge bg-info rounded-circle p-1">&nbsp;</span> {% trans "Inspections" %}</span>
+  {% if book %}<span>{% trans "Click a day's date (+) to open the form for the visit below with that day." %}</span>{% endif %}
 </div>
 
 {# everything waiting to be booked, with suggested times #}

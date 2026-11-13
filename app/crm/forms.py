@@ -76,6 +76,10 @@ def day_off_box():
     return forms.BooleanField(label=_("Work on a day off"), required=False, help_text=lazy(days_off_help, str)())
 
 
+def days_in_a_row_help():
+    return str(_("The job's days run in a row, days off included (%(days)s). Left empty, the days skip days off.")) % {"days": days_off_text()}
+
+
 def check_day(form, field):
     """Jobs and inspections go on work days, unless "Work on a day off" is ticked."""
     day = form.cleaned_data.get(field)
@@ -207,12 +211,13 @@ class ScheduleForm(Bootstrap, forms.ModelForm):
 
     class Meta:
         model = Job
-        fields = ["crew", "first_day", "days", "workers"]
+        fields = ["crew", "first_day", "day_off_ok", "days", "workers"]
         labels = {"days": _("How many work days")}
         widgets = {"first_day": date_box(), "workers": forms.CheckboxSelectMultiple}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["day_off_ok"].help_text = lazy(days_in_a_row_help, str)()
         self.fields["crew"].queryset = Crew.objects.filter(active=True)
         self.fields["crew"].required = True
         self.fields["crew"].empty_label = None

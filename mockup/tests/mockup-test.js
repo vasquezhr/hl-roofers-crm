@@ -339,6 +339,28 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await p.check("#jsOff"); await inModal("saveSchedule"); v = await view(); ok(/Sat,/.test(v) && /Dates changed/.test(v), "booked on a Saturday: " + v.slice(0, 600));
     await go("#schedule"); v = await view(); ok(/Day off/.test(v) && /Terrence Oakes/.test(v), "the schedule shows the day off with the job on it");
     await shot("p5-schedule-day-off");
+    // "Work on a day off" is stored on the job: ticked, its days run straight through, days off included
+    await go("#job/26-118"); await act("jobSchedule"); ok(await p.isChecked("#jsOff"), "the saved tick shows ticked on an edit");
+    ok(/days off included/.test(await p.textContent("#modal")), "the tick explains itself");
+    await p.fill("#jsDay", await day(4)); await p.fill("#jsDays", "5"); await inModal("saveSchedule");           // Thursday, 5 days, ticked
+    ok(await p.evaluate(() => { const j = jobOf("26-118"); return j.throughOff && j.days.length === 5 && j.days.map(x => x.getDay()).join() === "4,5,6,0,1"; }), "ticked: Thu, Fri, Sat, Sun, Mon");
+    await act("jobSchedule"); await p.uncheck("#jsOff"); await inModal("saveSchedule"); v = await view();
+    ok(await p.evaluate(() => { const j = jobOf("26-118"); return !j.throughOff && j.days.map(x => x.getDay()).join() === "4,5,1,2,3"; }), "not ticked: the days skip days off");
+    ok(/Work on a day off: yes → no/.test(v), "the history shows the tick before and after: " + v.slice(0, 400));
+    // clicking a day on the Schedule calendar opens the form with that day; it books nothing by itself
+    await go("#schedule"); await p.selectOption("#bookPick", { index: 0 }); await p.waitForTimeout(300);
+    const opens = await p.evaluate(() => toBook().length);
+    ok(opens > 0 && await p.isVisible('[data-act="clickDay"]'), "days on the calendar can be clicked while something is waiting to be booked");
+    await p.evaluate(() => { S.book = toBook().find(x => x.kind === "job").key; render(); }); await p.waitForTimeout(300);
+    const waitingId = await p.evaluate(() => S.book.split(":")[1]);
+    const tuesday = await day(2);
+    await p.click(`[data-act="clickDay"][data-day="${tuesday}"]`); await p.waitForTimeout(380);
+    ok((await p.inputValue("#jsDay")) === tuesday && !/is a day off/.test(await p.textContent("#modal")), "the job form opens on the clicked day");
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    await p.evaluate(d => ACT.clickDay({ day: d }), saturday); await p.waitForTimeout(380);          // a Saturday is not on the calendar unless something is booked on it
+    ok((await p.inputValue("#jsDay")) === saturday && /is a day off/.test(await p.textContent("#modal")), "a clicked day off says so");
+    ok(await p.evaluate(id => jobOf(id).stage === "signed" && !jobOf(id).days.length, waitingId), "the click booked nothing");
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400);
     await go("#job/26-104"); await p.click('summary:has-text("Add a day")'); await p.fill("#adDay", sunday); await act("dayAdd");
     ok(/is a day off/.test(await toastText()), "adding a day off needs the tick");
     await p.check("#adOff"); await act("dayAdd"); v = await view();

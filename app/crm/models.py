@@ -787,6 +787,7 @@ class Job(models.Model):
     first_day = models.DateField(_("first day"), null=True, blank=True)
     days = models.PositiveSmallIntegerField(_("days"), default=1)
     last_day = models.DateField(null=True, blank=True, editable=False)
+    day_off_ok = models.BooleanField(_("Work on a day off"), default=False)       # ticked: the days run straight through, days off included
     extra_days = models.JSONField(default=list, blank=True, editable=False)     # days added by hand, any day of the week (ISO dates)
     starts_on = models.DateField(null=True, blank=True, editable=False)         # the first of all the job's days, for searches
     workers = models.ManyToManyField(Worker, verbose_name=_("extra workers"), blank=True, related_name="jobs")
@@ -830,10 +831,12 @@ class Job(models.Model):
 
     @property
     def regular_days(self):
-        """`days` days starting at first_day, skipping days off. The first day counts even when it is a day off:
-        that happens only when the office booked it on purpose ("Work on a day off")."""
+        """`days` days starting at first_day. Ticked "Work on a day off": every calendar day in a row, days off included.
+        Not ticked: days off are skipped, except a first day that is a day off (booked on purpose by an older job)."""
         if not self.first_day:
             return []
+        if self.day_off_ok:
+            return [self.first_day + timedelta(days=i) for i in range(max(1, self.days))]
         out, day = [self.first_day], self.first_day + timedelta(days=1)
         while len(out) < max(1, self.days):
             if not is_day_off(day):

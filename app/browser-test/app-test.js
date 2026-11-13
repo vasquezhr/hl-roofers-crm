@@ -452,7 +452,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
 
   // the fourth message: the back link, a folded card, and phone widths (Pixel 9 is 412 px wide, an iPhone 16 Pro Max 440)
   await office.goto(base + '/schedule/');
-  const jobLink = office.locator('a[href^="/jobs/26-"]').first();
+  const jobLink = office.locator('a[href^="/jobs/26-"]:not([href*="/schedule/"])').first();
   if (await jobLink.count()) {
     await andWait(office, () => jobLink.click());
     check('a job opened from the Schedule says "Schedule" at its top left', (await text(office, 'a.hl-back')) === 'Schedule');

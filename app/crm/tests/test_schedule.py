@@ -513,8 +513,9 @@ class DaysOff(OnMonday):
         self.assertEqual(job.stage, "signed")
         self.move(job, SATURDAY, 2, crew=self.crew1, day_off_ok="on")
         job.refresh_from_db()
-        self.assertEqual((job.stage, job.work_days, job.days_off), ("scheduled", [SATURDAY, NEXT_MONDAY], [SATURDAY]))   # then the next work day
-        self.assertEqual((job.starts_on, job.last_day), (SATURDAY, NEXT_MONDAY))
+        self.assertTrue(job.day_off_ok)
+        self.assertEqual((job.stage, job.work_days, job.days_off), ("scheduled", [SATURDAY, date(2026, 11, 15)], [SATURDAY, date(2026, 11, 15)]))   # ticked: straight through
+        self.assertEqual((job.starts_on, job.last_day), (SATURDAY, date(2026, 11, 15)))
 
     def test_an_inspection_on_a_day_off(self):
         visit = self.inspection(self.account, self.place)
@@ -591,3 +592,129 @@ class DaysOff(OnMonday):
         self.sign_in(self.office)
         self.assertContains(self.client.post(reverse("job_day", args=[waiting.number]), {"do": "add", "day": FRIDAY.isoformat()}, follow=True),
                             "Put the job on the schedule first.")
+
+
+class StraightThrough(OnMonday):
+    """"Work on a day off" on a job's schedule: the days run in a row, days off included. Not ticked, they skip days off."""
+
+    def setUp(self):
+        super().setUp()
+        self.sign_in(self.office)
+
+    def test_ticked_the_days_run_straight_through(self):
+        job = self.job()
+        self.move(job, THURSDAY, 5, crew=self.crew1, day_off_ok="on")
+        job.refresh_from_db()
+        self.assertTrue(job.day_off_ok)
+        self.assertEqual(job.work_days, [THURSDAY, FRIDAY, SATURDAY, date(2026, 11, 15), NEXT_MONDAY])
+        self.assertEqual(job.last_day, NEXT_MONDAY)
+        self.assertEqual(job.days_off, [SATURDAY, date(2026, 11, 15)])
+
+    def test_not_ticked_the_days_skip_days_off(self):
+        job = self.job()
+        self.move(job, THURSDAY, 5, crew=self.crew1)
+        job.refresh_from_db()
+        self.assertFalse(job.day_off_ok)
+        self.assertEqual(job.work_days, [THURSDAY, FRIDAY, NEXT_MONDAY, date(2026, 11, 17), date(2026, 11, 18)])
+        self.assertEqual(job.days_off, [])
+
+    def test_editing_a_job_shows_the_tick_and_turning_it_off_skips_days_off_again(self):
+        job = self.job()
+        self.move(job, THURSDAY, 5, crew=self.crew1, day_off_ok="on")
+        page = self.client.get(reverse("job_schedule", args=[job.number]))
+        self.assertTrue(page.context["form"]["day_off_ok"].value())
+        self.assertContains(page, "The job&#x27;s days run in a row, days off included (Saturday and Sunday).")
+        self.move(job, THURSDAY, 5, crew=self.crew1)                                # the tick is left off
+        job = Job.objects.get(pk=job.pk)
+        self.assertFalse(job.day_off_ok)
+        self.assertEqual(job.last_day, date(2026, 11, 18))
+        self.assertFalse(self.client.get(reverse("job_schedule", args=[job.number])).context["form"]["day_off_ok"].value())
+
+    def test_the_history_shows_the_tick_before_and_after(self):
+        job = self.job(self.crew1, "scheduled", first_day=THURSDAY, days=3)
+        self.move(job, THURSDAY, 3, crew=self.crew1, day_off_ok="on")
+        texts = [line.text for line in job.activities.all()]
+        self.assertIn("Changed: Work on a day off: no → yes", texts)
+        self.assertIn("Dates changed (before: Thu, Nov 12 – Mon, Nov 16)", texts)
+        self.move(job, THURSDAY, 3, crew=self.crew1)
+        self.assertEqual(job.activities.first().text, "Changed: Work on a day off: yes → no")
+        with translation.override("es"):
+            self.assertIn("Trabajar en un día libre: sí → no", job.activities.first().text)
+
+    def test_existing_jobs_and_other_bookings_are_unchanged(self):
+        job = self.job(self.crew1, "scheduled", first_day=THURSDAY, days=3)         # booked before the tick existed
+        self.assertFalse(job.day_off_ok)
+        self.assertEqual(job.work_days, [THURSDAY, FRIDAY, NEXT_MONDAY])
+        self.assertEqual(Job.objects.get(pk=job.pk).work_days, [THURSDAY, FRIDAY, NEXT_MONDAY])
+        waiting = self.job()
+        self.assertEqual(self.client.post(reverse("book"), {"kind": "job", "number": waiting.number, "day": THURSDAY.isoformat(),
+                                                            "crew": self.crew2.pk, "days": "3"}).status_code, 302)
+        waiting.refresh_from_db()
+        self.assertFalse(waiting.day_off_ok)                                        # a suggestion never runs through days off
+        self.assertEqual(waiting.last_day, NEXT_MONDAY)
+
+    def test_the_schedule_and_my_day_read_the_straight_through_days(self):
+        job = self.job()
+        self.move(job, FRIDAY, 3, crew=self.crew1, day_off_ok="on")                 # Fri, Sat, Sun
+        columns = self.client.get(reverse("schedule")).context["columns"]
+        shown = [column["day"] for column in columns if any(item["stop"].record == job for item in column["stops"])]
+        self.assertEqual(shown, [FRIDAY, SATURDAY, date(2026, 11, 15)])
+        self.today_is(date(2026, 11, 15))
+        self.sign_in(self.login1)
+        self.assertEqual([item["job"] for item in self.client.get(reverse("my_day")).context["stops"]], [job])
+        self.assertContains(self.client.get(reverse("job", args=[job.number])), "Fri, Nov 13 – Sun, Nov 15")
+
+
+class ClickADay(OnMonday):
+    """A day clicked on the Schedule calendar opens the existing form with that day. Nothing is booked by the click."""
+
+    def setUp(self):
+        super().setUp()
+        self.sign_in(self.office)
+
+    def test_the_calendar_links_every_day_to_the_form_of_what_is_being_booked(self):
+        job = self.job()
+        page = self.client.get(reverse("schedule"), {"book": f"job:{job.number}", "crew": self.crew2.pk})
+        self.assertEqual(page.context["columns"][0]["click"], f"/jobs/{job.number}/schedule/?day=2026-11-09&crew={self.crew2.pk}")
+        self.assertContains(page, "Book this day")
+        visit = self.inspection(self.account, self.place)
+        page = self.client.get(reverse("schedule"), {"book": f"opp:{visit.number}"})
+        self.assertEqual(page.context["columns"][0]["click"], f"/opportunities/{visit.number}/inspection/?day=2026-11-09")
+
+    def test_a_job_form_opens_with_the_day_and_crew_and_books_nothing(self):
+        job = self.job()
+        page = self.client.get(reverse("job_schedule", args=[job.number]), {"day": SATURDAY.isoformat(), "crew": self.crew2.pk})
+        form = page.context["form"]
+        self.assertEqual((form["first_day"].value(), str(form["crew"].value())), (SATURDAY, str(self.crew2.pk)))
+        self.assertContains(page, "Sat, Nov 14 is a day off. To book it, tick")
+        job.refresh_from_db()
+        self.assertEqual((job.stage, job.first_day, job.crew), ("signed", None, None))
+        self.assertContains(self.move(job, SATURDAY, crew=self.crew2), "Pick a work day")          # the tick is needed as usual
+        self.move(job, SATURDAY, crew=self.crew2, day_off_ok="on")
+        self.assertEqual(Job.objects.get(pk=job.pk).first_day, SATURDAY)
+
+    def test_a_bad_day_or_crew_is_ignored(self):
+        job = self.job()
+        for query in ({"day": "soon", "crew": "x"}, {"day": "2026-13-45", "crew": "99999"}, {}):
+            form = self.client.get(reverse("job_schedule", args=[job.number]), query).context["form"]
+            self.assertIsNone(form["first_day"].value())
+            self.assertFalse(form["crew"].value())
+        form = self.client.get(reverse("job_schedule", args=[job.number]), {"day": WEDNESDAY.isoformat(), "crew": "99999"}).context["form"]
+        self.assertEqual(form["first_day"].value(), WEDNESDAY)
+        self.assertFalse(form["crew"].value())
+
+    def test_an_inspection_form_opens_with_the_day(self):
+        visit = self.inspection(self.account, self.place)
+        address = reverse("opp_inspection", args=[visit.number])
+        page = self.client.get(address, {"day": SATURDAY.isoformat()})
+        self.assertEqual(page.context["form"]["day"].value(), SATURDAY)
+        self.assertContains(page, "is a day off. To book it, tick")
+        self.assertIsNone(self.client.get(address, {"day": "nonsense"}).context["form"]["day"].value())
+        visit.refresh_from_db()
+        self.assertIsNone(visit.inspection_at)
+
+    def test_crew_logins_never_see_it(self):
+        job = self.job()
+        self.sign_in(self.login1)
+        self.assertRedirects(self.client.get(reverse("job_schedule", args=[job.number]), {"day": WEDNESDAY.isoformat()}), reverse("my_day"))
+        self.assertRedirects(self.client.get(reverse("schedule")), reverse("my_day"))

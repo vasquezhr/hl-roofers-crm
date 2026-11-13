@@ -3901,3 +3901,15 @@ msgstr "El cliente escribió esto. Vino de un prospecto o del sitio web, así qu
 
 msgid "Edit this section"
 msgstr "Editar esta sección"
+
+msgid "Book this day"
+msgstr "Reservar este día"
+
+msgid "Click a day's date (+) to open the form for the visit below with that day."
+msgstr "Haga clic en la fecha de un día (+) para abrir el formulario de la visita de abajo con ese día."
+
+msgid "The job's days run in a row, days off included (%(days)s). Left empty, the days skip days off."
+msgstr "Los días del trabajo van seguidos, incluidos los días libres (%(days)s). Sin marcar, los días se saltan los días libres."
+
+msgid "%(day)s is a day off. To book it, tick “Work on a day off”."
+msgstr "%(day)s es un día libre. Para reservarlo, marque “Trabajar en un día libre”."

@@ -61,7 +61,19 @@ def schedule(request):
             return stop.kind == "inspection"
         return stop.kind == "job" and str(stop.record.crew_id) == show
 
-    columns = [{"day": day, "is_today": day == today(), "day_off": is_day_off(day),
+    box = booking(request, crews)
+    record = box["book"]
+
+    def click_address(day):
+        """Clicking a day opens the booking form for what the box is booking, filled in with that day (and crew). Nothing is booked yet."""
+        if record is None:
+            return ""
+        if box["book_kind"] == "opp":
+            return reverse("opp_inspection", args=[record.number]) + f"?day={day.isoformat()}"
+        crew = box.get("book_crew")
+        return reverse("job_schedule", args=[record.number]) + f"?day={day.isoformat()}" + (f"&crew={crew.pk}" if crew else "")
+
+    columns = [{"day": day, "click": click_address(day), "is_today": day == today(), "day_off": is_day_off(day),
                 "stops": [{"stop": stop, "tone": "info" if stop.kind == "inspection" else tones.get(stop.record.crew_id, "secondary")}
                           for stop in booked.get(day, []) if wanted(stop)]} for day in days]
     return render(request, "crm/schedule.html", {
@@ -72,7 +84,7 @@ def schedule(request):
         "feeds": [{"label": _("Everything: every crew and the inspections"), "which": "office",
                    "address": feed_address(request, Company.load().calendar_token())}]
                  + [{"label": crew.name, "which": crew.pk, "address": feed_address(request, crew.calendar_token())} for crew in crews],
-        **booking(request, crews),
+        **box,
     })
 
 
