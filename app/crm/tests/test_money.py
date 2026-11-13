@@ -4,9 +4,10 @@ from decimal import Decimal
 from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone, translation
 
-from crm.models import ChangeOrder, Company, Job, Payment
+from crm import documents
+from crm.models import ChangeOrder, Company, Job, Opportunity, Payment, PriceItem
 
 from .base import Base
 
@@ -216,3 +217,69 @@ class CompanyDetails(Base):
         self.assertContains(page, 'SAMPLE <span class="hl-amp">&amp;</span> SONS ROOFING')
         self.assertContains(page, "Since 1999")
         self.assertContains(self.client.get(reverse("account", args=[self.account.pk])), "this%20is%20Sample%20%26%20Sons%20Roofing")   # the text greeting
+
+
+class Quantities(Base):
+    """A proposal line can say how many: 50 bundles at $22 each is $1,100. The server works it out, whatever the page sent."""
+
+    def setUp(self):
+        self.sign_in(self.office)
+        self.opp = self.opportunity(job_type="replacement")
+        self.builder = reverse("opp_proposal", args=[self.opp.number])
+
+    def write(self, *lines):
+        """Each line: (text, quantity, unit, each, amount)."""
+        columns = list(zip(*lines))
+        return self.client.post(self.builder, {name: list(values) for name, values in zip(["text", "quantity", "unit", "each", "amount"], columns)})
+
+    def test_quantity_times_the_price_for_each(self):
+        self.write(("GAF Timberline HDZ shingles", "50", "bundle", "22", ""), ("Tear-off and haul away", "", "", "", "1200"),
+                   ("Ridge vent", "2.5", "", "33.50", "999"))                       # the amount sent for this line is ignored: 2.5 × 33.50
+        self.opp.refresh_from_db()
+        self.assertEqual([(row["quantity"], row["unit"], row["each"], row["amount"]) for row in self.opp.line_rows],
+                         [(Decimal("50.00"), "bundle", Decimal("22.00"), Decimal("1100.00")), (None, "", None, Decimal("1200.00")),
+                          (Decimal("2.50"), "", Decimal("33.50"), Decimal("83.75"))])
+        self.assertEqual(self.opp.total, Decimal("2383.75"))
+        page = self.client.get(reverse("opp_document", args=[self.opp.number]))
+        for words in ["GAF Timberline HDZ shingles — 50 × $22 per bundle", "$1,100", "Ridge vent — 2.5 × $33.50", "$83.75", "$2,383.75"]:
+            self.assertContains(page, words)
+        self.assertContains(self.client.get(reverse("opp", args=[self.opp.number])), "50 × $22 per bundle")
+        with translation.override("es"):
+            self.assertIn("GAF Timberline HDZ shingles — 50 × $22 por bundle", documents.proposal_document(self.opp, Company.load(), "es")["lines"][0][0])
+
+    def test_a_price_with_no_quantity_is_one(self):
+        self.write(("Pipe boot", "", "each", "20", ""))
+        row = Opportunity.objects.get(pk=self.opp.pk).line_rows[0]
+        self.assertEqual((row["quantity"], row["amount"]), (Decimal("1.00"), Decimal("20.00")))
+
+    def test_what_is_refused(self):
+        for line, words in [(("Shingles", "50", "bundle", "", ""), "A line has a quantity but no price for each."),
+                            (("Shingles", "0", "bundle", "22", ""), "A quantity must be more than zero."),
+                            (("Shingles", "fifty", "bundle", "22", ""), "A quantity is not a number: fifty"),
+                            (("Shingles", "5000000", "bundle", "22", ""), "An amount is too large.")]:
+            page = self.write(("Tear-off", "", "", "", "1200"), line)
+            self.assertContains(page, words)
+            self.assertContains(page, 'value="Tear-off"')                           # every line typed is still there
+            self.assertContains(page, 'value="Shingles"')
+        self.opp.refresh_from_db()
+        self.assertIsNone(self.opp.total)
+
+    def test_the_crew_sees_how_many_but_the_job_keeps_no_price_per_item(self):
+        self.write(("GAF Timberline HDZ shingles", "50", "bundle", "22", ""), ("Pipe boot", "3", "each", "20", ""))
+        self.client.post(reverse("opp_send", args=[self.opp.number]), {"do": "sent"})
+        self.client.post(reverse("opp_sign", args=[self.opp.number]), {"signed_how": "paper"})
+        self.assertEqual(Job.objects.get().scope_lines, ["GAF Timberline HDZ shingles × 50 bundle", "Pipe boot × 3 each"])
+        page = self.client.get(reverse("job_proposal", args=[self.opp.number]))
+        self.assertContains(page, "Pipe boot — 3 × $20")
+        self.assertNotContains(page, "per each")
+
+    def test_the_builder_shows_saved_quantities_again(self):
+        self.write(("GAF Timberline HDZ shingles", "50", "bundle", "22", ""))
+        page = self.client.get(self.builder)
+        for words in ['name="quantity" inputmode="decimal" value="50"', 'name="unit" value="bundle"', 'value="22.00"', ">bundle</span>"]:
+            self.assertContains(page, words)
+
+    def test_a_line_from_the_price_book_carries_its_unit_and_price(self):
+        PriceItem.objects.create(code="GAF-HDZ", name="GAF Timberline HDZ shingles", unit="bundle", supplier="ABC Supply", cost="18", price="22")
+        page = self.client.get(self.builder)
+        self.assertContains(page, 'data-text="GAF Timberline HDZ shingles" data-unit="bundle" data-each="22.00"')

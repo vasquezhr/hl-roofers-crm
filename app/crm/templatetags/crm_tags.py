@@ -13,7 +13,7 @@ from django.utils.translation import gettext as _
 
 from crm import documents
 from crm.dates import day_text, month_day_text, range_text, stamp_text
-from crm.models import Company, Job, Lead, Opportunity, digits
+from crm.models import Company, Job, Lead, Opportunity, digits, quantity_text
 
 register = template.Library()
 
@@ -102,6 +102,20 @@ def month_day(value):
 def money(value):
     """9050 -> $9,050   685.5 -> $685.50   -250 -> −$250"""
     return "" if value in (None, "") else documents.money(value)
+
+
+@register.filter
+def qty(value):
+    """A quantity for its box: 50.00 -> 50. What was typed is shown as it was typed."""
+    if value in (None, ""):
+        return ""
+    return quantity_text(value) if not isinstance(value, str) else value
+
+
+@register.filter
+def line_words(row):
+    """A proposal line as it prints: GAF Timberline HDZ shingles — 50 × $22 per bundle"""
+    return documents.line_words(row)
 
 
 @register.filter

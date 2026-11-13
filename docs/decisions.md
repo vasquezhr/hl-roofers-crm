@@ -399,3 +399,19 @@ The mockup was not changed for anything built after Nov 10. The app has these an
 - **Receipts are the fourth document.** Numbered by job: #26-104 · R1, R2. A receipt shows the payment, the job total, what has been paid so far and the balance. The office emails it as a PDF; the job's crew can open it. Taking a payment off (Billing) removes its receipt.
 - **Records from before this change have no copy.** Their pages say "Drawn from today's records". The demo data keeps copies, as real use will.
 - Choices to confirm: the copy is kept at signing, not at sending, so a proposal can still be corrected until it is signed; a receipt is made for every payment, deposits included.
+
+### Requests from the user on Nov 13, 2026
+
+The user sent a screenshot of the mockup's proposal builder and asked for three things. They are built in the app, one at a time.
+
+**1. Quantities on proposal lines** (built Nov 13)
+
+The user: "When adding lines from the price book, there should be the ability to add how many of the items there are. For example, 1 bundle of material is equal to $22 and they need 50 bundles. 50 x 22 = 1100. It should calculate the math as well."
+
+- Each line of the proposal builder has **Quantity, Price for each and Amount**. With a quantity and a price for each, the amount is worked out on the page as it is typed and cannot be typed over; the server works it out again when the proposal is saved, so the page's arithmetic is never trusted.
+- **A line from the Price Book** starts at a quantity of 1, at today's selling price, with the item's unit next to the quantity (bundle, roll, each). The cursor goes to the quantity, ready to type 50.
+- **A line typed by hand** still works as before: just an amount, or "included" when it is left empty. A price for each with no quantity counts as one.
+- **Quantities can have decimals** (2.5 squares). Amounts are rounded to the cent.
+- **The proposal and its PDF print** "GAF Timberline HDZ shingles — 50 × $22 per bundle" and $1,100 in the amount column. A unit of "each" prints as "3 × $20".
+- **The job's scope** (what the crew reads) shows "GAF Timberline HDZ shingles × 50 bundle": the quantity, never the price for each.
+- Choices to confirm: the unit is the Price Book's own word, so it prints as typed there ("bundle", not "bundles"); change orders still have one amount each.

@@ -78,8 +78,8 @@
         {% if opp.line_items %}
         <table class="table table-sm small mb-0">
           <tbody>
-            {% for text, amount in opp.line_items %}
-            <tr><td>{{ text }}</td><td class="text-end text-nowrap">{% if amount is None %}{% trans "included" %}{% else %}{{ amount|money }}{% endif %}</td></tr>
+            {% for row in opp.line_rows %}
+            <tr><td>{{ row|line_words }}</td><td class="text-end text-nowrap">{% if row.amount is None %}{% trans "included" %}{% else %}{{ row.amount|money }}{% endif %}</td></tr>
             {% endfor %}
             {% if opp.total %}<tr class="fw-bold"><td>{% trans "Total" %}</td><td class="text-end">{{ opp.total|money }}</td></tr>{% endif %}
           </tbody>

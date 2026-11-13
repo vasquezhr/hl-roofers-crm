@@ -10,7 +10,7 @@ Proposals, change orders, payments and invoices.
 The pages a customer opens from an email (accept_proposal, accept_change) need no login. Each is
 reached only through a long random word in its address, and shows only that one document.
 """
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from django.conf import settings
 from django.contrib import messages
@@ -79,21 +79,43 @@ def to_money(text):
     return Decimal(text).quantize(Decimal("0.01"))
 
 
-def read_lines(texts, amounts):
-    """The lines typed into the proposal builder: ([(text, amount)], the problem to show or "")."""
+def typed_rows(post):
+    """The builder's rows exactly as they were typed, to show them again with a problem."""
+    texts = post.getlist("text")
+    columns = {name: post.getlist(name) for name in ("quantity", "unit", "each", "amount")}
+    return [{"text": text, **{name: values[i] if i < len(values) else "" for name, values in columns.items()}} for i, text in enumerate(texts)]
+
+
+def read_lines(post):
+    """The lines typed into the proposal builder: ([line], the problem to show or ""). Each line is a dict: text, quantity, unit,
+    each and amount. With a quantity and a price for each, the amount is worked out here again, whatever the page sent."""
     items = []
-    for text, amount in zip(texts, amounts):
-        text = text.strip()
+    for row in typed_rows(post):
+        text = row["text"].strip()
         try:
-            amount = to_money(amount)
+            quantity = to_money(row["quantity"])
         except InvalidOperation:
-            return items, _("An amount is not a number: %(amount)s") % {"amount": amount}
-        if not text and amount is None:
+            return items, _("A quantity is not a number: %(quantity)s") % {"quantity": row["quantity"]}
+        try:
+            each, amount = to_money(row["each"]), to_money(row["amount"])
+        except InvalidOperation:
+            return items, _("An amount is not a number: %(amount)s") % {"amount": row["each"] if row["each"] else row["amount"]}
+        if not text and amount is None and quantity is None and each is None:
             continue                                                  # an empty row
+        if each is not None and quantity is None:
+            quantity = Decimal("1.00")                                # a price for one, with no quantity: one of it
+        if quantity is not None:
+            if quantity <= 0:
+                return items, _("A quantity must be more than zero.")
+            if each is None:
+                return items, _("A line has a quantity but no price for each. Type the price for one, or clear the quantity.")
+            amount = (quantity * each).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        if amount is not None and abs(amount) >= Decimal("100000000"):
+            return items, _("An amount is too large.")
         if not text:
             return items, _("A line has an amount but no words.")
-        items.append((text[:300], amount))
-    if not items or sum((amount for _text, amount in items if amount is not None), Decimal("0")) <= 0:
+        items.append({"text": text[:300], "quantity": quantity, "unit": row["unit"].strip()[:20] if quantity is not None else "", "each": each, "amount": amount})
+    if not items or sum((item["amount"] for item in items if item["amount"] is not None), Decimal("0")) <= 0:
         return items, _("Add at least one line with a price.")
     return items, ""
 
@@ -104,11 +126,13 @@ def opp_proposal(request, number):
     opp = opp_or_404(number)
     if not opp.is_open:
         return redirect("opp", number=opp.number)
-    rows, problem = opp.line_items, ""
+    rows, problem = opp.line_rows, ""
     if request.method == "POST":
         had_lines, old_total = opp.proposal_lines.exists(), opp.total
-        rows, problem = read_lines(request.POST.getlist("text"), request.POST.getlist("amount"))
-        if not problem:
+        rows, problem = read_lines(request.POST)
+        if problem:
+            rows = typed_rows(request.POST)                             # every line as it was typed, so nothing is lost
+        else:
             opp.set_lines(rows)
             if not had_lines:
                 log(opp, "proposal_written", request.user, detail=documents.money(opp.total))
@@ -117,7 +141,8 @@ def opp_proposal(request, number):
             else:
                 log(opp, "proposal_changed", request.user)
             return redirect("opp_document", number=opp.number)
-    rows = list(rows) + [("", None)] * max(2, 4 - len(rows))          # always a few empty rows to type in
+    empty = {"text": "", "quantity": None, "unit": "", "each": None, "amount": None}
+    rows = list(rows) + [dict(empty) for _n in range(max(2, 4 - len(rows)))]       # always a few empty rows to type in
     return render(request, "crm/proposal_builder.html", {"opp": opp, "account": opp.account, "rows": rows, "problem": problem,
                                                          "price_items": PriceItem.objects.all(), "show_costs": request.user.can("costs")})
 

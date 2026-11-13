@@ -12,22 +12,39 @@
     {% if problem %}<div class="alert alert-danger py-2 small">{{ problem }}</div>{% endif %}
     <form method="post" novalidate data-builder>
       {% csrf_token %}
-      <div class="row g-2 small fw-semibold text-body-secondary mb-1">
+      <div class="row g-2 small fw-semibold text-body-secondary mb-1 d-none d-md-flex">
         <div class="col">{% trans "What it covers" %}</div>
-        <div class="col-4 col-sm-3">{% trans "Amount" %}</div>
+        <div class="col-md-2">{% trans "Quantity" %}</div>
+        <div class="col-md-2">{% trans "Price for each" %}</div>
+        <div class="col-md-2">{% trans "Amount" %}</div>
         <div class="col-auto invisible"><span class="btn btn-sm">×</span></div>
       </div>
       <div data-rows>
-        {% for text, amount in rows %}
-        <div class="row g-2 mb-2" data-row>
-          <div class="col"><input class="form-control form-control-sm" name="text" value="{{ text }}" maxlength="300" aria-label="{% trans 'What it covers' %}"></div>
-          <div class="col-4 col-sm-3">
+        {% for row in rows %}
+        {# on a phone: the words and × on one line, then quantity, price for each and amount, a third of the width each #}
+        <div class="row g-2 mb-3 mb-md-2 align-items-center" data-row>
+          <div class="col"><input class="form-control form-control-sm" name="text" value="{{ row.text }}" maxlength="300" aria-label="{% trans 'What it covers' %}"></div>
+          <div class="col-auto order-md-last"><button type="button" class="btn btn-sm btn-outline-secondary" data-remove-row aria-label="{% trans 'Remove the line' %}">×</button></div>
+          <div class="w-100 d-md-none"></div>
+          <div class="col-4 col-md-2">
             <div class="input-group input-group-sm">
-              <span class="input-group-text">$</span>
-              <input class="form-control" name="amount" inputmode="decimal" value="{% if amount is not None %}{{ amount|unlocalize }}{% endif %}" placeholder="{% trans 'included' %}" aria-label="{% trans 'Amount' %}">
+              <input class="form-control" name="quantity" inputmode="decimal" value="{{ row.quantity|qty }}" placeholder="{% trans 'Qty' %}" aria-label="{% trans 'Quantity' %}">
+              <span class="input-group-text px-1{% if not row.unit %} d-none{% endif %}" data-unit>{{ row.unit }}</span>
+            </div>
+            <input type="hidden" name="unit" value="{{ row.unit }}">
+          </div>
+          <div class="col-4 col-md-2">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text px-1">$</span>
+              <input class="form-control" name="each" inputmode="decimal" value="{% if row.each is not None %}{{ row.each|unlocalize }}{% endif %}" placeholder="{% trans 'each' %}" aria-label="{% trans 'Price for each' %}">
             </div>
           </div>
-          <div class="col-auto"><button type="button" class="btn btn-sm btn-outline-secondary" data-remove-row aria-label="{% trans 'Remove the line' %}">×</button></div>
+          <div class="col-4 col-md-2">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text px-1">$</span>
+              <input class="form-control" name="amount" inputmode="decimal" value="{% if row.amount is not None %}{{ row.amount|unlocalize }}{% endif %}" placeholder="{% trans 'included' %}" aria-label="{% trans 'Amount' %}">
+            </div>
+          </div>
         </div>
         {% endfor %}
       </div>
@@ -37,13 +54,13 @@
         <select class="form-select form-select-sm w-auto" data-add-item aria-label="{% trans 'Add from the Price Book' %}">
           <option value="">{% trans "Add from the Price Book" %}…</option>
           {% for item in price_items %}
-          <option data-text="{{ item.name }}{% if item.unit %} ({{ item.unit }}){% endif %}" data-amount="{{ item.price|unlocalize }}">{{ item.name }} · {{ item.price|money }}{% if item.unit %}/{{ item.unit }}{% endif %}{% if show_costs %} · {% trans "cost" %} {{ item.cost|money }}{% endif %}</option>
+          <option data-text="{{ item.name }}" data-unit="{{ item.unit }}" data-each="{{ item.price|unlocalize }}">{{ item.name }} · {{ item.price|money }}{% if item.unit %}/{{ item.unit }}{% endif %}{% if show_costs %} · {% trans "cost" %} {{ item.cost|money }}{% endif %}</option>
           {% endfor %}
         </select>
         {% endif %}
         <div class="ms-auto fw-bold">{% trans "Total" %}: <span data-total></span></div>
       </div>
-      <div class="form-text mt-2">{% trans "Leave the amount empty on lines that are included in the price. A line from the Price Book uses today's price, and the proposal keeps that price even if the Price Book changes later." %}</div>
+      <div class="form-text mt-2">{% trans "Type a quantity and a price for each, and the amount is worked out: 50 at $22 is $1,100. Or type only the amount. Leave the amount empty on lines that are included in the price. A line from the Price Book starts at 1, at today's price, and the proposal keeps that price even if the Price Book changes later." %}</div>
       <div class="d-flex gap-2 justify-content-end mt-3">
         <a class="btn btn-outline-secondary" href="{% url 'opp' opp.number %}">{% trans "Cancel" %}</a>
         <button type="submit" class="btn btn-primary">{% trans "Save and preview" %}</button>

@@ -48,27 +48,54 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 
-/* 7. The proposal builder: add a line, remove a line, add an item from the Price Book, keep the total.
-      The server checks everything again when the form is saved. */
+/* 7. The proposal builder: add a line, remove a line, add an item from the Price Book, work out
+      quantity × price for each, and keep the total. The server works it all out again when the form is saved. */
 document.addEventListener("DOMContentLoaded", function () {
   var form = document.querySelector("[data-builder]");
   if (!form) return;
   var rows = form.querySelector("[data-rows]");
+  function number(box) {
+    var value = parseFloat(box.value.replace(/[$,]/g, ""));
+    return isNaN(value) ? null : value;
+  }
+  function plain(value) {                       /* 1100 -> "1100", 83.75 -> "83.75": what goes back into a box */
+    return (Math.round(value * 100) / 100).toFixed(2).replace(/\.00$/, "");
+  }
+  function line(row) {                          /* a quantity and a price for each: the amount is worked out and cannot be typed */
+    var quantity = number(row.querySelector("[name=quantity]")), each = number(row.querySelector("[name=each]"));
+    var amount = row.querySelector("[name=amount]");
+    if (each !== null && quantity === null) quantity = 1;
+    var worked = quantity !== null && each !== null;
+    if (worked) amount.value = plain(quantity * each);
+    amount.readOnly = worked;
+  }
   function total() {
     var sum = 0;
-    form.querySelectorAll("input[name=amount]").forEach(function (box) {
-      var number = parseFloat(box.value.replace(/[$,]/g, ""));
-      if (!isNaN(number)) sum += number;
+    rows.querySelectorAll("[data-row]").forEach(function (row) {
+      line(row);
+      var amount = number(row.querySelector("[name=amount]"));
+      if (amount !== null) sum += amount;
     });
-    form.querySelector("[data-total]").textContent = "$" + sum.toLocaleString("en-US", { minimumFractionDigits: sum % 1 ? 2 : 0, maximumFractionDigits: 2 });
+    form.querySelector("[data-total]").textContent = (sum < 0 ? "−$" : "$") +
+      Math.abs(sum).toLocaleString("en-US", { minimumFractionDigits: sum % 1 ? 2 : 0, maximumFractionDigits: 2 });
   }
-  function addRow(text, amount) {
+  function addRow(item) {
     var row = rows.querySelector("[data-row]").cloneNode(true);
-    row.querySelector("input[name=text]").value = text || "";
-    row.querySelector("input[name=amount]").value = amount || "";
+    row.querySelectorAll("input").forEach(function (box) { box.value = ""; box.readOnly = false; });
+    if (item) {
+      row.querySelector("[name=text]").value = item.text;
+      row.querySelector("[name=quantity]").value = "1";
+      row.querySelector("[name=unit]").value = item.unit || "";
+      row.querySelector("[name=each]").value = item.each;
+    }
+    var unit = row.querySelector("[data-unit]");
+    unit.textContent = item && item.unit ? item.unit : "";
+    unit.classList.toggle("d-none", !(item && item.unit));
     rows.appendChild(row);
-    if (!text) row.querySelector("input[name=text]").focus();
     total();
+    var focus = row.querySelector(item ? "[name=quantity]" : "[name=text]");
+    focus.focus();
+    if (item) focus.select();                   /* ready to type how many */
   }
   form.addEventListener("input", total);
   form.addEventListener("click", function (event) {
@@ -79,7 +106,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var picker = form.querySelector("[data-add-item]");
   if (picker) picker.addEventListener("change", function () {
     var item = picker.options[picker.selectedIndex];
-    if (item.dataset.text) addRow(item.dataset.text, item.dataset.amount);
+    if (item.dataset.text) addRow({ text: item.dataset.text, unit: item.dataset.unit, each: item.dataset.each });
     picker.selectedIndex = 0;
   });
   total();

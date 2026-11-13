@@ -33,6 +33,19 @@ from .dates import range_from_code
 from .history import booking_text, changes_text, when_text
 
 # ---------------------------------------------------------------- small helpers
+def quantity_text(value):
+    """A quantity without the zeros that say nothing: 50.00 -> 50, 2.50 -> 2.5"""
+    text = f"{value:f}"
+    return text.rstrip("0").rstrip(".") if "." in text else text
+
+
+def scope_line(row):
+    """A proposal line as the job's scope of work shows it: the words, and how many when it has a quantity. Never a price."""
+    if row.get("quantity") is None:
+        return row["text"]
+    return f"{row['text']} × {quantity_text(row['quantity'])}" + (f" {row['unit']}" if row.get("unit") else "")
+
+
 STREET_WORDS = [("street", "st"), ("avenue", "ave"), ("road", "rd"), ("drive", "dr"), ("lane", "ln"), ("court", "ct"),
                 ("circle", "cir"), ("place", "pl"), ("boulevard", "blvd"), ("parkway", "pkwy"), ("turnpike", "tpke"),
                 ("highway", "hwy"), ("terrace", "ter"), ("trail", "trl"), ("north", "n"), ("south", "s"), ("east", "e"), ("west", "w")]
@@ -523,6 +536,16 @@ class Opportunity(models.Model):
         return [line.strip() for line in self.description.splitlines() if line.strip()]
 
     @property
+    def line_rows(self):
+        """The proposal's lines as dicts: text, quantity, unit, each (the price for one) and amount.
+        An amount of None prints as "included"; a line with a quantity has amount = quantity × each."""
+        rows = [{"text": line.text, "quantity": line.quantity, "unit": line.unit, "each": line.each, "amount": line.amount}
+                for line in self.proposal_lines.all()]
+        if not rows:
+            rows = [{"text": text, "quantity": None, "unit": "", "each": None, "amount": amount} for text, amount in self.line_items]
+        return rows
+
+    @property
     def line_items(self):
         """The proposal's lines as (text, amount). An amount of None prints as "included".
         An opportunity from before the proposal builder has only its text and one price: the price goes on the first line."""
@@ -532,13 +555,16 @@ class Opportunity(models.Model):
         return items
 
     def set_lines(self, items):
-        """Save the proposal's lines, and keep the plain text and the total in step with them."""
+        """Save the proposal's lines, and keep the plain text and the total in step with them.
+        Each item is a dict like line_rows gives, or just (text, amount)."""
+        rows = [item if isinstance(item, dict) else {"text": item[0], "amount": item[1]} for item in items]
         with transaction.atomic():
             self.proposal_lines.all().delete()
-            for position, (text, amount) in enumerate(items):
-                ProposalLine.objects.create(opportunity=self, position=position, text=text, amount=amount)
-            self.description = "\n".join(text for text, _amount in items)
-            self.total = sum((amount for _text, amount in items if amount is not None), Decimal("0"))
+            for position, row in enumerate(rows):
+                ProposalLine.objects.create(opportunity=self, position=position, text=row["text"], quantity=row.get("quantity"),
+                                            unit=row.get("unit") or "", each=row.get("each"), amount=row["amount"])
+            self.description = "\n".join(scope_line(row) for row in rows)
+            self.total = sum((row["amount"] for row in rows if row["amount"] is not None), Decimal("0"))
             self.save()
 
     def link(self):
@@ -562,10 +588,14 @@ class Opportunity(models.Model):
 
 
 class ProposalLine(models.Model):
-    """One line of a proposal. A line with no amount is included in the price of the others."""
+    """One line of a proposal. A line with no amount is included in the price of the others.
+    A line can have a quantity and a price for each (50 bundles at $22): then its amount is the quantity times the price."""
     opportunity = models.ForeignKey(Opportunity, on_delete=models.CASCADE, related_name="proposal_lines")
     position = models.PositiveSmallIntegerField(default=0)
     text = models.CharField(_("what it covers"), max_length=300)
+    quantity = models.DecimalField(_("quantity"), max_digits=10, decimal_places=2, null=True, blank=True)
+    unit = models.CharField(_("unit"), max_length=20, blank=True)
+    each = models.DecimalField(_("price for each"), max_digits=10, decimal_places=2, null=True, blank=True)
     amount = models.DecimalField(_("amount"), max_digits=10, decimal_places=2, null=True, blank=True)
 
     class Meta:

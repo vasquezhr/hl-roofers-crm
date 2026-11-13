@@ -86,6 +86,11 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await office.locator('input[name=text]').nth(1).fill('Install 5 inch seamless gutters, 118 ft');
   await office.selectOption('[data-add-item]', { index: 1 });
   check('a Price Book line is added with its price', (await office.locator('[data-total]').innerText()) !== '$1,960');
+  const added = office.locator('[data-row]').last();
+  await added.locator('[name=quantity]').fill('50');
+  const each = parseFloat(await added.locator('[name=each]').inputValue());
+  check('50 of an item: the amount is worked out', parseFloat(await added.locator('[name=amount]').inputValue()) === Math.round(50 * each * 100) / 100
+    && await added.locator('[name=amount]').getAttribute('readonly') !== null);
   await office.locator('[data-remove-row]').last().click();
   check('the total follows the lines', (await office.locator('[data-total]').innerText()) === '$1,960');
   await office.click('button:has-text("Save and preview")');

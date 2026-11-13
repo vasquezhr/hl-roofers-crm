@@ -27,7 +27,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from .models import KeptDocument
+from .models import KeptDocument, quantity_text
 
 
 # ---------------------------------------------------------------- the data
@@ -48,11 +48,23 @@ def customer_lines(account, place=None):
     return [line for line in [account.name, place.full_address if place else "", reach] if line]
 
 
+def line_words(row):
+    """A proposal line as it prints: GAF Timberline HDZ shingles — 50 × $22 per bundle"""
+    if row.get("quantity") is None or row.get("each") is None:
+        return row["text"]
+    unit = row.get("unit") or ""
+    if unit.strip(" .").lower() in ("each", "ea", "c/u"):              # "3 × $22", never "3 × $22 per each"
+        unit = ""
+    values = {"quantity": quantity_text(row["quantity"]), "each": money(row["each"]), "unit": unit}
+    how = (_("%(quantity)s × %(each)s per %(unit)s") if values["unit"] else _("%(quantity)s × %(each)s")) % values
+    return f"{row['text']} — {how}"
+
+
 def proposal_document(opp, company, language="en"):
     return {
         "title": _("Proposal"), "number": opp.number, "date": date_text(opp.sent_on or timezone.localdate()),
         "blocks": [(_("Proposal for"), customer_lines(opp.account, opp.place))],
-        "lines": [(text, money(amount) if amount is not None else _("included")) for text, amount in opp.line_items],
+        "lines": [(line_words(row), money(row["amount"]) if row["amount"] is not None else _("included")) for row in opp.line_rows],
         "totals": [(_("Total"), money(opp.total or 0))],
         "terms": company.terms("proposal", language),
         "signature": _("Customer's signature and date") + (f": {opp.signed_by}, {date_text(opp.signed_on)}" if opp.signed_by else ""),

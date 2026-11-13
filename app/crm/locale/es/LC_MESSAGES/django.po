@@ -1114,8 +1114,20 @@ msgstr "Descargar un archivo de precios en blanco con las columnas correctas"
 msgid "What it covers"
 msgstr "Qué incluye"
 
+msgid "Quantity"
+msgstr "Cantidad"
+
+msgid "Price for each"
+msgstr "Precio por unidad"
+
 msgid "Amount"
 msgstr "Monto"
+
+msgid "Qty"
+msgstr "Cant."
+
+msgid "each"
+msgstr "c/u"
 
 msgid "Remove the line"
 msgstr "Quitar la línea"
@@ -1129,8 +1141,8 @@ msgstr "Agregar de la Lista de precios"
 msgid "cost"
 msgstr "costo"
 
-msgid "Leave the amount empty on lines that are included in the price. A line from the Price Book uses today's price, and the proposal keeps that price even if the Price Book changes later."
-msgstr "Deje el monto vacío en las líneas que ya están incluidas en el precio. Una línea de la Lista de precios usa el precio de hoy, y la propuesta conserva ese precio aunque la lista cambie después."
+msgid "Type a quantity and a price for each, and the amount is worked out: 50 at $22 is $1,100. Or type only the amount. Leave the amount empty on lines that are included in the price. A line from the Price Book starts at 1, at today's price, and the proposal keeps that price even if the Price Book changes later."
+msgstr "Escriba una cantidad y un precio por unidad, y el monto se calcula solo: 50 a $22 son $1,100. O escriba solo el monto. Deje el monto vacío en las líneas incluidas en el precio. Una línea de la Lista de precios empieza en 1, al precio de hoy, y la propuesta conserva ese precio aunque la lista cambie después."
 
 msgid "Save and preview"
 msgstr "Guardar y ver"
@@ -1674,6 +1686,12 @@ msgstr "Factura"
 msgid "Thank you for your payment."
 msgstr "Gracias por su pago."
 
+msgid "%(quantity)s × %(each)s per %(unit)s"
+msgstr "%(quantity)s × %(each)s por %(unit)s"
+
+msgid "%(quantity)s × %(each)s"
+msgstr "%(quantity)s × %(each)s"
+
 msgid "Customer's signature and date"
 msgstr "Firma del cliente y fecha"
 
@@ -2112,6 +2130,15 @@ msgstr "nombre que escribió el cliente"
 msgid "what it covers"
 msgstr "qué incluye"
 
+msgid "quantity"
+msgstr "cantidad"
+
+msgid "unit"
+msgstr "unidad"
+
+msgid "price for each"
+msgstr "precio por unidad"
+
 msgid "amount"
 msgstr "monto"
 
@@ -2159,9 +2186,6 @@ msgstr "código"
 
 msgid "item"
 msgstr "artículo"
-
-msgid "unit"
-msgstr "unidad"
 
 msgid "selling price"
 msgstr "precio de venta"
@@ -2730,6 +2754,9 @@ msgstr "propuesta"
 msgid "Payment recorded"
 msgstr "Pago registrado"
 
+msgid "An amount is too large."
+msgstr "Un monto es demasiado grande."
+
 msgid "A line has an amount but no words."
 msgstr "Una línea tiene monto pero no tiene texto."
 
@@ -2838,6 +2865,12 @@ msgstr ""
 msgid "Receipt from %(company)s"
 msgstr "Recibo de %(company)s"
 
+msgid "A quantity must be more than zero."
+msgstr "Una cantidad debe ser mayor que cero."
+
+msgid "A line has a quantity but no price for each. Type the price for one, or clear the quantity."
+msgstr "Una línea tiene cantidad pero no precio por unidad. Escriba el precio de una unidad, o borre la cantidad."
+
 msgid "Email again"
 msgstr "Enviar de nuevo"
 
@@ -2846,6 +2879,9 @@ msgstr "Marcar como enviada"
 
 msgid "As it was sent on %(day)s"
 msgstr "Tal como se envió el %(day)s"
+
+msgid "A quantity is not a number: %(quantity)s"
+msgstr "Una cantidad no es un número: %(quantity)s"
 
 msgid "An amount is not a number: %(amount)s"
 msgstr "Un monto no es un número: %(amount)s"
