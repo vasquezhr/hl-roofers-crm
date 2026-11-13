@@ -4,13 +4,18 @@ to add logins and crews, and to look at or correct raw records.
 """
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.utils.functional import lazy
 from django.utils.translation import gettext_lazy as _
 
 from .models import (Account, Activity, ChangeOrder, Company, Contact, Crew, ImportBatch, ImportedNote, Job, Lead, Note, Opportunity, Payment,
                      PriceEntry, PriceItem, PriceUpload, Property, ProposalLine, Sequence, User, Worker)
 
-admin.site.site_header = "H & L Roofers CRM"
-admin.site.site_title = "H & L Roofers CRM"
+def site_name():
+    """The admin site's title: the business's name from Company details, read each time a page is drawn."""
+    return f"{Company.load().name} CRM"
+
+
+admin.site.site_header = admin.site.site_title = lazy(site_name, str)()
 
 
 @admin.register(User)
@@ -22,10 +27,10 @@ class LoginAdmin(UserAdmin):
     fieldsets = (
         (None, {"fields": ("username", "password")}),
         (_("Who it is"), {"fields": ("first_name", "last_name", "email")}),
-        (_("H & L profile"), {"fields": ("profile", "crew", "is_active")}),
+        (_("Profile in the app"), {"fields": ("profile", "crew", "is_active")}),
         (_("Dates"), {"fields": ("last_login", "date_joined")}),
     )
-    add_fieldsets = UserAdmin.add_fieldsets + ((_("H & L profile"), {"fields": ("profile", "crew")}),)
+    add_fieldsets = UserAdmin.add_fieldsets + ((_("Profile in the app"), {"fields": ("profile", "crew")}),)
 
 
 class WorkerInline(admin.TabularInline):

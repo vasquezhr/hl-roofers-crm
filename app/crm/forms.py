@@ -3,12 +3,14 @@ from django import forms
 from django.conf import settings
 from django.contrib.auth import password_validation
 from django.contrib.auth.forms import AuthenticationForm
+from django.utils.functional import lazy
 from django.utils.translation import gettext_lazy as _
 from PIL import Image
 
 from . import look
+from .dates import days_off_text, work_days_text
 from .models import (EDIT_OBJECTS, LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment,
-                     PriceItem, Property, User, Worker, WorkType, is_day_off, type_choices, work_types)
+                     PriceItem, Property, User, Worker, WorkType, home_state, is_day_off, type_choices, work_types)
 
 
 
@@ -36,16 +38,19 @@ def date_box():
     return forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")
 
 
+def days_off_help():
+    return str(_("Days off: %(days)s. Tick this only when the work really has to be on one of them.")) % {"days": days_off_text()}
+
+
 def day_off_box():
-    return forms.BooleanField(label=_("Work on a day off"), required=False,
-                              help_text=_("Saturday and Sunday are days off. Tick this only when the work really has to be on one of them."))
+    return forms.BooleanField(label=_("Work on a day off"), required=False, help_text=lazy(days_off_help, str)())
 
 
 def check_day(form, field):
     """Jobs and inspections go on work days, unless "Work on a day off" is ticked."""
     day = form.cleaned_data.get(field)
     if day and is_day_off(day) and not form.cleaned_data.get("day_off_ok"):
-        form.add_error(field, _("Pick a work day, Monday to Friday. To use a day off, tick “Work on a day off”."))
+        form.add_error(field, _("Pick a work day (%(days)s). To use a day off, tick “Work on a day off”.") % {"days": work_days_text()})
 
 
 class LoginForm(Bootstrap, AuthenticationForm):
@@ -62,7 +67,7 @@ class NewAccountForm(Bootstrap, forms.Form):
     language = forms.ChoiceField(label=_("Language"), choices=LANGS, help_text=_("The customer's language. Texts to them start in this language."))
     street = forms.CharField(label=_("Street address"), max_length=160)
     city = forms.CharField(label=_("City"), max_length=80, required=False)
-    state = forms.CharField(label=_("State"), max_length=2, required=False, initial="VA")
+    state = forms.CharField(label=_("State"), max_length=2, required=False, initial=home_state)
     zip_code = forms.CharField(label=_("ZIP"), max_length=10, required=False)
 
     def save(self):

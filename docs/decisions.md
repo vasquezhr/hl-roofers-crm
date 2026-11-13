@@ -476,3 +476,19 @@ The user asked whether the app could be "a shell … same exact CRM concept, jus
 - **Who and when:** each change is a line on **Admin › Setup history** ("Colors changed: Main color: #b05a22 → #2e7d32"; "App icon uploaded").
 - **Not changed:** the proposals, change orders, invoices and receipts still print the business's name as text, in black. A logo on the documents waits for the logo sample the user deferred.
 
+**Where the business is, and its work week** (built Nov 13)
+
+- **These are settings in the `.env` file,** because they belong to each install and rarely change: `TIME_ZONE`, `WORK_DAYS` (`mon,tue,wed,thu,fri`), `STATE` and `STATE_NAME`, and, for the Apple Notes import, `ZIP_STARTS`, `IMPORT_TOWNS` and `IMPORT_WORK_WORDS`. `.env.example` lists them. Left out, they are H & L's: Eastern time, Monday to Friday, Virginia, ZIP codes 20000 to 24999 and the towns around Richmond.
+- **The work days decide everything that was "Monday to Friday":** which days the schedule and the suggestions offer, which days need "Work on a day off", and the words on the pages. The words are worked out from the setting in the reader's language ("Monday to Friday", "de lunes a viernes"; "Days off: Saturday and Sunday"). H & L's Sunday question stays open: when the owners decide, it is one line in `.env`.
+- **A new address starts in the business's state:** a new account, a new lead and a request from the website's form.
+- **The notes import reads the business's region:** "City, ST 12345", "City, State" and a ZIP code alone, for the state and ZIP codes in the settings; a town alone only for the towns in `IMPORT_TOWNS` (or, in Virginia, the towns around Richmond).
+- **H & L's import gives the same results as before.** The import was run again on the real export, in a database held in memory, with counts only printed: 2,609 notes read, 56 set aside, 30 empty, 2,523 for review (1,061 new customers, 785 no customer, 677 personal), and the same count of names, streets, cities, ZIP codes, phones and emails read as before. A test also checks the new patterns against the old ones on 20 sample lines.
+
+**Setting up another business, and the words every business reads** (built Nov 13)
+
+- **`python manage.py start_business`** sets up a new, empty database for another business: its name, the line under it, the first login (the administrator, with a password typed twice and checked like every other password), its two colors, and whether to keep H & L's twelve types of work or start with only Inspection, Warranty visit and Other. It refuses a database that already has logins, customers or work in it, so it can never change H & L's. It writes "App set up for …" on Admin › Setup history and then lists what to fill in next.
+- **The README has the steps** ("Another business on the same app"): a copy of the `app` folder with its own `.env`, database, photo folder, port, Cloudflare Tunnel address, "tick" task and backups.
+- **Words that named H & L where any business reads them now say "the business":** the Users and permissions page ("See the business's costs or margins …"), the admin site's title (the name from Company details, followed by "CRM"), the login page's "Profile in the app" section in the admin site, and the error page, which names no business because it cannot read the database.
+- **What stays H & L's for now:** the pages' wording is the same for every business; the notes import knows roofing words (more can be added in `.env`); and `demo` loads H & L's made-up customers, for trying the app on a PC only.
+- **To confirm with the user:** whether each business should have its own copy of the `app` folder (what the README describes, and the simplest to look after) or whether one copy should serve several businesses at once, which needs more work.
+

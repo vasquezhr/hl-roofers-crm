@@ -22,6 +22,7 @@ from django.views.decorators.http import require_POST
 
 from . import scheduling
 from .access import job_or_404, jobs_for, office_only
+from .dates import work_days_text
 from .history import booking_code, when_code
 from .models import Company, Crew, Job, Opportunity, Worker, is_day_off, log
 from .views import filter_pills, next_step, saved, today
@@ -117,7 +118,7 @@ def book(request):
     except ValueError:
         raise Http404
     if not scheduling.is_work_day(day):
-        messages.warning(request, _("Pick a work day, Monday to Friday."))
+        messages.warning(request, _("Pick a work day (%(days)s).") % {"days": work_days_text()})
         return redirect("schedule")
     if kind == "opp":
         opp = get_object_or_404(Opportunity, number=number, stage=Opportunity.Stage.INSPECTION)

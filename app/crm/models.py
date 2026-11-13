@@ -37,8 +37,13 @@ from .dates import range_from_code
 from .history import booking_text, changes_text, file_text, when_text
 
 # ---------------------------------------------------------------- small helpers
+def home_state():
+    """The state a new address starts with: STATE in .env (H & L: VA)."""
+    return settings.STATE
+
+
 def is_day_off(day):
-    """Saturday and Sunday, or whatever days are not in WORK_WEEKDAYS. They can still be booked by hand, as an override."""
+    """The days not in WORK_WEEKDAYS (for H & L, Saturday and Sunday). They can still be booked by hand, as an override."""
     return day.weekday() not in settings.WORK_WEEKDAYS
 
 
@@ -446,7 +451,7 @@ class Property(models.Model):
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="properties")
     street = models.CharField(_("street address"), max_length=160)
     city = models.CharField(_("city"), max_length=80, blank=True)
-    state = models.CharField(_("state"), max_length=2, default="VA", blank=True)
+    state = models.CharField(_("state"), max_length=2, default=home_state, blank=True)
     zip_code = models.CharField(_("ZIP"), max_length=10, blank=True)
     site_name = models.CharField(_("site contact"), max_length=120, blank=True,
                                  help_text=_("Who to ask for at the house, when it is not the account's own contact."))
@@ -703,7 +708,7 @@ class Job(models.Model):
     price = models.DecimalField(_("price"), max_digits=10, decimal_places=2, default=0)
     labor_only = models.BooleanField(_("labor only"), default=False)
     scope = models.TextField(_("scope of work"), blank=True)
-    # the schedule: whole work days, Monday to Friday
+    # the schedule: whole work days (WORK_WEEKDAYS in the settings)
     crew = models.ForeignKey(Crew, verbose_name=_("crew"), null=True, blank=True, on_delete=models.SET_NULL, related_name="jobs")
     first_day = models.DateField(_("first day"), null=True, blank=True)
     days = models.PositiveSmallIntegerField(_("days"), default=1)
@@ -958,7 +963,7 @@ class Lead(models.Model):
     email = models.EmailField(_("email"), blank=True)
     street = models.CharField(_("street address"), max_length=160, blank=True)
     city = models.CharField(_("city"), max_length=80, blank=True)
-    state = models.CharField(_("state"), max_length=2, default="VA", blank=True)
+    state = models.CharField(_("state"), max_length=2, default=home_state, blank=True)
     zip_code = models.CharField(_("ZIP"), max_length=10, blank=True)
     job_type = models.CharField(_("type of work"), max_length=12, default="inspection")
     message = models.TextField(_("what they asked for"), blank=True)
@@ -1295,6 +1300,7 @@ class Activity(models.Model):
         "note_deleted": _("Note deleted from Details"),
         "proposal_written": _("Proposal written: %(detail)s"), "proposal_edited": _("Proposal changed: %(detail)s"),
         # the app's own setup: these lines have no record and are on Admin > Setup history
+        "set_up": _("App set up for %(detail)s"),
         "company_edited": _("Company details changed: %(detail)s"),
         "look_edited": _("Colors changed: %(detail)s"),
         "icon_uploaded": _("App icon uploaded"), "icon_removed": _("Uploaded app icon taken away"),

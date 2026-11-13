@@ -136,7 +136,7 @@
     </div></div>
     {% endif %}
     {% else %}
-    <div class="form-text">{% trans "The job gets whole work days, Monday to Friday. A job that needs more than one day continues on the next work day." %}
+    <div class="form-text">{% trf "The job gets whole work days (%(days)s). A job that needs more than one day continues on the next work day." days=week.work %}
       <a href="{% url 'job_schedule' book.number %}">{% trans "Pick the days yourself" %}</a></div>
     {% endif %}
     {% endif %}

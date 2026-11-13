@@ -191,7 +191,7 @@ class Booking(OnMonday):
 
     def test_a_saturday_or_an_odd_hour_is_refused(self):
         visit = self.inspection(self.account, self.place)
-        self.assertContains(self.book(kind="opp", number=visit.number, day=SATURDAY.isoformat(), hour="11"), "Pick a work day, Monday to Friday.")
+        self.assertContains(self.book(kind="opp", number=visit.number, day=SATURDAY.isoformat(), hour="11"), "Pick a work day (Monday to Friday).")
         self.assertEqual(self.book(kind="opp", number=visit.number, day="2026-11-10", hour="18").status_code, 404)
         self.assertEqual(self.book(kind="opp", number=visit.number, day="soon", hour="11").status_code, 404)
         self.assertEqual(self.book(kind="visit", number=visit.number, day="2026-11-10", hour="11").status_code, 404)
@@ -508,7 +508,7 @@ class DaysOff(OnMonday):
     def test_a_day_off_needs_the_tick(self):
         job = self.job()
         page = self.move(job, SATURDAY, crew=self.crew1)
-        self.assertContains(page, "Pick a work day, Monday to Friday.")
+        self.assertContains(page, "Pick a work day (Monday to Friday).")
         job.refresh_from_db()
         self.assertEqual(job.stage, "signed")
         self.move(job, SATURDAY, 2, crew=self.crew1, day_off_ok="on")
@@ -519,7 +519,7 @@ class DaysOff(OnMonday):
     def test_an_inspection_on_a_day_off(self):
         visit = self.inspection(self.account, self.place)
         address = reverse("opp_inspection", args=[visit.number])
-        self.assertContains(self.client.post(address, {"day": SATURDAY.isoformat(), "time": "19:30"}), "Pick a work day, Monday to Friday.")
+        self.assertContains(self.client.post(address, {"day": SATURDAY.isoformat(), "time": "19:30"}), "Pick a work day (Monday to Friday).")
         self.client.post(address, {"day": SATURDAY.isoformat(), "time": "19:30", "day_off_ok": "on"})
         visit.refresh_from_db()
         self.assertEqual(timezone.localtime(visit.inspection_at).strftime("%a %H:%M"), "Sat 19:30")

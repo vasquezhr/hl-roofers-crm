@@ -3,6 +3,7 @@ from django.urls import NoReverseMatch, reverse
 from django.utils.translation import gettext_lazy as _
 
 from . import look
+from .dates import days_off_text, work_days_text
 from .models import Company
 
 # tab key -> (name of the page it opens, label, icon)
@@ -52,7 +53,7 @@ def exists(page):
 def company(request):
     """The business's name and details, for the top bar and the documents, and its colors and icon (look.py)."""
     firm = Company.load()
-    return {"company": firm, "look": look.of(firm)}
+    return {"company": firm, "look": look.of(firm), "week": {"work": work_days_text(), "off": days_off_text()}}
 
 
 def navigation(request):

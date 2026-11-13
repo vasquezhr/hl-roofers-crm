@@ -197,7 +197,7 @@ def lead_in(request):
     if field("website"):                                              # a box people cannot see; only robots fill it in
         return answer({"ok": True})
     form = LeadForm({"name": field("name"), "phone": field("phone"), "email": field("email"), "street": field("address") or field("street"),
-                     "city": field("city"), "state": field("state") or "VA", "zip_code": field("zip"), "job_type": job_type_from(field("service")),
+                     "city": field("city"), "state": field("state") or settings.STATE, "zip_code": field("zip"), "job_type": job_type_from(field("service")),
                      "message": field("message"), "language": "es" if field("language").lower().startswith("es") else "en",
                      "source": Opportunity.Source.WEB})
     if not form.is_valid():

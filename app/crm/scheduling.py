@@ -1,8 +1,8 @@
 """
 The schedule: who is where on which day, and suggested times.
 
-Work days are Monday to Friday (WORK_WEEKDAYS in the settings). Saturdays are never offered,
-and Sunday is not decided yet.
+Work days are WORK_WEEKDAYS in the settings (WORK_DAYS in .env). For H & L: Monday to Friday.
+Saturdays are never offered, and Sunday is not decided yet.
 
 Distances are rough on purpose. Each address is placed at the middle of its ZIP code, using the
 "zipcodes" library, which needs no internet and sends nothing anywhere. That is enough to tell
@@ -34,7 +34,7 @@ def is_work_day(day):
 
 
 def work_day(n, start=None):
-    """n work days after `start` (today when not given). If `start` is on a weekend, counting begins the next Monday."""
+    """n work days after `start` (today when not given). If `start` is a day off, counting begins on the next work day."""
     day = start or timezone.localdate()
     while not is_work_day(day):
         day += timedelta(days=1)

@@ -1,16 +1,17 @@
 {% load static %}<!doctype html>
+{# Shown when the app itself fails. It reads nothing from the database, so it has no name of the business and no menu. #}
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>H &amp; L Roofers</title>
+<title>Something went wrong · Algo salió mal</title>
 <link rel="stylesheet" href="{% static 'crm/bootstrap.min.css' %}">
 </head>
 <body class="bg-body-tertiary">
 <main class="container py-5 text-center">
   <h1 class="h5">Something went wrong. / Algo salió mal.</h1>
   <p class="text-body-secondary">Go back and try again. If it keeps happening, tell the administrator.<br>Regrese e intente de nuevo. Si sigue pasando, avise al administrador.</p>
-  <a class="btn btn-outline-secondary" href="/">H &amp; L Roofers</a>
+  <a class="btn btn-outline-secondary" href="/">Start page / Página de inicio</a>
 </main>
 </body>
 </html>

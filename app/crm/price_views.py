@@ -1,7 +1,7 @@
 """
 The administrator's pages: the Admin hub, the Price Book and the company's details.
 
-The Price Book holds what H & L pays (cost) and what it charges (selling price). It is for the
+The Price Book holds what the business pays (cost) and what it charges (selling price). It is for the
 administrator; the office meets it only as "Add from the Price Book" on a proposal, with the
 selling price. Crews never see it.
 """

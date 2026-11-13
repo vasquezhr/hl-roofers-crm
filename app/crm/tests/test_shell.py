@@ -1,19 +1,27 @@
 """The shell: what each business sets for itself instead of having it written in the code."""
 import io
+import re
 import shutil
 import tempfile
+from datetime import timedelta
 from pathlib import Path
+from unittest import mock
 
+from django.core.exceptions import ImproperlyConfigured
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import override_settings
+from django.core.management import call_command
+from django.core.management.base import CommandError
+from django.test import TestCase, override_settings
 from django.urls import reverse
-from django.utils import translation
+from django.utils import timezone, translation
 from PIL import Image
 
-from crm import look, reports
-from crm.models import Activity, Company, Job, Lead, WorkType, type_choices, type_name
+from crm import importer, look, reports, scheduling
+from crm.dates import days_text
+from crm.models import Activity, Company, Job, Lead, Property, User, WorkType, is_day_off, type_choices, type_name
+from hlcrm.settings import work_days_from
 
-from .base import Base
+from .base import MONDAY, SATURDAY, Base, StartInEnglish
 
 TEMP = tempfile.mkdtemp(prefix="crm-look-test-")
 
@@ -199,3 +207,173 @@ class BusinessLook(Base):
             self.client.post(reverse("company_look"), {"accent_color": "#2e7d32", "bar_color": look.BAR})
         self.assertEqual(Company.load().accent_color, look.ACCENT)
 
+
+class RegionAndWeek(Base):
+    """Where the business is, and its work week, come from .env (STATE, WORK_DAYS, ...). H & L's are the defaults.
+    The made-up street and the words here were checked against the real notes: none matches."""
+
+    def test_days_in_words(self):
+        self.assertEqual(days_text([0, 1, 2, 3, 4]), "Monday to Friday")
+        self.assertEqual(days_text([5, 6]), "Saturday and Sunday")
+        self.assertEqual(days_text([0, 2, 4]), "Monday, Wednesday and Friday")
+        self.assertEqual(days_text([6, 0, 1, 2, 3]), "Sunday to Thursday")
+        self.assertEqual(days_text([3]), "Thursday")
+        with translation.override("es"):
+            self.assertEqual(days_text([0, 1, 2, 3, 4]), "de lunes a viernes")
+            self.assertEqual(days_text([5, 6]), "sábado y domingo")
+
+    def test_work_days_from_the_env_file(self):
+        self.assertEqual(work_days_from("mon,tue,wed,thu,fri"), [0, 1, 2, 3, 4])
+        self.assertEqual(work_days_from("Sun, Mon, Tue, Wed, Thu"), [0, 1, 2, 3, 6])
+        self.assertEqual(work_days_from("monday,saturday"), [0, 5])
+        for wrong in ("mon,funday", "", " , "):
+            with self.assertRaises(ImproperlyConfigured):
+                work_days_from(wrong)
+
+    @override_settings(WORK_WEEKDAYS=[0, 1, 2, 3, 4, 5])
+    def test_a_business_that_works_on_saturdays(self):
+        clock = mock.patch.object(timezone, "localdate", return_value=MONDAY)
+        clock.start()
+        self.addCleanup(clock.stop)
+        self.assertFalse(is_day_off(SATURDAY))
+        self.assertTrue(is_day_off(SATURDAY + timedelta(days=1)))
+        self.assertEqual(scheduling.work_day(5), SATURDAY)
+        self.sign_in(self.office)
+        job = self.job()
+        page = self.client.get(reverse("job_schedule", args=[job.number]))
+        self.assertContains(page, "The job gets whole work days (Monday to Saturday).")
+        self.assertContains(page, "Days off: Sunday. Tick this only when the work really has to be on one of them.")
+        self.client.post(reverse("job_schedule", args=[job.number]), {"crew": self.crew1.pk, "first_day": SATURDAY.isoformat(), "days": "1"})
+        job.refresh_from_db()
+        self.assertEqual((job.stage, job.first_day, job.days_off), ("scheduled", SATURDAY, []))
+
+    def test_hl_days_are_as_they_were(self):
+        self.sign_in(self.office)
+        page = self.client.get(reverse("job_schedule", args=[self.job().number]))
+        self.assertContains(page, "The job gets whole work days (Monday to Friday).")
+        self.assertContains(page, "Days off: Saturday and Sunday.")
+        with translation.override("es"):
+            page = self.client.get(reverse("job_schedule", args=[self.job().number]), HTTP_ACCEPT_LANGUAGE="es")
+            self.assertContains(page, "días de trabajo completos (de lunes a viernes)")
+            self.assertContains(page, "Días libres: sábado y domingo.")
+
+    @override_settings(STATE="NC", LEAD_FORM_KEY="k")
+    def test_new_addresses_start_in_the_business_state(self):
+        self.assertEqual(Property.objects.create(account=self.account, street="4417 Snapdragon Ln").state, "NC")
+        self.sign_in(self.office)
+        self.assertContains(self.client.get(reverse("account_new")), 'value="NC"')
+        self.client.post(reverse("lead_in"), {"key": "k", "name": "Mina Seo", "phone": "(804) 555-0178", "address": "4417 Snapdragon Ln"})
+        self.assertEqual(Lead.objects.get().state, "NC")
+
+    def test_the_import_reads_the_business_region(self):
+        # H & L's: Virginia, ZIP codes 20000 to 24999, and the towns around Richmond
+        self.assertEqual(importer.read_city("Richmond VA 23220"), ("Richmond", "23220"))
+        self.assertEqual(importer.read_city("Glen Allen"), ("Glen Allen", ""))
+        self.assertEqual(importer.read_city("Durham, NC 27701"), ("", ""))
+        with self.settings(STATE="NC", STATE_NAME="North Carolina", ZIP_STARTS=["27", "28"], IMPORT_TOWNS=["Durham"]):
+            self.assertEqual(importer.read_city("Durham, NC 27701"), ("Durham", "27701"))
+            self.assertEqual(importer.read_city("Durham, North Carolina"), ("Durham", ""))
+            self.assertEqual(importer.read_city("Durham"), ("Durham", ""))
+            self.assertEqual(importer.read_city("27701"), ("", "27701"))
+            self.assertEqual(importer.read_city("Glen Allen"), ("", ""))          # the towns around Richmond are for Virginia only
+            self.assertEqual(importer.read_city("Richmond VA 23220"), ("", ""))
+
+    def test_hls_patterns_are_the_ones_the_import_was_tuned_with(self):
+        """The patterns as they were written before they came from the settings. On H & L's settings they must match alike."""
+        towns = "|".join(importer.RICHMOND_TOWNS)
+        before = {"city_state": re.compile(r"^[\s,.-]*([A-Za-z][A-Za-z .'-]{1,30}?)[\s,]+(?:VA|Virginia)\b[\s,.]*(\d{5})?", re.I),
+                  "city_zip": re.compile(r"^[\s,.-]*([A-Za-z][A-Za-z .'-]{1,30}?)[\s,]+(2[0-4]\d{3})\b"),
+                  "zip_only": re.compile(r"^[\s,.-]*(?:VA|Virginia)?[\s,.]*(2[0-4]\d{3})\b", re.I),
+                  "town": re.compile(r"^[\s,.-]*(" + towns + r")\b", re.I)}
+        samples = ["Richmond VA 23220", "richmond, virginia", "Glen Allen, 23059", "23235", "VA 23803", "Petersburg Va. 23803",
+                   "North Chesterfield", "Chester 23831", "Durham, NC 27701", "19104", "25301", "Midlothian VA", "RVA 23220",
+                   ", Henrico", "Ashland Virginia 23005", "Bon Air", "New Kent 23124 VA", "Quinton", "VIRGINIA 24501", "Hanover Courthouse"]
+        now = importer.region()
+        for text in samples:
+            for name, pattern in before.items():
+                old, new = pattern.match(text), now[name].match(text)
+                self.assertEqual(old.groups() if old else None, new.groups() if new else None, (name, text))
+
+    def test_more_words_about_the_work(self):
+        text = "Fix the water heater next week"
+        self.assertFalse(importer.about_work(text))
+        with self.settings(IMPORT_WORK_WORDS=["water heater"]):
+            self.assertTrue(importer.about_work(text))
+        self.assertTrue(importer.about_work("2 bundles of shingles"))            # the words it already knows
+
+
+class StartBusiness(StartInEnglish, TestCase):
+    """python manage.py start_business, on a new, empty database. "Bluebird Gutters" is made up and matches no real note."""
+    GOOD = "bluebird-pass-2026"
+
+    def run_it(self, answers=(), passwords=(GOOD, GOOD), **options):
+        out = io.StringIO()
+        with mock.patch("builtins.input", side_effect=list(answers)), mock.patch("getpass.getpass", side_effect=list(passwords)):
+            call_command("start_business", stdout=out, **options)
+        return out.getvalue()
+
+    def test_an_empty_database_gets_its_business(self):
+        out = self.run_it(name="Bluebird Gutters", tagline="Gutters · Durham", login="owner", main_color="#2E7D32", bar_color="#173b2b",
+                          types="clear")
+        company = Company.load()
+        self.assertEqual((company.name, company.tagline, company.accent_color, company.bar_color),
+                         ("Bluebird Gutters", "Gutters · Durham", "#2e7d32", "#173b2b"))
+        owner = User.objects.get()
+        self.assertEqual(owner.username, "owner")
+        self.assertTrue(owner.is_admin_profile and owner.is_superuser and owner.check_password(self.GOOD))
+        self.assertEqual(sorted(WorkType.objects.values_list("key", flat=True)), ["inspection", "other", "warranty"])
+        self.assertEqual([key for key, _name in type_choices()], ["inspection", "other"])
+        self.assertEqual(Activity.objects.get(kind="set_up").text, "App set up for Bluebird Gutters")
+        self.assertIn("Admin > Company details", out)
+        # the new business's pages: its name, its colors and an icon drawn from its initials
+        self.client.force_login(owner)
+        page = self.client.get(reverse("dashboard"))
+        self.assertContains(page, "BLUEBIRD GUTTERS")
+        self.assertContains(page, "--hl-accent:#2e7d32")
+        self.assertEqual(look.initials(company.name), "BG")
+
+    def test_the_questions_one_at_a_time(self):
+        # name, line under it (Enter: none), login, main color (Enter: as shown), bar color (Enter), keep the types (Enter: yes)
+        self.run_it(["Bluebird Gutters", "", "owner", "", "", ""])
+        company = Company.load()
+        self.assertEqual((company.name, company.tagline, company.accent_color, company.bar_color), ("Bluebird Gutters", "", look.ACCENT, look.BAR))
+        self.assertEqual(WorkType.objects.count(), 12)
+
+    def test_a_wrong_answer_is_asked_again(self):
+        self.run_it(["", "Bluebird Gutters", "", "two words", "owner", "#ffcc00", "#2e7d32", "", "maybe", "no"],
+                    passwords=("short", "short", self.GOOD, "something-else-2026", self.GOOD, self.GOOD))
+        company = Company.load()
+        self.assertEqual((company.name, company.accent_color), ("Bluebird Gutters", "#2e7d32"))
+        self.assertTrue(User.objects.get(username="owner").check_password(self.GOOD))
+        self.assertEqual(WorkType.objects.count(), 3)
+
+    def test_never_on_a_database_in_use(self):
+        User.objects.create_user("admin", password="x", profile="admin")
+        with self.assertRaises(CommandError):
+            self.run_it(name="Bluebird Gutters", tagline="", login="owner", main_color="#2e7d32", bar_color="#173b2b", types="keep")
+        self.assertEqual(Company.load().name, "H & L Roofers")
+        self.assertFalse(User.objects.filter(username="owner").exists())
+
+    def test_a_wrong_option_stops_it(self):
+        with self.assertRaises(CommandError):
+            self.run_it(name="Bluebird Gutters", tagline="", login="owner", main_color="#ffcc00", bar_color="#173b2b", types="keep")
+        self.assertFalse(User.objects.exists())
+
+
+class WordsForAnyBusiness(Base):
+    """What every business reads says "the business", not H & L."""
+
+    def test_the_users_page(self):
+        self.sign_in(self.admin)
+        self.assertContains(self.client.get(reverse("users")), "See the business's costs or margins")
+
+    def test_the_admin_site_has_the_business_name(self):
+        self.sign_in(self.admin)
+        self.assertContains(self.client.get("/admin/"), "H &amp; L Roofers CRM")
+        company = Company.load()
+        company.name = "Bluebird Gutters"
+        company.save()
+        self.assertContains(self.client.get("/admin/"), "Bluebird Gutters CRM")
+
+    def test_the_page_for_an_error_names_no_business(self):
+        self.assertNotIn("H &amp; L", (Path(look.__file__).parent / "templates" / "500.html").read_text(encoding="utf-8"))

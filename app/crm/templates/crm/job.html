@@ -118,7 +118,7 @@
                   <button type="submit" class="btn btn-outline-secondary btn-sm">{% icon "plus" %} {% trans "Add" %}</button></div>
                 <div class="form-check mt-1"><input class="form-check-input" type="checkbox" name="day_off_ok" value="1" id="dayOffOk">
                   <label class="form-check-label" for="dayOffOk">{% trans "Work on a day off" %}</label></div>
-                <div class="form-text">{% trans "Any day of the week, for work that does not follow on from the job's other days. Saturday and Sunday need “Work on a day off”." %}</div>
+                <div class="form-text">{% trf "Any day of the week, for work that does not follow on from the job's other days. A day off (%(days)s) needs “Work on a day off”." days=week.off %}</div>
               </form>
             </details>
             {% endif %}</dd>

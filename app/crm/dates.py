@@ -1,7 +1,9 @@
 """Dates as people read them, in the reader's language."""
 from datetime import date
 
+from django.conf import settings
 from django.utils import formats, timezone
+from django.utils.dates import WEEKDAYS
 from django.utils.translation import gettext as _
 
 
@@ -42,3 +44,34 @@ def range_from_code(code):
     except ValueError:
         return code
     return range_text(first, last)
+
+
+def days_text(weekdays):
+    """Days of the week in words: Monday to Friday · Saturday and Sunday · Monday, Wednesday and Friday · Sunday to Thursday.
+    In Spanish: de lunes a viernes · sábado y domingo."""
+    days = sorted(set(weekdays))
+    if not days:
+        return _("none")
+    for start in range(len(days)):                                  # a run past Sunday (Sunday to Thursday) starts after its gap
+        turn = days[start:] + days[:start]
+        if all((later - earlier) % 7 == 1 for earlier, later in zip(turn, turn[1:])):
+            days = turn
+            break
+    names = [str(WEEKDAYS[day]) for day in days]
+    in_a_row = all((later - earlier) % 7 == 1 for earlier, later in zip(days, days[1:]))
+    if len(names) >= 3 and in_a_row:
+        return _("%(first)s to %(last)s") % {"first": names[0], "last": names[-1]}
+    if len(names) == 1:
+        return names[0]
+    return _("%(some)s and %(last)s") % {"some": ", ".join(names[:-1]), "last": names[-1]}
+
+
+def work_days_text():
+    """The business's work days (WORK_DAYS in .env), in the reader's language: Monday to Friday"""
+    return days_text(settings.WORK_WEEKDAYS)
+
+
+def days_off_text():
+    """The days off: Saturday and Sunday"""
+    return days_text(set(range(7)) - set(settings.WORK_WEEKDAYS))
+

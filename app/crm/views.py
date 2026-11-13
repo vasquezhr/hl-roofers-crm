@@ -24,7 +24,7 @@ from django.views.decorators.http import require_POST
 from . import automations, scheduling
 from .documents import document_rows, keep, proposal_document
 from .access import job_or_404, jobs_for, may_edit, office_only
-from .dates import day_text, range_code
+from .dates import day_text, range_code, work_days_text
 from .history import booking_code, changes, when_code
 from .forms import (AccountForm, ContactForm, InspectionForm, JobEditForm, LostForm, NewAccountForm, NoteEditForm, NoteForm,
                     OpportunityEditForm, OpportunityForm, PropertyForm,
@@ -501,7 +501,7 @@ def job_schedule(request, number):
         return redirect("job", number=job.number)
     coming = (Job.objects.filter(stage__in=[Job.Stage.SCHEDULED, Job.Stage.IN_PROGRESS], last_day__gte=today())
               .exclude(pk=job.pk).select_related("account", "crew").order_by("first_day")[:40])
-    intro = _("The job gets whole work days, Monday to Friday. A job that needs more than one day continues on the next work day.")
+    intro = _("The job gets whole work days (%(days)s). A job that needs more than one day continues on the next work day.") % {"days": work_days_text()}
     return form_page(request, form, _("Schedule the job"), reverse("job", args=[job.number]), intro=intro,
                      sub=f"#{job.number} · {job.account.name} · {job.get_job_type_display()}", coming=coming)
 
@@ -510,7 +510,7 @@ def job_schedule(request, number):
 @require_POST
 def job_day(request, number):
     """Add a day to a scheduled job by hand, on any day of the week, or take an added day off again.
-    A day off (Saturday, Sunday) needs "Work on a day off" ticked. The crew sees the job as Changed."""
+    A day off (Saturday and Sunday for H & L) needs "Work on a day off" ticked. The crew sees the job as Changed."""
     job = get_object_or_404(Job, number=number)
     if job.is_finished or not job.first_day:
         messages.warning(request, _("Put the job on the schedule first."))

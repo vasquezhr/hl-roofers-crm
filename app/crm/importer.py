@@ -17,6 +17,7 @@ import hashlib
 import json
 import re
 from datetime import datetime
+from functools import lru_cache
 
 from django.conf import settings
 from django.db import transaction
@@ -78,15 +79,33 @@ SUFFIX = (r"(?:st|street|ave|av|avenue|rd|road|dr|drive|ln|lane|ct|court|cir|cir
 # 2309 Grove Ave · 1512 N 26th St · 9420 Iron Bridge Rd. Apt 4
 STREET = re.compile(rf"\b\d{{1,6}}\s+(?:[NSEW]\.?\s+)?(?:[A-Za-z0-9'.-]+\s+){{1,4}}?{SUFFIX}\b\.?"
                     rf"(?:\s+[NSEW]\b\.?)?(?:[\s,]*(?:apt|unit|ste|suite|#)\.?\s*[\w-]+)?", re.I)
-CITY_STATE = re.compile(r"^[\s,.-]*([A-Za-z][A-Za-z .'-]{1,30}?)[\s,]+(?:VA|Virginia)\b[\s,.]*(\d{5})?", re.I)
-CITY_ZIP = re.compile(r"^[\s,.-]*([A-Za-z][A-Za-z .'-]{1,30}?)[\s,]+(2[0-4]\d{3})\b")
-ZIP_ONLY = re.compile(r"^[\s,.-]*(?:VA|Virginia)?[\s,.]*(2[0-4]\d{3})\b", re.I)
-# towns around Richmond, for a note that gives the town with no state or ZIP
-TOWNS = ["North Chesterfield", "South Chesterfield", "Glen Allen", "Colonial Heights", "Highland Springs", "Prince George", "Manakin Sabot",
-         "New Kent", "Bon Air", "Richmond", "Henrico", "Midlothian", "Chesterfield", "Mechanicsville", "Petersburg",
-         "Chester", "Hopewell", "Ashland", "Powhatan", "Sandston", "Goochland", "Moseley", "Hanover", "Varina",
-         "Dinwiddie", "Montpelier", "Doswell", "Amelia", "Quinton", "Williamsburg"]
-TOWN = re.compile(r"^[\s,.-]*(" + "|".join(TOWNS) + r")\b", re.I)
+# towns around Richmond, for a note that gives the town with no state or ZIP (H & L's; IMPORT_TOWNS in .env replaces them)
+RICHMOND_TOWNS = ["North Chesterfield", "South Chesterfield", "Glen Allen", "Colonial Heights", "Highland Springs", "Prince George",
+                  "Manakin Sabot", "New Kent", "Bon Air", "Richmond", "Henrico", "Midlothian", "Chesterfield", "Mechanicsville",
+                  "Petersburg", "Chester", "Hopewell", "Ashland", "Powhatan", "Sandston", "Goochland", "Moseley", "Hanover", "Varina",
+                  "Dinwiddie", "Montpelier", "Doswell", "Amelia", "Quinton", "Williamsburg"]
+
+
+@lru_cache(maxsize=4)
+def _region(state, state_name, zip_starts, towns):
+    """The patterns for a town, state and ZIP code where the business is. For H & L (VA, Virginia, ZIP codes 20000 to 24999,
+    the towns around Richmond) they are the patterns the import was tuned with on its real notes."""
+    named = "|".join(re.escape(word) for word in (state, state_name) if word)
+    zip_code = "(?:" + "|".join(rf"{re.escape(start)}\d{{{5 - len(start)}}}" for start in zip_starts) + ")" if zip_starts else r"\d{5}"
+    return {
+        "city_state": re.compile(rf"^[\s,.-]*([A-Za-z][A-Za-z .'-]{{1,30}}?)[\s,]+(?:{named})\b[\s,.]*(\d{{5}})?", re.I),
+        "city_zip": re.compile(rf"^[\s,.-]*([A-Za-z][A-Za-z .'-]{{1,30}}?)[\s,]+({zip_code})\b"),
+        "zip_only": re.compile(rf"^[\s,.-]*(?:{named})?[\s,.]*({zip_code})\b", re.I),
+        "town": re.compile(r"^[\s,.-]*(" + "|".join(re.escape(town) for town in towns) + r")\b", re.I) if towns else None,
+    }
+
+
+def region():
+    """The patterns for the region in the settings (STATE, STATE_NAME, ZIP_STARTS and IMPORT_TOWNS in .env)."""
+    towns = settings.IMPORT_TOWNS or (RICHMOND_TOWNS if settings.STATE == "VA" else [])
+    return _region(settings.STATE, settings.STATE_NAME, tuple(settings.ZIP_STARTS), tuple(towns))
+
+
 PHONE = re.compile(r"(?<![\d$.])(?:\+?1[\s.-]?)?\(?([2-9]\d{2})\)?[\s.-]?(\d{3})[\s.-]?(\d{4})(?!\d)")
 NAME = re.compile(r"^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ'.-]+(?:\s+(?:&\s+)?[A-Za-zÁÉÍÓÚÜÑáéíóúüñ'.-]+){0,4}$")
 # words about the work, in English and Spanish. A note with none of them and no address or phone "looks personal".
@@ -96,6 +115,12 @@ WORK = re.compile(
     r"estimate|estimado|proposal|propuesta|invoice|factura|inspec|warranty|garant|downspout|bajante|paipa|pipe boot|"
     r"underlayment|\bfelt\b|nails|clavos|\$\s?\d",
     re.I)
+
+
+def about_work(text):
+    """True when a note uses a word about the work: WORK, or one of IMPORT_WORK_WORDS in .env."""
+    more = [word for word in settings.IMPORT_WORK_WORDS if word]
+    return bool(WORK.search(text or "")) or (bool(more) and bool(re.search("|".join(re.escape(word) for word in more), text or "", re.I)))
 
 
 def tidy_name(name):
@@ -122,15 +147,16 @@ def looks_like_name(line):
 
 def read_city(text):
     """'Richmond VA 23220', 'Richmond, 23220', 'Richmond' or '23220' -> (city, zip)"""
-    for pattern in (CITY_STATE, CITY_ZIP):
+    here = region()
+    for pattern in (here["city_state"], here["city_zip"]):
         found = pattern.match(text)
         if found:
             city = tidy_name(found.group(1))
             return ("Richmond" if city.lower() == "rva" else city), found.group(2) or ""
-    found = TOWN.match(text)
+    found = here["town"].match(text) if here["town"] else None
     if found:
         return tidy_name(found.group(1)), ""
-    found = ZIP_ONLY.match(text)
+    found = here["zip_only"].match(text)
     return ("", found.group(1)) if found else ("", "")
 
 
@@ -202,14 +228,14 @@ def propose(parsed, text, look=True):
         return Proposal.EXISTING, account, reason
     if parsed["street"] or parsed["phone"] or parsed["email"]:
         return Proposal.NEW, None, ""
-    if WORK.search(text or ""):
+    if about_work(text):
         return Proposal.NONE, None, ""
     return Proposal.PERSONAL, None, ""
 
 
 # ---------------------------------------------------------------- 4. reading the file
 def note_date(value):
-    """'2021-05-18T14:03:22.000Z' -> the date in Virginia. None when the export has no usable date."""
+    """'2021-05-18T14:03:22.000Z' -> the date where the business is (TIME_ZONE). None when the export has no usable date."""
     try:
         when = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except ValueError:

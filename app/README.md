@@ -93,7 +93,7 @@ python manage.py runserver
 `demo` fills the empty database with made-up customers, six months of made-up past work (so the reports have something to count), two crews and four logins: `admin`, `office`, `crew1` and `crew2`. The password for all four is `roofing-demo`. Nothing is installed besides Python: on your PC the database is one file, `db.sqlite3`, in this folder.
 
 - **To start over:** stop the server (Ctrl+C), delete `db.sqlite3`, then run `migrate` and `demo` again.
-- **To start empty with your own login** instead of the demo data: skip `demo` and run `python manage.py createsuperuser`.
+- **To start empty with your own login** instead of the demo data: skip `demo` and run `python manage.py createsuperuser`. (For another business, use `start_business` instead: see "Another business on the same app".)
 - **Next time:** `.venv\Scripts\activate.bat`, then `python manage.py runserver`.
 
 ## Check that it works
@@ -104,7 +104,7 @@ Run the tests. They build their own empty database, so they never touch your dat
 python manage.py test
 ```
 
-It should end with `OK (skipped=1)`. There are 325 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, the dashboard and the reports, the automations and the scheduled command, the data editor, system status, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
+It should end with `OK (skipped=1)`. There are 341 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, the dashboard and the reports, the automations and the scheduled command, the data editor, system status, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
 
 Then click through it:
 
@@ -197,12 +197,44 @@ The tests fail if a label has no Spanish.
 | `crm\static\crm\` | Bootstrap 5.3.8 (its own copy, so no internet is needed), `hl.css` (the business's colors and the few pieces Bootstrap lacks), `hl.js` (about 100 lines) and H & L's app icon |
 | `crm\look.py` | The business's look: the shades worked out from its two colors, the check that white writing reads on them, and the app's icon (uploaded, H & L's own, or drawn from the initials) |
 | `crm\admin.py` | What the admin site shows |
-| `crm\management\commands\` | `demo` (made-up data), `spanish` (checks and builds the Spanish file), `tick` (the automations that go by the clock; Task Scheduler runs it) and `backup_ran` (the backup job reports in) |
+| `crm\management\commands\` | `demo` (made-up data), `spanish` (checks and builds the Spanish file), `tick` (the automations that go by the clock; Task Scheduler runs it), `backup_ran` (the backup job reports in) and `start_business` (sets up another business in a new, empty database) |
 | `crm\tests\` | The tests |
 | `browser-test\app-test.js` | A test that clicks through the app in a real browser |
 | `sample\` | A made-up notes export and a made-up price file, for trying the import and the upload |
 
-`crm\static\crm\icon.png` is a placeholder until the real logo arrives.
+`crm\static\crm\icon.png` is a placeholder until the real logo arrives. When it does, upload it under **Admin › Colors and icon**.
+
+## Another business on the same app
+
+The same app can run for another business: same CRM, different business. Each business gets its own copy of the
+`app` folder, with its own `.env`, its own database and its own folder for photos. Nothing is shared between them
+except the code. H & L's install is not changed by any of this.
+
+1. **Copy the `app` folder** to a new place, for example `C:\crm-bluebird\app`. Leave out `.venv`, `.env`, `db.sqlite3` and
+   `media`, and make its own `.venv` there with the first three lines of "Try it on your Windows PC".
+2. **Make its `.env`** from `.env.example`. On a server it needs its own `SECRET_KEY`, its own `DB_NAME` (a new, empty
+   database), its own `MEDIA_ROOT` and its own web address. If the business is not in Virginia or does not work Monday to
+   Friday, also set `TIME_ZONE`, `WORK_DAYS`, `STATE` and `STATE_NAME` (the section "Where the business is" in `.env.example`).
+3. **Set it up**, in that folder:
+
+```bat
+python manage.py migrate
+python manage.py start_business
+```
+
+   `start_business` asks for the business's name, the line under it, the first login (the administrator) and its
+   password, the two colors, and whether to keep H & L's twelve types of work or start with only Inspection,
+   Warranty visit and Other. It never changes a database that already has logins or customers.
+4. **Sign in with that login** and fill in **Admin › Company details**, **Admin › Colors and icon** (upload the logo),
+   **Admin › Types of work**, **Admin › Users and permissions**, and the crews in the admin site.
+5. **On a server,** it runs as its own Windows service on its own port (for example `127.0.0.1:8001`), with its own
+   Cloudflare Tunnel address, its own "tick" task in Task Scheduler and its own backups.
+
+**What stays the same for every business:** the pages and their English and Spanish wording; the notes import's words
+about roofing (more can be added with `IMPORT_WORK_WORDS` in `.env`); and the `demo` data, which is H & L's made-up
+customers and is only for trying the app on a PC.
+
+**To update the code** of every copy, put the new code in each folder and run `python manage.py migrate` in each.
 
 ## Later: on the server
 
@@ -232,7 +264,7 @@ schtasks /Create /TN "CRM tick" /SC MINUTE /MO 15 /RU SYSTEM /TR "C:\crm\app\.ve
 7. **Backups report in.** The app does not make the backups. Whatever makes them should run `python manage.py backup_ran ssd` (or `cloud`, or `usb`) as its last step, and `--failed` when it did not work, so System status can show each copy. The backup tools are still to be chosen.
 
 - **Never run `demo` on the server.** It refuses to run when `DEBUG` is off.
-- **Work days** are Monday to Friday: `WORK_WEEKDAYS` in `hlcrm\settings.py`. Suggestions never offer another day; the office can book one by hand with "Work on a day off". Sundays are not decided yet.
+- **Work days** are Monday to Friday: `WORK_DAYS` in `.env` changes them (`.env.example` shows how). Suggestions never offer another day; the office can book one by hand with "Work on a day off". Sundays are not decided yet.
 - **Calendar addresses** use the address the page was opened at, so on the server they start with `webcal://app.handlroofers.com/`. A calendar app decides how often it looks for changes. Not yet tried on a real iPhone.
 - **The website's request form.** Set `LEAD_FORM_KEY` in `.env`, and have the website send each request as a POST to `https://app.handlroofers.com/leads/in/` with these fields: `key`, `name`, `phone`, `email`, `address`, `city`, `zip`, `service`, `message`, `language`. The top of `crm\lead_views.py` (`lead_in`) says exactly what it accepts. A key inside a web page can be read by anyone who looks, so it only keeps casual robots out; Cloudflare's rate limiting is the real guard.
 - **The Price Book's file reader was built without a real supplier file.** It needs a row of column names with Item, Cost and Price (Code and Unit are optional), in English or Spanish. Try it with one real file before relying on it.

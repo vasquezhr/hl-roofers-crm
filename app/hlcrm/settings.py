@@ -1,5 +1,5 @@
 """
-Settings for the H & L Roofers CRM.
+Settings for the CRM (H & L Roofers' and any other business's).
 
 Anything that differs between your PC and the server (secret key, database,
 web address) is read from a file named ".env" next to manage.py. Copy
@@ -7,6 +7,8 @@ web address) is read from a file named ".env" next to manage.py. Copy
 """
 import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -126,7 +128,7 @@ LANGUAGE_CODE = "en"
 LANGUAGES = [("en", "English"), ("es", "Español")]
 LOCALE_PATHS = [BASE_DIR / "crm" / "locale"]
 LANGUAGE_COOKIE_AGE = 60 * 60 * 24 * 365        # the EN / ES choice is remembered on that phone or computer for a year
-TIME_ZONE = "America/New_York"                  # Virginia
+TIME_ZONE = env("TIME_ZONE", "America/New_York")    # where the business is (H & L: Virginia)
 USE_I18N = True
 USE_TZ = True
 
@@ -168,7 +170,33 @@ LEAD_FORM_ORIGIN = env("LEAD_FORM_ORIGIN", "*")  # the website's address, e.g. h
 
 # ---------- CRM settings ----------
 FIRST_JOB_NUMBER = int(env("FIRST_JOB_NUMBER", "101"))    # the first number each year: 26-101, 26-102, ...
-WORK_WEEKDAYS = [0, 1, 2, 3, 4]                 # Monday to Friday. Saturday is never a work day; Sunday is not decided yet.
+
+
+def work_days_from(text):
+    """WORK_DAYS as written in .env (mon,tue,wed,thu,fri) -> the days' numbers, 0 being Monday: [0, 1, 2, 3, 4]"""
+    days = [word.strip().lower()[:3] for word in text.split(",") if word.strip()]
+    if not days or any(day not in DAY_KEYS for day in days):
+        raise ImproperlyConfigured("WORK_DAYS in .env: list the work days with commas, like this: mon,tue,wed,thu,fri")
+    return sorted({DAY_KEYS.index(day) for day in days})
+
+
+# The work days. A day off can still be booked by hand ("Work on a day off").
+# H & L: Monday to Friday. Saturday is never a work day; Sunday is not decided yet.
+DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+WORK_WEEKDAYS = work_days_from(env("WORK_DAYS", "mon,tue,wed,thu,fri"))
+
+# ---------- where the business is (H & L's are the defaults) ----------
+STATE = env("STATE", "VA").upper()                     # the state a new address starts with
+STATE_NAME = env("STATE_NAME", "Virginia")             # the state's name, as notes may spell it out
+# The notes import reads a ZIP code only when it starts with one of these. H & L: 20 to 24 (Virginia and around).
+ZIP_STARTS = [start.strip() for start in env("ZIP_STARTS", "20,21,22,23,24").split(",") if start.strip()]
+if any(not start.isdigit() or len(start) > 5 for start in ZIP_STARTS):
+    raise ImproperlyConfigured("ZIP_STARTS in .env: the first digits of the business's ZIP codes, with commas, like this: 20,21,22")
+# The towns the notes import knows when a note gives a town with no state or ZIP code.
+# Empty: the towns around Richmond, while STATE is VA.
+IMPORT_TOWNS = [town.strip() for town in env("IMPORT_TOWNS").split(",") if town.strip()]
+# More words that mean a note is about the work. The import already knows roofing words, in English and Spanish.
+IMPORT_WORK_WORDS = [word.strip() for word in env("IMPORT_WORK_WORDS").split(",") if word.strip()]
 # Apple Notes folders that are never imported, separated by commas. Notes in them are counted, not stored.
 IMPORT_SKIP_FOLDERS = [f.strip() for f in env("IMPORT_SKIP_FOLDERS", "Passwords and accounts").split(",") if f.strip()]
 # The notes export holds passwords, so the uploaded file is only ever held in memory, never written to the disk.

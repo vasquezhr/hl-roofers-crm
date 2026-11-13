@@ -197,7 +197,7 @@ class Jobs(Base):
     def test_saturday_is_never_a_first_day(self):
         job = self.job()
         response = self.schedule(job, SATURDAY)
-        self.assertContains(response, "Pick a work day, Monday to Friday.")
+        self.assertContains(response, "Pick a work day (Monday to Friday).")
         job.refresh_from_db()
         self.assertEqual(job.stage, "signed")
 
