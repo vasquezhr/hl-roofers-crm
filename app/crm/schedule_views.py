@@ -23,7 +23,7 @@ from django.views.decorators.http import require_POST
 from . import scheduling
 from .access import job_or_404, jobs_for, office_only
 from .history import booking_code, when_code
-from .models import Company, Crew, Job, Opportunity, Worker, log
+from .models import Company, Crew, Job, Opportunity, Worker, is_day_off, log
 from .views import filter_pills, next_step, saved, today
 
 TONES = ["primary", "success", "warning", "danger", "secondary"]        # one color for each crew, in order
@@ -45,7 +45,11 @@ def schedule(request):
     offset = max(0, int(request.GET["week"])) if request.GET.get("week", "").isdigit() else 0
     show = request.GET.get("show", "all")
     days = scheduling.week(offset)
-    booked = scheduling.stops_between(days[0], days[-1])
+    # the five work days, plus any day off in between that has something booked on it by hand
+    start = today() if offset == 0 else days[0]
+    end = scheduling.week(offset + 1)[0] - timedelta(days=1)
+    booked = scheduling.stops_between(start, end)
+    days = sorted(set(days) | {day for day in booked if start <= day <= end})
     crews = list(Crew.objects.filter(active=True))
     tones = crew_tones()
 
@@ -56,11 +60,11 @@ def schedule(request):
             return stop.kind == "inspection"
         return stop.kind == "job" and str(stop.record.crew_id) == show
 
-    columns = [{"day": day, "is_today": day == today(),
+    columns = [{"day": day, "is_today": day == today(), "day_off": is_day_off(day),
                 "stops": [{"stop": stop, "tone": "info" if stop.kind == "inspection" else tones.get(stop.record.crew_id, "secondary")}
                           for stop in booked.get(day, []) if wanted(stop)]} for day in days]
     return render(request, "crm/schedule.html", {
-        "columns": columns, "offset": offset, "show": show, "first": days[0], "last": days[-1],
+        "columns": columns, "width": min(len(columns), 6), "offset": offset, "show": show, "first": days[0], "last": days[-1],
         "pills": filter_pills(show, [("all", _("All"), "")] + [(str(crew.pk), crew.name, "") for crew in crews] + [("inspections", _("Inspections"), "")]),
         "legend": [(tones[crew.pk], crew.name) for crew in crews],
         # the office's calendar address, and each crew's own, which the office can send to that crew
@@ -181,6 +185,9 @@ def my_day(request):
         return redirect("home")
     crew, day = request.user.crew, today()
     next_day = scheduling.work_day(1, day) if scheduling.is_work_day(day) else scheduling.work_day(0, day)
+    if crew:                                                            # a day off with work booked on it comes first
+        sooner = [one for one in scheduling.stops_between(day + timedelta(days=1), next_day, crew) if one < next_day]
+        next_day = min(sooner) if sooner else next_day
     booked = scheduling.stops_between(day, next_day, crew) if crew else {}
     # each of today's stops, with the buttons this crew may use on it
     stops = [{"stop": stop, "job": stop.record, "step": next_step(stop.record, request.user),
@@ -251,7 +258,7 @@ def calendar_feed(request, token):
                     lines += [f"DTSTART:{start:%Y%m%dT%H%M%SZ}", f"DTEND:{start + timedelta(hours=1):%Y%m%dT%H%M%SZ}",
                               "SUMMARY:" + ics_text(f"{_('Inspection')}: {record.account.name}")]
                 else:
-                    part = f" ({stop.day_number}/{record.days})" if record.days > 1 else ""
+                    part = f" ({stop.day_number}/{record.day_count})" if record.day_count > 1 else ""
                     who = "" if crew else f"{record.crew.name} · "
                     lines += [f"DTSTART;VALUE=DATE:{day:%Y%m%d}", f"DTEND;VALUE=DATE:{day + timedelta(days=1):%Y%m%d}",
                               "SUMMARY:" + ics_text(f"{who}{record.account.name} · {record.get_job_type_display()}{part}")]

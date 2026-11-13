@@ -784,6 +784,30 @@ msgstr "Agregar trabajador"
 msgid "%(days)s work days"
 msgstr "%(days)s días de trabajo"
 
+msgid "Day off"
+msgstr "Día libre"
+
+msgid "Days added by hand"
+msgstr "Días agregados a mano"
+
+msgid "Take this day off the job?"
+msgstr "¿Quitar este día del trabajo?"
+
+msgid "Take this day off the job"
+msgstr "Quitar este día del trabajo"
+
+msgid "Add a day"
+msgstr "Agregar un día"
+
+msgid "Day"
+msgstr "Día"
+
+msgid "Work on a day off"
+msgstr "Trabajar en un día libre"
+
+msgid "Any day of the week, for work that does not follow on from the job's other days. Saturday and Sunday need “Work on a day off”."
+msgstr "Cualquier día de la semana, para trabajo que no sigue a los otros días del trabajo. Sábado y domingo necesitan “Trabajar en un día libre”."
+
 msgid "Not scheduled yet"
 msgstr "Sin programar"
 
@@ -1123,14 +1147,14 @@ msgstr "Precio por unidad"
 msgid "Amount"
 msgstr "Monto"
 
+msgid "Remove the line"
+msgstr "Quitar la línea"
+
 msgid "Qty"
 msgstr "Cant."
 
 msgid "each"
 msgstr "c/u"
-
-msgid "Remove the line"
-msgstr "Quitar la línea"
 
 msgid "Add a line"
 msgstr "Agregar línea"
@@ -1746,8 +1770,11 @@ msgstr "Trabajadores que ayudan en este trabajo. No tienen usuario; aquí se ano
 msgid "For the Crew profile: the crew whose jobs this login sees."
 msgstr "Para el perfil Equipo: el equipo cuyos trabajos ve este usuario."
 
-msgid "Pick a work day, Monday to Friday."
-msgstr "Elija un día de trabajo, de lunes a viernes."
+msgid "Saturday and Sunday are days off. Tick this only when the work really has to be on one of them."
+msgstr "Sábado y domingo son días libres. Marque esto solo cuando el trabajo de verdad tenga que ser uno de esos días."
+
+msgid "Pick a work day, Monday to Friday. To use a day off, tick “Work on a day off”."
+msgstr "Escoja un día de trabajo, de lunes a viernes. Para usar un día libre, marque “Trabajar en un día libre”."
 
 msgid "Type of account"
 msgstr "Tipo de cuenta"
@@ -1772,9 +1799,6 @@ msgstr "Nota"
 
 msgid "What is it for?"
 msgstr "¿Para qué es?"
-
-msgid "Day"
-msgstr "Día"
 
 msgid "Time"
 msgstr "Hora"
@@ -2303,6 +2327,12 @@ msgstr "Puesto en la agenda: %(detail)s"
 
 msgid "Crew changed: %(detail)s"
 msgstr "Cambio de equipo: %(detail)s"
+
+msgid "Day added by hand: %(detail)s"
+msgstr "Día agregado a mano: %(detail)s"
+
+msgid "Day taken off: %(detail)s"
+msgstr "Día quitado: %(detail)s"
 
 msgid "Inspection booked: %(detail)s"
 msgstr "Inspección agendada: %(detail)s"
@@ -3042,6 +3072,9 @@ msgstr "Prospectos: %(leads)s · Convertidos: %(converted)s (%(rate)s%%)"
 msgid "The calendar has a new address. The old one no longer works."
 msgstr "El calendario tiene una dirección nueva. La anterior ya no funciona."
 
+msgid "Pick a work day, Monday to Friday."
+msgstr "Elija un día de trabajo, de lunes a viernes."
+
 msgid "Booked"
 msgstr "Agendado"
 
@@ -3111,11 +3144,20 @@ msgstr "Firmada: crear el trabajo"
 msgid "That step was already taken. Look at the job again."
 msgstr "Ese paso ya se hizo. Vuelva a ver el trabajo."
 
+msgid "Put the job on the schedule first."
+msgstr "Primero ponga el trabajo en la agenda."
+
 msgid "The other company's number for this job: an insurance or warranty claim, a purchase order or a work order."
 msgstr "El número de la otra compañía para este trabajo: un reclamo de seguro o de garantía, una orden de compra o una orden de trabajo."
 
 msgid "Job #%(number)s created"
 msgstr "Trabajo #%(number)s creado"
+
+msgid "Pick a day."
+msgstr "Escoja un día."
+
+msgid "That day is already one of the job's days."
+msgstr "Ese día ya es uno de los días del trabajo."
 
 msgid "Warranty job #%(number)s created"
 msgstr "Trabajo de garantía #%(number)s creado"
@@ -3140,6 +3182,9 @@ msgstr "%(crew)s no ha visto el cambio del trabajo #%(number)s"
 
 msgid "%(count)s imported notes are waiting for review"
 msgstr "%(count)s notas importadas esperan revisión"
+
+msgid "%(day)s is a day off. To add it anyway, tick “Work on a day off”."
+msgstr "%(day)s es un día libre. Para agregarlo de todas formas, marque “Trabajar en un día libre”."
 
 msgid "People"
 msgstr "Personas"

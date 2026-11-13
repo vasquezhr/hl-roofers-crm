@@ -109,7 +109,7 @@ class Stop:
 def stops_between(first, last, crew=None):
     """Every stop from `first` to `last`: {day: [stops]}. With `crew`, only that crew's jobs."""
     days = {}
-    jobs = (Job.objects.filter(first_day__lte=last, last_day__gte=first, stage__in=ON_SCHEDULE, crew__isnull=False)
+    jobs = (Job.objects.filter(starts_on__lte=last, last_day__gte=first, stage__in=ON_SCHEDULE, crew__isnull=False)
             .select_related("account", "place", "crew").prefetch_related("change_orders", "payments", "workers"))
     for job in jobs.filter(crew=crew) if crew else jobs:
         for day in job.work_days:
@@ -166,7 +166,7 @@ def inspection_suggestions(opp):
 def crew_days(crew, first, last, but=None):
     """The days a crew already has a job on, from `first` to `last`: {day: job}. `but` is a job to leave out."""
     busy = {}
-    for job in Job.objects.filter(crew=crew, first_day__lte=last, last_day__gte=first, stage__in=ON_SCHEDULE).select_related("account", "place"):
+    for job in Job.objects.filter(crew=crew, starts_on__lte=last, last_day__gte=first, stage__in=ON_SCHEDULE).select_related("account", "place"):
         if job != but:
             for day in job.work_days:
                 busy.setdefault(day, job)

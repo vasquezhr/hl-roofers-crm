@@ -415,3 +415,15 @@ The user: "When adding lines from the price book, there should be the ability to
 - **The proposal and its PDF print** "GAF Timberline HDZ shingles — 50 × $22 per bundle" and $1,100 in the amount column. A unit of "each" prints as "3 × $20".
 - **The job's scope** (what the crew reads) shows "GAF Timberline HDZ shingles × 50 bundle": the quantity, never the price for each.
 - Choices to confirm: the unit is the Price Book's own word, so it prints as typed there ("bundle", not "bundles"); change orders still have one amount each.
+
+**2. Any day of the week, by hand** (built Nov 13)
+
+The user: "There should also be the ability to schedule ANY day of the week, if needed, but it should remain as it is now as default. For example, if for whatever reason they need to work a Saturday (which is never unless it's after sunset), then the office/admin/owner should have the ability to add a job to that date -- even if it's off by default. There should be a way to override that and manually create those dates."
+
+- **Monday to Friday stays the default.** Suggested times never offer a day off, and the forms still refuse one at first.
+- **"Work on a day off"** is a tick box on the job's schedule form and on the inspection's day-and-time form. With it ticked, a Saturday or Sunday is accepted. A job that starts on a day off counts that day as its first, then carries on through work days.
+- **"Add a day"** on a scheduled job adds any date by hand: a Saturday evening, or a weekday that does not follow on from the job's other days. A day off needs the same tick. An added day can be taken off again. Only the office and the administrator can do this; a crew cannot.
+- **The crew is told:** an added or removed day marks the job Changed, as moving it does, and the crew taps Got it.
+- **Everywhere the days are used follows:** the schedule shows the day off as its own column, marked "Day off"; My Day shows it, and finds it as the next day with work; the calendar feed has it; the job counts it ("day 3 of 3"); a crew is busy that day for suggestions.
+- **The history says who added or took off which day,** with the date and time.
+- Choices to confirm: the app does not know sunset times, so a Saturday is a whole day like any other; a job's added days are listed on its page, and only added days can be taken off one by one (the regular days change with the schedule form).

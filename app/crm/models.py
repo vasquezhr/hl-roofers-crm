@@ -20,7 +20,7 @@ The data model: what the CRM stores.
 import re
 import secrets
 from decimal import Decimal
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
@@ -33,6 +33,11 @@ from .dates import range_from_code
 from .history import booking_text, changes_text, when_text
 
 # ---------------------------------------------------------------- small helpers
+def is_day_off(day):
+    """Saturday and Sunday, or whatever days are not in WORK_WEEKDAYS. They can still be booked by hand, as an override."""
+    return day.weekday() not in settings.WORK_WEEKDAYS
+
+
 def quantity_text(value):
     """A quantity without the zeros that say nothing: 50.00 -> 50, 2.50 -> 2.5"""
     text = f"{value:f}"
@@ -635,6 +640,8 @@ class Job(models.Model):
     first_day = models.DateField(_("first day"), null=True, blank=True)
     days = models.PositiveSmallIntegerField(_("days"), default=1)
     last_day = models.DateField(null=True, blank=True, editable=False)
+    extra_days = models.JSONField(default=list, blank=True, editable=False)     # days added by hand, any day of the week (ISO dates)
+    starts_on = models.DateField(null=True, blank=True, editable=False)         # the first of all the job's days, for searches
     workers = models.ManyToManyField(Worker, verbose_name=_("extra workers"), blank=True, related_name="jobs")
     # the outside number a job can carry: a claim, a purchase order or a work order
     ref_type = models.CharField(_("kind of number"), max_length=6, choices=RefType.choices, blank=True)
@@ -665,21 +672,45 @@ class Job(models.Model):
     def save(self, *args, **kwargs):
         if not self.number:
             self.number = Sequence.next_number()
+        regular = set(self.regular_days)
+        self.extra_days = [day.isoformat() for day in self.added_days if day not in regular]
         days = self.work_days
-        self.last_day = days[-1] if days else None
+        self.starts_on, self.last_day = (days[0], days[-1]) if days else (None, None)
         super().save(*args, **kwargs)
 
     @property
-    def work_days(self):
-        """The dates the crew is on this job: `days` work days starting at first_day, skipping the weekend."""
+    def regular_days(self):
+        """`days` days starting at first_day, skipping days off. The first day counts even when it is a day off:
+        that happens only when the office booked it on purpose ("Work on a day off")."""
         if not self.first_day:
             return []
-        out, day = [], self.first_day
+        out, day = [self.first_day], self.first_day + timedelta(days=1)
         while len(out) < max(1, self.days):
-            if day.weekday() in settings.WORK_WEEKDAYS:
+            if not is_day_off(day):
                 out.append(day)
             day += timedelta(days=1)
         return out
+
+    @property
+    def added_days(self):
+        """Days the office added by hand, on any day of the week."""
+        return sorted({date.fromisoformat(text) for text in self.extra_days or []})
+
+    @property
+    def work_days(self):
+        """Every date the crew is on this job: its regular days and the days added by hand."""
+        if not self.first_day:
+            return []
+        return sorted(set(self.regular_days) | set(self.added_days))
+
+    @property
+    def day_count(self):
+        return len(self.work_days)
+
+    @property
+    def days_off(self):
+        """The job's days that fall on a day off."""
+        return [day for day in self.work_days if is_day_off(day)]
 
     @property
     def is_warranty(self):
@@ -1064,6 +1095,7 @@ class Activity(models.Model):
         "changed": _("Dates changed (before: %(detail)s)"), "notified": _("The crew was told by text"), "got_it": _("The crew saw the change"),
         "worker_added": _("Extra worker added: %(detail)s"), "worker_removed": _("Extra worker removed: %(detail)s"),
         "booked": _("Put on the schedule: %(detail)s"), "crew_changed": _("Crew changed: %(detail)s"),
+        "day_added": _("Day added by hand: %(detail)s"), "day_removed": _("Day taken off: %(detail)s"),
         "inspection_booked": _("Inspection booked: %(detail)s"),
         # changes to a record's own fields, and to an account's contacts, properties and notes
         "edited": _("Changed: %(detail)s"),
@@ -1100,7 +1132,7 @@ class Activity(models.Model):
         "data_edited": _("Data editor: %(detail)s changes saved"), "data_undone": _("Data editor: %(detail)s changes undone"),
     }
     # how the stored detail of some kinds is put into words when it is read
-    READERS = {"changed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
+    READERS = {"changed": range_from_code, "day_added": range_from_code, "day_removed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
                "edited": changes_text, "contact_edited": changes_text, "property_edited": changes_text,
                "company_edited": changes_text, "price_set": changes_text, "login_edited": changes_text}
 

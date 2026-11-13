@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone, translation
 
 from crm import scheduling
-from crm.models import Company, Property, Worker
+from crm.models import Company, Job, Property, Worker
 
 from .base import FRIDAY, MONDAY, SATURDAY, Base
 
@@ -496,3 +496,98 @@ class CalendarFeed(OnMonday):
         self.assertNotEqual(self.crew1.feed_token, old)
         self.assertIn("Denise Wyckoff", self.feed(self.crew1.feed_token))
         self.assertIn("Anjali Raman", self.feed(Company.load().feed_token))
+
+
+class DaysOff(OnMonday):
+    """Monday to Friday stays the rule. The office can still book a day off on purpose, and add any day to a job by hand."""
+
+    def setUp(self):
+        super().setUp()
+        self.sign_in(self.office)
+
+    def test_a_day_off_needs_the_tick(self):
+        job = self.job()
+        page = self.move(job, SATURDAY, crew=self.crew1)
+        self.assertContains(page, "Pick a work day, Monday to Friday.")
+        job.refresh_from_db()
+        self.assertEqual(job.stage, "signed")
+        self.move(job, SATURDAY, 2, crew=self.crew1, day_off_ok="on")
+        job.refresh_from_db()
+        self.assertEqual((job.stage, job.work_days, job.days_off), ("scheduled", [SATURDAY, NEXT_MONDAY], [SATURDAY]))   # then the next work day
+        self.assertEqual((job.starts_on, job.last_day), (SATURDAY, NEXT_MONDAY))
+
+    def test_an_inspection_on_a_day_off(self):
+        visit = self.inspection(self.account, self.place)
+        address = reverse("opp_inspection", args=[visit.number])
+        self.assertContains(self.client.post(address, {"day": SATURDAY.isoformat(), "time": "19:30"}), "Pick a work day, Monday to Friday.")
+        self.client.post(address, {"day": SATURDAY.isoformat(), "time": "19:30", "day_off_ok": "on"})
+        visit.refresh_from_db()
+        self.assertEqual(timezone.localtime(visit.inspection_at).strftime("%a %H:%M"), "Sat 19:30")
+
+    def test_suggestions_never_offer_a_day_off(self):
+        found = scheduling.inspection_suggestions(self.inspection(self.account, self.place))
+        self.assertTrue(all(scheduling.is_work_day(choice["day"]) for choice in found))
+        self.assertTrue(all(scheduling.is_work_day(day) for choice in scheduling.job_suggestions(self.job(), self.crew1, 3) for day in choice["days"]))
+
+    def test_adding_a_saturday_to_a_job(self):
+        job = self.job(self.crew1, "scheduled", first_day=THURSDAY, days=2)             # Thursday and Friday
+        add = reverse("job_day", args=[job.number])
+        page = self.client.post(add, {"do": "add", "day": SATURDAY.isoformat()}, follow=True)
+        self.assertContains(page, "Sat, Nov 14 is a day off. To add it anyway, tick “Work on a day off”.")
+        job.refresh_from_db()
+        self.assertEqual(job.added_days, [])
+        self.client.post(add, {"do": "add", "day": SATURDAY.isoformat(), "day_off_ok": "1"})
+        job.refresh_from_db()
+        self.assertEqual((job.work_days, job.last_day, job.day_count), ([THURSDAY, FRIDAY, SATURDAY], SATURDAY, 3))
+        self.assertTrue(job.change_unseen)                                           # the crew is told
+        self.assertEqual((job.was_first_day, job.was_last_day), (THURSDAY, FRIDAY))
+        self.assertEqual(job.activities.first().text, "Day added by hand: Sat, Nov 14")
+        page = self.client.get(reverse("job", args=[job.number]))
+        for words in ["Days added by hand", "Day off", "3 work days", "Thu, Nov 12 – Sat, Nov 14"]:
+            self.assertContains(page, words)
+        # it shows on the schedule as a column of its own, marked Day off, and in the crew's calendar
+        columns = self.client.get(reverse("schedule")).context["columns"]
+        saturday = next(column for column in columns if column["day"] == SATURDAY)
+        self.assertTrue(saturday["day_off"])
+        self.assertEqual([item["stop"].record for item in saturday["stops"]], [job])
+        self.assertContains(self.client.get(reverse("schedule")), "Day off")
+        feed = self.client.get(reverse("calendar_feed", args=[self.crew1.calendar_token()])).content.decode()
+        self.assertIn("DTSTART;VALUE=DATE:20261114", feed)
+        self.assertIn("(3/3)", feed)
+        # taking it off again
+        self.client.post(add, {"do": "remove", "day": SATURDAY.isoformat()})
+        job.refresh_from_db()
+        self.assertEqual((job.work_days, job.last_day), ([THURSDAY, FRIDAY], FRIDAY))
+        self.assertEqual(job.activities.first().text, "Day taken off: Sat, Nov 14")
+
+    def test_any_weekday_can_be_added_even_before_the_first_day(self):
+        job = self.job(self.crew1, "scheduled", first_day=NEXT_MONDAY, days=1)
+        add = reverse("job_day", args=[job.number])
+        self.client.post(add, {"do": "add", "day": NEXT_MONDAY.isoformat()})
+        self.assertEqual(Job.objects.get(pk=job.pk).added_days, [])                  # already one of its days
+        self.client.post(add, {"do": "add", "day": WEDNESDAY.isoformat()})
+        job.refresh_from_db()
+        self.assertEqual((job.work_days, job.starts_on, job.last_day), ([WEDNESDAY, NEXT_MONDAY], WEDNESDAY, NEXT_MONDAY))
+        self.assertIn(job, [item["stop"].record for column in self.client.get(reverse("schedule")).context["columns"] for item in column["stops"]])
+        self.assertContains(self.client.get(reverse("job", args=[job.number])), "Wed, Nov 11 – Mon, Nov 16")
+
+    def test_my_day_shows_the_day_off_and_finds_it_next(self):
+        job = self.job(self.crew1, "scheduled", first_day=FRIDAY, days=1)
+        self.client.post(reverse("job_day", args=[job.number]), {"do": "add", "day": SATURDAY.isoformat(), "day_off_ok": "1"})
+        self.sign_in(self.login1)
+        self.today_is(FRIDAY)
+        self.assertEqual(self.client.get(reverse("my_day")).context["next_day"], SATURDAY)        # not Monday
+        self.today_is(SATURDAY)
+        page = self.client.get(reverse("my_day"))
+        self.assertEqual([item["job"] for item in page.context["stops"]], [job])
+        self.assertContains(page, "Day off")
+
+    def test_who_may_add_a_day(self):
+        job = self.job(self.crew1, "scheduled", first_day=THURSDAY)
+        self.sign_in(self.login1)
+        self.assertRedirects(self.client.post(reverse("job_day", args=[job.number]), {"do": "add", "day": FRIDAY.isoformat()}), reverse("my_day"))
+        self.assertEqual(Job.objects.get(pk=job.pk).added_days, [])
+        waiting = self.job()
+        self.sign_in(self.office)
+        self.assertContains(self.client.post(reverse("job_day", args=[waiting.number]), {"do": "add", "day": FRIDAY.isoformat()}, follow=True),
+                            "Put the job on the schedule first.")

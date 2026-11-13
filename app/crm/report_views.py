@@ -48,7 +48,7 @@ def dashboard(request):
         "day": day, **today_counts(), **drawings,
         "revenue_last": last, "last_month": reports.month_name(last_month), "before_month": formats.date_format(before_month, "F"),
         "change": change, "change_text": f"{abs(change)}%" if change is not None else "",
-        "jobs_week": Job.objects.filter(first_day__lte=week[-1], last_day__gte=week[0], crew__isnull=False, stage__in=scheduling.ON_SCHEDULE).count(),
+        "jobs_week": Job.objects.filter(starts_on__lte=week[-1], last_day__gte=week[0], crew__isnull=False, stage__in=scheduling.ON_SCHEDULE).count(),
         "inspections_open": Opportunity.objects.filter(stage=Opportunity.Stage.INSPECTION).count(),
         "last_upload": PriceUpload.objects.filter(rolled_back_at__isnull=True).first(),
         "copies": backup_copies(), "clock": clock_state(Company.load()),

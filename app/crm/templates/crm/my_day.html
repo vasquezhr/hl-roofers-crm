@@ -31,7 +31,8 @@
 <div class="card shadow-sm mb-3">
   <div class="card-body">
     <div class="d-flex align-items-center gap-2 mb-1">
-      {% if job.days > 1 %}<span class="small text-body-secondary">{% trf "day %(i)s of %(n)s" i=stop.day_number n=job.days %}</span>{% endif %}
+      {% if job.day_count > 1 %}<span class="small text-body-secondary">{% trf "day %(i)s of %(n)s" i=stop.day_number n=job.day_count %}</span>{% endif %}
+      {% if stop.day in job.days_off %}{% trans "Day off" as off %}{% badge off "warning" %}{% endif %}
       <span class="ms-auto">{% stage_badge job %}</span>
     </div>
     <a class="h5 d-block text-decoration-none mb-0" href="{% url 'job' job.number %}">{{ job.account.name }}</a>

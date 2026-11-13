@@ -1,12 +1,11 @@
 """The forms people fill in. Each one gets Bootstrap's form styling automatically."""
 from django import forms
-from django.conf import settings
 from django.contrib.auth import password_validation
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils.translation import gettext_lazy as _
 
 from .models import (JOB_TYPES, LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Opportunity, Payment, PriceItem, Property,
-                     User, Worker)
+                     User, Worker, is_day_off)
 
 JOB_TYPES_TO_SELL = [choice for choice in JOB_TYPES if choice[0] != "warranty"]      # a warranty visit is opened from a job, never sold
 
@@ -30,11 +29,16 @@ def date_box():
     return forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")
 
 
-def work_day(day):
-    """Jobs and inspections go on work days only."""
-    if day.weekday() not in settings.WORK_WEEKDAYS:
-        raise forms.ValidationError(_("Pick a work day, Monday to Friday."))
-    return day
+def day_off_box():
+    return forms.BooleanField(label=_("Work on a day off"), required=False,
+                              help_text=_("Saturday and Sunday are days off. Tick this only when the work really has to be on one of them."))
+
+
+def check_day(form, field):
+    """Jobs and inspections go on work days, unless "Work on a day off" is ticked."""
+    day = form.cleaned_data.get(field)
+    if day and is_day_off(day) and not form.cleaned_data.get("day_off_ok"):
+        form.add_error(field, _("Pick a work day, Monday to Friday. To use a day off, tick “Work on a day off”."))
 
 
 class LoginForm(Bootstrap, AuthenticationForm):
@@ -105,9 +109,12 @@ class OpportunityForm(Bootstrap, forms.ModelForm):
 class InspectionForm(Bootstrap, forms.Form):
     day = forms.DateField(label=_("Day"), widget=date_box())
     time = forms.TimeField(label=_("Time"), widget=forms.TimeInput(attrs={"type": "time"}, format="%H:%M"))
+    day_off_ok = day_off_box()
 
-    def clean_day(self):
-        return work_day(self.cleaned_data["day"])
+    def clean(self):
+        data = super().clean()
+        check_day(self, "day")
+        return data
 
 
 class SignForm(Bootstrap, forms.Form):
@@ -126,6 +133,9 @@ class LostForm(Bootstrap, forms.Form):
 
 # ---------- jobs ----------
 class ScheduleForm(Bootstrap, forms.ModelForm):
+    day_off_ok = day_off_box()
+    field_order = ["crew", "first_day", "day_off_ok", "days", "workers"]
+
     class Meta:
         model = Job
         fields = ["crew", "first_day", "days", "workers"]
@@ -141,8 +151,10 @@ class ScheduleForm(Bootstrap, forms.ModelForm):
         self.fields["workers"].queryset = Worker.objects.filter(active=True, crew__isnull=True)
         self.fields["workers"].help_text = _("Workers who help on this job. They have no login; this records who worked.")
 
-    def clean_first_day(self):
-        return work_day(self.cleaned_data["first_day"])
+    def clean(self):
+        data = super().clean()
+        check_day(self, "first_day")
+        return data
 
     def clean_days(self):
         days = self.cleaned_data["days"]

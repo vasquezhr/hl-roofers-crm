@@ -50,6 +50,7 @@ urlpatterns = [
     path("jobs/<str:number>/", views.job, name="job"),
     path("jobs/<str:number>/schedule/", views.job_schedule, name="job_schedule"),
     path("jobs/<str:number>/stage/", views.job_stage, name="job_stage"),
+    path("jobs/<str:number>/days/", views.job_day, name="job_day"),
     path("jobs/<str:number>/number/", views.job_ref, name="job_ref"),
     path("jobs/<str:number>/warranty/", views.job_warranty, name="job_warranty"),
     path("jobs/<str:number>/note/", views.job_note, name="job_note"),

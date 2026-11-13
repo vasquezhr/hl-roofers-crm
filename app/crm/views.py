@@ -7,7 +7,7 @@ Other pages are in their own files: leads (lead_views.py), proposals, change ord
 invoices (money_views.py), the Price Book and the Admin hub (price_views.py), the Apple Notes import
 (import_views.py).
 """
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -24,12 +24,12 @@ from django.views.decorators.http import require_POST
 from . import automations, scheduling
 from .documents import document_rows, keep, proposal_document
 from .access import job_or_404, jobs_for, office_only
-from .dates import range_code
+from .dates import day_text, range_code
 from .history import booking_code, changes, when_code
 from .forms import (AccountForm, ContactForm, InspectionForm, LostForm, NewAccountForm, NoteForm, OpportunityForm, PropertyForm,
                     RefForm, ScheduleForm, SignForm, WarrantyForm)
 from .importer import find_account
-from .models import Account, Activity, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, Property, Worker, log
+from .models import Account, Activity, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, Property, Worker, is_day_off, log
 from .search import search as find_records
 from .templatetags.crm_tags import ago
 
@@ -91,7 +91,7 @@ def home(request):
 
     # what is happening today: inspections with a time, and the jobs a crew is on
     inspections = opps.filter(stage=Opportunity.Stage.INSPECTION, inspection_at__date=day).order_by("inspection_at")
-    working = [job for job in jobs.filter(first_day__lte=day, last_day__gte=day).exclude(stage=Job.Stage.PAID) if job.on_day(day)]
+    working = [job for job in jobs.filter(starts_on__lte=day, last_day__gte=day).exclude(stage=Job.Stage.PAID) if job.on_day(day)]
 
     # what needs someone's attention. Three of these lists are automations that can be switched off.
     company = Company.load()
@@ -412,6 +412,7 @@ def job(request, number):
     return render(request, "crm/job.html", {
         "job": job, "account": job.account, "crew_view": not office, "step": next_step(job, request.user),
         "can_schedule": office and not job.is_finished,
+        "added_days": [{"day": day, "off": is_day_off(day)} for day in job.added_days],
         "can_open_warranty": office and job.is_finished and not job.is_warranty,
         # money: the office adds change orders and sends the invoice; the office or the crew records a payment
         "orders": orders, "orders_waiting": any(not order.is_signed for order in orders), "payments": list(job.payments.all()),
@@ -462,6 +463,7 @@ def job_schedule(request, number):
     if job.is_finished:
         return redirect("job", number=job.number)
     before = (job.crew_id, job.first_day, job.days)                 # to tell afterwards whether the schedule changed
+    was_first, was_last = job.starts_on, job.last_day
     crew_before, workers_before = job.crew, set(job.workers.all())
     form = ScheduleForm(request.POST or None, instance=job)
     if form.is_valid():
@@ -475,7 +477,6 @@ def job_schedule(request, number):
             log(job, "booked", request.user, detail=booking_code(job))
         elif (job.crew_id, job.first_day, job.days) != before:
             # the crew sees "Changed" on the job until it taps Got it
-            was_first, was_last = before[1], Job(first_day=before[1], days=before[2]).work_days[-1]
             if Company.load().auto_changed:                             # the "Appointment changed" automation
                 job.mark_changed(was_first, was_last)
                 job.save()
@@ -495,6 +496,43 @@ def job_schedule(request, number):
     intro = _("The job gets whole work days, Monday to Friday. A job that needs more than one day continues on the next work day.")
     return form_page(request, form, _("Schedule the job"), reverse("job", args=[job.number]), intro=intro,
                      sub=f"#{job.number} · {job.account.name} · {job.get_job_type_display()}", coming=coming)
+
+
+@office_only
+@require_POST
+def job_day(request, number):
+    """Add a day to a scheduled job by hand, on any day of the week, or take an added day off again.
+    A day off (Saturday, Sunday) needs "Work on a day off" ticked. The crew sees the job as Changed."""
+    job = get_object_or_404(Job, number=number)
+    if job.is_finished or not job.first_day:
+        messages.warning(request, _("Put the job on the schedule first."))
+        return redirect("job", number=job.number)
+    try:
+        day = date.fromisoformat(request.POST.get("day", ""))
+    except ValueError:
+        messages.warning(request, _("Pick a day."))
+        return redirect("job", number=job.number)
+    was_first, was_last = job.starts_on, job.last_day
+    if request.POST.get("do") == "remove":
+        if day not in job.added_days:
+            return redirect("job", number=job.number)
+        job.extra_days = [text for text in job.extra_days if text != day.isoformat()]
+        kind = "day_removed"
+    else:
+        if day in job.work_days:
+            messages.info(request, _("That day is already one of the job's days."))
+            return redirect("job", number=job.number)
+        if is_day_off(day) and not request.POST.get("day_off_ok"):
+            messages.warning(request, _("%(day)s is a day off. To add it anyway, tick “Work on a day off”.") % {"day": day_text(day)})
+            return redirect("job", number=job.number)
+        job.extra_days = list(job.extra_days) + [day.isoformat()]
+        kind = "day_added"
+    if job.stage in (Job.Stage.SCHEDULED, Job.Stage.IN_PROGRESS) and Company.load().auto_changed:
+        job.mark_changed(was_first, was_last)                           # the crew sees "Changed" until it taps Got it
+    job.save()
+    log(job, kind, request.user, detail=range_code(day, day))
+    saved(request)
+    return redirect("job", number=job.number)
 
 
 @office_only

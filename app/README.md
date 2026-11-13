@@ -36,7 +36,8 @@ Documents that go to a customer (the emailed PDF, the email's words, the Accept 
 
 **Scheduling and crew (Phase 3)**
 
-- **Schedule:** five work days at a time, Monday to Friday, with every crew's jobs and the inspections. It can show one crew, or only the inspections, and later weeks.
+- **Schedule:** five work days at a time, Monday to Friday, with every crew's jobs and the inspections. A day off with work booked on it by hand shows as its own column, marked "Day off".
+- **Days off, by hand:** Monday to Friday stays the rule, and suggestions never offer a day off. The office can still start a job or book an inspection on a Saturday or Sunday by ticking **Work on a day off**, and can **Add a day** to a scheduled job: any date, for work that does not follow on from its other days. The crew sees the job as Changed, and the history says who added the day. It can show one crew, or only the inspections, and later weeks.
 - **Suggested times:** "Schedule a visit" lists every inspection and job waiting for a date. An inspection gets the best hour on each of the next work days, ranked by how close it is to that day's other stops. A job gets the next days when the chosen crew is free for all of it, and says where that crew is the day before. One press books it. Typing the days by hand still works.
 - **Distances are rough, by ZIP code.** Each address is placed at the middle of its ZIP code by a small library that needs no internet, so no address leaves the server.
 - **Changed:** when the office moves a job that was already scheduled, the job shows "Changed" with its old dates. **Notify crew** opens a text to the crew lead, ready to send. The crew taps **Got it**, and the office sees that it was seen. Today lists the changes a crew has not seen.
@@ -99,7 +100,7 @@ Run the tests. They build their own empty database, so they never touch your dat
 python manage.py test
 ```
 
-It should end with `OK (skipped=1)`. There are 282 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, the dashboard and the reports, the automations and the scheduled command, the data editor, system status, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
+It should end with `OK (skipped=1)`. There are 289 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, the dashboard and the reports, the automations and the scheduled command, the data editor, system status, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
 
 Then click through it:
 
@@ -225,7 +226,7 @@ schtasks /Create /TN "CRM tick" /SC MINUTE /MO 15 /RU SYSTEM /TR "C:\crm\app\.ve
 6. **Backups report in.** The app does not make the backups. Whatever makes them should run `python manage.py backup_ran ssd` (or `cloud`, or `usb`) as its last step, and `--failed` when it did not work, so System status can show each copy. The backup tools are still to be chosen.
 
 - **Never run `demo` on the server.** It refuses to run when `DEBUG` is off.
-- **Work days** are Monday to Friday: `WORK_WEEKDAYS` in `hlcrm\settings.py`. Saturdays are never offered. Sundays are not decided yet.
+- **Work days** are Monday to Friday: `WORK_WEEKDAYS` in `hlcrm\settings.py`. Suggestions never offer another day; the office can book one by hand with "Work on a day off". Sundays are not decided yet.
 - **Calendar addresses** use the address the page was opened at, so on the server they start with `webcal://app.handlroofers.com/`. A calendar app decides how often it looks for changes. Not yet tried on a real iPhone.
 - **The website's request form.** Set `LEAD_FORM_KEY` in `.env`, and have the website send each request as a POST to `https://app.handlroofers.com/leads/in/` with these fields: `key`, `name`, `phone`, `email`, `address`, `city`, `zip`, `service`, `message`, `language`. The top of `crm\lead_views.py` (`lead_in`) says exactly what it accepts. A key inside a web page can be read by anyone who looks, so it only keeps casual robots out; Cloudflare's rate limiting is the real guard.
 - **The Price Book's file reader was built without a real supplier file.** It needs a row of column names with Item, Cost and Price (Code and Unit are optional), in English or Spanish. Try it with one real file before relying on it.

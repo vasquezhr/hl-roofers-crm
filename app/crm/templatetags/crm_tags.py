@@ -214,7 +214,7 @@ def job_tags(job):
 
 @register.simple_tag
 def job_dates(job):
-    return range_text(job.first_day, job.last_day) if job.first_day else _("Not scheduled yet")
+    return range_text(job.starts_on or job.first_day, job.last_day) if job.first_day else _("Not scheduled yet")
 
 
 @register.simple_tag
