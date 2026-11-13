@@ -54,14 +54,14 @@
   <div class="col-lg-6">
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2">{% trans "Customer" %}</h2>
+        <h2 class="h6 mb-2" data-section="customer">{% trans "Customer" %}</h2>
         {% include "crm/_customer.html" with place=job.place kind="job" ident=job.number %}
       </div>
     </div>
 
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2">{% trans "Crew and dates" %}</h2>
+        <h2 class="h6 mb-2" data-section="crew">{% trans "Crew and dates" %}</h2>
         {% if job.crew %}
         <dl class="row mb-0 small">
           <dt class="col-4 text-body-secondary fw-normal">{% trans "Crew" %}</dt>
@@ -131,7 +131,7 @@
 
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2">{% trans "Numbers" %}</h2>
+        <h2 class="h6 mb-2" data-section="numbers">{% trans "Numbers" %}</h2>
         <dl class="row mb-0 small">
           <dt class="col-4 text-body-secondary fw-normal">{% trans "Our number" %}</dt>
           <dd class="col-8 mb-1">#{{ job.number }}</dd>
@@ -148,7 +148,7 @@
   <div class="col-lg-6">
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2">{% trans "Scope of work" %}</h2>
+        <h2 class="h6 mb-2" data-section="scope">{% trans "Scope of work" %}</h2>
         {% if job.scope_lines %}
         <ul class="small mb-0 ps-3">{% for line in job.scope_lines %}<li>{{ line }}</li>{% endfor %}</ul>
         {% else %}
@@ -159,7 +159,7 @@
 
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2">{% trans "Price and payments" %}</h2>
+        <h2 class="h6 mb-2" data-section="money">{% trans "Price and payments" %}</h2>
         {% if job.is_warranty %}
         <div class="small">{% trans "Warranty job: no charge." %}</div>
         {% else %}
@@ -193,8 +193,7 @@
           {% for payment in payments %}
           <div class="d-flex justify-content-between gap-3">
             <span>{{ payment.paid_on|date }} · {{ payment.get_kind_display }} · {{ payment.get_method_display }}{% if payment.check_number %} #{{ payment.check_number }}{% endif %} <span class="text-body-secondary">· {{ payment.actor }}</span> · <a href="{% url 'receipt' job.number payment.pk %}">{% trans "Receipt" %}</a>{% if user|may_edit:"payment" %} · <a href="{% url 'payment_edit' job.number payment.pk %}">{% trans "Edit" %}</a>{% endif %}</span>
-            <span class="text-nowrap">−{{ payment.amount|money }}{% if can_remove_payment %}
-              <form method="post" action="{% url 'payment_remove' job.number payment.pk %}" class="d-inline">{% csrf_token %}<button type="submit" class="btn btn-link btn-sm text-danger p-0 ms-1 align-baseline" data-confirm="{% trans 'Remove this payment? Use this only for a payment recorded by mistake.' %}" aria-label="{% trans 'Remove this payment' %}">{% icon "trash" %}</button></form>{% endif %}</span>
+            <span class="text-nowrap">−{{ payment.amount|money }}{% if user|can:"delete" %} <a class="link-danger ms-1" href="{% url 'record_delete' 'payment' payment.pk %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete this payment' %}">{% icon "trash" %}</a>{% endif %}</span>
           </div>
           {% endfor %}
           {% endif %}
@@ -211,7 +210,7 @@
     {% if job.opportunity_id or job.warranty_for or warranty_jobs %}
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2">{% trans "Linked records" %}</h2>
+        <h2 class="h6 mb-2" data-section="linked">{% trans "Linked records" %}</h2>
         <ul class="list-unstyled small mb-0">
           {% if job.opportunity_id and not crew_view %}
           <li class="mb-1">{% icon "link" %} <a href="{% url 'opp' job.number %}">{% trf "Opportunity #%(number)s" number=job.number %}</a></li>
@@ -237,7 +236,7 @@
 {# notes typed by the office or the crew: each with who wrote it, the date and the time #}
 <div class="card shadow-sm mb-3" id="notes">
   <div class="card-body">
-    <h2 class="h6 mb-2">{% trans "Notes" %}</h2>
+    <h2 class="h6 mb-2" data-section="notes">{% trans "Notes" %}</h2>
     {% for line in notes %}
     <div class="border-bottom py-2">
       <div class="small text-body-secondary">{{ line.at|day_time }} · {{ line.actor|default:"—" }}</div>
@@ -258,7 +257,7 @@
 
 <div class="card shadow-sm mb-3">
   <div class="card-body">
-    <h2 class="h6 mb-2">{% trans "History" %}</h2>
+    <h2 class="h6 mb-2" data-section="history">{% trans "History" %}</h2>
     {% stamp job %}
     {% include "crm/_history.html" %}
   </div>

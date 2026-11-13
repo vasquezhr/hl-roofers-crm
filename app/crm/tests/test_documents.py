@@ -259,11 +259,11 @@ class KeptCopies(Base):
         self.client.logout()
         self.assertEqual(self.client.get(reverse("receipt", args=[job.number, payment.pk])).status_code, 302)
 
-    def test_a_payment_taken_off_takes_its_receipt_with_it(self):
+    def test_a_deleted_payment_takes_its_receipt_with_it(self):
         job = self.sign()
         self.client.post(reverse("payment_new", args=[job.number]), {"amount": "500", "method": "check", "check_number": "88", "paid_on": "2026-11-12"})
-        self.office.can_billing = True
+        self.office.can_delete = True
         self.office.save()
-        self.client.post(reverse("payment_remove", args=[job.number, Payment.objects.get().pk]))
-        self.assertFalse(KeptDocument.objects.filter(kind="receipt").exists())
+        self.client.post(reverse("record_delete", args=["payment", Payment.objects.get().pk]))
         self.assertNotIn("Receipt", [row["kind"] for row in self.client.get(reverse("job", args=[job.number])).context["documents"]])
+        self.assertTrue(KeptDocument.objects.filter(kind="receipt").exists())          # kept with it in the Recycle Bin, for a restore

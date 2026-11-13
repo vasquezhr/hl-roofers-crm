@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from crm import recycle
-from crm.models import (Account, Activity, BinEntry, Contact, Job, Lead, Note, Opportunity, Payment, PriceEntry, PriceItem, Property, User,
+from crm.models import (Account, Activity, BinEntry, ChangeOrder, Contact, Job, Lead, Note, Opportunity, Payment, PriceEntry, PriceItem, Property, User,
                         every_object)
 
 from .base import MONDAY, Base
@@ -133,24 +133,34 @@ class PermissionSets(Base):
         self.give(self.office, "costs")
         self.assertContains(self.client.get(builder), "cost $62")
 
-    def test_billing_takes_off_a_payment_recorded_by_mistake(self):
+    def test_delete_records_takes_off_a_payment_recorded_by_mistake(self):
+        """The one Delete permission covers every kind of record, payments included (the user, Nov 13). Billing no longer does."""
         job = self.job(self.crew1, "invoiced", price=685, invoiced_on=MONDAY)
         self.sign_in(self.office)
         self.client.post(reverse("payment_new", args=[job.number]), {"amount": "685", "method": "check", "check_number": "1048", "paid_on": MONDAY.isoformat()})
         payment = Payment.objects.get()
-        remove = reverse("payment_remove", args=[job.number, payment.pk])
+        delete = reverse("record_delete", args=["payment", payment.pk])
         self.assertEqual(Job.objects.get(pk=job.pk).stage, "paid")
-        self.assertNotContains(self.client.get(reverse("job", args=[job.number])), remove)
-        self.assertEqual(self.client.post(remove).status_code, 403)
-        self.sign_in(self.login1)
-        self.assertEqual(self.client.post(remove).status_code, 403)
+        self.assertNotContains(self.client.get(reverse("job", args=[job.number])), delete)
+        self.assertEqual(self.client.post(delete).status_code, 403)
         self.give(self.office, "billing")
-        self.assertContains(self.client.get(reverse("job", args=[job.number])), remove)
-        self.client.post(remove)
+        self.assertEqual(self.client.post(delete).status_code, 403)
+        self.sign_in(self.login1)
+        self.assertEqual(self.client.post(delete).status_code, 403)
+        self.give(self.office, "delete")
+        self.assertContains(self.client.get(reverse("job", args=[job.number])), delete)
+        self.assertContains(self.client.get(delete), "Without it, the balance due is $685.")
+        self.client.post(delete)
         job = Job.objects.get(pk=job.pk)
-        self.assertEqual((job.stage, job.balance, job.paid_on, Payment.objects.count()), ("invoiced", 685, None, 0))
-        self.assertTrue(job.activities.first().text.startswith("Payment removed: $685 · "))
-        self.assertEqual(job.activities.first().actor, "office")
+        self.assertEqual((job.stage, job.balance, job.paid_on, Payment.objects.count(), Payment.everything.count()), ("invoiced", 685, None, 0, 1))
+        line = job.activities.first()
+        self.assertTrue(line.text.startswith("Payment deleted: R1 · $685 · "))
+        self.assertEqual(line.actor, "office")
+        # restored from the Recycle Bin: the payment is back, and so is Paid
+        self.client.post(reverse("bin_restore", args=[BinEntry.objects.get().pk]))
+        job = Job.objects.get(pk=job.pk)
+        self.assertEqual((job.stage, job.balance, Payment.objects.count()), ("paid", 0, 1))
+        self.assertTrue(job.activities.first().text.startswith("Payment restored: R1 · $685"))
 
     def test_a_crew_login_without_crew_lead_reads_and_adds_notes(self):
         job = self.job(self.crew1, "scheduled", price=685)
@@ -349,3 +359,69 @@ class Deleting(Base):
         self.assertTrue(Job.everything.filter(pk=self.other.pk).exists())
         self.assertEqual(list(BinEntry.objects.all()), [new])
         self.assertEqual(Activity.objects.get(kind="record_purged").actor, "Automation")
+
+
+class DeletingMoney(Base):
+    """Change orders and payments go to the Recycle Bin like every other record. The job's total, balance and Paid follow."""
+
+    def setUp(self):
+        self.office.can_delete = True
+        self.office.save()
+        self.sign_in(self.office)
+        self.roof = self.job(self.crew1, "invoiced", price=9050, invoiced_on=MONDAY)
+
+    def change_order(self, amount, signed=True):
+        self.client.post(reverse("change_order_new", args=[self.roof.number]), {"description": "Replace 6 more sheets of plywood", "amount": amount})
+        order = ChangeOrder.objects.filter(job=self.roof).order_by("-number").first()
+        if signed:
+            self.client.post(reverse("change_order_send", args=[self.roof.number, order.number]), {"do": "signed"})
+        return order
+
+    def test_a_signed_change_order(self):
+        first, second = self.change_order("390"), self.change_order("140", signed=False)
+        self.assertEqual(Job.objects.get(pk=self.roof.pk).total, 9440)
+        delete = reverse("record_delete", args=["change_order", first.pk])
+        self.assertContains(self.client.get(reverse("change_order", args=[self.roof.number, first.number])), delete)
+        self.assertContains(self.client.get(delete), "Without it, the total is $9,050.")
+        self.client.post(delete)
+        job = Job.objects.get(pk=self.roof.pk)
+        self.assertEqual(job.total, 9050)
+        self.assertTrue(job.activities.first().text.startswith("Change order deleted: CO1 · $390 · Replace 6 more sheets"))
+        self.assertEqual(self.client.get(reverse("change_order", args=[self.roof.number, 1])).status_code, 404)
+        self.assertNotIn("#%s · CO1" % self.roof.number, [row["number"] for row in self.client.get(reverse("job", args=[self.roof.number])).context["documents"]])
+        # a number is never used twice: the next change order is CO3, while CO1 waits in the Recycle Bin
+        self.assertEqual(self.change_order("75", signed=False).number, 3)
+        self.assertEqual(second.number, 2)
+        self.client.post(reverse("bin_restore", args=[BinEntry.objects.get().pk]))
+        job = Job.objects.get(pk=self.roof.pk)
+        self.assertEqual(job.total, 9440)
+        self.assertTrue(job.activities.first().text.startswith("Change order restored: CO1"))
+
+    def test_receipt_numbers_stay_when_a_payment_is_deleted(self):
+        for amount in ("1000", "2000"):
+            self.client.post(reverse("payment_new", args=[self.roof.number]), {"amount": amount, "method": "check", "check_number": "", "paid_on": MONDAY.isoformat()})
+        first, second = Payment.objects.order_by("id")
+        self.assertEqual((first.number, second.number), (1, 2))
+        self.client.post(reverse("record_delete", args=["payment", first.pk]))
+        rows = [row["number"] for row in self.client.get(reverse("job", args=[self.roof.number])).context["documents"]]
+        self.assertIn("#%s · R2" % self.roof.number, rows)
+        self.assertNotIn("#%s · R1" % self.roof.number, rows)
+        self.assertEqual(self.client.get(reverse("receipt", args=[self.roof.number, first.pk])).status_code, 404)
+        self.client.post(reverse("payment_new", args=[self.roof.number]), {"amount": "50", "method": "cash", "check_number": "", "paid_on": MONDAY.isoformat()})
+        self.assertEqual(Payment.objects.order_by("-id").first().number, 3)
+
+    def test_a_payment_whose_job_is_in_the_bin_waits_for_its_job(self):
+        self.client.post(reverse("payment_new", args=[self.roof.number]), {"amount": "500", "method": "cash", "check_number": "", "paid_on": MONDAY.isoformat()})
+        self.client.post(reverse("record_delete", args=["payment", Payment.objects.get().pk]))
+        payment_entry = BinEntry.objects.get()
+        self.client.post(reverse("record_delete", args=["job", self.roof.number]))
+        page = self.client.post(reverse("bin_restore", args=[payment_entry.pk]), follow=True)
+        self.assertContains(page, "Its job is in the Recycle Bin too. Restore job #%s first." % self.roof.number)
+        self.assertEqual(Payment.objects.count(), 0)
+
+    def test_the_crew_cannot_delete_money(self):
+        self.client.post(reverse("payment_new", args=[self.roof.number]), {"amount": "500", "method": "cash", "check_number": "", "paid_on": MONDAY.isoformat()})
+        self.sign_in(self.login1)
+        self.assertEqual(self.client.post(reverse("record_delete", args=["payment", Payment.objects.get().pk])).status_code, 403)
+        self.assertEqual(Payment.objects.count(), 1)
+

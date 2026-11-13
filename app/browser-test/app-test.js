@@ -351,6 +351,83 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   const setup = await main(admin);
   check('the Setup history says who did it', ['Login added: wilmer', 'Deleted: Naomi Iturralde', 'Restored: Naomi Iturralde'].every(words => setup.includes(words)), setup);
 
+  console.log('Nov 12 and 13: Edit, money in the Recycle Bin, days off, photos, receipts, colors, hiding sections');
+  const nextDay = weekday => { const d = new Date(); do { d.setDate(d.getDate() + 1); } while (d.getDay() !== weekday); return iso(d); };
+  // Edit: a contact's phone; the history says what was there before
+  await office.goto(base + '/accounts/');
+  await office.click('a.list-group-item:has-text("Walt & Joan Pruett")');
+  await office.waitForLoadState('networkidle');
+  await office.click('li:has-text("Joan Pruett") a[aria-label="Edit"]');
+  await office.waitForLoadState('networkidle');
+  await office.fill('#id_phone', '(804) 555-0177');
+  await office.click('button:has-text("Save")');
+  await office.waitForLoadState('networkidle');
+  check('an edit is in the history with the value before', (await main(office)).includes('Phone: (804) 555-0110 → (804) 555-0177'), (await main(office)).slice(-600));
+  // a payment goes to the Recycle Bin with the Delete permission; the balance follows, and comes back with it
+  await boss.goto(base + '/jobs/26-104/');
+  await boss.click('a[href^="/delete/payment/"]');
+  await boss.waitForLoadState('networkidle');
+  check('deleting a payment says the new balance', (await main(boss)).includes('Without it, the balance due is $6,480.'));
+  await boss.click('button:has-text("Delete")');
+  await boss.waitForLoadState('networkidle');
+  check('the payment is gone and the balance is up', (await main(boss)).includes('$6,480') && (await main(boss)).includes('Payment deleted: R1 · $1,500'));
+  await boss.goto(base + '/recycle-bin/');
+  await boss.click('.list-group-item:has-text("#26-104 · R1") button:has-text("Restore")');
+  await boss.waitForLoadState('networkidle');
+  await boss.goto(base + '/jobs/26-104/');
+  check('restored: the payment and the balance are back', (await main(boss)).includes('$4,980') && (await main(boss)).includes('Payment restored: R1 · $1,500'));
+  // any day of the week: a Saturday needs "Work on a day off"
+  await office.goto(base + '/jobs/26-118/schedule/');
+  await office.fill('#id_first_day', nextDay(6));
+  await office.click('button:has-text("Save")');
+  await office.waitForLoadState('networkidle');
+  check('a Saturday is refused without the tick', (await main(office)).includes('Pick a work day (Monday to Friday).'));
+  await office.check('#id_day_off_ok');
+  await office.click('button:has-text("Save")');
+  await office.waitForLoadState('networkidle');
+  check('with the tick, the job is on the Saturday', office.url().endsWith('/jobs/26-118/') && (await main(office)).includes('Day off'));
+  // Add a day: a Sunday, by hand
+  await office.goto(base + '/jobs/26-104/');
+  await office.click('summary:has-text("Add a day")');
+  await office.fill('input[name=day]', nextDay(0));
+  await office.check('#dayOffOk');
+  await office.click('details[open] button:has-text("Add")');
+  await office.waitForLoadState('networkidle');
+  check('a Sunday added by hand', (await main(office)).includes('Days added by hand') && (await main(office)).includes('Day added by hand'));
+  // receipts
+  await office.click('a:has-text("Receipt") >> nth=0');
+  await office.waitForLoadState('networkidle');
+  check('a payment has its receipt', (await main(office)).includes('26-104 · R1') && (await main(office)).includes('Paid so far'));
+  // photos: the crew adds one from the phone
+  await crew.goto(base + '/jobs/26-112/');
+  await crew.setInputFiles('#filesPick', { name: 'porch.png', mimeType: 'image/png',
+    buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64') });
+  await crew.selectOption('#filesWhat', 'after');
+  await crew.fill('#filesCaption', 'New porch roof');
+  await crew.click('#files button:has-text("Add")');
+  await crew.waitForLoadState('networkidle');
+  check('the crew adds a photo from the phone', (await main(crew)).includes('New porch roof') && (await crew.locator('img[alt="New porch roof"]').count()) === 1);
+  // colors: another business's colors on every page, and back to H & L's
+  await boss.goto(base + '/manage/look/');
+  await boss.fill('#id_accent_color', '#2e7d32');
+  await boss.click('button:has-text("Save")');
+  await boss.waitForLoadState('networkidle');
+  const primary = await boss.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bs-primary').trim());
+  check('a new main color reaches every page', primary === '#2e7d32', primary);
+  await boss.fill('#id_accent_color', '#b05a22');
+  await boss.click('button:has-text("Save")');
+  await boss.waitForLoadState('networkidle');
+  check("back to H & L's colors: no page carries other colors", (await boss.content()).includes('<style>') === false);
+  // hiding a section on a record: the arrow folds it, and it stays folded on this computer
+  await office.goto(base + '/jobs/26-104/');
+  await office.click('h2[data-section="history"] .hl-fold');
+  check('the arrow hides the History', !(await office.isVisible('text=Payment restored')));
+  await office.reload();
+  await office.waitForLoadState('networkidle');
+  check('it stays hidden after a reload', (await office.getAttribute('h2[data-section="history"] .hl-fold', 'aria-expanded')) === 'false');
+  await office.click('h2[data-section="history"] .hl-fold');
+  check('and opens again', await office.isVisible('text=Payment restored'));
+
   const problems = [office, crew, other, admin, boss].flatMap(p => p.problems).filter(p => !p.includes('404') && !p.includes('403'));
   check('no errors in the browser', problems.length === 0, problems.join(' | '));
   await browser.close();

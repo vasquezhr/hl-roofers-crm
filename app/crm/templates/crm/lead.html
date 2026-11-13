@@ -42,7 +42,7 @@
   <div class="col-lg-6">
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2">{% trans "What they asked for" %}</h2>
+        <h2 class="h6 mb-2" data-section="request">{% trans "What they asked for" %}</h2>
         {% if lead.message %}<blockquote class="border-start border-3 border-primary ps-3 mb-2 hl-pre">{{ lead.message }}</blockquote>{% endif %}
         <dl class="row mb-0 small">
           <dt class="col-4 text-body-secondary fw-normal">{% trans "Type of work" %}</dt><dd class="col-8 mb-1">{{ lead.get_job_type_display }}</dd>
@@ -55,7 +55,7 @@
   <div class="col-lg-6">
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2">{% trans "Contact" %}</h2>
+        <h2 class="h6 mb-2" data-section="contact">{% trans "Contact" %}</h2>
         <dl class="row mb-0 small">
           {% if lead.phone %}<dt class="col-4 text-body-secondary fw-normal">{% trans "Phone" %}</dt><dd class="col-8 mb-1"><a href="{{ lead.phone|tel }}">{{ lead.phone }}</a></dd>{% endif %}
           {% if lead.email %}<dt class="col-4 text-body-secondary fw-normal">{% trans "Email" %}</dt><dd class="col-8 mb-1"><a href="mailto:{{ lead.email }}">{{ lead.email }}</a></dd>{% endif %}
@@ -66,7 +66,7 @@
     </div>
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2">{% trans "Assigned to" %}</h2>
+        <h2 class="h6 mb-2" data-section="assigned">{% trans "Assigned to" %}</h2>
         <div class="small"><span class="fw-semibold">{% if lead.owner %}{{ lead.owner.label }}{% else %}{% trans "Office" %}{% endif %}</span><br>
           <span class="text-body-secondary">{% trans "Requests from the website go to the person named under Admin › Company details." %}</span></div>
       </div>
@@ -76,7 +76,7 @@
 
 <div class="card shadow-sm mb-3">
   <div class="card-body">
-    <h2 class="h6 mb-2">{% trans "History" %}</h2>
+    <h2 class="h6 mb-2" data-section="history">{% trans "History" %}</h2>
     {% stamp lead %}
     {% include "crm/_history.html" %}
   </div>

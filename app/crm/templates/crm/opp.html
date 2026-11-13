@@ -45,14 +45,14 @@
   <div class="col-lg-6">
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2">{% trans "Customer" %}</h2>
+        <h2 class="h6 mb-2" data-section="customer">{% trans "Customer" %}</h2>
         {% include "crm/_customer.html" with place=opp.place kind="opp" ident=opp.number %}
       </div>
     </div>
 
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2">{% trans "Inspection" %}</h2>
+        <h2 class="h6 mb-2" data-section="inspection">{% trans "Inspection" %}</h2>
         {% if opp.inspection_at %}
         <div class="fw-semibold">{{ opp.inspection_at|day }} · {{ opp.inspection_at|time:"g:i A" }}</div>
         {% else %}
@@ -75,7 +75,7 @@
   <div class="col-lg-6">
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2">{% trans "Proposal" %}</h2>
+        <h2 class="h6 mb-2" data-section="proposal">{% trans "Proposal" %}</h2>
         {% if opp.line_items %}
         <table class="table table-sm small mb-0">
           <tbody>
@@ -99,7 +99,7 @@
 
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2">{% trans "Where it came from" %}</h2>
+        <h2 class="h6 mb-2" data-section="source">{% trans "Where it came from" %}</h2>
         <div class="small">{{ opp.get_source_display }}</div>
       </div>
     </div>
@@ -108,7 +108,7 @@
 
 <div class="card shadow-sm mb-3">
   <div class="card-body">
-    <h2 class="h6 mb-2">{% trans "History" %}</h2>
+    <h2 class="h6 mb-2" data-section="history">{% trans "History" %}</h2>
     {% stamp opp %}
     {% include "crm/_history.html" %}
   </div>

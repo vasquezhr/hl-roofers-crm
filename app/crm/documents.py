@@ -107,8 +107,8 @@ def invoice_document(job, company, language="en"):
 
 
 def receipt_number(payment):
-    """26-104 · R2: the job's number, and which of the job's payments this is."""
-    return f"{payment.job.number} · R{payment.job.payments.filter(id__lte=payment.id).count()}"
+    """26-104 · R2: the job's number, and the payment's own receipt number. A number is never used twice on a job."""
+    return f"{payment.job.number} · R{payment.number}"
 
 
 def receipt_document(payment, company, language="en"):
@@ -181,8 +181,8 @@ def document_rows(opps=(), jobs=()):
             else:
                 add(_("Change order"), f"#{job.number} · {order.label}", order.description, order.get_status_display(), "warning", order.sent_on,
                     order.amount, url)
-        for n, payment in enumerate(sorted(job.payments.all(), key=lambda payment: payment.id), 1):
-            add(_("Receipt"), f"#{job.number} · R{n}", payment_label(payment), _("Received %(day)s") % {"day": date_text(payment.paid_on)}, "success",
+        for payment in job.payments.all():
+            add(_("Receipt"), f"#{job.number} · R{payment.number}", payment_label(payment), _("Received %(day)s") % {"day": date_text(payment.paid_on)}, "success",
                 payment.paid_on, payment.amount, reverse("receipt", args=[job.number, payment.pk]))
         if job.invoiced_on:
             paid = job.paid_on is not None

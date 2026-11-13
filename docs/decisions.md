@@ -331,7 +331,7 @@ The user: "there should be a way to delete records as well, but with a permissio
 - **Nothing is erased by Delete.** The record goes to the Recycle Bin and is hidden everywhere: lists, Search, Today, the schedule, the reports and the calendar files. This follows the breakdown ("Deletes go to a Recycle Bin for 30 days, the way Salesforce does it; only Admin empties it").
 - **Restore** puts everything back exactly as it was. Anyone with the Delete permission can restore; only the administrator deletes for good. After 30 days the bin empties itself, when the scheduled command runs (`python manage.py tick`).
 - **An address with opportunities or jobs on it cannot be deleted** on its own.
-- **A payment recorded by mistake** is taken off by a login with the Billing set. It does not go to the bin; the history keeps what it was.
+- **A payment recorded by mistake** is taken off by a login with the Billing set. It does not go to the bin; the history keeps what it was. *(Changed Nov 13: the user wants the one Delete permission for any type of record, so a payment is now deleted with Delete records, into the Recycle Bin. See "Requests from the user on Nov 13, 2026 (second message)".)*
 - Every delete, restore and delete-for-good is in the record's history and in the Setup history, with who and when.
 - Choices to confirm: the 30 days; that deleting an account is allowed even when it has paid jobs (they return if restored, and are gone for good after the bin empties); that restoring is open to everyone who may delete.
 
@@ -389,6 +389,8 @@ The user: "there should be a way to delete records as well, but with a permissio
 
 ### The app and the mockup now differ
 
+*Brought up to date on Nov 13 (the user: "yes, please bring it up to date"); see "Requests from the user on Nov 13, 2026 (second message)". What follows is how it stood before.*
+
 The mockup was not changed for anything built after Nov 10. The app has these and the mockup does not: a crew's note on a job and "Notes from the crews" on Today; the Documents list on the account and the job, with the signed proposal open to the crew; change orders as a page and a PDF with their own Accept page; the time and the old value in the history, "Created / Last change", and Setup history; Add a login, and permission sets that change what a login can do; Delete and the Recycle Bin; real numbers in the reports; the job's length and the crew picker when booking; the calendar address for each crew. The mockup has these and the app does not: sample values for backups and a "Back up now" button. **To decide with the user: whether the mockup should be brought up to date for the owners' review, or retired in favor of showing the app with its demo data.**
 
 ### Kept copies and receipts (built Nov 12, approved by the user as "your better ideas")
@@ -396,7 +398,7 @@ The mockup was not changed for anything built after Nov 10. The app has these an
 - **A document is kept as it was at the moment that matters:** a proposal and a change order when they are signed (on paper, by PO or online), an invoice when it is sent, a receipt when the payment is recorded. The copy holds every word and amount, the terms, and the business's name, license, address and phone as they were. From then on the page and the PDF are drawn from the copy.
 - **The copy is in the customer's language,** because it is the customer's document. An office login reading in English still sees a Spanish-speaking customer's copy in Spanish.
 - **The invoice has two views:** the live one, which follows the payments, and "The copy that was sent".
-- **Receipts are the fourth document.** Numbered by job: #26-104 · R1, R2. A receipt shows the payment, the job total, what has been paid so far and the balance. The office emails it as a PDF; the job's crew can open it. Taking a payment off (Billing) removes its receipt.
+- **Receipts are the fourth document.** Numbered by job: #26-104 · R1, R2. A receipt shows the payment, the job total, what has been paid so far and the balance. The office emails it as a PDF; the job's crew can open it. A deleted payment takes its receipt to the Recycle Bin with it (changed Nov 13; it was Billing's Remove).
 - **Records from before this change have no copy.** Their pages say "Drawn from today's records". The demo data keeps copies, as real use will.
 - Choices to confirm: the copy is kept at signing, not at sending, so a proposal can still be corrected until it is signed; a receipt is made for every payment, deposits included.
 
@@ -491,4 +493,42 @@ The user asked whether the app could be "a shell … same exact CRM concept, jus
 - **Words that named H & L where any business reads them now say "the business":** the Users and permissions page ("See the business's costs or margins …"), the admin site's title (the name from Company details, followed by "CRM"), the login page's "Profile in the app" section in the admin site, and the error page, which names no business because it cannot read the database.
 - **What stays H & L's for now:** the pages' wording is the same for every business; the notes import knows roofing words (more can be added in `.env`); and `demo` loads H & L's made-up customers, for trying the app on a PC only.
 - **To confirm with the user:** whether each business should have its own copy of the `app` folder (what the README describes, and the simplest to look after) or whether one copy should serve several businesses at once, which needs more work.
+
+### Requests from the user on Nov 13, 2026 (second message)
+
+The user answered the three questions and added ideas to discuss, and asked for one more thing while the work was under way.
+
+**1. "Yes, please bring it up to date. I really want to see how it all works. And test each step to look for bugs."** (built Nov 13)
+
+- **The mockup now has everything the app has:** Edit on every kind of record with the value before and after in the history; Delete and the Recycle Bin for every kind of record, with Restore and Delete for good; the date and time on every history line, with "Created" and "Last change"; Setup history; the Documents list on the account and the job (proposal, change orders, receipts, invoice); the change order as its own document with an Accept page; kept copies in the customer's language and the invoice "as it was sent"; receipts; quantities in the proposal builder; any day of the week with "Work on a day off", "Add a day", and the day-off column on the schedule; the job's length when booking; a calendar address for each crew; photos and files (a photo picked in the browser shows while the page is open; nothing is uploaded or kept); notes on a job and "Notes from the crews" on Today; logins (Add a login, an Edit box for each kind of record, Delete records, Can sign in, last sign-in); Crew Lead on a crew login; Types of work; Colors and icon (the whole mockup recolors, with the same contrast check as the app, and draws an icon from the initials); the business's name and the line under it on Company details; and System status as in the app (no "Back up now": the app does not make the backups).
+- **Every step is tested.** The mockup's browser test has a fifth part that clicks through each of these flows as Admin, Office and Crew, and every screen is opened in Spanish at phone size. All five parts pass.
+- **Bugs the testing found, all fixed:** a job created during the demo (by signing a proposal) had no lists for its change orders, payments, photos and notes, so its page broke; deleting a job counted the job as "going along" with itself; "See a sample proposal" showed a signed proposal's kept copy instead of today's details; the starting history put "Put on the schedule" before "Job created" and gave starting photos a time of 12:00 am; the Numbers card still said "H & L number"; a restored change order went to the end of the list; and on My Day a crew login without Crew Lead still had Start, Done and Got it.
+- **The app was tested the same way in a real browser,** with new checks for an edit's before-and-after line, deleting and restoring a payment, a Saturday booking, a Sunday added by hand, a receipt, a photo added from a phone, another business's colors, and hiding a section.
+- **What a mockup cannot do:** the reports show sample numbers, nothing is kept once the page is closed, and the starting photos are drawings.
+
+**2. "Delete records perm should be for any type of record. You want to delete a Job? Yes you can, and the history is kept of when and who did it."** (built Nov 13)
+
+- **The one "Delete records" set now covers every kind of record:** leads, accounts, contacts, properties, notes in Details, opportunities, jobs, photos and files, and now **change orders and payments** too, which could not be deleted before (a payment could only be removed with the Billing set, erased with a line in the history).
+- **A deleted payment or change order goes to the Recycle Bin like everything else.** The confirm page says what happens to the money ("Without it, the balance due is $6,480."); the job's total, balance and Paid follow at once, and again on Restore. The job's history says who deleted or restored it, and when.
+- **Numbers are never reused while a record is in the bin:** a new change order after CO1 was deleted is CO3, and a new payment's receipt is R3. Each payment now keeps its receipt number (existing payments were numbered in the order they were recorded, so their receipts keep their numbers). After the bin deletes one for good, the highest number on a job could be given again; a stricter rule needs a counter on each job, to add if wanted.
+- **Billing** is now "gets the ready-to-invoice and overdue emails". Its Remove-payment button is gone; Delete records does that, into the bin.
+
+**3. "Shell should be per business."** (confirmed; the rest is to decide)
+
+- **Per business is what is built:** each business has its own copy of the app folder, its own database, `.env` and photo folder (README, "Another business on the same app").
+- **The user described what "set up in no time" means:** placeholders for anything subject to change (company name, contractor number, logos, slogans, nomenclature, pick list fields, dropdown options), and imports: "import existing customers using an Excel spreadsheet that will write that information to the database. Each column in Excel will match the structure of each object in the DB."
+- **Already settings:** the company name, the line under it (the slogan), the legal name, contractor license number, address, phone and terms (Company details, as {placeholders} until filled in); the app icon and the colors; the types of work (a pick list); the work week, time zone and state (`.env`).
+- **Not settings yet (to ask the user):** a logo on the proposals, change orders, invoices and receipts; the other pick lists (lead sources, lost reasons, reasons a lead is not a fit, payment methods, kinds of account, kinds of photo); renaming the objects' labels ("nomenclature", as Salesforce's "Rename Tabs and Labels"); and an Excel import for customers (accounts, their contacts and properties) with a template whose columns match the fields, a review step before anything is saved, and a check for customers already in the app.
+
+**Ideas to discuss (4 to 6), not to build yet**
+
+- **4. Importing everything a small business keeps** (Excel, CSV, Notes, documents, photos, HEIC) for up to about 50 people. The app's size is not the limit: Django and PostgreSQL handle 50 users and many thousands of records on a small server. The work is in reading each kind of file well and in a review step, as the notes import has.
+- **5. Themes:** a preset theme, or one taken from the logo's colors, as an add-on. The colors are already two settings and every shade is worked out from them, so presets are a short list of color pairs, and a logo's main color can be suggested from the picture. Kept on standby, as the user asked; nothing changed in the code for it.
+- **6. Import any spreadsheet into each section** (old jobs into Jobs, leads from HomeAdvisor into Leads, customers into Accounts, notes used for bookkeeping into the right records), with a template per section. To plan with the user after item 3's Excel import.
+
+**Asked mid-task: "Could there also be a way to hide and unhide sections on the records themselves? Like click a little arrow on the top left of customers, or numbers, or documents, or the history."** (built Nov 13)
+
+- **Every section of a lead, an account, an opportunity and a job** has a small arrow at the top left of its title. It folds the section away, leaving the title (and its Add button, if it has one); pressed again, it opens.
+- **The app remembers the choice on that phone or computer,** for that section on every record of the same kind: hide History once on a job, and it stays hidden on every job until opened again. Nothing is stored on the server. The mockup remembers it while the page is open.
+- **Choice to confirm:** remembered for every record of the same kind (not record by record), on each device separately.
 

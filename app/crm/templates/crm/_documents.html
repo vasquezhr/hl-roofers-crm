@@ -2,7 +2,7 @@
 {# Proposals, change orders and invoices, newest first. Needs: documents (see document_rows in documents.py) #}
 <div class="card shadow-sm mb-3">
   <div class="card-body">
-    <h2 class="h6 mb-2">{% trans "Documents" %}</h2>
+    <h2 class="h6 mb-2" data-section="documents">{% trans "Documents" %}</h2>
     {% if documents %}
     <div class="list-group list-group-flush small">
       {% for row in documents %}

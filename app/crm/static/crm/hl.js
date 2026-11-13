@@ -149,3 +149,43 @@ document.addEventListener("input", function (event) {
 document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll("[data-editor]").forEach(countEdits);
 });
+
+/* 12. Hide and show a section of a record page (a lead, an account, an opportunity, a job).
+   The arrow at the top left of a section's title folds the section away, and opens it again.
+   The choice is remembered on this phone or computer, for that section on every record of the same kind.
+   A section is marked in the page with <h2 data-section="history">. */
+document.addEventListener("DOMContentLoaded", function () {
+  var kind = location.pathname.split("/")[1] || "", words = document.body.dataset;
+  function hiddenBefore(key) { try { return localStorage.getItem(key) === "hidden"; } catch (e) { return false; } }
+  function remember(key, hidden) {
+    try { if (hidden) localStorage.setItem(key, "hidden"); else localStorage.removeItem(key); } catch (e) { /* a private window: not remembered */ }
+  }
+  document.querySelectorAll("h2[data-section]").forEach(function (title, n) {
+    var body = title.closest(".card-body");
+    if (!body) return;
+    var head = title.parentElement === body ? title : title.parentElement;      // the title, or the row it sits in
+    var rest = document.createElement("div"), key = "hl-hide:" + kind + ":" + title.dataset.section;
+    rest.id = "section-" + n;
+    while (head.nextSibling) rest.appendChild(head.nextSibling);
+    body.appendChild(rest);
+    var arrow = document.createElement("button");
+    arrow.type = "button";
+    arrow.className = "btn btn-link p-0 me-1 hl-fold";
+    arrow.setAttribute("aria-controls", rest.id);
+    arrow.innerHTML = '<svg class="hl-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+    title.insertBefore(arrow, title.firstChild);
+    function show(open) {
+      rest.hidden = !open;
+      body.classList.toggle("hl-folded", !open);
+      arrow.setAttribute("aria-expanded", open ? "true" : "false");
+      arrow.setAttribute("aria-label", (open ? words.hide : words.show) + ": " + title.textContent.trim());
+      arrow.title = open ? words.hide : words.show;
+    }
+    show(!hiddenBefore(key));
+    arrow.addEventListener("click", function () {
+      var open = rest.hidden;
+      show(open);
+      remember(key, !open);
+    });
+  });
+});

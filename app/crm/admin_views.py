@@ -29,7 +29,7 @@ from . import automations, look, recycle
 from .access import admin_only, with_permission
 from .forms import LoginDetailsForm, LookForm, WorkTypeForm
 from .history import changes, field_changes
-from .models import (LANGS, Account, Activity, Attachment, BackupRun, BinEntry, ChangeSet, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, PriceUpload,
+from .models import (LANGS, Account, Activity, Attachment, BackupRun, BinEntry, ChangeOrder, ChangeSet, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, Payment, PriceUpload,
                      Property, User, WorkType, digits, log)
 from .views import form_page, page_of, saved
 
@@ -78,7 +78,8 @@ def user_edit(request, pk):
 # ---------------------------------------------------------------- delete, with the "Delete records" permission
 # what can be deleted: the word in the address -> (the kind of record, the field that names it)
 CAN_DELETE = {"lead": (Lead, "pk"), "account": (Account, "pk"), "opp": (Opportunity, "number"), "job": (Job, "number"),
-              "contact": (Contact, "pk"), "property": (Property, "pk"), "note": (Note, "pk"), "file": (Attachment, "pk")}
+              "contact": (Contact, "pk"), "property": (Property, "pk"), "note": (Note, "pk"), "file": (Attachment, "pk"),
+              "change_order": (ChangeOrder, "pk"), "payment": (Payment, "pk")}
 
 
 def pages_of(kind, record):
@@ -94,6 +95,10 @@ def pages_of(kind, record):
     if kind == "file" and record.job_id:
         here = reverse("job", args=[record.job.number]) + "#files"
         return here, here
+    if kind == "change_order":
+        return reverse("change_order", args=[record.job.number, record.number]), reverse("job", args=[record.job.number])
+    if kind == "payment":
+        return reverse("job", args=[record.job.number]), reverse("job", args=[record.job.number])
     account = reverse("account", args=[record.account_id]) if record.account_id else reverse("accounts")
     return account, account
 
@@ -113,7 +118,7 @@ def record_delete(request, kind, ident):
         return redirect(after)
     return render(request, "crm/delete_confirm.html", {
         "label": recycle.label_of(record), "problem": problem, "back": back,
-        "also": recycle.also_words(recycle.also_of(record, recycle.parts_of(record))),
+        "also": recycle.also_words(recycle.also_of(record, recycle.parts_of(record))), "changes": recycle.what_changes(record),
     })
 
 

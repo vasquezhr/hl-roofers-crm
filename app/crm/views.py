@@ -434,7 +434,6 @@ def job(request, number):
         "can_change_workers": may_change_workers,
         "free_workers": Worker.objects.filter(active=True, crew__isnull=True).exclude(jobs=job) if may_change_workers else [],
         "can_confirm": not office and request.user.can("crew_lead"),             # the Got it button on a moved job
-        "can_remove_payment": office and request.user.can("billing"),
         "notify_href": scheduling.notify_href(job, Company.load()) if job.change_unseen and office else "",
         "members": job.crew.members.filter(active=True) if job.crew else [],
         "workers": job.workers.all(),

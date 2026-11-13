@@ -14,7 +14,7 @@
 {% if look.style %}<style>{{ look.style }}</style>{# the business's own colors in place of H & L's (look.py) #}{% endif %}
 <script src="{% static 'crm/hl.js' %}"></script>
 </head>
-<body data-touch-url="{% url 'touch' %}" data-csrf="{{ csrf_token }}">
+<body data-touch-url="{% url 'touch' %}" data-csrf="{{ csrf_token }}" data-hide="{% trans 'Hide this section' %}" data-show="{% trans 'Show this section' %}">
 
 <div class="d-flex min-vh-100">
   {# side navigation (computers) #}

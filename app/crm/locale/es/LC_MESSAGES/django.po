@@ -28,6 +28,12 @@ msgstr "No se encontró"
 msgid "That page or record was not found."
 msgstr "No se encontró esa página o ese registro."
 
+msgid "Hide this section"
+msgstr "Ocultar esta sección"
+
+msgid "Show this section"
+msgstr "Mostrar esta sección"
+
 msgid "Admin site"
 msgstr "Sitio de administración"
 
@@ -901,11 +907,8 @@ msgstr "Pagos"
 msgid "Receipt"
 msgstr "Recibo"
 
-msgid "Remove this payment? Use this only for a payment recorded by mistake."
-msgstr "¿Quitar este pago? Use esto solo para un pago registrado por error."
-
-msgid "Remove this payment"
-msgstr "Quitar este pago"
+msgid "Delete this payment"
+msgstr "Eliminar este pago"
 
 msgid "Balance due"
 msgstr "Saldo pendiente"
@@ -1483,8 +1486,8 @@ msgstr "Crear y editar registros, convertir prospectos, agendar, enviar propuest
 msgid "Cannot"
 msgstr "No puede"
 
-msgid "Manage logins or change settings. Deleting, the Price Book, costs and removing a payment each need a permission set."
-msgstr "Administrar usuarios ni cambiar ajustes. Eliminar, la Lista de precios, los costos y quitar un pago necesitan cada uno un permiso adicional."
+msgid "Manage logins or change settings. Deleting, the Price Book and costs each need a permission set."
+msgstr "Administrar usuarios ni cambiar ajustes. Eliminar, la Lista de precios y los costos necesitan cada uno un permiso adicional."
 
 msgid "Only the jobs scheduled to their crew, with everything needed to finish them: customer, scope, price, change orders, deposits, the signed proposal, the invoice and the balance due."
 msgstr "Solo los trabajos programados para su equipo, con todo lo necesario para terminarlos: cliente, alcance, precio, órdenes de cambio, anticipos, la propuesta firmada, la factura y el saldo pendiente."
@@ -2532,6 +2535,18 @@ msgstr "Propiedad eliminada: %(detail)s"
 msgid "Note deleted from Details"
 msgstr "Nota eliminada de Detalles"
 
+msgid "Change order deleted: %(detail)s"
+msgstr "Orden de cambio eliminada: %(detail)s"
+
+msgid "Payment deleted: %(detail)s"
+msgstr "Pago eliminado: %(detail)s"
+
+msgid "Change order restored: %(detail)s"
+msgstr "Orden de cambio restaurada: %(detail)s"
+
+msgid "Payment restored: %(detail)s"
+msgstr "Pago restaurado: %(detail)s"
+
 msgid "Proposal written: %(detail)s"
 msgstr "Propuesta escrita: %(detail)s"
 
@@ -2664,8 +2679,8 @@ msgstr "Abrir la Lista de precios, subir archivos de precios, escribir precios y
 msgid "See supplier costs and the margin, in the Price Book and when writing a proposal. For someone who prices jobs."
 msgstr "Ver los costos de proveedor y el margen, en la Lista de precios y al escribir una propuesta. Para quien pone precio a los trabajos."
 
-msgid "Remove a payment recorded by mistake, and get the email when a job is done and ready to invoice."
-msgstr "Quitar un pago registrado por error, y recibir el correo cuando un trabajo está terminado y listo para facturar."
+msgid "Get the email when a job is done and ready to invoice."
+msgstr "Recibir el correo cuando un trabajo está terminado y listo para facturar."
 
 msgid "Use the data editor for single and bulk changes."
 msgstr "Usar el editor de datos para cambios de uno o de varios registros."
@@ -2673,8 +2688,8 @@ msgstr "Usar el editor de datos para cambios de uno o de varios registros."
 msgid "See the inspections nobody has taken, and take them."
 msgstr "Ver las inspecciones que nadie ha tomado, y tomarlas."
 
-msgid "Delete leads, accounts, opportunities and jobs. They go to the Recycle Bin and can be restored for 30 days."
-msgstr "Eliminar prospectos, cuentas, oportunidades y trabajos. Van a la Papelera y se pueden restaurar durante 30 días."
+msgid "Delete any kind of record: leads, accounts, contacts, properties, notes, opportunities, jobs, change orders, payments, photos and files. They go to the Recycle Bin and can be restored for 30 days."
+msgstr "Eliminar cualquier tipo de registro: prospectos, cuentas, contactos, propiedades, notas, oportunidades, trabajos, órdenes de cambio, pagos, fotos y archivos. Van a la Papelera y se pueden restaurar durante 30 días."
 
 msgid "Start and finish the crew's jobs, record a payment, change the extra workers and confirm changes. Without it, a crew login only reads its crew's jobs and adds notes."
 msgstr "Empezar y terminar los trabajos del equipo, registrar un pago, cambiar los trabajadores extra y confirmar cambios. Sin él, un usuario de equipo solo lee los trabajos de su equipo y agrega notas."
@@ -3180,14 +3195,20 @@ msgstr "No se pudo leer este archivo. Suba un archivo de Excel (.xlsx)."
 msgid "This address has opportunities or jobs. Delete those first, or give them another address."
 msgstr "Esta dirección tiene oportunidades o trabajos. Elimínelos primero, o póngales otra dirección."
 
-msgid "Its job is in the Recycle Bin too. Restore job #%(number)s first."
-msgstr "Su trabajo también está en la Papelera. Restaure primero el trabajo #%(number)s."
+msgid "Without it, the balance due is %(balance)s."
+msgstr "Sin él, el saldo pendiente es %(balance)s."
+
+msgid "It is signed, so it counts in the job's total. Without it, the total is %(total)s."
+msgstr "Está firmada, así que cuenta en el total del trabajo. Sin ella, el total es %(total)s."
 
 msgid "Automation"
 msgstr "Automatización"
 
 msgid "Its customer is in the Recycle Bin too. Restore the account first: %(name)s"
 msgstr "Su cliente también está en la Papelera. Restaure primero la cuenta: %(name)s"
+
+msgid "Its job is in the Recycle Bin too. Restore job #%(number)s first."
+msgstr "Su trabajo también está en la Papelera. Restaure primero el trabajo #%(number)s."
 
 msgid "This month"
 msgstr "Este mes"

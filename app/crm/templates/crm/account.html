@@ -21,7 +21,7 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <div class="d-flex align-items-center gap-2 mb-2">
-          <h2 class="h6 mb-0 flex-grow-1">{% trans "Contacts" %}</h2>
+          <h2 class="h6 mb-0 flex-grow-1" data-section="contacts">{% trans "Contacts" %}</h2>
           <a class="btn btn-outline-secondary btn-sm" href="{% url 'contact_new' account.pk %}">{% icon "plus" %} {% trans "Add" %}</a>
         </div>
         <ul class="list-unstyled mb-0">
@@ -43,7 +43,7 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <div class="d-flex align-items-center gap-2 mb-2">
-          <h2 class="h6 mb-0 flex-grow-1">{% trans "Properties" %}</h2>
+          <h2 class="h6 mb-0 flex-grow-1" data-section="properties">{% trans "Properties" %}</h2>
           <a class="btn btn-outline-secondary btn-sm" href="{% url 'property_new' account.pk %}">{% icon "plus" %} {% trans "Add" %}</a>
         </div>
         {% for place in account.properties.all %}
@@ -68,7 +68,7 @@
   <div class="col-lg-6">
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2">{% trans "Details" %}</h2>
+        <h2 class="h6 mb-2" data-section="details">{% trans "Details" %}</h2>
         {% for note in account.notes.all %}
         <div class="mb-2">
           <div class="small text-body-secondary mb-1">{{ note.get_source_display }}{% if note.source == "app" %} · {{ note.created_at|day_time }}{% if note.actor %} · {{ note.actor }}{% endif %}{% elif note.noted_on %} · {{ note.noted_on|date }}{% endif %}{% if user|may_edit:"note" %} · <a href="{% url 'note_edit' note.pk %}">{% trans "Edit" %}</a>{% endif %}{% if user|can:"delete" %} · <a class="link-danger" href="{% url 'record_delete' 'note' note.pk %}">{% trans "Delete" %}</a>{% endif %}</div>
@@ -90,7 +90,7 @@
 
 <div class="card shadow-sm mb-3">
   <div class="card-body">
-    <h2 class="h6 mb-2">{% trans "Opportunities" %}</h2>
+    <h2 class="h6 mb-2" data-section="opps">{% trans "Opportunities" %}</h2>
     {% if opps %}<div class="list-group list-group-flush">{% for opp in opps %}{% include "crm/_opp_row.html" %}{% endfor %}</div>
     {% else %}<div class="small text-body-secondary">{% trans "None" %}</div>{% endif %}
   </div>
@@ -98,7 +98,7 @@
 
 <div class="card shadow-sm mb-3">
   <div class="card-body">
-    <h2 class="h6 mb-2">{% trans "Jobs" %}</h2>
+    <h2 class="h6 mb-2" data-section="jobs">{% trans "Jobs" %}</h2>
     {% if jobs %}<div class="list-group list-group-flush">{% for job in jobs %}{% include "crm/_job_row.html" %}{% endfor %}</div>
     {% else %}<div class="small text-body-secondary">{% trans "None" %}</div>{% endif %}
   </div>
@@ -110,7 +110,7 @@
 
 <div class="card shadow-sm mb-3">
   <div class="card-body">
-    <h2 class="h6 mb-2">{% trans "History" %}</h2>
+    <h2 class="h6 mb-2" data-section="history">{% trans "History" %}</h2>
     {% stamp account %}
     {% include "crm/_history.html" %}
   </div>

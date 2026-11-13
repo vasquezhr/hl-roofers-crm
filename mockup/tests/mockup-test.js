@@ -1,6 +1,8 @@
 // Browser test for the mockup: every flow, as Admin, Office and Crew, in both languages, at computer and phone size.
 // Needs Node.js and Playwright (npm install playwright, then npx playwright install chromium).
-// Run:  node mockup/tests/mockup-test.js <full path to hl-roofers-mockup.html> <folder for screenshots> [last phase to test, 1-4]
+// Run:  node mockup/tests/mockup-test.js <full path to hl-roofers-mockup.html> <folder for screenshots> [last phase to test, 1-5]
+// Phase 5 is what the app gained after Nov 10: Edit, Delete and the Recycle Bin, the time in the history, documents,
+// kept copies and receipts, quantities, days off, photos and files, notes, logins, types of work, colors and the icon.
 // It prints ALL CHECKS PASSED, or a list of what failed. Every name it types is made up.
 const { chromium } = require("playwright");
 const file = "file://" + process.argv[2], shots = process.argv[3], upTo = +(process.argv[4] || 9);
@@ -19,6 +21,7 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
   const act = async (name, extra = "") => { await p.click(`[data-act="${name}"]${extra}`); await p.waitForTimeout(380); };
   const role = async (r, crew = "") => { await p.click("#roleBtn"); await p.click(`[data-act="setRole"][data-role="${r}"]${crew ? `[data-crew="${crew}"]` : ""}`); await p.waitForTimeout(250); };
   const shot = (name, full = true) => p.screenshot({ path: `${shots}/${name}.png`, fullPage: full });
+  p.on("dialog", d => d.accept());                     // "Delete for good?" and "Make a new address?" are answered yes
   await p.goto(file); await p.waitForTimeout(200);
   let v;
 
@@ -39,7 +42,7 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
 
   // opportunity 26-124: build the proposal, email it, sign it, and take the job through to paid
   await go("#opp/26-124"); v = await view(); ok(/Gerald Whitcomb/.test(v) && /No price yet/.test(v), "opp page");
-  await act("oppProposal"); await p.fill('[data-input="draftEdit"][data-i="0"][data-k="1"]', "12400"); await p.waitForTimeout(100);
+  await act("oppProposal"); await p.fill('[data-input="draftEdit"][data-i="0"][data-k="amount"]', "12400"); await p.waitForTimeout(100);
   ok(/\$12,400/.test(await p.textContent("#draftTotal")), "builder total updates while typing");
   await p.selectOption('[data-change="draftFromBook"]', "GAF-RDG"); await p.waitForTimeout(300);
   ok(/\$12,475/.test(await p.textContent("#draftTotal")), "line added from the price book");
@@ -162,7 +165,7 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await act("bookInsp", ":first-of-type"); v = await view();
     ok(/^#opp\/26-13\d$/.test(await hash()) && /Inspection booked/.test(v) && /Change time/.test(v), "inspection booked: " + v.slice(0, 300));
     // change an already scheduled job: the crew gets a Changed notice
-    await go("#job/26-126"); await act("jobSchedule"); await p.selectOption("#jsDay", { index: 3 }); await act("saveSchedule"); v = await view();
+    await go("#job/26-126"); await act("jobSchedule"); await p.fill("#jsDay", await p.evaluate(() => iso(wd(3)))); await act("saveSchedule"); v = await view();
     ok(/Changed/.test(v) && /Notify crew/.test(v) && /Crew 2 has not seen it yet/.test(v) && /Dates changed/.test(v), "changed notice for the office: " + v.slice(0, 500));
     await go("#today"); v = await view(); ok(/Crew 1 has not seen the change to job #26-104/.test(v), "today lists unseen changes");
     // crew 1: My Day
@@ -201,9 +204,9 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await go("#report/priceChanges"); v = await view(); ok(/GAF Timberline HDZ shingles/.test(v) && /ABC Supply/.test(v) && /%/.test(v), "price changes report");
     for (const id of ["leadsBySource", "responseTime", "closeRate", "jobsPerCrew", "lostReasons"]) { await go("#report/" + id); ok((await p.$$("#view tbody tr")).length >= 1, "report has rows: " + id); }
     // admin hub and its pages
-    await go("#admin"); ok((await p.$$('#view a.card[href^="#admin/"]')).length === 7, "admin hub has seven pages");
+    await go("#admin"); ok((await p.$$('#view a.card[href^="#admin/"]')).length === 10 && !!(await p.$('#view a.card[href="#bin"]')), "admin hub has ten pages and the Recycle Bin");
     await shot("p4-admin-hub");
-    await go("#admin/users"); v = await view(); ok(/shared login/.test(v) && /Each crew shares one login/.test(v) && /Only the jobs scheduled to their crew/.test(v), "users page");
+    await go("#admin/users"); v = await view(); ok(/shared login/.test(v) && /A crew can share one login/.test(v) && /Only the jobs scheduled to their crew/.test(v), "users page");
     await act("userEdit", '[data-id="office"]'); await p.check("#ps_dataEditor"); await act("userSave");
     ok(/Data Editor/.test(await p.textContent("#view tbody tr:nth-child(2)")), "permission set added to the office login");
     await shot("p4-users");
@@ -236,6 +239,162 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await role("office"); await go("#dashboard"); ok((await hash()) === "#today", "office does not get the admin dashboard");
   }
 
+
+  /* ================= PHASE 5: what the app gained after Nov 10 ================= */
+  if (upTo >= 5) {
+    const toastText = () => p.textContent("#toast .toast-body");
+    const inModal = async (name, extra = "") => { await p.click(`#modal [data-act="${name}"]${extra}`); await p.waitForTimeout(380); };
+    const day = async weekday => p.evaluate(w => { const d = new Date(TODAY); do { d.setDate(d.getDate() + 1); } while (d.getDay() !== w); return iso(d); }, weekday);
+    await role("office");
+    // history: who, the date and the time, with Created and Last change
+    await go("#job/26-104"); v = await view();
+    ok(/Created: .+ · Office/.test(v) && /Last change: /.test(v) && /\d{1,2}:\d{2} (am|pm) · (Office|Crew 1) — /.test(v), "history has the time and who: " + v.slice(-600));
+    // Edit: every change says what was there before; saving with nothing changed writes nothing
+    await go("#account/A5"); await act("editContact", '[data-i="1"]'); await p.fill("#ef_phone", "(804) 555-0199"); await inModal("editSave"); v = await view();
+    ok(/\(804\) 555-0199/.test(v) && /Contact changed: Joan Pruett · Phone: \(804\) 555-0110 → \(804\) 555-0199/.test(v), "contact edited with before and after: " + v.slice(-600));
+    await act("editAccount"); await inModal("editSave"); ok(/Nothing changed/.test(await toastText()), "saving with no change writes nothing");
+    await go("#job/26-104"); await act("editPay", '[data-n="1"]'); await p.fill("#ef_amount", "2000"); await inModal("editSave"); v = await view();
+    ok(/Balance due\s*\$4,480/.test(v) && /Payment changed: R1 · Amount: \$1,500 → \$2,000/.test(v), "payment edited, balance follows: " + v.slice(0, 900));
+    await shot("p5-job-history");
+    // an Edit permission for each kind of record
+    await role("admin"); await go("#admin/users"); await act("userEdit", '[data-id="office"]'); await p.uncheck("#ee_job"); await inModal("userSave");
+    v = await view(); ok(/Edit: Leads, Accounts, Contacts, Properties, Notes in Details, Opportunities, Change orders, Payments/.test(v), "edit permissions listed: " + v.slice(0, 900));
+    await role("office"); await go("#job/26-104"); ok(!(await p.$('[data-act="editJob"]')), "no Edit on a job without the Jobs edit permission");
+    await go("#account/A5"); ok(!!(await p.$('[data-act="editAccount"]')), "Edit on an account is still there");
+    await role("admin"); await go("#admin/users"); await act("userEdit", '[data-id="office"]'); await p.check("#ee_job"); await inModal("userSave");
+    // Delete needs the permission set; the record waits in the Recycle Bin and comes back as it was
+    await role("office"); await go("#lead/L-305"); ok(!(await p.$('[data-act="askDelete"]')), "office without Delete records sees no Delete");
+    await role("admin"); await go("#lead/L-305"); await act("askDelete"); v = await modal(); ok(/Delete Desmond Farrow\?/.test(v) && /30 days/.test(v), "delete asks first: " + v);
+    await inModal("doDelete"); ok((await hash()) === "#leads", "a deleted record's page is left");
+    await go("#lead/L-305"); ok(/Not found/.test(await view()), "the deleted lead is gone from the app");
+    await go("#bin"); v = await view(); ok(/Desmond Farrow/.test(v) && /Deleted by Admin/.test(v) && /30 days left/.test(v), "Recycle Bin lists it: " + v.slice(0, 400));
+    await shot("p5-recycle-bin");
+    await act("binRestore"); await go("#lead/L-305"); v = await view(); ok(/Desmond Farrow/.test(v) && /Restored from the Recycle Bin/.test(v), "restored, with a history line");
+    await go("#account/A7"); await act("askDelete"); v = await modal(); ok(/Opportunities: 1 · Jobs: 1/.test(v), "delete says what goes along: " + v);
+    await inModal("doDelete"); await go("#job/26-095"); ok(/Not found/.test(await view()), "the account's job went with it");
+    await go("#job/26-101"); await act("askDelete"); v = await modal(); ok(/Jobs: 1/.test(v) && !/Opportunities/.test(v), "a job takes its warranty job along: " + v);
+    await inModal("doDelete"); await go("#account/A9"); await act("askDelete"); await inModal("doDelete");
+    await go("#bin"); await p.click('#view .list-group-item:has-text("#26-101") [data-act="binRestore"]'); await p.waitForTimeout(300);
+    ok(/Restore the account first: Beverly Kincaid/.test(await toastText()), "a deal waits for its account");
+    await p.click('#view .list-group-item:has-text("Beverly Kincaid"):not(:has-text("#26-101")) [data-act="binRestore"]'); await p.waitForTimeout(300);
+    await p.click('#view .list-group-item:has-text("#26-101") [data-act="binRestore"]'); await p.waitForTimeout(300);
+    await go("#job/26-127"); ok(!/Not found/.test(await view()), "account, deal and warranty job are back");
+    await go("#bin"); await p.click('#view .list-group-item:has-text("Curtis Penhallow") [data-act="binPurge"]'); await p.waitForTimeout(300);
+    v = await view(); ok(!/Curtis Penhallow/.test(v) && /Deleted for good/.test(await toastText()), "deleted for good by the admin");
+    // money: a payment and a change order go to the Recycle Bin too, and the job's money follows
+    await go("#job/26-112"); v = await view(); ok(/Balance due\s*\$6,940/.test(v), "job 26-112 before: " + v.slice(0, 900));
+    await act("askDelete", '[data-kind="payment"][data-id="26-112:1"]'); v = await modal(); ok(/Without it, the balance due is \$8,940/.test(v), "payment delete says the new balance: " + v);
+    await inModal("doDelete"); v = await view(); ok(/Balance due\s*\$8,940/.test(v) && /Payment deleted: #26-112 · R1 · \$2,000/.test(v), "payment deleted: " + v.slice(-700));
+    await act("payAdd", ".btn-sm"); await p.fill("#payAmt", "100"); await inModal("paySave"); v = await view(); ok(/Receipt R3/.test(v) && !/Receipt R1/.test(v), "a receipt number is never used twice");
+    await act("askDelete", '[data-kind="co"][data-id="26-112:CO1"]'); v = await modal(); ok(/Without it, the total is \$9,050/.test(v), "change order delete says the new total: " + v);
+    await inModal("doDelete"); await act("coAdd"); await p.fill("#coText", "Add a ridge vent"); await p.fill("#coAmt", "180"); await inModal("coSave");
+    v = await view(); ok(/CO3/.test(v) && /Change order deleted: #26-112 · CO1/.test(v), "a change order number is never used twice: " + v.slice(0, 1200));
+    await go("#bin"); await p.click('#view .list-group-item:has-text("CO1") [data-act="binRestore"]'); await p.waitForTimeout(300);
+    await p.click('#view .list-group-item:has-text("R1") [data-act="binRestore"]'); await p.waitForTimeout(300);
+    await go("#job/26-112"); v = await view(); ok(/Balance due\s*\$6,840/.test(v) && /Payment restored|Restored from the Recycle Bin: #26-112 · R1/.test(v), "money restored: " + v.slice(0, 1200));
+    await go("#account/A3"); await act("editProperty", '[data-i="0"]'); await inModal("askDelete"); v = await modal();
+    ok(/This address has opportunities or jobs/.test(v), "an address in use cannot be deleted: " + v);
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    // documents: on the account and the job; the change order is a document with its own Accept page
+    await go("#account/A1"); v = await view();
+    ok(/Documents/.test(v) && /Proposal #26-112/.test(v) && /Change order #26-112 · CO2/.test(v) && /Receipt #26-112 · R2/.test(v), "documents on the account: " + v.slice(-1500));
+    await go("#job/26-112"); await act("coView", '[data-co="CO2"]'); v = await modal(); ok(/New job total/.test(v) && /Waiting for signature/.test(v), "change order document: " + v.slice(0, 400));
+    await inModal("coAccept"); await p.fill("#coAccName", "Denise Wyckoff"); await inModal("coAcceptConfirm"); v = await view();
+    ok(/Change order CO2 signed/.test(v) && /Total\s*\$9,190/.test(v), "the customer accepted the change order: " + v.slice(0, 1200));
+    await act("coView", '[data-co="CO2"]'); v = await modal(); ok(/exactly as it was signed/.test(v) && /Denise Wyckoff/.test(v), "the signed change order is a kept copy");
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    await go("#job/26-126"); await act("oppView"); v = await modal();
+    ok(/Propuesta para/.test(v) && /In the customer's language \(Spanish\)/.test(v), "a kept copy is in the customer's language: " + v.slice(0, 400));
+    await shot("p5-kept-copy-es", false); await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    await go("#admin/company"); await p.fill("#co_legal", "Sample Roofing Company"); await act("companySave");
+    await go("#job/26-112"); await act("oppView"); v = await modal(); ok(/\{Company Legal Name\}/.test(v) && !/Sample Roofing Company/.test(v), "a signed proposal keeps the details it was signed with");
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    await go("#opp/26-125"); await act("oppView"); v = await modal(); ok(/Sample Roofing Company/.test(v), "an open proposal shows today's details");
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    await go("#job/26-104"); await act("receiptView"); v = await modal(); ok(/Receipt #26-104 · R1/.test(v) && /Paid so far/.test(v) && /when the payment was recorded/.test(v), "receipt: " + v.slice(0, 500));
+    await inModal("receiptEmail"); v = await view(); ok(/Receipt R1 emailed to the customer/.test(v), "receipt emailed");
+    await go("#job/26-099"); await act("jobInvoice", ".btn-outline-secondary"); await inModal("invoiceKept"); v = await modal();
+    ok(/exactly as it was sent/.test(v) && /Claim NHW-118204/.test(v), "the invoice as it was sent: " + v.slice(0, 300));
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    // quantities: 50 bundles at the Price Book's price; the page does the math and the proposal prints it
+    await role("office"); await go("#opp/26-125"); await act("oppView"); await inModal("oppProposal");
+    await p.selectOption('[data-change="draftFromBook"]', "GAF-HDZ"); await p.waitForTimeout(500);
+    ok(await p.evaluate(() => document.activeElement && document.activeElement.id === "qty_1"), "the cursor goes to the quantity");
+    await p.fill("#qty_1", "50"); await p.waitForTimeout(150);
+    ok((await p.inputValue("#amt_1")) === "2300" && /\$3,175/.test(await p.textContent("#draftTotal")), "50 × $46 = $2,300 worked out on the page");
+    await shot("p5-builder-quantities", false);
+    await inModal("draftAdd"); await p.fill('[data-input="draftEdit"][data-i="2"][data-k="text"]', "Extra nails"); await p.fill("#qty_2", "3"); await inModal("draftPreview");
+    ok(/needs a price for each/.test(await toastText()), "a quantity with no price for each is refused");
+    await inModal("draftDel", '[data-i="2"]'); await inModal("draftPreview"); v = await modal();
+    ok(/GAF Timberline HDZ shingles — 50 × \$46 per bundle/.test(v) && /\$3,175/.test(v), "the proposal prints the quantity: " + v.slice(0, 500));
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    // any day: a Saturday needs "Work on a day off"; the schedule shows it as a day off
+    const saturday = await day(6), sunday = await day(0);
+    await go("#job/26-118"); await act("jobSchedule"); await p.fill("#jsDay", saturday); await inModal("saveSchedule");
+    ok(await p.isVisible("#jsProblem") && /Pick a work day/.test(await p.textContent("#jsProblem")), "a day off needs the tick");
+    await p.check("#jsOff"); await inModal("saveSchedule"); v = await view(); ok(/Sat,/.test(v) && /Dates changed/.test(v), "booked on a Saturday: " + v.slice(0, 600));
+    await go("#schedule"); v = await view(); ok(/Day off/.test(v) && /Terrence Oakes/.test(v), "the schedule shows the day off with the job on it");
+    await shot("p5-schedule-day-off");
+    await go("#job/26-104"); await p.click('summary:has-text("Add a day")'); await p.fill("#adDay", sunday); await act("dayAdd");
+    ok(/is a day off/.test(await toastText()), "adding a day off needs the tick");
+    await p.check("#adOff"); await act("dayAdd"); v = await view();
+    ok(/Days added by hand/.test(v) && /Day added by hand: Sun/.test(v) && /Changed/.test(v), "a Sunday added by hand marks the job Changed: " + v.slice(0, 900));
+    await act("dayRemove"); v = await view(); ok(/Day taken off: Sun/.test(v) && !/Days added by hand/.test(v), "the added day taken off again");
+    // photos and files: a real photo shows while the page is open; anything else is refused
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+    await go("#job/26-112"); await p.setInputFiles("#fileIn", { name: "porch.png", mimeType: "image/png", buffer: png });
+    await p.selectOption("#fileKind", "after"); await p.fill("#fileCaption", "New porch roof"); await act("fileAdd"); await p.waitForTimeout(300); v = await view();
+    ok(/New porch roof/.test(v) && /Added: porch\.png/.test(v) && (await p.$$('#view img[alt="New porch roof"]')).length === 1, "photo added and shown: " + v.slice(-900));
+    await p.setInputFiles("#fileIn", { name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hello") }); await act("fileAdd");
+    ok(/notes\.txt is not a photo or a PDF/.test(await toastText()), "a text file is refused");
+    await shot("p5-photos");
+    // notes: the crew writes, the office reads it on Today
+    await role("crew", "c1"); await go("#job/26-112"); v = await view(); ok(/Photos and files/.test(v) && /Notes/.test(v) && /Documents/.test(v), "the crew sees photos, notes and documents on its job");
+    await p.fill("#noteText", "Ridge vent delivered short by 4 feet."); await act("noteSave"); ok(/Note sent to the office/.test(await toastText()), "crew note saved");
+    await role("office"); await go("#today"); v = await view(); ok(/Notes from the crews/.test(v) && /Ridge vent delivered short by 4 feet/.test(v), "the office sees the crew's note on Today");
+    // a crew login without Crew Lead reads and adds notes only
+    await role("admin"); await go("#admin/users"); await act("userEdit", '[data-id="c1"]'); await p.uncheck("#ps_crewLead"); await inModal("userSave");
+    await role("crew", "c1"); await go("#job/26-112"); v = await view(); ok(!(await p.$('[data-act="jobStage"]')) && /Save the note/.test(v), "no Mark done without Crew Lead");
+    await role("admin"); await go("#admin/users"); await act("userEdit", '[data-id="c1"]'); await p.check("#ps_crewLead"); await inModal("userSave");
+    // a new login
+    await act("userEdit", '[data-id=""]'); await p.fill("#ueLogin", "frontdesk"); await p.fill("#ueName", "Front desk"); await p.fill("#uePass", "short");
+    await inModal("userSave"); ok(await p.isVisible("#uePass.is-invalid"), "a short password is refused");
+    await p.fill("#uePass", "front-desk-2026"); await inModal("userSave"); v = await view(); ok(/Front desk/.test(v) && /frontdesk/.test(v) && /Never/.test(v), "login added: " + v.slice(0, 900));
+    // the shell: types of work, colors and icon, the business's name
+    await go("#admin/types"); v = await view(); ok(/Roof replacement/.test(v) && /Techo nuevo/.test(v) && /Built in/.test(v) && /Own column/.test(v), "types of work: " + v.slice(0, 600));
+    await act("typeEdit", '[data-key=""]'); await p.fill("#tyEn", "Solar panels"); await p.fill("#tyEs", "Paneles solares"); await p.fill("#tyDays", "2"); await inModal("typeSave");
+    v = await view(); ok(/Solar panels/.test(v) && /Paneles solares/.test(v), "a new type of work");
+    await go("#account/A1"); await act("newOpp"); ok((await p.$$eval("#noType option", os => os.map(o => o.textContent))).includes("Solar panels"), "the new type is offered");
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    await go("#admin/look"); await p.fill("#lkAccent", "#ffcc00"); await act("lookSave"); ok(await p.isVisible("#lkAccent.is-invalid"), "a color too light for white writing is refused");
+    await p.fill("#lkAccent", "#2e7d32"); await p.fill("#lkBar", "#173b2b"); await act("lookSave");
+    ok((await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--bs-primary").trim())) === "#2e7d32", "the whole app takes the new main color");
+    await go("#admin/company"); await p.fill("#co_name", "Bluebird Gutters"); await act("companySave");
+    ok((await p.textContent("#brandName")).trim() === "BLUEBIRD GUTTERS", "the top bar shows the business's name");
+    await go("#admin/look"); v = await view(); ok(/drawn by the app/.test(v), "another business gets a drawn icon");
+    await shot("p5-another-business");
+    await act("lookReset"); await go("#admin/company"); await p.fill("#co_name", "H & L Roofers"); await act("companySave");
+    await go("#admin/look"); v = await view(); ok(/H & L's own icon/.test(v), "back to H & L's look");
+    // calendar addresses: one for the office and one for each crew; a new one replaces the old
+    await role("office"); await go("#schedule"); await act("calFeed"); const before = await p.inputValue("#modal input >> nth=1");
+    ok((await p.$$("#modal input")).length === 3, "three calendar addresses");
+    await inModal("feedReset", '[data-who="c1"]'); ok((await p.inputValue("#modal input >> nth=1")) !== before, "a new address replaces crew 1's");
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    // setup history and system status
+    await role("admin"); await go("#admin/setupHistory"); v = await view();
+    ok(/Login added: Front desk/.test(v) && /Colors changed: Main color: #b05a22 → #2e7d32/.test(v) && /Type of work added: Solar panels/.test(v) && /Calendar address replaced: Crew 1/.test(v) && /Deleted for good/.test(v), "setup history: " + v.slice(0, 1200));
+    await go("#admin/status"); v = await view(); ok(/Last copy:/.test(v) && /does not make the backups/.test(v) && !(await p.$('[data-act="backupNow"]')), "status page as in the app");
+    // any section of a record page folds away with the arrow before its title, and opens again
+    await go("#job/26-104"); await act("fold", '[data-key="job:history"]');
+    ok(!(await p.isVisible("text=Day taken off")) && (await p.getAttribute('[data-key="job:history"]', "aria-expanded")) === "false", "history folded away");
+    await go("#job/26-112"); ok((await p.getAttribute('[data-key="job:history"]', "aria-expanded")) === "false", "folded on every job while the page is open");
+    await act("fold", '[data-key="job:history"]'); ok(await p.isVisible("text=Job created from the signed proposal"), "history opened again");
+    await shot("p5-fold");
+    // the office with the Delete set gets the Recycle Bin in its menu
+    await go("#admin/users"); await act("userEdit", '[data-id="office"]'); await p.check("#ps_delete"); await inModal("userSave");
+    await role("office"); await p.click("#roleBtn"); ok(await p.isVisible('#roleMenu a[href="#bin"]'), "Recycle Bin in the office's menu"); await p.keyboard.press("Escape");
+  }
+
   /* ================= crew basics, Spanish, phone size ================= */
   await role("crew", "c2"); v = await view();
   ok((await hash()) === "#" + (upTo >= 3 ? "myday" : "myjobs"), "crew lands on its first tab: " + (await hash()));
@@ -253,7 +412,8 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
   const pages = { crew: ["#myjobs", "#job/26-121", "#job/26-099", "#search"].concat(upTo >= 3 ? ["#myday"] : []),
     office: ["#today", "#accounts", "#account/A5", "#account/A3", "#opps", "#opp/26-125", "#opp/26-098", "#jobs", "#job/26-112", "#job/26-127", "#job/26-099", "#search"]
       .concat(upTo >= 2 ? ["#leads", "#lead/L-305", "#lead/L-309"] : []).concat(upTo >= 3 ? ["#schedule"] : []),
-    admin: (upTo >= 2 ? ["#admin", "#admin/pricebook", "#admin/company"] : []).concat(upTo >= 4 ? ["#dashboard", "#reports", "#report/revenue", "#report/unpaid", "#report/priceChanges", "#admin/users", "#admin/automations", "#admin/imports", "#admin/editor", "#admin/status"] : []) };
+    admin: (upTo >= 2 ? ["#admin", "#admin/pricebook", "#admin/company"] : []).concat(upTo >= 4 ? ["#dashboard", "#reports", "#report/revenue", "#report/unpaid", "#report/priceChanges", "#admin/users", "#admin/automations", "#admin/imports", "#admin/editor", "#admin/status"] : [])
+      .concat(upTo >= 5 ? ["#admin/types", "#admin/look", "#admin/setupHistory", "#bin", "#account/A1", "#job/26-104"] : []) };
   for (const [r, list] of Object.entries(pages)) {
     if (!list.length) continue;
     if (r !== "crew") await role(r);
@@ -275,6 +435,6 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
   }
 
   await b.close();
-  console.log(fails.length ? "FAILED:\n - " + fails.join("\n - ") : `ALL CHECKS PASSED (phases 1 to ${upTo})`);
+  console.log(fails.length ? "FAILED:\n - " + fails.join("\n - ") : `ALL CHECKS PASSED (phases 1 to ${Math.min(upTo, 5)})`);
   process.exit(fails.length ? 1 : 0);
 })();

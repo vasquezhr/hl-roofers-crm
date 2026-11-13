@@ -10,6 +10,8 @@ What goes to the bin together:
   an opportunity   with its job, and a job with its opportunity: they are one deal with one number.
                    The job's warranty jobs go too.
   a lead, a contact, a property, or a note in Details: by itself
+  a change order or a payment: by itself. Its job's total, balance and Paid follow at once,
+                   and again when it is restored
 """
 from datetime import timedelta
 
@@ -18,12 +20,13 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from .models import Account, Attachment, BinEntry, Contact, Job, Lead, Note, Opportunity, Property, log
+from .models import Account, Attachment, BinEntry, ChangeOrder, Contact, Job, Lead, Note, Opportunity, Payment, Property, log
 
 KEEP_DAYS = 30
-IN_BIN = [Lead, Account, Contact, Property, Note, Opportunity, Job, Attachment]     # every kind of record that can be in the bin
+IN_BIN = [Lead, Account, Contact, Property, Note, Opportunity, Job, Attachment, ChangeOrder, Payment]     # every kind of record that can be in the bin
 KIND = {Lead: "lead", Account: "account", Opportunity: "deal", Job: "deal", Contact: "contact", Property: "property", Note: "note",
-        Attachment: "file"}
+        Attachment: "file", ChangeOrder: "change_order", Payment: "payment"}
+ON_A_JOB = (Attachment, ChangeOrder, Payment)                    # records that belong to a job
 
 
 class Blocked(Exception):
@@ -62,6 +65,11 @@ def label_of(record):
         return f"{record.street} ({record.account.name})"
     if isinstance(record, Attachment):
         return f"{record.name} ({record.account.name})"
+    if isinstance(record, ChangeOrder):
+        return f"#{record.job.number} · {record.label} ({record.job.account.name})"
+    if isinstance(record, Payment):
+        from .documents import money
+        return f"#{record.job.number} · R{record.number} · {money(record.amount)} ({record.job.account.name})"
     if isinstance(record, Note):
         first_line = (record.title or record.text).strip().splitlines()[0][:60] if (record.title or record.text).strip() else ""
         return f"{first_line} ({record.account.name})" if record.account_id else first_line
@@ -80,6 +88,30 @@ def also_words(also):
     """The stored counts in the reader's words: Opportunities: 2 · Jobs: 1 · Leads: 1"""
     names = {"opportunities": _("Opportunities"), "jobs": _("Jobs"), "leads": _("Leads")}
     return " · ".join(f"{names.get(name, name)}: {count}" for name, _eq, count in (part.partition("=") for part in also.split(",") if part))
+
+
+def money_words(record):
+    """A change order or a payment as its job's history says it: CO2 · $390 · Replace 6 more sheets ...  /  R1 · $1,500 · Nov. 5, 2026 · Deposit · Check #2217"""
+    from .documents import money, payment_label
+    if isinstance(record, ChangeOrder):
+        return f"{record.label} · {money(record.amount)} · {' '.join(record.description.split())[:60]}"
+    return f"R{record.number} · {money(record.amount)} · {payment_label(record)}"
+
+
+def what_changes(record):
+    """What deleting a change order or a payment does to its job's money, in words, or ""."""
+    from .documents import money
+    if isinstance(record, Payment):
+        return _("Without it, the balance due is %(balance)s.") % {"balance": money(record.job.balance + record.amount)}
+    if isinstance(record, ChangeOrder) and record.is_signed:
+        return _("It is signed, so it counts in the job's total. Without it, the total is %(total)s.") % {"total": money(record.job.total - record.amount)}
+    return ""
+
+
+def recheck(job_ids):
+    """After money came off or back: each job's Paid follows its balance."""
+    for job in Job.objects.filter(pk__in=job_ids):
+        job.recheck_paid()
 
 
 def blocked(record):
@@ -106,6 +138,9 @@ def delete(record, user):
         model.objects.filter(pk__in=ids).update(bin=entry)
     if isinstance(record, Attachment):                                  # a line in its job's history, or its customer's
         log(record.job or record.account, "file_deleted", user, detail=record.name)
+    if isinstance(record, (ChangeOrder, Payment)):                      # a line in its job's history, and the job's money follows
+        log(record.job, "co_deleted" if isinstance(record, ChangeOrder) else "payment_deleted", user, detail=money_words(record))
+        recheck([record.job_id])
     if isinstance(record, (Contact, Property, Note)) and record.account_id:            # a line in its customer's history
         kind, detail = {Contact: ("contact_deleted", getattr(record, "name", "")), Property: ("property_deleted", getattr(record, "street", "")),
                         Note: ("note_deleted", "")}[type(record)]
@@ -122,9 +157,11 @@ def restore(entry, user):
             hidden = model.everything.filter(bin=entry, account__bin__isnull=False).select_related("account").first()
             if hidden:
                 raise Blocked(_("Its customer is in the Recycle Bin too. Restore the account first: %(name)s") % {"name": hidden.account.name})
-        on_job = Attachment.everything.filter(bin=entry, job__bin__isnull=False).select_related("job").first()
-        if on_job:
-            raise Blocked(_("Its job is in the Recycle Bin too. Restore job #%(number)s first.") % {"number": on_job.job.number})
+        for model in ON_A_JOB:
+            on_job = model.everything.filter(bin=entry, job__bin__isnull=False).select_related("job").first()
+            if on_job:
+                raise Blocked(_("Its job is in the Recycle Bin too. Restore job #%(number)s first.") % {"number": on_job.job.number})
+    money_back = [*ChangeOrder.everything.filter(bin=entry), *Payment.everything.filter(bin=entry)]
     for model in IN_BIN:
         records = model.everything.filter(bin=entry)
         ids = pks(records)
@@ -132,6 +169,9 @@ def restore(entry, user):
         if model in (Lead, Account, Opportunity, Job):
             for one in model.objects.filter(pk__in=ids):
                 log(one, "restored", user)
+    for record in money_back:                                           # a line in its job's history, and the job's money follows
+        log(record.job, "co_restored" if isinstance(record, ChangeOrder) else "payment_restored", user, detail=money_words(record))
+    recheck({record.job_id for record in money_back})
     log(None, "record_restored", user, detail=entry.label)
     entry.delete()
 
@@ -151,7 +191,7 @@ def purge(entry, user=None, actor=""):
     Job.everything.filter(warranty_for__in=jobs).delete()
     Job.everything.filter(pk__in=jobs).delete()
     Opportunity.everything.filter(pk__in=opps).delete()
-    for model in (Lead, Contact, Note, Property, Attachment):
+    for model in (Lead, Contact, Note, Property, Attachment, ChangeOrder, Payment):
         model.everything.filter(bin=entry).delete()
     Account.everything.filter(pk__in=accounts).delete()
     log(None, "record_purged", user, detail=entry.label, actor=actor)

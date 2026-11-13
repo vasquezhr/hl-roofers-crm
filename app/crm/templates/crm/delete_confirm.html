@@ -14,6 +14,7 @@
         <div class="alert alert-warning small mb-3">{{ problem }}</div>
         <a class="btn btn-outline-secondary" href="{{ back }}">{% trans "Back" %}</a>
         {% else %}
+        {% if changes %}<p class="small mb-2 fw-semibold">{{ changes }}</p>{% endif %}
         {% if also %}<p class="small mb-2">{% trans "These go to the Recycle Bin with it" %}: <span class="fw-semibold">{{ also }}</span>. {% trans "A job takes its change orders, payments and invoice along." %}</p>{% endif %}
         <p class="small text-body-secondary mb-3">{% trans "It leaves every list, Search, the schedule and the reports. It stays in the Recycle Bin for 30 days and can be restored from there, exactly as it was." %}</p>
         <form method="post" class="d-flex gap-2 justify-content-end">

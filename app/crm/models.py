@@ -191,11 +191,12 @@ class User(AbstractUser):
     can_costs = models.BooleanField(_("View Costs and Margins"), default=False,
                                     help_text=_("See supplier costs and the margin, in the Price Book and when writing a proposal. For someone who prices jobs."))
     can_billing = models.BooleanField(_("Billing"), default=False,
-                                      help_text=_("Remove a payment recorded by mistake, and get the email when a job is done and ready to invoice."))
+                                      help_text=_("Get the email when a job is done and ready to invoice."))
     can_data_editor = models.BooleanField(_("Data Editor"), default=False, help_text=_("Use the data editor for single and bulk changes."))
     can_inspect = models.BooleanField(_("Inspector"), default=False, help_text=_("See the inspections nobody has taken, and take them."))
     can_delete = models.BooleanField(_("Delete records"), default=False,
-                                     help_text=_("Delete leads, accounts, opportunities and jobs. They go to the Recycle Bin and can be restored for 30 days."))
+                                     help_text=_("Delete any kind of record: leads, accounts, contacts, properties, notes, opportunities, jobs, "
+                                                 "change orders, payments, photos and files. They go to the Recycle Bin and can be restored for 30 days."))
     can_crew_lead = models.BooleanField(_("Crew Lead"), default=True,
                                         help_text=_("Start and finish the crew's jobs, record a payment, change the extra workers and confirm changes. "
                                                     "Without it, a crew login only reads its crew's jobs and adds notes."))
@@ -878,6 +879,9 @@ class ChangeOrder(models.Model):
     signed_on = models.DateField(null=True, blank=True)
     accept_token = models.CharField(max_length=64, blank=True, db_index=True, editable=False)
     signed_by = models.CharField(max_length=120, blank=True)
+    bin = models.ForeignKey("BinEntry", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
+    objects = Visible()                                         # leaves out what is in the Recycle Bin
+    everything = models.Manager()
 
     class Meta:
         ordering = ["number"]
@@ -888,8 +892,8 @@ class ChangeOrder(models.Model):
         return f"#{self.job.number} {self.label}"
 
     def save(self, *args, **kwargs):
-        if not self.number:
-            self.number = self.job.change_orders.count() + 1
+        if not self.number:                                     # the next number on the job, counting any in the Recycle Bin
+            self.number = (ChangeOrder.everything.filter(job=self.job).aggregate(top=models.Max("number"))["top"] or 0) + 1
         super().save(*args, **kwargs)
 
     @property
@@ -933,6 +937,10 @@ class Payment(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     actor = models.CharField(max_length=80, blank=True)                  # who recorded it, as shown at the time ("Crew 1")
     created_at = models.DateTimeField(auto_now_add=True)
+    number = models.PositiveSmallIntegerField(default=0, editable=False)    # 1, 2, 3 on each job: its receipt is R1, R2, R3
+    bin = models.ForeignKey("BinEntry", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
+    objects = Visible()                                         # leaves out what is in the Recycle Bin
+    everything = models.Manager()
 
     class Meta:
         ordering = ["paid_on", "id"]
@@ -940,6 +948,11 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"#{self.job.number} {self.amount}"
+
+    def save(self, *args, **kwargs):
+        if not self.number:                                     # the next receipt number on the job, counting any in the Recycle Bin
+            self.number = (Payment.everything.filter(job=self.job).aggregate(top=models.Max("number"))["top"] or 0) + 1
+        super().save(*args, **kwargs)
 
 
 # ---------------------------------------------------------------- leads: requests from the website
@@ -1298,6 +1311,8 @@ class Activity(models.Model):
         "file_added": _("Added: %(detail)s"), "file_deleted": _("Photo or file deleted: %(detail)s"),
         "contact_deleted": _("Contact deleted: %(detail)s"), "property_deleted": _("Property deleted: %(detail)s"),
         "note_deleted": _("Note deleted from Details"),
+        "co_deleted": _("Change order deleted: %(detail)s"), "payment_deleted": _("Payment deleted: %(detail)s"),
+        "co_restored": _("Change order restored: %(detail)s"), "payment_restored": _("Payment restored: %(detail)s"),
         "proposal_written": _("Proposal written: %(detail)s"), "proposal_edited": _("Proposal changed: %(detail)s"),
         # the app's own setup: these lines have no record and are on Admin > Setup history
         "set_up": _("App set up for %(detail)s"),

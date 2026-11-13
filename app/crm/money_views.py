@@ -23,7 +23,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from . import documents
-from .access import job_or_404, may_edit, office_only, with_permission
+from .access import job_or_404, may_edit, office_only
 from .forms import ChangeOrderForm, PaymentEditForm, PaymentForm
 from .history import changes
 from .mail import send
@@ -297,6 +297,8 @@ def change_order(request, number, n):
         if request.user.may_edit("change_order"):
             actions.append(action(_("Edit"), reverse("change_order_edit", args=[job.number, order.number]), icon="edit"))
     actions.append(action(_("Download the PDF"), here + "?pdf=1", icon="doc"))
+    if office and request.user.can("delete"):
+        actions.append(action(_("Delete"), reverse("record_delete", args=["change_order", order.pk]), style="outline-danger", icon="trash"))
     if order.is_signed:
         note = _("Signed %(day)s") % {"day": documents.date_text(order.signed_on)} + (f" · {order.signed_by}" if order.signed_by else "")
     else:
@@ -399,22 +401,6 @@ def payment_new(request, number):
     intro = _("Balance due: %(amount)s") % {"amount": documents.money(balance)}
     return form_page(request, form, _("Record payment"), reverse("job", args=[job.number]), intro=intro,
                      sub=f"#{job.number} · {job.account.name}", save_label=_("Record payment"))
-
-
-@with_permission("billing")
-@require_POST
-def payment_remove(request, number, pk):
-    """Take off a payment that was recorded by mistake. For a login with the Billing permission. The history keeps what it was."""
-    payment = get_object_or_404(Payment, pk=pk, job__number=number)
-    what = f"{documents.money(payment.amount)} · {documents.payment_label(payment)}"
-    payment.delete()
-    job = get_object_or_404(Job.objects.prefetch_related("change_orders", "payments"), number=number)
-    if job.stage == Job.Stage.PAID and job.balance > 0:                # no longer paid in full: back to where it was
-        job.stage, job.paid_on = (Job.Stage.INVOICED if job.invoiced_on else Job.Stage.DONE), None
-        job.save()
-    log(job, "payment_removed", request.user, detail=what)
-    saved(request)
-    return redirect("job", number=job.number)
 
 
 # ---------------------------------------------------------------- the invoice
@@ -563,7 +549,8 @@ def change_order_edit(request, number, n):
             log(order.job, "edited", request.user, detail=what)
             saved(request)
         return redirect(back)
-    return form_page(request, form, _("Edit the change order"), back, sub=f"#{order.job.number} · {order.label}")
+    return form_page(request, form, _("Edit the change order"), back, sub=f"#{order.job.number} · {order.label}",
+                     delete_url=reverse("record_delete", args=["change_order", order.pk]))
 
 
 @may_edit("payment")
@@ -588,4 +575,5 @@ def payment_edit(request, number, pk):
             log(job, "edited", request.user, detail=what)
             saved(request)
         return redirect(back)
-    return form_page(request, form, _("Edit the payment"), back, sub=f"#{job.number} · {job.account.name}")
+    return form_page(request, form, _("Edit the payment"), back, sub=f"#{job.number} · {job.account.name}",
+                     delete_url=reverse("record_delete", args=["payment", payment.pk]))

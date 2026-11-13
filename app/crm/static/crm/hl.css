@@ -102,6 +102,11 @@
 /* icons */
 .hl-ic { width: 1.15em; height: 1.15em; flex: none; vertical-align: -.2em; }
 .hl-tabbar .hl-ic, .hl-side .hl-ic { width: 1.35rem; height: 1.35rem; }
+/* a section of a record page, folded away with the arrow before its title (hl.js, part 12) */
+.hl-fold { color: var(--bs-secondary-color); vertical-align: baseline; }
+.hl-fold .hl-ic { transition: transform .15s; }
+.hl-fold[aria-expanded=false] .hl-ic { transform: rotate(-90deg); }
+.hl-folded > :first-child { margin-bottom: 0 !important; }
 /* notes keep their line breaks */
 .hl-pre { white-space: pre-wrap; }
 /* stage bar: one step per stage, from Inspection to Paid */

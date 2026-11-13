@@ -70,7 +70,6 @@ urlpatterns = [
     path("jobs/<str:number>/change-orders/<int:n>/", money_views.change_order, name="change_order"),
     path("jobs/<str:number>/change-orders/<int:n>/send/", money_views.change_order_send, name="change_order_send"),
     path("jobs/<str:number>/payment/", money_views.payment_new, name="payment_new"),
-    path("jobs/<str:number>/payments/<int:pk>/remove/", money_views.payment_remove, name="payment_remove"),
     path("jobs/<str:number>/payments/<int:pk>/receipt/", money_views.receipt, name="receipt"),
     path("jobs/<str:number>/payments/<int:pk>/receipt/send/", money_views.receipt_send, name="receipt_send"),
     path("jobs/<str:number>/invoice/", money_views.invoice, name="invoice"),
