@@ -81,10 +81,10 @@ class Template(DataImportBase):
 
 class Reading(DataImportBase):
     def test_xlsx_and_csv_in_utf8_and_windows_1252(self):
-        for file in (xlsx(["name", "phone", "street", "note"], ["Marisol Quintero", 8045550190, "5 Elm St", "Habla español"]),
-                     csv_file("name,phone,street,note\nMarisol Quintero,(804) 555-0190,5 Elm St,Habla español\n"),
-                     csv_file("name;phone;street;note\nMarisol Quintero;(804) 555-0190;5 Elm St;Habla español\n", "cp1252"),
-                     csv_file("name,phone,street,note\nMarisol Quintero,(804) 555-0190,5 Elm St,Habla español\n", "utf-8-sig")):
+        for file in (xlsx(["name", "phone", "street", "note"], ["Marisol Quintero", 8045550190, "7812 Three Chopt Rd", "Habla español"]),
+                     csv_file("name,phone,street,note\nMarisol Quintero,(804) 555-0190,7812 Three Chopt Rd,Habla español\n"),
+                     csv_file("name;phone;street;note\nMarisol Quintero;(804) 555-0190;7812 Three Chopt Rd;Habla español\n", "cp1252"),
+                     csv_file("name,phone,street,note\nMarisol Quintero,(804) 555-0190,7812 Three Chopt Rd,Habla español\n", "utf-8-sig")):
             headings, rows = dataload.read_file(file)
             self.assertEqual(headings, ["name", "phone", "street", "note"], file.name)
             self.assertEqual(rows[0][0], "Marisol Quintero")
@@ -107,11 +107,11 @@ class Reading(DataImportBase):
         self.assertEqual(DataImportRow.objects.count(), 5000)                                       # exactly 5,000 is allowed
 
     def test_the_file_is_not_kept_only_its_rows(self):
-        self.upload(csv_file("name,phone,street\nMarisol Quintero,(804) 555-0190,5 Elm St\n"))
+        self.upload(csv_file("name,phone,street\nMarisol Quintero,(804) 555-0190,7812 Three Chopt Rd\n"))
         run = DataImport.objects.get()
         self.assertEqual((run.file_name, run.headings, run.stage), ("customers.csv", ["name", "phone", "street"], "map"))
         row = run.rows.get()
-        self.assertEqual((row.number, row.cells), (2, ["Marisol Quintero", "(804) 555-0190", "5 Elm St"]))
+        self.assertEqual((row.number, row.cells), (2, ["Marisol Quintero", "(804) 555-0190", "7812 Three Chopt Rd"]))
 
     def test_headings_are_matched_by_field_name_english_or_spanish_in_any_case(self):
         self.assertEqual(dataload.suggest("customers", ["NAME", "Teléfono", "Correo electrónico", "Street Address", "ZIP code", "Código postal", "Favorite color", "Note"]),
@@ -121,15 +121,15 @@ class Reading(DataImportBase):
 
 class Customers(DataImportBase):
     FILE = ["Name,Type,Language,Phone,Email,Street address,City,State,ZIP,Note",
-            "Marisol Quintero,homeowner,Spanish,804.555.0190,mquintero@example.com,5 Elm St,Richmond,va,23220,Habla español",
+            "Marisol Quintero,homeowner,Spanish,804.555.0190,mquintero@example.com,7812 Three Chopt Rd,Richmond,va,23220,Habla español",
             "Gerald Whitcomb,,en,(804) 555-0131,,10640 Mountain Rd,Richmond,VA,23233,Second roof",
             "Kestrel Roofing,Contractor,en,,office@example.com,9420 Iron Bridge Rd,Chesterfield,VA,23832,",
-            ",homeowner,en,(804) 555-0111,,1 Main St,,,,",
-            "Bad Email,homeowner,en,(804) 555-0112,not-an-email,2 Main St,,,,",
+            ",homeowner,en,(804) 555-0111,,9015 Patterson Ave,,,,",
+            "Bad Email,homeowner,en,(804) 555-0112,not-an-email,5609 Lakeside Ave,,,,",
             "No Street,homeowner,en,(804) 555-0113,,,,,,",
-            "Wrong Kind,spaceship,en,(804) 555-0114,,3 Main St,,,,",
-            "Short Phone,homeowner,en,555-0115,,4 Main St,,,,",
-            "Same Twice,homeowner,en,(804) 555-0190,,7 Oak St,,,,"]
+            "Wrong Kind,spaceship,en,(804) 555-0114,,7120 Hull Street Rd,,,,",
+            "Short Phone,homeowner,en,555-0115,,11807 Wyndham Lake Dr,,,,",
+            "Same Twice,homeowner,en,(804) 555-0190,,2240 Corner Rock Rd,,,,"]
 
     def setUp(self):
         super().setUp()
@@ -178,7 +178,7 @@ class Customers(DataImportBase):
         self.assertEqual((account.kind, account.language), ("homeowner", "es"))
         contact, place = account.contacts.get(), account.properties.get()
         self.assertEqual((contact.name, contact.phone, contact.email, contact.is_primary), ("Marisol Quintero", "(804) 555-0190", "mquintero@example.com", True))
-        self.assertEqual((place.street, place.city, place.state, place.zip_code), ("5 Elm St", "Richmond", "VA", "23220"))
+        self.assertEqual((place.street, place.city, place.state, place.zip_code), ("7812 Three Chopt Rd", "Richmond", "VA", "23220"))
         self.assertEqual(account.notes.get().text, "Habla español")
         self.assertEqual(Account.objects.get(name="Kestrel Roofing").kind, "contractor")
         line = account.activities.get()
@@ -203,7 +203,7 @@ class Customers(DataImportBase):
         self.assertEqual(DataImportRow.objects.get(data_import=run, number=3).result, "added")
 
     def test_one_row_that_fails_is_logged_and_the_others_go_on(self):
-        run = self.mapped(csv_file("name,phone,street\nAnn One,(804) 555-0201,1 A St\nBeth Two,(804) 555-0202,2 B St\nCarl Three,(804) 555-0203,3 C St\n"))
+        run = self.mapped(csv_file("name,phone,street\nAnn One,(804) 555-0201,611 S Sycamore St\nBeth Two,(804) 555-0202,1512 N 26th St\nCarl Three,(804) 555-0203,6315 Mechanicsville Tpke\n"))
         real = dataload.add_customer
 
         def add(values, run_, user):

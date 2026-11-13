@@ -132,6 +132,25 @@
 .hl-fold .hl-ic { transition: transform .15s; }
 .hl-fold[aria-expanded=false] .hl-ic { transform: rotate(-90deg); }
 .hl-folded > :first-child { margin-bottom: 0 !important; }
+.card-body.hl-folded { padding-top: .5rem; padding-bottom: .5rem; }       /* a folded card is only as tall as its title */
+.card-body.hl-folded > :first-child { line-height: 1.5rem; }
+.card-body { position: relative; }
+/* the Edit and Change stage buttons in a record's header: small, level with the stage badge */
+.hl-edit { --bs-btn-padding-y: .1rem; --bs-btn-padding-x: .45rem; --bs-btn-font-size: .75rem; line-height: 1.4; align-self: center; }
+/* the arrow at the top left of a record page */
+.hl-back { color: var(--bs-secondary-color); }
+.hl-back:hover, .hl-back:focus-visible { color: var(--bs-primary); }
+/* the pencil at the top right of a section: on hover on a computer, always showing on a touch screen */
+.hl-pencil { position: absolute; top: .55rem; right: .75rem; padding: .15rem; line-height: 1; color: var(--bs-secondary-color); }
+.hl-pencil:hover, .hl-pencil:focus-visible { color: var(--bs-primary); }
+@media (hover: hover) { .hl-pencil { opacity: 0; transition: opacity .15s; } .card-body:hover .hl-pencil, .hl-pencil:focus-visible { opacity: 1; } }
+/* the side menu folded to icons only */
+.hl-side-toggle { color: var(--bs-secondary-color); }
+.hl-side-toggle:hover { color: var(--bs-primary); }
+.hl-side-icons .hl-side { width: 4.25rem; }
+.hl-side-icons .hl-side .nav-link { justify-content: center; padding-left: .5rem; padding-right: .5rem; }
+.hl-side-icons .hl-side .nav-link span { display: none; }
+.hl-side-icons .hl-side .hl-side-toggle { align-self: center !important; }
 /* notes keep their line breaks */
 .hl-pre { white-space: pre-wrap; }
 /* chart columns: the bar lightens when it is pointed at or focused */
@@ -139,8 +158,10 @@
 .hl-hit { fill: transparent; outline: none; }
 .hl-hit:hover + .hl-mark, .hl-hit:focus + .hl-mark { opacity: .7; }
 /* stage bar: one step per stage, from Inspection to Paid */
-.hl-stage { display: flex; gap: .25rem; overflow-x: auto; }
-.hl-stage > div { flex: 1; min-width: 4.4rem; text-align: center; font-size: .68rem; font-weight: 700; color: var(--bs-secondary-color); }
+.hl-stage { display: flex; flex-wrap: wrap; gap: .25rem; }
+.hl-stage > div { flex: 1 1 4.4rem; min-width: 0; text-align: center; font-size: .68rem; font-weight: 700; color: var(--bs-secondary-color); overflow-wrap: anywhere; }
+/* on a phone the steps wrap onto a second row (four to a row), so the bar fits the screen with no scroll bar */
+@media (max-width: 575.98px) { .hl-stage > div { flex: 1 0 calc(25% - .25rem); } }
 .hl-stage > div::before { content: ""; display: block; height: .4rem; border-radius: 1rem; background: var(--bs-border-color); margin-bottom: .3rem; }
 .hl-stage > .done::before { background: var(--bs-success); }
 .hl-stage > .cur::before { background: var(--bs-primary); }
@@ -152,6 +173,7 @@
 <div class="d-flex min-vh-100">
   <!-- side navigation (computers) -->
   <aside class="d-none d-lg-flex flex-column flex-shrink-0 bg-body-tertiary border-end p-3 hl-side">
+    <button type="button" class="btn btn-link p-0 mb-2 hl-side-toggle align-self-start" data-act="sideToggle" id="sideToggle" aria-expanded="true"></button>
     <ul class="nav nav-pills flex-column gap-1" id="sideNav"></ul>
   </aside>
 
@@ -900,7 +922,11 @@ const ICONS = {
   trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
   palette: '<path d="M12 3a9 9 0 100 18c1.1 0 1.6-.8 1.6-1.6 0-1.1-.9-1.6-.9-2.6s.8-1.8 1.8-1.8H16a5 5 0 005-5c0-3.9-4-7-9-7z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="9.5" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/>',
   note: '<path d="M5 3h10l4 4v14H5z"/><path d="M9 12h6M9 16h4"/>',
-  chevron: '<path d="M6 9l6 6 6-6"/>'
+  chevron: '<path d="M6 9l6 6 6-6"/>',
+  back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  sidebar: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>'
 };
 ICONS.myjobs = ICONS.jobs;
 const ic = name => `<svg class="hl-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
@@ -924,13 +950,18 @@ const pageHead = (title, sub, right) =>
 const backLink = (href, label) => `<a class="small text-decoration-none d-inline-block mb-2" href="${href}">‹ ${esc(label)}</a>`;
 // A section of a record page (fold = its name) can be folded away with the arrow before its title, and opened again.
 // The app remembers the choice on that phone or computer; this demo, while the page is open.
-S.folded = new Set();
-const section = (title, body, right, fold) => {
-  const key = fold ? (location.hash.slice(1).split("/")[0] || "") + ":" + fold : "", closed = !!key && S.folded.has(key);
+// A job page opens with Customer, Crew and Dates, Scope of Work and Price and Payments open and every other section folded;
+// a section the person folds or opens keeps that choice for every job.
+S.foldPref = new Map();
+const OPEN_ON_A_JOB = ["customer", "crew", "scope", "money"];
+const foldClosed = key => (S.foldPref.has(key) ? S.foldPref.get(key) : key.startsWith("job:") && !OPEN_ON_A_JOB.includes(key.slice(4)));
+// pencil = {kind, id, sec}: the small pencil that edits this section in place (needs the Edit permission for that kind of record)
+const section = (title, body, right, fold, pencil) => {
+  const key = fold ? (location.hash.slice(1).split("/")[0] || "") + ":" + fold : "", closed = !!key && foldClosed(key);
   const word = tt(closed ? "showSection" : "hideSection");
   const arrow = key ? `<button type="button" class="btn btn-link p-0 me-1 hl-fold" data-act="fold" data-key="${key}" aria-expanded="${!closed}" aria-label="${word}: ${esc(String(title).replace(/<[^>]*>/g, ""))}" title="${word}">${ic("chevron")}</button>` : "";
   return `<div class="card shadow-sm mb-3"><div class="card-body${closed ? " hl-folded" : ""}">${title ? `<div class="d-flex align-items-center gap-2 mb-2"><h2 class="h6 mb-0 flex-grow-1">${arrow}${title}</h2>${right || ""}</div>` : ""}` +
-    (key ? `<div${closed ? " hidden" : ""}>${body}</div>` : body) + `</div></div>`;
+    (key ? `<div${closed ? " hidden" : ""} data-body>${pencil && !closed && mayEdit(pencil.kind) ? `<button type="button" class="btn btn-link hl-pencil" data-act="inlineOpen" data-kind="${pencil.kind}" data-id="${esc(pencil.id)}" data-sec="${pencil.sec}" title="${tt("edit.section")}" aria-label="${tt("edit.section")}">${ic("pencil")}</button>` : ""}${body}</div>` : body) + `</div></div>`;
 };
 const dl = rows => `<dl class="row mb-0 small">` + rows.filter(Boolean).map(([k, v]) =>
   `<dt class="col-4 text-body-secondary fw-normal">${k}</dt><dd class="col-8 mb-1">${v}</dd>`).join("") + `</dl>`;
@@ -993,8 +1024,7 @@ function render() {
   renderChrome(typeof r.tab === "function" ? r.tab() : (r.tab || name));
   $("#view").innerHTML = r.render(arg) + `<p class="text-center text-body-secondary small mt-4 mb-0">${tt("demo")}</p>`;
   document.documentElement.lang = S.lang;
-  const cur = $("#view .hl-stage .cur");            // on a phone, slide the stage bar so the current step shows
-  if (cur) cur.parentNode.scrollLeft = cur.offsetLeft - cur.parentNode.offsetLeft - cur.parentNode.clientWidth / 2 + cur.clientWidth / 2;
+  capitalOptions(document); showSide();
   if (r.after) r.after(arg);
 }
 
@@ -1037,10 +1067,31 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("input", e => { const el = e.target.closest("[data-input]"); if (el && ACT[el.dataset.input]) ACT[el.dataset.input](el.dataset, el, e); });
 document.addEventListener("change", e => { const el = e.target.closest("[data-change]"); if (el && ACT[el.dataset.change]) ACT[el.dataset.change](el.dataset, el, e); });
-window.addEventListener("hashchange", () => { closeModal(); render(); window.scrollTo(0, 0); });
+// the screen the person came from, so a record page's arrow can name it (the week of the Schedule is kept in S.week)
+let LAST = location.hash, PREV = "";
+window.addEventListener("hashchange", () => { PREV = LAST; LAST = location.hash; closeModal(); render(); window.scrollTo(0, 0); });
+const BACK_FROM = { today: "nav.today", dashboard: "nav.dashboard", leads: "nav.leads", opps: "nav.opps", jobs: "nav.jobs", schedule: "nav.schedule", accounts: "nav.accounts",
+  search: "nav.search", reports: "nav.reports", myday: "nav.myday", myjobs: "nav.myjobs", lead: "back.lead", opp: "back.opp", job: "back.job", account: "back.account" };
+// the arrow at the top left of a lead, account, opportunity or job: back to the screen the person came from, named; else to the list
+function recBack(fallbackHref, fallbackLabel) {
+  const name = PREV.slice(1).split("/")[0], here = LAST;
+  const found = PREV && PREV !== here && BACK_FROM[name] && allowed(name === "lead" || name === "opp" || name === "job" || name === "account" ? name : name);
+  return `<a class="hl-back small text-decoration-none d-inline-flex align-items-center gap-1 mb-2" href="${found ? esc(PREV) : fallbackHref}">${ic("back")}<span>${esc(found ? t(BACK_FROM[name]) : fallbackLabel)}</span></a>`;
+}
+// every drop-down option starts with a capital letter, in both languages
+function capitalOptions(root) {
+  root.querySelectorAll("option").forEach(o => { const w = o.textContent; if (w && /^\p{Ll}/u.test(w)) o.textContent = w[0].toLocaleUpperCase() + w.slice(1); });
+}
 
 ACT.setLang = d => { S.lang = d.lang; render(); };
-ACT.fold = d => { if (S.folded.has(d.key)) S.folded.delete(d.key); else S.folded.add(d.key); render(); };
+ACT.fold = d => { S.foldPref.set(d.key, !foldClosed(d.key)); render(); };
+ACT.sideToggle = () => { S.sideIcons = !S.sideIcons; try { localStorage.setItem("hl-side", S.sideIcons ? "icons" : "open"); } catch (e) {} showSide(); };
+function showSide() {
+  document.documentElement.classList.toggle("hl-side-icons", !!S.sideIcons);
+  const b = $("#sideToggle"); if (!b) return;
+  b.innerHTML = ic("sidebar"); b.setAttribute("aria-expanded", S.sideIcons ? "false" : "true");
+  b.title = b.ariaLabel = t(S.sideIcons ? "side.open" : "side.fold");
+}
 ACT.setRole = d => { S.role = d.role; if (d.crew) S.crew = d.crew; go("#" + tabsFor(S.role)[0]); };
 ACT.goHome = () => go("#" + tabsFor(S.role)[0]);
 ACT.setFilter = d => { S.f[d.name] = d.value; render(); };
@@ -1284,7 +1335,7 @@ route("account", {
       : `<div class="small text-body-secondary">${tt("accounts.noDetails")}</div>`) +
       field(t("notes.add"), `<textarea class="form-control" id="detailText" rows="3"></textarea>`) +
       `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="detailSave" data-acct="${a.id}">${tt("notes.save")}</button>`;
-    return backLink("#accounts", t("nav.accounts")) +
+    return recBack("#accounts", t("nav.accounts")) +
       pageHead(esc(a.name), kindBadge(a) + ` <span class="ms-1">${tt("accounts.since", { y: a.since })}</span>`,
         headTools(editBtn("editAccount", `data-id="${a.id}"`, "account"), delBtn("account", a.id),
           `<button type="button" class="btn btn-primary btn-sm text-nowrap" data-act="newOpp" data-acct="${a.id}">${ic("plus")} ${tt("opps.new")}</button>`)) +
@@ -1324,7 +1375,7 @@ ACT.detailSave = d => {
 };
 
 ACT.newAccount = () => openModal(modalShell(tt("accounts.new"),
-  field(t("accounts.type"), `<select class="form-select" id="naKind">${["homeowner", "contractor", "warranty", "manager"].map(k => `<option value="${k}">${tt("kind." + k)}</option>`).join("")}</select>`) +
+  field(t("accounts.type"), `<select class="form-select" id="naKind">${pickKeys("kind").map(k => `<option value="${k}">${tt("kind." + k)}</option>`).join("")}</select>`) +
   field(t("name"), `<input class="form-control" id="naName" autocomplete="off">`) +
   `<div class="row g-2"><div class="col-sm-6">${field(t("phone"), `<input class="form-control" id="naPhone" inputmode="tel">`)}</div><div class="col-sm-6">${field(t("email"), `<input class="form-control" id="naEmail" inputmode="email">`)}</div></div>` +
   `<div class="row g-2"><div class="col-sm-7">${field(t("street"), `<input class="form-control" id="naAddr">`)}</div><div class="col-sm-5">${field(t("cityZip"), `<input class="form-control" id="naCity" value="Richmond VA ">`)}</div></div>`,
@@ -1364,11 +1415,15 @@ route("opps", {
 });
 
 // customer and place, used on opportunity and job pages
-function custBlock(a, p, kind, id) {
-  const c = a.contacts[0], site = p.site;
+function custBlock(a, p, kind, id, src) {
+  const c = a.contacts[0], site = p.site, j = kind === "job" ? jobOf(id) : null;
   return dl([
+    j ? [tt("job.num"), "#" + j.id] : null,
+    j ? [tt("job.extNum"), (j.ref ? `${tt("ref." + j.ref.type)} ${esc(j.ref.num)}` : `<span class="text-body-secondary">${tt("none")}</span>`) +
+      (isCrew() ? "" : ` <a href="#" data-act="jobRef" data-id="${j.id}">${tt("job.editRef")}</a>`)] : null,
     [tt("customer"), (isCrew() ? esc(a.name) : `<a href="#account/${a.id}">${esc(a.name)}</a>`) + " " + kindBadge(a)],
     site ? [tt("siteContact"), `${esc(site.name)} · <a href="${telHref(site.phone)}">${esc(site.phone)}</a>`] : null,
+    src ? [tt("opps.sourceRow"), tt("src." + src)] : null,
     [tt("property"), `${esc(p.addr)}<br><span class="text-body-secondary">${esc(p.city)}</span>`],
     [tt("phone"), `<a href="${telHref(c.phone)}">${esc(c.phone)}</a>`],
     !isCrew() && c.email ? [tt("email"), `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`] : null
@@ -1399,16 +1454,16 @@ route("opp", {
     if (o.stage === "lost") actions = `<button type="button" class="btn btn-outline-primary" data-act="newOpp" data-acct="${a.id}">${ic("plus")} ${tt("opps.newForCustomer")}</button>`;
     const insp = (o.insp ? `<div class="fw-semibold">${esc(fmtDay(o.insp.day))} · ${fmtTime(o.insp.time)}</div>` : `<div class="small text-body-secondary">${tt("opps.noInspection")}</div>`) +
       (o.stage === "inspection" ? `<button type="button" class="btn ${o.insp ? "btn-outline-secondary" : "btn-primary"} btn-sm mt-2" data-act="goBook" data-kind="opp" data-id="${o.id}">${ic("schedule")} ${tt(o.insp ? "opps.rebook" : "opps.bookInspection")}</button>` : "");
-    return backLink("#opps", t("nav.opps")) +
+    return recBack("#opps", t("nav.opps")) +
       pageHead(esc(a.name), `#${o.id} · ${tt("type." + o.type)}` + (o.laborOnly ? " · " + tt("job.laborOnly") : ""),
-        headTools(editBtn("editOpp", `data-id="${o.id}"`, "opp"), delBtn("deal", o.id), stageBadge(o.stage))) +
+        headTools(editBtn("editOpp", `data-id="${o.id}"`, "opp", true), delBtn("deal", o.id), stageBtn("opp", o.id) + stageBadge(o.stage))) +
       stageBar(PATH, cur) +
       (o.stage === "lost" ? `<div class="alert alert-secondary py-2 small">${tt("opps.lostBecause")}: ${tt("lost." + o.lostReason)}</div>` : "") +
       `<div class="d-flex flex-wrap gap-2 mb-3">${actions}</div>` +
-      `<div class="row g-3"><div class="col-lg-6">` + section(tt("customer"), custBlock(a, p, "opp", o.id), "", "customer") + section(tt("opps.inspection"), insp, "", "inspection") +
+      `<div class="row g-3"><div class="col-lg-6">` + section(tt("customer"), custBlock(a, p, "opp", o.id, o.src), "", "customer", { kind: "opp", id: o.id, sec: "customer" }) + section(tt("opps.inspection"), insp, "", "inspection") +
       `</div><div class="col-lg-6">` + section(tt("opps.proposal"), linesBlock(o.lines, o.total) +
         (o.sentOn ? `<div class="small text-body-secondary mt-2">${tt("opps.sentOn", { d: fmtDate(o.sentOn) })}${o.signedOn ? " · " + tt("opps.signedOn", { d: fmtDate(o.signedOn) }) + " (" + tt("signedHow." + o.signedHow) + ")" : ""}</div>` : ""), "", "proposal") +
-      section(tt("opps.source"), `<div class="small">${tt("src." + o.src)}</div>`, "", "source") + `</div></div>` +
+      `</div></div>` +
       section(tt("history"), historyList(o), "", "history");
   }
 });
@@ -1443,14 +1498,14 @@ ACT.oppSign = d => {
 };
 function signOpp(o, how) {
   o.stage = "won"; o.signedOn = new Date(); o.signedHow = how; addLog(o, "log.signed"); keepProposal(o);
-  const j = { id: o.id, opp: o.id, acct: o.acct, prop: o.prop, type: o.type, stage: "signed", price: o.total, crew: null, days: [], workers: [], laborOnly: !!o.laborOnly };
+  const j = { id: o.id, opp: o.id, acct: o.acct, prop: o.prop, type: o.type, stage: "signed", price: o.total, crew: null, days: [], workers: [], laborOnly: !!o.laborOnly, scopeLocked: !!o.descLocked };
   Object.assign(j, { cos: [], payments: [], files: [], notes: [], added: [] }); JOBS.unshift(j); addLog(j, "log.jobCreated");
   return j;
 }
 ACT.confirmSign = d => { const j = signOpp(oppOf(d.id), val("osHow")); closeModal(); toast(t("opps.jobCreated", { id: j.id })); go("#job/" + j.id); };
 
 ACT.oppLost = d => openModal(modalShell(tt("opps.markLost"),
-  field(t("opps.lostReason"), `<select class="form-select" id="olWhy">${["price", "timing", "noresponse", "other"].map(k => `<option value="${k}">${tt("lost." + k)}</option>`).join("")}</select>`),
+  field(t("opps.lostReason"), `<select class="form-select" id="olWhy">${pickKeys("lost").map(k => `<option value="${k}">${tt("lost." + k)}</option>`).join("")}</select>`),
   cancelBtn() + `<button type="button" class="btn btn-primary" data-act="confirmLost" data-id="${d.id}">${tt("opps.markLost")}</button>`));
 ACT.confirmLost = d => { const o = oppOf(d.id); o.stage = "lost"; o.lostReason = val("olWhy"); o.lostOn = new Date(); addLog(o, "log.lost"); closeModal(); toast(t("saved")); render(); };
 
@@ -1508,29 +1563,27 @@ route("job", {
     const cur = j.opp ? PATH.indexOf(j.stage) : ["signed", "scheduled", "inprogress", "done"].indexOf(j.stage);
     const orig = j.warrantyFor ? jobOf(j.warrantyFor) : null, wjobs = JOBS.filter(x => x.warrantyFor === j.id);
     const crewCard = crew
-      ? changedBox(j) + dl([[tt("crew"), `<span class="fw-semibold">${esc(crewName(crew))}</span> · ${tt("job.lead")}: ${esc(crew.lead)}<br><span class="text-body-secondary">${esc(crew.members.join(", "))}</span>`],
-          jobDone(j) || (isCrew() && !isCrewLead()) ? (j.workers.length ? [tt("job.extraWorkers"), esc(j.workers.join(", "))] : null) : [tt("job.extraWorkers"), workersEditor(j)],
-          [tt("job.when"), esc(jobDates(j)) + (j.days.length > 1 ? `<br><span class="text-body-secondary">${tt("job.days", { n: j.days.length })} · ${tt("job.startsAt", { t: fmtTime(j.time) })}</span>` : "") +
+      ? changedBox(j) + dl([[tt("job.when"), esc(jobDates(j)) + (j.days.length > 1 ? `<br><span class="text-body-secondary">${tt("job.days", { n: j.days.length })} · ${tt("job.startsAt", { t: fmtTime(j.time) })}</span>` : "") +
             ((j.added || []).length ? `<div class="mt-1">${tt("job.addedDays")}: ${j.added.map(x => `<span class="text-nowrap">${esc(fmtDay(x))}${isOff(x) ? " " + badge(t("sched.dayOff"), "warning") : ""}` +
               (!isCrew() ? ` <a href="#" class="link-danger" data-act="dayRemove" data-id="${j.id}" data-day="${iso(x)}">${tt("job.takeOff")}</a>` : "") + `</span>`).join(", ")}</div>` : "") +
-            (!isCrew() && ["scheduled", "inprogress"].includes(j.stage) ? addDayForm(j) : "")]])
+            (!isCrew() && ["scheduled", "inprogress"].includes(j.stage) ? addDayForm(j) : "")],
+          [tt("crew"), `<span class="fw-semibold">${esc(crewName(crew))}</span> · ${tt("job.lead")}: ${esc(crew.lead)}<br><span class="text-body-secondary">${esc(crew.members.join(", "))}</span>`],
+          jobDone(j) || (isCrew() && !isCrewLead()) ? (j.workers.length ? [tt("job.extraWorkers"), esc(j.workers.join(", "))] : null) : [tt("job.extraWorkers"), workersEditor(j)]])
       : `<div class="small text-body-secondary">${tt("job.notScheduled")}</div>`;
-    const refCard = dl([[tt("job.ourNumber"), "#" + j.id],
-        [tt("job.outsideRef"), j.ref ? `${tt("ref." + j.ref.type)} ${esc(j.ref.num)}` : `<span class="text-body-secondary">${tt("none")}</span>`]]) +
-      (isCrew() ? "" : `<button type="button" class="btn btn-outline-secondary btn-sm mt-2" data-act="jobRef" data-id="${j.id}">${ic("edit")} ${tt("job.editRef")}</button>`);
     const linked = [
       j.opp && !isCrew() ? `<a href="#opp/${j.opp}">${tt("job.itsOpp", { id: j.opp })}</a>` : "",
       orig ? `<a href="#job/${orig.id}">${tt("job.warrantyFor", { id: orig.id })}</a>` : "",
       ...wjobs.map(w => `<a href="#job/${w.id}">${tt("job.warrantyJob", { id: w.id })}</a> ${jobBadge(w)}`)
     ].filter(Boolean);
     if (j.opp && oppOf(j.opp) && oppOf(j.opp).stage === "won") linked.push(`<a href="#" data-act="oppView" data-id="${j.opp}">${tt("job.signedProposal", { id: j.opp })}</a>`);
-    return backLink(isCrew() ? "#myjobs" : "#jobs", t(isCrew() ? "nav.myjobs" : "nav.jobs")) +
+    return recBack(isCrew() ? "#myjobs" : "#jobs", t(isCrew() ? "nav.myjobs" : "nav.jobs")) +
       pageHead(esc(a.name), `#${j.id} · ${tt("type." + j.type)}${jobTags(j)}`,
-        headTools(isCrew() ? "" : editBtn("editJob", `data-id="${j.id}"`, "job"), isCrew() ? "" : delBtn("deal", j.id), jobBadge(j))) +
+        headTools(isCrew() ? "" : editBtn("editJob", `data-id="${j.id}"`, "job", true), isCrew() ? "" : delBtn("deal", j.id), stageBtn("job", j.id) + jobBadge(j))) +
       stageBar(steps, cur) +
       `<div class="d-flex flex-wrap gap-2 mb-3">${jobActions(j)}</div>` +
-      `<div class="row g-3"><div class="col-lg-6">` + section(tt("customer"), custBlock(a, p, "job", j.id), "", "customer") + section(tt("job.crewAndDates"), crewCard, "", "crew") + section(tt("job.refs"), refCard, "", "numbers") +
-      `</div><div class="col-lg-6">` + section(tt("job.scope"), `<ul class="small mb-0 ps-3">${scopeOf(j).map(s => `<li>${esc(s)}</li>`).join("")}</ul>`, "", "scope") + jobMoneyCard(j) +
+      `<div class="row g-3"><div class="col-lg-6">` + section(tt("customer"), custBlock(a, p, "job", j.id, j.opp && oppOf(j.opp) ? oppOf(j.opp).src : ""), "", "customer", { kind: "job", id: j.id, sec: "customer" }) +
+      section(tt("job.crewAndDates"), crewCard, "", "crew", crew && !isCrew() && ["scheduled", "inprogress"].includes(j.stage) ? { kind: "job", id: j.id, sec: "crew" } : null) +
+      `</div><div class="col-lg-6">` + section(tt("job.scope"), `<ul class="small mb-0 ps-3">${scopeOf(j).map(s => `<li>${esc(s)}</li>`).join("")}</ul>`, "", "scope", { kind: "job", id: j.id, sec: "scope" }) + jobMoneyCard(j) +
       (j.type === "warranty" ? "" : documentsCard(j.opp && oppOf(j.opp) ? [oppOf(j.opp)] : [], [j])) +
       (linked.length ? section(tt("job.linked"), `<ul class="list-unstyled small mb-0">${linked.map(l => `<li class="mb-1">${ic("link")} ${l}</li>`).join("")}</ul>`, "", "linked") : "") + `</div></div>` +
       filesCard(j, "job") + notesCard(j) + section(tt("history"), historyList(j), "", "history");
@@ -1732,7 +1785,7 @@ const EDIT_SPECS = {
     fSelect("owner", "leads.assigned", [["office", "role.office"], ["admin", "role.admin"]], () => l.owner, v => { l.owner = v; }),
     fText("msg", "leads.request", () => l.msg, v => { l.msg = v; }, "textarea")],
   account: a => [fText("name", "name", () => a.name, v => { a.name = v; }),
-    fSelect("kind", "accounts.type", ["homeowner", "contractor", "warranty", "manager"].map(k => [k, "kind." + k]), () => a.kind, v => { a.kind = v; a.type = v === "homeowner" ? "person" : "company"; }),
+    fSelect("kind", "accounts.type", pickKeys("kind", a.kind).map(k => [k, "kind." + k]), () => a.kind, v => { a.kind = v; a.type = v === "homeowner" ? "person" : "company"; }),
     fSelect("lang", "leads.language", [["en", "langName.en"], ["es", "langName.es"]], () => a.lang, v => { a.lang = v; })],
   contact: c => [fText("name", "name", () => c.name, v => { c.name = v; }),
     fSelect("role", "edit.role", ["owner", "spouse", "office"].map(k => [k, "contactRole." + k]), () => c.role, v => { c.role = v; }),
@@ -1742,9 +1795,9 @@ const EDIT_SPECS = {
   note: n => [fText("text", "edit.noteText", () => n.text, v => { n.text = v; n.title = v.split("\n")[0]; }, "textarea")],
   opp: o => [fSelect("prop", "property", acct(o.acct).props.map(p => [p.id, "raw:" + addrLine(p)]), () => o.prop, v => { o.prop = v; }),
     fSelect("type", "jobType", typeOpts(), () => o.type, v => { o.type = v; }),
-    fSelect("src", "opps.source", ["web", "referral", "repeat", "contractor", "warranty"].map(k => [k, "src." + k]), () => o.src, v => { o.src = v; }),
+    fSelect("src", "opps.source", pickKeys("src", o.src).map(k => [k, "src." + k]), () => o.src, v => { o.src = v; }),
     { k: "laborOnly", label: "job.laborOnly", type: "check", get: () => !!o.laborOnly, set: v => { o.laborOnly = v; } },
-    ...(o.stage === "lost" ? [fSelect("lostReason", "opps.lostReason", ["price", "timing", "noresponse", "other"].map(k => [k, "lost." + k]), () => o.lostReason, v => { o.lostReason = v; })] : [])],
+    ...(o.stage === "lost" ? [fSelect("lostReason", "opps.lostReason", pickKeys("lost", o.lostReason).map(k => [k, "lost." + k]), () => o.lostReason, v => { o.lostReason = v; })] : [])],
   job: j => [fSelect("prop", "property", acct(j.acct).props.map(p => [p.id, "raw:" + addrLine(p)]), () => j.prop, v => { j.prop = v; }),
     ...(j.type === "warranty" ? [] : [fSelect("type", "jobType", typeOpts(), () => j.type, v => { j.type = v; }),
       { k: "price", label: "job.price", type: "money", get: () => j.price, set: v => { j.price = Number(v); } },
@@ -1755,7 +1808,7 @@ const EDIT_SPECS = {
   co: c => [fText("text", "money.coWhat", () => c.text, v => { c.text = v; }, "textarea"),
     { k: "amount", label: "money.coAmount", type: "money", get: () => c.amount, set: v => { c.amount = Number(v); } }],
   payment: p => [{ k: "amount", label: "money.amount", type: "money", get: () => p.amount, set: v => { p.amount = Number(v); } },
-    fSelect("method", "money.method", ["check", "cash", "card", "other"].map(k => [k, "method." + k]), () => p.method, v => { p.method = v; }),
+    fSelect("method", "money.method", pickKeys("method", p.method).map(k => [k, "method." + k]), () => p.method, v => { p.method = v; }),
     fText("num", "money.checkNo", () => p.num, v => { p.num = v; }),
     { k: "d", label: "edit.date", type: "date", get: () => p.d, set: v => { p.d = v; } },
     fSelect("kind", "edit.payKind", [["deposit", "pay.deposit"], ["payment", "pay.payment"]], () => p.kind, v => { p.kind = v; })]
@@ -1763,6 +1816,7 @@ const EDIT_SPECS = {
 const optLabel = w => (w.startsWith("raw:") ? esc(w.slice(4)) : tt(w));
 function inputFor(f) {
   const v = f.get(), id = "ef_" + f.k;
+  if (f.type === "locked") return `<div class="hl-pre small bg-body-tertiary border rounded p-2">${esc(v)}</div><div class="form-text">${tt("edit.locked")}</div>`;
   if (f.type === "select") return `<select class="form-select" id="${id}">${f.opts.map(([k, w]) => `<option value="${esc(k)}"${k === v ? " selected" : ""}>${optLabel(w)}</option>`).join("")}</select>`;
   if (f.type === "check") return `<div class="form-check"><input class="form-check-input" type="checkbox" id="${id}"${v ? " checked" : ""}><label class="form-check-label" for="${id}">${tt(f.label)}</label></div>`;
   if (f.type === "textarea") return `<textarea class="form-control" id="${id}" rows="3">${esc(v)}</textarea>`;
@@ -1771,6 +1825,7 @@ function inputFor(f) {
   return `<input class="form-control" id="${id}" value="${esc(v)}" autocomplete="off">`;
 }
 const readInput = f => {
+  if (f.type === "locked") return f.get();
   const el = document.getElementById("ef_" + f.k);
   if (f.type === "check") return el.checked;
   if (f.type === "date") return dayFromIso(el.value);
@@ -1825,7 +1880,12 @@ ACT.editCo = d => { const j = jobOf(d.id), c = j.cos.find(x => x.id === d.co); o
 ACT.editPay = d => { const j = jobOf(d.id), p = j.payments.find(x => x.n === +d.n); openEdit("payment", p, j, "R" + p.n, "payment", d.id + ":" + p.n); };
 
 /* small buttons for record pages */
-const editBtn = (act, data, kind) => (mayEdit(kind) ? `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="${act}" ${data}>${ic("edit")} ${tt("docs.edit")}</button>` : "");
+// all = true on a lead, an opportunity and a job: with pencils on the page, this button opens every section for editing at once
+const editBtn = (act, data, kind, all) => (mayEdit(kind) ? `<button type="button" class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" data-act="${all ? "editAll" : act}" data-fallback="${act}" ${data}>${ic("edit")} ${tt("docs.edit")}</button>` : "");
+ACT.editAll = (d, el) => {
+  const pencils = [...document.querySelectorAll('[data-act="inlineOpen"]')];
+  if (pencils.length) pencils.forEach(b => b.click()); else ACT[d.fallback](d, el);
+};
 const delBtn = (kind, id) => (can("delete") ? `<button type="button" class="btn btn-outline-danger btn-sm" data-act="askDelete" data-kind="${kind}" data-id="${esc(id)}" title="${tt("bin.delete")}" aria-label="${tt("bin.delete")}">${ic("trash")}</button>` : "");
 // the top right of a record page: Edit, Delete and the stage
 const headTools = (editPart, delPart, extra) => `<div class="d-flex flex-wrap align-items-center justify-content-end gap-2">${editPart}${delPart}${extra || ""}</div>`;
@@ -1983,7 +2043,7 @@ route("bin", {
    In this demo a photo you pick shows while the page is open; nothing is
    uploaded or saved. The starting photos are drawings.
    ===================================================================== */
-const FILE_KINDS = ["before", "during", "after", "damage", "signedProposal", "signedCO", "document"];
+const FILE_KINDS_ALL = ["before", "during", "after", "damage", "signedProposal", "signedCO", "document"];
 let FILE_SEQ = 0;
 // a simple drawing that stands in for a photo in the demo
 const sketch = (sky, roof) => "data:image/svg+xml," + encodeURIComponent(
@@ -2015,7 +2075,7 @@ function filesCard(owner, ownerKind) {
     `<div class="mt-1">${fileBadge(f)}</div>` + (f.caption ? `<div class="text-truncate" title="${esc(f.caption)}">${esc(f.caption)}</div>` : "") +
     `<div class="text-body-secondary mt-auto">${esc(whoName(f.w))} · ${esc(fmtStamp(f.d))}</div>` +
     (can("delete") ? `<a href="#" class="link-danger" data-act="askDelete" data-kind="file" data-id="${owner.id}:${f.id}">${tt("bin.delete")}</a>` : "") + `</div></div>`;
-  const kinds = FILE_KINDS.filter(k => ownerKind === "job" || !k.startsWith("signed"));
+  const kinds = pickKeys("fileKind").filter(k => ownerKind === "job" || !k.startsWith("signed"));
   const add = `<div class="row g-2 align-items-end">` +
     `<div class="col-md-5">${field(t("files.add"), `<input type="file" class="form-control" id="fileIn" multiple accept="image/*,application/pdf">`)}</div>` +
     `<div class="col-sm-6 col-md-3">${field(t("files.what"), `<select class="form-select" id="fileKind">${kinds.map(k => `<option value="${k}">${tt("fileKind." + k)}</option>`).join("")}</select>`)}</div>` +
@@ -2121,7 +2181,7 @@ function timeAgo(d) {
 const leadOpen = l => l.status === "new" || l.status === "contacted";
 const returning = l => (leadMatch(l) && l.status !== "converted" ? " " + badge(t("leads.returning"), "primary") : "");
 function leadRow(l) {
-  return recRow("#lead/" + l.id, `${tt("type." + l.type)} · ${tt("src." + l.src)} · ${esc(timeAgo(l.got))}`, esc(l.name) + returning(l), esc(l.addr + ", " + l.city), stageBadge(l.status));
+  return recRow("#lead/" + l.id, `${tt("type." + l.type)} · ${tt("src." + l.src)} · ${esc(timeAgo(l.got))}`, esc(l.name), esc(l.addr + ", " + l.city), stageBadge(l.status));
 }
 
 route("leads", {
@@ -2129,7 +2189,8 @@ route("leads", {
   render() {
     const f = S.f.leads, pass = (l, k) => k === "all" || (k === "open" ? leadOpen(l) : l.status === k), n = k => LEADS.filter(l => pass(l, k)).length;
     const list = LEADS.filter(l => pass(l, f)).sort((a, b) => b.got - a.got);
-    return pageHead(tt("nav.leads"), tt("leads.sub")) +
+    return pageHead(tt("nav.leads"), tt("leads.sub"), `<div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-outline-secondary btn-sm text-nowrap" data-act="leadNew" data-web="1">${ic("download")} ${tt("leads.simulate")}</button>` +
+        `<button type="button" class="btn btn-outline-secondary btn-sm text-nowrap" data-act="leadNew">${ic("plus")} ${tt("leads.newLead")}</button></div>`) +
       pills("leads", f, [["open", t("open"), n("open")], ["new", t("stage.new"), n("new")], ["contacted", t("stage.contacted"), n("contacted")],
         ["converted", t("stage.converted"), n("converted")], ["unqualified", t("stage.unqualified"), n("unqualified")], ["all", t("all"), n("all")]]) +
       (list.length ? listBox(list.map(leadRow).join("")) : empty(t("none")));
@@ -2147,9 +2208,9 @@ route("lead", {
         `<button type="button" class="btn btn-outline-secondary" data-act="leadUnfit" data-id="${l.id}">${tt("leads.unfit")}</button>`
       : l.opp ? `<a class="btn btn-primary" href="#opp/${l.opp}">${ic("opps")} ${tt("job.itsOpp", { id: l.opp })}</a>`
       : l.job ? `<a class="btn btn-primary" href="#job/${l.job}">${ic("jobs")} ${tt("leads.addedToJob", { id: l.job })}</a>` : "";
-    return backLink("#leads", t("nav.leads")) +
+    return recBack("#leads", t("nav.leads")) +
       pageHead(esc(l.name), `${tt("type." + l.type)} · ${tt("src." + l.src)} · ${esc(timeAgo(l.got))}`,
-        headTools(editBtn("editLead", `data-id="${l.id}"`, "lead"), delBtn("lead", l.id), stageBadge(l.status))) +
+        headTools(editBtn("editLead", `data-id="${l.id}"`, "lead", true), delBtn("lead", l.id), stageBadge(l.status))) +
       stageBar(steps, cur) +
       (l.status === "unqualified" ? `<div class="alert alert-secondary py-2 small">${tt("leads.unfitBecause")}: ${tt("unfit." + l.reason)}</div>` : "") +
       (m ? `<div class="alert alert-primary py-2 small mb-2">${ic("user")} ${tt("leads.isReturning")} <a class="alert-link" href="#account/${m.id}">${esc(m.name)}</a>.` +
@@ -2158,11 +2219,11 @@ route("lead", {
       (leadOpen(l) ? `<div class="mb-3">${contactBtns({ phone: l.phone, first: l.name.split(" ")[0], lang: l.lang, place: l, kind: "lead", id: l.id })}</div>` : "") +
       `<div class="row g-3"><div class="col-lg-6">` +
       section(tt("leads.request"), `<blockquote class="border-start border-3 border-primary ps-3 mb-2">${esc(l.msg)}</blockquote>` +
-        dl([[tt("jobType"), tt("type." + l.type)], [tt("leads.received"), esc(fmtDay(l.got)) + " · " + esc(timeAgo(l.got))], [tt("opps.source"), tt("src." + l.src)]]), "", "request") +
+        dl([[tt("jobType"), tt("type." + l.type)], [tt("leads.received"), esc(fmtDay(l.got)) + " · " + esc(timeAgo(l.got))], [tt("opps.source"), tt("src." + l.src)]]), "", "request", { kind: "lead", id: l.id, sec: "request" }) +
       `</div><div class="col-lg-6">` +
       section(tt("leads.contact"), dl([[tt("phone"), `<a href="${telHref(l.phone)}">${esc(l.phone)}</a>`], [tt("email"), `<a href="mailto:${esc(l.email)}">${esc(l.email)}</a>`],
-        [tt("property"), `${esc(l.addr)}<br><span class="text-body-secondary">${esc(l.city)}</span>`], [tt("leads.language"), tt("langName." + l.lang)]]), "", "contact") +
-      section(tt("leads.assigned"), `<div class="small"><span class="fw-semibold">${esc(whoName(l.owner))}</span><br><span class="text-body-secondary">${tt("leads.routing")}</span></div>`, "", "assigned") +
+        [tt("property"), `${esc(l.addr)}<br><span class="text-body-secondary">${esc(l.city)}</span>`], [tt("leads.language"), tt("langName." + l.lang)]]), "", "contact", { kind: "lead", id: l.id, sec: "contact" }) +
+      section(tt("leads.assigned"), `<div class="small"><span class="fw-semibold">${esc(whoName(l.owner))}</span><br><span class="text-body-secondary">${tt("leads.routing")}</span></div>`, "", "assigned", { kind: "lead", id: l.id, sec: "assigned" }) +
       `</div></div>` + section(tt("history"), historyList(l), "", "history");
   }
 });
@@ -2202,13 +2263,13 @@ ACT.confirmConvert = d => {
     a.files = []; ACCOUNTS.push(a); addLog(a, "log.acctCreated");
   }
   const p = a.props.find(x => x.addr.toLowerCase() === l.addr.toLowerCase()) || a.props[0];
-  const o = { id: nextNumber(), acct: a.id, prop: p.id, type, stage: "inspection", src: l.src, lead: l.id, created: new Date(), lines: [[l.msg, null]], total: 0 };
+  const o = { id: nextNumber(), acct: a.id, prop: p.id, type, stage: "inspection", src: l.src, lead: l.id, created: new Date(), lines: [[l.msg, null]], total: 0, descLocked: !!l.msgLocked };
   OPPS.unshift(o); addLog(o, "log.oppFromLead");
   l.status = "converted"; l.opp = o.id; addLog(l, "log.converted");
   closeModal(); toast(t("opps.created", { id: o.id })); go("#opp/" + o.id);
 };
 ACT.leadUnfit = d => openModal(modalShell(tt("leads.unfit"),
-  field(t("opps.lostReason"), `<select class="form-select" id="luWhy">${["area", "service", "noresponse", "shopping", "spam"].map(k => `<option value="${k}">${tt("unfit." + k)}</option>`).join("")}</select>`),
+  field(t("opps.lostReason"), `<select class="form-select" id="luWhy">${pickKeys("unfit").map(k => `<option value="${k}">${tt("unfit." + k)}</option>`).join("")}</select>`),
   cancelBtn() + `<button type="button" class="btn btn-primary" data-act="confirmUnfit" data-id="${d.id}">${tt("save")}</button>`));
 ACT.confirmUnfit = d => { const l = LEADS.find(x => x.id === d.id); l.status = "unqualified"; l.reason = val("luWhy"); addLog(l, "log.unqualified"); closeModal(); toast(t("saved")); render(); };
 
@@ -2238,7 +2299,7 @@ function inLang(lang, fn) { const keep = S.lang; S.lang = lang || keep; try { re
 const docWrap = html => `<div class="card shadow-sm" data-bs-theme="light"><div class="card-body p-3 p-sm-4">${html}</div></div>`;
 const docHead = (title, num, date, firm) =>
   `<div class="d-flex flex-wrap justify-content-between gap-2 border-bottom border-3 border-dark pb-2 mb-3">` +
-  `<div><div class="fs-5 fw-bolder">${esc((co("name", firm) || "").toUpperCase()).replace(/&amp;/g, '<span class="text-primary">&amp;</span>')}</div>` +
+  `<div>${(firm || S.company).logo ? `<img src="${(firm || S.company).logo}" alt="" class="d-block mb-2" style="max-height: 3.5rem; max-width: 12rem">` : ""}<div class="fs-5 fw-bolder">${esc((co("name", firm) || "").toUpperCase()).replace(/&amp;/g, '<span class="text-primary">&amp;</span>')}</div>` +
   `<div class="small text-body-secondary">${esc(co("legal", firm))} · ${tt("docs.license")} ${esc(co("license", firm))}<br>${esc(co("address", firm))} · ${esc(co("phone", firm))}</div></div>` +
   `<div class="text-sm-end"><div class="fw-bold text-uppercase">${esc(title)} #${esc(num)}</div><div class="small text-body-secondary">${tt("docs.date")}: ${esc(fmtDate(date))}</div></div></div>`;
 const docLabel = text => `<div class="small text-uppercase text-body-secondary fw-semibold">${esc(text)}</div>`;
@@ -2551,7 +2612,7 @@ function jobMoneyCard(j) {
   h += row(tt("money.balance"), money(balance(j)), "fw-bold fs-5 border-top mt-3 pt-2" + (balance(j) > 0 ? "" : " text-success"));
   const btns = (canTakePayment(j) ? `<button type="button" class="btn btn-primary btn-sm" data-act="payAdd" data-id="${j.id}">${ic("dollar")} ${tt("money.record")}</button>` : "") +
     (j.invoice ? `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="jobInvoice" data-id="${j.id}">${ic("doc")} ${tt("job.viewInvoice")}</button>` : "");
-  return section(tt("job.money"), `<div class="small">${h}</div>` + (btns ? `<div class="d-flex flex-wrap gap-2 mt-3">${btns}</div>` : ""), "", "money");
+  return section(tt("job.money"), `<div class="small">${h}</div>` + (btns ? `<div class="d-flex flex-wrap gap-2 mt-3">${btns}</div>` : ""), "", "money", { kind: "job", id: j.id, sec: "money" });
 }
 
 /* ---------- change orders: work added or removed after signing ---------- */
@@ -2577,7 +2638,7 @@ ACT.payAdd = d => {
   openModal(modalShell(tt("money.record"),
     `<p class="small text-body-secondary">#${j.id} · ${esc(acct(j.acct).name)} · ${tt("money.balance")}: <span class="fw-semibold">${money(balance(j))}</span></p>` +
     `<div class="row g-2"><div class="col-6">${field(t("money.amount"), `<div class="input-group"><span class="input-group-text">$</span><input class="form-control" id="payAmt" inputmode="decimal" value="${balance(j)}"></div>`)}</div>` +
-    `<div class="col-6">${field(t("money.method"), `<select class="form-select" id="payHow">${["check", "cash", "card", "other"].map(k => `<option value="${k}">${tt("method." + k)}</option>`).join("")}</select>`)}</div></div>` +
+    `<div class="col-6">${field(t("money.method"), `<select class="form-select" id="payHow">${pickKeys("method").map(k => `<option value="${k}">${tt("method." + k)}</option>`).join("")}</select>`)}</div></div>` +
     field(t("money.checkNo"), `<input class="form-control" id="payNum" inputmode="numeric" autocomplete="off">`) +
     `<div class="form-text">${tt("money.recordedBy", { who: whoName(me()) })}</div>`,
     cancelBtn() + `<button type="button" class="btn btn-primary" data-act="paySave" data-id="${j.id}">${ic("check")} ${tt("money.record")}</button>`));
@@ -2725,7 +2786,7 @@ ADMIN_PAGES.push({
     const f = k => field(t("company." + k), `<input class="form-control" id="co_${k}" value="${esc(S.company[k])}" placeholder="${esc(CO_BLANK[k] || "")}" autocomplete="off">`);
     return pageHead(tt("company.title"), tt("company.sub")) +
       section("", `<div class="row g-2"><div class="col-md-6">${f("name")}</div><div class="col-md-6">${f("tagline")}</div><div class="col-md-6">${f("legal")}</div><div class="col-md-6">${f("license")}</div><div class="col-md-6">${f("address")}</div><div class="col-md-6">${f("phone")}</div></div>` +
-        field(t("company.logo"), `<div class="border rounded bg-body-tertiary text-body-secondary small p-3">${tt("company.logoHint")}</div>`) +
+        logoField() +
         `<div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-primary" data-act="companySave">${tt("save")}</button>` +
         `<button type="button" class="btn btn-outline-secondary" data-act="companySample">${ic("doc")} ${tt("company.sample")}</button></div>`);
   }
@@ -3566,6 +3627,551 @@ ADMIN_PAGES.push({
     return pageHead(tt("setup.title"), tt("setup.sub")) + (lines.length ? `<div class="card shadow-sm mb-3"><div class="card-body"><ul class="list-unstyled small mb-0">` + lines.map(e =>
       `<li class="border-bottom py-1"><span class="text-body-secondary">${esc(fmtStamp(e.d))} · ${esc(whoName(e.w))}</span> — ${esc(t(e.k, typeof e.v === "function" ? e.v() : e.v))}</li>`).join("") + `</ul></div></div>`
       : empty(t("noHistory")));
+  }
+});
+
+/* =====================================================================
+   NOV 13, 2026 (the third and fourth messages): what the app gained, in the mockup too.
+   The arrow with the name of the screen you came from, requests from existing customers, Change stage,
+   the customer's own comments (read-only), editing a section in place, the side menu folded to icons;
+   and, on Admin: the error log with disk space and memory, the logo on the documents, pick lists, and Import data.
+   Nothing here is kept: reload the page and it is all as it was.
+   ===================================================================== */
+
+/* ---------- words ---------- */
+const FOURTH = {
+  en: {
+    opps: { sourceRow: "Source" },
+    back: { lead: "Lead page", opp: "Opportunity", job: "Job", account: "Account" },
+    side: { fold: "Show only the icons", open: "Show the names" },
+    job: { num: "Job #", extNum: "External Job #", crewAndDates: "Crew and Dates", scope: "Scope of Work", money: "Price and Payments", linked: "Linked Records" },
+    files: { title: "Photos and Files" },
+    edit: { section: "Edit this section", locked: "The customer wrote this. It came from a lead or the website, so it cannot be changed. Add your own notes on the record instead." },
+    chg: { button: "Change stage", title: "Change stage", moveTo: "Move it to", hint: "Any stage, in any direction. Nothing else about the record changes, and the history keeps the old stage and the new one.",
+      same: "It is already at that stage.", reason: "Pick the reason it was lost.", opp: "Opportunity", job: "Job" },
+    pset: { changeStages: "Change stages" },
+    psetD: { changeStages: "Move an opportunity or a job to any stage, with the Change stage button. Every move is in the history." },
+    src: { existing: "Existing customer", imported: "Imported" },
+    leads: { newLead: "New lead", simulate: "Simulate a website request", simHint: "What the website's form sends. A person who is already a customer does not become a lead: they get a new opportunity.",
+      newHint: "A request taken another way, such as by phone. A person who is already a customer does not become a lead: they get a new opportunity.",
+      existingMade: "{name} is already a customer: opportunity #{id} was created.", needContact: "Enter a name, and a phone number or an email address." },
+    today: { existing: "{name} is already a customer and sent a request: set up the inspection" },
+    log: { stageChanged: "Stage changed: {detail}", oppWeb: "Opportunity created from a website request by an existing customer",
+      oppTyped: "Opportunity created from a new lead by an existing customer", leadTyped: "Request typed in by the office",
+      logoUploaded: "Logo for the documents uploaded", logoRemoved: "Logo for the documents taken away",
+      pickAdded: "Pick list value added: {detail}", pickEdited: "Pick list value changed: {detail}",
+      imported: "Added by the data import: {detail}", importAdded: "Added from the data import: {detail}", dataImported: "Data import: {detail}" },
+    health: { title: "Disk space and memory", disk: "Disk space", ram: "Memory (RAM)", free: "{free} free of {total} ({pct}%)", taken: "Taken", low: "Low", ok: "OK",
+      about: "A reading turns red below 10 GB or 10% of a drive, or below 500 MB of memory. Then the administrators are emailed and a line is added to the Setup history, once a day. The limits are DISK_MIN_GB, DISK_MIN_PERCENT and RAM_MIN_MB in the .env file.",
+      errTitle: "Error log", errNone: "Nothing has been written to the error log yet.", dlErrors: "Download errors.log", dlChanges: "Download changes.log",
+      errAbout: "The last 50 lines of errors.log, newest at the bottom. errors.log holds every error with its full detail, and everything the app could not do: an import, a file, an email, the website's form. changes.log has one line for every change anyone made." },
+    logo: { title: "Logo", help: "Shown at the top left of every proposal, change order, invoice and receipt, above the business's name. PNG, JPEG or WebP, at least 200 pixels wide, no larger than 5 MB. A document already signed or sent keeps the logo it had.",
+      now: "The logo now.", stop: "Stop using the logo", type: "The logo must be a PNG, JPEG or WebP picture.", big: "The logo is larger than 5 MB.", small: "The logo is too small: it needs to be at least 200 pixels wide." },
+    picks: { title: "Pick lists", desc: "The choices in the drop-down boxes: where requests come from, why they were lost, ways of paying and more.",
+      sub: "The choices in the drop-down boxes, in English and Spanish. Rename, reorder or add values, or switch one off: records that already have it keep it. Built-in values are the ones the app relies on: they can be renamed but not switched off.",
+      new: "New value", edit: "Edit the value", english: "English", spanish: "Spanish", place: "Place", builtIn: "Built in", off: "Not offered", nameEn: "Name in English", nameEs: "Name in Spanish",
+      placeHelp: "A number: the lowest comes first.", offered: "Offered", offeredHelp: "Switched off, it is no longer offered, and old records keep it.", builtHelp: "This value is built in: the app relies on it, so it can be renamed and moved but not switched off.",
+      last: "A list needs at least one value that is offered.", needNames: "Type the name in both languages.",
+      src: "Where a request came from", srcAbout: "On a lead and on an opportunity. The website's form is always Website form, a new lead typed in starts as Referral, a lead from the data import is Imported, and a request from an existing customer is Existing customer.",
+      lost: "Why an opportunity was lost", lostAbout: "Asked when an opportunity is marked lost. The Reports count them.",
+      unfit: "Why a lead is not a fit", unfitAbout: "Asked when a lead is marked Not a fit.",
+      method: "Ways of paying", methodAbout: "Asked when a payment is recorded, and printed on the receipt. Check is the starting choice.",
+      kind: "Kinds of account", kindAbout: "A homeowner is a person; every other kind is a company.",
+      fileKind: "Kinds of photo or file", fileKindAbout: "What a photo or file on a job or an account is. The signed paper of a proposal or a change order shows on that document." },
+    imp: { title: "Import data", desc: "Bring customers or leads in from a spreadsheet, with a template, matching and a review before anything is saved.",
+      sub: "One row is one record and one column is one field, with the field's name as the heading. You match the columns and review the rows before anything is saved.",
+      step1: "1. Download the template", tmplFor: "Template for {kind}", step2: "2. Fill it in and upload it", customers: "Customers", leads: "Leads", kind: "What is in the file",
+      file: "The spreadsheet", fileHelp: "An .xlsx or a .csv file, up to 5,000 rows and 10 MB. In this mockup a CSV file is read in your browser; an .xlsx file shows the sample rows, because the app reads Excel files on the server.",
+      sample: "Use the sample file", read: "Read the file", mapTitle: "Match the columns", mapHint: "The columns whose heading names a field are already matched. Pick “Don't import” for a column you do not need.",
+      colFile: "Column in the file", examples: "Examples", goesTo: "Goes to", skipCol: "Don't import", reviewBtn: "Review the rows", reviewTitle: "Review the rows",
+      nothingYet: "Nothing is saved until you confirm.", rowsN: "{n} rows", newN: "New", existsN: "Already in the app", problems: "Problems", problemRows: "Rows with a problem",
+      problemHelp: "These are left out. Fix them in the file and import it again, or leave them.", existsHelp: "These match a customer by phone, email or address, or a lead by phone or email. Skip the row, or add it.",
+      row: "Row", name: "Name", why: "Why", matches: "Matches", todo: "What to do", skip: "Skip", addTo: "Add to this customer", addLead: "Add as a new lead", confirm: "Confirm the import",
+      results: "Import results", resultsFile: "Results file", result: "Result", message: "Message", created: "Created", added: "Added to a customer", skipped: "Skipped", failed: "Not imported",
+      summary: "{created} new, {added} added to a customer, {skipped} skipped, {failed} failed", again: "Import another file", back: "Back",
+      needName: "The name is empty.", needStreet: "The street address is empty.", needContact: "Enter a phone number or an email address.", badEmail: "That is not an email address.",
+      badPhone: "A phone number needs 10 digits.", badKind: "“{v}” is not one of the kinds of account.", badType: "“{v}” is not one of the types of work.", earlier: "An earlier row of this file",
+      createdMsg: "Created.", addedMsg: "Added to {name}: {what}", skippedMsg: "Already in the app: skipped.", leadAdded: "Added as a new lead.", needCol: "The file needs a column for: {fields}.",
+      dup: "Two columns are matched to the same field. Match each field to one column only.", empty: "The file is empty: it needs a row of headings and a row for each record.", tooMany: "The file has {n} rows. At most 5,000 can be imported at a time.",
+      open: "Open", badLang: "The language must be English or Spanish.",
+      f: { name: "Name", kind: "Type of account", language: "Language", contact_name: "Contact name", phone: "Phone", email: "Email", street: "Street address", city: "City", state: "State", zip_code: "ZIP",
+        note: "Note", job_type: "Type of work", message: "What they asked for" } }
+  },
+  es: {
+    opps: { sourceRow: "Origen" },
+    back: { lead: "Prospecto", opp: "Oportunidad", job: "Trabajo", account: "Cuenta" },
+    side: { fold: "Mostrar solo los íconos", open: "Mostrar los nombres" },
+    job: { num: "Trabajo n.º", extNum: "Trabajo n.º externo", crewAndDates: "Equipo y fechas", scope: "Trabajo a realizar", money: "Precio y pagos", linked: "Registros relacionados" },
+    files: { title: "Fotos y archivos" },
+    edit: { section: "Editar esta sección", locked: "El cliente escribió esto. Vino de un prospecto o del sitio web, así que no se puede cambiar. Agregue sus propias notas en el registro." },
+    chg: { button: "Cambiar etapa", title: "Cambiar etapa", moveTo: "Pasarlo a", hint: "Cualquier etapa, en cualquier dirección. Nada más del registro cambia, y el historial guarda la etapa anterior y la nueva.",
+      same: "Ya está en esa etapa.", reason: "Elija el motivo por el que se perdió.", opp: "Oportunidad", job: "Trabajo" },
+    pset: { changeStages: "Cambiar etapas" },
+    psetD: { changeStages: "Pasar una oportunidad o un trabajo a cualquier etapa, con el botón Cambiar etapa. Cada cambio queda en el historial." },
+    src: { existing: "Cliente existente", imported: "Importado" },
+    leads: { newLead: "Prospecto nuevo", simulate: "Simular una solicitud del sitio web", simHint: "Lo que envía el formulario del sitio web. Quien ya es cliente no se vuelve prospecto: recibe una oportunidad nueva.",
+      newHint: "Una solicitud recibida de otra forma, por ejemplo por teléfono. Quien ya es cliente no se vuelve prospecto: recibe una oportunidad nueva.",
+      existingMade: "{name} ya es cliente: se creó la oportunidad n.º {id}.", needContact: "Escriba un nombre, y un teléfono o un correo electrónico." },
+    today: { existing: "{name} ya es cliente y envió una solicitud: programe la inspección" },
+    log: { stageChanged: "Etapa cambiada: {detail}", oppWeb: "Oportunidad creada a partir de una solicitud del sitio web de un cliente existente",
+      oppTyped: "Oportunidad creada a partir de un prospecto nuevo de un cliente existente", leadTyped: "Solicitud escrita por la oficina",
+      logoUploaded: "Se subió el logotipo de los documentos", logoRemoved: "Se quitó el logotipo de los documentos",
+      pickAdded: "Valor agregado a una lista de opciones: {detail}", pickEdited: "Valor cambiado en una lista de opciones: {detail}",
+      imported: "Agregado por la importación de datos: {detail}", importAdded: "Agregado desde la importación de datos: {detail}", dataImported: "Importación de datos: {detail}" },
+    health: { title: "Espacio en disco y memoria", disk: "Espacio en disco", ram: "Memoria (RAM)", free: "{free} libres de {total} ({pct}%)", taken: "Tomada", low: "Bajo", ok: "OK",
+      about: "Una lectura se pone en rojo por debajo de 10 GB o del 10% de una unidad, o por debajo de 500 MB de memoria. Entonces se envía un correo a los administradores y se agrega una línea al Historial de configuración, una vez al día. Los límites son DISK_MIN_GB, DISK_MIN_PERCENT y RAM_MIN_MB en el archivo .env.",
+      errTitle: "Registro de errores", errNone: "Todavía no se ha escrito nada en el registro de errores.", dlErrors: "Descargar errors.log", dlChanges: "Descargar changes.log",
+      errAbout: "Las últimas 50 líneas de errors.log, las más nuevas al final. errors.log guarda cada error con todo su detalle, y todo lo que la aplicación no pudo hacer: una importación, un archivo, un correo, el formulario del sitio web. changes.log tiene una línea por cada cambio que hizo alguien." },
+    logo: { title: "Logotipo", help: "Aparece arriba a la izquierda en cada propuesta, orden de cambio, factura y recibo, sobre el nombre del negocio. PNG, JPEG o WebP, de al menos 200 píxeles de ancho y de no más de 5 MB. Un documento ya firmado o enviado conserva el logotipo que tenía.",
+      now: "El logotipo actual.", stop: "Dejar de usar el logotipo", type: "El logotipo debe ser una imagen PNG, JPEG o WebP.", big: "El logotipo pesa más de 5 MB.", small: "El logotipo es demasiado pequeño: necesita tener al menos 200 píxeles de ancho." },
+    picks: { title: "Listas de opciones", desc: "Las opciones de los menús desplegables: de dónde vienen las solicitudes, por qué se perdieron, formas de pago y más.",
+      sub: "Las opciones de los menús desplegables, en inglés y en español. Cambie nombres, reordene, agregue valores o desactive uno: los registros que ya lo tienen lo conservan. Los valores integrados son los que la aplicación necesita: se les puede cambiar el nombre, pero no desactivarlos.",
+      new: "Valor nuevo", edit: "Editar el valor", english: "Inglés", spanish: "Español", place: "Lugar", builtIn: "Integrado", off: "No se ofrece", nameEn: "Nombre en inglés", nameEs: "Nombre en español",
+      placeHelp: "Un número: el más bajo va primero.", offered: "Se ofrece", offeredHelp: "Desactivado, ya no se ofrece, y los registros viejos lo conservan.", builtHelp: "Este valor está integrado: la aplicación depende de él, así que se le puede cambiar el nombre y moverlo, pero no desactivarlo.",
+      last: "Una lista necesita al menos un valor que se ofrezca.", needNames: "Escriba el nombre en los dos idiomas.",
+      src: "De dónde vino una solicitud", srcAbout: "En un prospecto y en una oportunidad. El formulario del sitio web siempre es Formulario del sitio web, un prospecto nuevo escrito a mano empieza como Recomendación, un prospecto de la importación de datos es Importado, y una solicitud de un cliente existente es Cliente existente.",
+      lost: "Por qué se perdió una oportunidad", lostAbout: "Se pregunta al marcar una oportunidad como perdida. Los reportes las cuentan.",
+      unfit: "Por qué un prospecto no es adecuado", unfitAbout: "Se pregunta al marcar un prospecto como No es adecuado.",
+      method: "Formas de pago", methodAbout: "Se pregunta al registrar un pago y se imprime en el recibo. Cheque es la opción inicial.",
+      kind: "Tipos de cuenta", kindAbout: "Un dueño de casa es una persona; cualquier otro tipo es una empresa.",
+      fileKind: "Tipos de foto o archivo", fileKindAbout: "Qué es una foto o un archivo de un trabajo o de una cuenta. El papel firmado de una propuesta o de una orden de cambio aparece en ese documento." },
+    imp: { title: "Importar datos", desc: "Traiga clientes o prospectos desde una hoja de cálculo, con una plantilla, asignación de columnas y una revisión antes de guardar nada.",
+      sub: "Una fila es un registro y una columna es un campo, con el nombre del campo como encabezado. Usted asigna las columnas y revisa las filas antes de guardar nada.",
+      step1: "1. Descargue la plantilla", tmplFor: "Plantilla de {kind}", step2: "2. Llénela y súbala", customers: "Clientes", leads: "Prospectos", kind: "Qué hay en el archivo",
+      file: "La hoja de cálculo", fileHelp: "Un archivo .xlsx o .csv, de hasta 5,000 filas y 10 MB. En este prototipo un archivo CSV se lee en su navegador; un archivo .xlsx muestra las filas de ejemplo, porque la aplicación lee los archivos de Excel en el servidor.",
+      sample: "Usar el archivo de ejemplo", read: "Leer el archivo", mapTitle: "Asigne las columnas", mapHint: "Las columnas cuyo encabezado nombra un campo ya están asignadas. Elija “No importar” para una columna que no necesite.",
+      colFile: "Columna del archivo", examples: "Ejemplos", goesTo: "Va a", skipCol: "No importar", reviewBtn: "Revise las filas", reviewTitle: "Revise las filas",
+      nothingYet: "No se guarda nada hasta que usted confirme.", rowsN: "{n} filas", newN: "Nuevos", existsN: "Ya están en la aplicación", problems: "Problemas", problemRows: "Filas con un problema",
+      problemHelp: "Estas se dejan fuera. Corríjalas en el archivo e impórtelo otra vez, o déjelas.", existsHelp: "Estas coinciden con un cliente por teléfono, correo o dirección, o con un prospecto por teléfono o correo. Omita la fila, o agréguela.",
+      row: "Fila", name: "Nombre", why: "Por qué", matches: "Coincide con", todo: "Qué hacer", skip: "Omitir", addTo: "Agregar a este cliente", addLead: "Agregar como prospecto nuevo", confirm: "Confirmar la importación",
+      results: "Resultados de la importación", resultsFile: "Archivo de resultados", result: "Resultado", message: "Mensaje", created: "Creado", added: "Agregado a un cliente", skipped: "Omitido", failed: "No importado",
+      summary: "{created} nuevos, {added} agregados a un cliente, {skipped} omitidos, {failed} con error", again: "Importar otro archivo", back: "Atrás",
+      needName: "El nombre está vacío.", needStreet: "La dirección está vacía.", needContact: "Escriba un número de teléfono o un correo electrónico.", badEmail: "Eso no es un correo electrónico.",
+      badPhone: "Un teléfono necesita 10 dígitos.", badKind: "“{v}” no es uno de los tipos de cuenta.", badType: "“{v}” no es uno de los tipos de trabajo.", earlier: "Una fila anterior de este archivo",
+      createdMsg: "Creado.", addedMsg: "Agregado a {name}: {what}", skippedMsg: "Ya está en la aplicación: omitido.", leadAdded: "Agregado como prospecto nuevo.", needCol: "El archivo necesita una columna para: {fields}.",
+      dup: "Dos columnas están asignadas al mismo campo. Asigne cada campo a una sola columna.", empty: "El archivo está vacío: necesita una fila de encabezados y una fila por cada registro.", tooMany: "El archivo tiene {n} filas. Se pueden importar como máximo 5,000 a la vez.",
+      open: "Abrir", badLang: "El idioma debe ser inglés o español.",
+      f: { name: "Nombre", kind: "Tipo de cuenta", language: "Idioma", contact_name: "Nombre del contacto", phone: "Teléfono", email: "Correo electrónico", street: "Dirección", city: "Ciudad", state: "Estado", zip_code: "Código postal",
+        note: "Nota", job_type: "Tipo de trabajo", message: "Lo que pidieron" } }
+  }
+};
+function deepAssign(into, from) { for (const [k, v] of Object.entries(from)) { if (v && typeof v === "object") deepAssign(into[k] = into[k] || {}, v); else into[k] = v; } }
+for (const lang of ["en", "es"]) deepAssign(I18N[lang], FOURTH[lang]);
+// a few existing words that read differently now
+try { S.sideIcons = localStorage.getItem("hl-side") === "icons"; } catch (e) { S.sideIcons = false; }
+
+/* ---------- pick lists: the drop-downs follow what Admin > Pick lists says ---------- */
+const PICK_GROUPS = [
+  { id: "src", builtIn: ["web", "referral", "repeat", "contractor", "warranty", "imported", "existing"], length: 12 },
+  { id: "lost", builtIn: [], length: 12 }, { id: "unfit", builtIn: [], length: 12 },
+  { id: "method", builtIn: ["check"], length: 12 }, { id: "kind", builtIn: ["homeowner", "contractor", "warranty"], length: 12 },
+  { id: "fileKind", builtIn: ["before", "document", "signedProposal", "signedCO"], length: 16 }
+];
+const PICKS = {};
+PICK_GROUPS.forEach(g => { PICKS[g.id] = Object.keys(I18N.en[g.id]).map((key, i) => ({ key, en: I18N.en[g.id][key], es: I18N.es[g.id][key], pos: (i + 1) * 10, active: true })); });
+const PICK_ORDER = ["src", "lost", "unfit", "method", "kind", "fileKind"];
+// the values to pick from: the ones offered, and `current` (what the record being edited has) even when it is switched off
+function pickKeys(id, current) { return PICKS[id].filter(x => x.active || x.key === current).sort((a, b) => a.pos - b.pos).map(x => x.key); }
+function syncPicks() { PICK_GROUPS.forEach(g => PICKS[g.id].forEach(x => { I18N.en[g.id][x.key] = x.en; I18N.es[g.id][x.key] = x.es; })); }
+
+/* ---------- the customer's own comments are read-only; the Edit windows and the pencils ---------- */
+LEADS.forEach(l => { l.msgLocked = true; });
+for (const kind of ["lead", "opp", "job"]) {
+  const raw = EDIT_SPECS[kind];
+  EDIT_SPECS[kind] = r => {
+    let f = raw(r);
+    if (kind === "lead") {
+      f = f.map(x => (x.k === "msg" && r.msgLocked ? { ...x, type: "locked" } : x));
+      f.splice(f.findIndex(x => x.k === "type") + 1, 0, fSelect("src", "opps.source", pickKeys("src", r.src).map(k => [k, "src." + k]), () => r.src, v => { r.src = v; }));
+    }
+    if (kind === "job") f = f.map(x => (x.k === "scope" && r.scopeLocked ? { ...x, type: "locked" } : x));
+    if (kind === "opp" && r.descLocked) f = [...f, { k: "desc", label: "leads.request", type: "locked", get: () => r.lines.map(l => l[0]).join("\n") }];
+    return f;
+  };
+}
+const SEC_KEYS = {
+  lead: { request: ["type", "src", "msg"], contact: ["name", "phone", "email", "addr", "city", "lang"], assigned: ["owner"] },
+  opp: { customer: ["prop", "src", "lostReason", "desc"] },
+  job: { customer: ["prop", "refType", "refNum"], scope: ["type", "laborOnly", "scope"], money: ["price"] }
+};
+const recFor = (kind, id) => (kind === "lead" ? LEADS.find(x => x.id === id) : kind === "opp" ? oppOf(id) : jobOf(id));
+ACT.inlineOpen = (d, el) => {
+  const body = el.closest("[data-body]");
+  if (!body || body._inline) return;
+  if (d.sec === "crew") { ACT.jobSchedule({ id: d.id }); return; }            // the crew, the first day and the days: the schedule window
+  const rec = recFor(d.kind, d.id), fields = EDIT_SPECS[d.kind](rec).filter(f => SEC_KEYS[d.kind][d.sec].includes(f.k));
+  body._inline = { kind: d.kind, rec, fields, html: body.innerHTML };
+  body.innerHTML = `<div data-inline-form>` + fields.map(f => (f.type === "check" ? `<div class="mb-3">${inputFor(f)}</div>` : field(t(f.label), inputFor(f)))).join("") +
+    `<div class="d-flex gap-2 justify-content-end"><button type="button" class="btn btn-outline-secondary btn-sm" data-act="inlineCancel">${tt("cancel")}</button>` +
+    `<button type="button" class="btn btn-primary btn-sm" data-act="inlineSave">${tt("save")}</button></div></div>`;
+  capitalOptions(body);
+  const first = body.querySelector("input:not([type=hidden]), select, textarea"); if (first) first.focus();
+};
+ACT.inlineCancel = (d, el) => { const body = el.closest("[data-body]"); body.innerHTML = body._inline.html; body._inline = null; };
+ACT.inlineSave = (d, el) => { const st = el.closest("[data-body]")._inline; EDITING = { kind: st.kind, rec: st.rec, fields: st.fields, owner: st.rec, name: "" }; ACT.editSave(); };
+
+/* ---------- a request from a customer already in the app is not a lead ---------- */
+ACT.leadNew = d => {
+  const web = !!d.web;
+  openModal(modalShell(tt(web ? "leads.simulate" : "leads.newLead"),
+    `<p class="small text-body-secondary">${tt(web ? "leads.simHint" : "leads.newHint")}</p>` +
+    `<div class="row g-2"><div class="col-sm-6">${field(t("name"), `<input class="form-control" id="lnName" autocomplete="off">`)}</div><div class="col-sm-6">${field(t("phone"), `<input class="form-control" id="lnPhone" autocomplete="off">`)}</div></div>` +
+    field(t("email"), `<input class="form-control" id="lnEmail" autocomplete="off">`) +
+    `<div class="row g-2"><div class="col-sm-6">${field(t("street"), `<input class="form-control" id="lnAddr" autocomplete="off">`)}</div><div class="col-sm-6">${field(t("cityZip"), `<input class="form-control" id="lnCity" autocomplete="off">`)}</div></div>` +
+    field(t("jobType"), `<select class="form-select" id="lnType">${typeOptions("repair")}</select>`) +
+    field(t("leads.request"), `<textarea class="form-control" id="lnMsg" rows="2"></textarea>`) + `<div class="alert alert-danger py-2 small d-none" id="lnProblem"></div>`,
+    cancelBtn() + `<button type="button" class="btn btn-primary" data-act="leadNewSave" data-web="${web ? 1 : ""}">${tt("save")}</button>`));
+};
+ACT.leadNewSave = d => {
+  const web = !!d.web, l = { id: "L-" + (Math.max(...LEADS.map(x => +x.id.slice(2))) + 1), name: val("lnName"), phone: val("lnPhone"), email: val("lnEmail"), addr: val("lnAddr"), city: val("lnCity"),
+    lat: null, lng: null, type: val("lnType"), lang: "en", src: web ? "web" : "referral", status: "new", owner: "office", got: new Date(), msg: val("lnMsg"), msgLocked: web && !!val("lnMsg") };
+  if (!l.name || !(l.phone || l.email)) { $("#lnProblem").textContent = t("leads.needContact"); $("#lnProblem").classList.remove("d-none"); return; }
+  const m = leadMatch(l);
+  if (m) {                                                   // a customer already in the app: straight to an opportunity (no lead)
+    let p = m.props.find(x => l.addr && x.addr.toLowerCase() === l.addr.toLowerCase());
+    if (!p && l.addr) { p = { id: "P" + (m.props.length + 1) + m.id, addr: l.addr, city: l.city, lat: 37.5, lng: -77.45 }; m.props.push(p); }
+    const o = { id: nextNumber(), acct: m.id, prop: (p || m.props[0]).id, type: l.type, stage: "inspection", src: "existing", created: new Date(), lines: l.msg ? [[l.msg, null]] : [], total: 0, descLocked: l.msgLocked };
+    OPPS.unshift(o); addLog(o, web ? "log.oppWeb" : "log.oppTyped");
+    closeModal(); toast(t("leads.existingMade", { name: m.name, id: o.id })); go("#opp/" + o.id); return;
+  }
+  LEADS.unshift(l); addLog(l, web ? "log.leadIn" : "log.leadTyped");
+  closeModal(); toast(t("saved")); go("#lead/" + l.id);
+};
+ATTENTION.push(() => OPPS.filter(o => o.src === "existing" && o.stage === "inspection" && !o.insp).map(o => ({ icon: "phone", href: "#opp/" + o.id, text: t("today.existing", { name: acct(o.acct).name }) })));
+
+/* ---------- Change stage: the administrator, or an Office login with the "Change stages" set ---------- */
+const OPP_STAGES = ["inspection", "proposal", "won", "lost"], JOB_STAGES = ["signed", "scheduled", "inprogress", "done", "invoiced", "paid"];
+function stageBtn(kind, id) {
+  return !isCrew() && can("changeStages") ? `<button type="button" class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" data-act="stageOpen" data-kind="${kind}" data-id="${esc(id)}">${ic("undo")} ${tt("chg.button")}</button>` : "";
+}
+const stageName = (kind, s) => (kind === "job" ? (s === "signed" ? t("stage.toschedule") : t("stage." + s)) : t("stage." + s));
+ACT.stageOpen = d => {
+  const rec = recFor(d.kind, d.id), list = d.kind === "job" ? JOB_STAGES : OPP_STAGES;
+  openModal(modalShell(tt("chg.title"), `<p class="small text-body-secondary">#${esc(rec.id)} · ${esc(acct(rec.acct).name)}. ${tt("chg.hint")}</p>` +
+    field(t("chg.moveTo"), `<select class="form-select" id="csStage" data-change="stageWhy">${list.map(s => `<option value="${s}"${s === rec.stage ? " selected" : ""}>${esc(stageName(d.kind, s))}</option>`).join("")}</select>`) +
+    (d.kind === "opp" ? `<div id="csWhyBox" class="d-none">${field(t("opps.lostReason"), `<select class="form-select" id="csWhy">${pickKeys("lost").map(k => `<option value="${k}">${tt("lost." + k)}</option>`).join("")}</select>`)}</div>` : ""),
+    cancelBtn() + `<button type="button" class="btn btn-primary" data-act="stageSave" data-kind="${d.kind}" data-id="${esc(d.id)}">${tt("chg.button")}</button>`));
+};
+ACT.stageWhy = () => { const box = $("#csWhyBox"); if (box) box.classList.toggle("d-none", val("csStage") !== "lost"); };
+ACT.stageSave = d => {
+  const rec = recFor(d.kind, d.id), old = rec.stage, now = val("csStage");
+  if (now === old) { closeModal(); toast(t("chg.same")); return; }
+  if (d.kind === "opp") {
+    if (now === "lost") { rec.lostOn = new Date(); rec.lostReason = val("csWhy"); } else if (old === "lost") { rec.lostOn = null; rec.lostReason = ""; }
+    if (now === "won" && !JOBS.some(j => j.opp === rec.id)) signOpp(rec, "paper"); else rec.stage = now;
+  } else rec.stage = now;
+  addLog(rec, "log.stageChanged", () => ({ detail: t("chg." + d.kind) + ": " + stageName(d.kind, old) + " → " + stageName(d.kind, now) }));
+  closeModal(); toast(t("saved")); render();
+};
+PSETS.splice(PSETS.indexOf("crewLead"), 0, "changeStages");
+OFFICE_SETS.splice(0, OFFICE_SETS.length, ...PSETS.filter(s => s !== "crewLead"));
+
+/* ------------------------------ ADMIN: SYSTEM STATUS gains disk space, memory and the error log ------------------------------ */
+// sample readings and lines, all made up: this page shows what the app's tick command and its log files give the administrator
+const HEALTH = [
+  { kind: "disk", place: "C:\\crm", names: "database", free: 187.4, total: 931, mins: 4 },
+  { kind: "disk", place: "D:\\crm-files", names: "photos and files", free: 312.8, total: 931, mins: 4 },
+  { kind: "disk", place: "F:\\crm-logs", names: "logs", free: 8.2, total: 232, mins: 4 },
+  { kind: "ram", place: "memory", names: "", free: 7.9, total: 16, mins: 4 }
+];
+const healthLow = r => (r.kind === "ram" ? r.free * 1024 < 500 : r.free < 10 || r.free * 100 / r.total < 10);
+const gb = n => (n >= 100 ? Math.round(n) : n.toFixed(1)) + " GB";
+const healthCard = () => section(tt("health.title"), `<div class="list-group list-group-flush small">` + HEALTH.map(r => {
+  const low = healthLow(r), when = new Date(Date.now() - r.mins * 60000);
+  return `<div class="list-group-item d-flex gap-2 align-items-start px-0${low ? " text-danger" : ""}"><div class="flex-grow-1"><div class="fw-semibold">` +
+    (r.kind === "disk" ? tt("health.disk") + ": " + esc(r.place) + (r.names ? " (" + esc(r.names) + ")" : "") : tt("health.ram")) + `</div>` +
+    `<div${low ? "" : ' class="text-body-secondary"'}>${tt("health.free", { free: gb(r.free), total: gb(r.total), pct: Math.round(r.free * 100 / r.total) })} · ${tt("health.taken")}: ${esc(fmtStamp(when))}</div></div>` +
+    badge(t(low ? "health.low" : "health.ok"), low ? "danger" : "success") + `</div>`;
+}).join("") + `</div><div class="form-text">${tt("health.about")}</div>`);
+const ERROR_LINES = [
+  "2026-11-13 09:02:11 WARNING crm.importer Notes import: 1 of 2609 notes in 'notes.json' could not be read (see the errors above), by admin",
+  "2026-11-13 09:40:27 WARNING crm.pricebook Price file 'ABC - GAF HDZ.xlsx', row 14 left out: the cost or the price is missing or is not a number (uploaded by admin)",
+  "2026-11-13 10:15:03 WARNING crm.files File refused: 'scan.exe' is not a photo or a PDF (job 26-104, by crew1)",
+  "2026-11-13 11:31:48 ERROR crm.mail Email could not be sent: to=gwhitcomb@example.com subject='Proposal 26-124' attachment=proposal-26-124.pdf (a wrong password, no network or a refused address)",
+  "2026-11-13 13:05:20 WARNING crm.lead_views Website form: a request was refused, wrong fields: name (required); from 203.0.113.9 (from no web page given)",
+  "2026-11-13 14:00:01 WARNING crm.health Low disk space: F:\\crm-logs (logs) · 8.2 GB free of 232 GB (4%)"
+];
+const CHANGE_LINES = [
+  "2026-11-13 08:55:10 INFO crm.changes who=office record=job 26-104 kind=edited | Changed: Price: 6480.00 → 6540.00",
+  "2026-11-13 09:12:44 INFO crm.changes who=Crew 1 record=job 26-104 kind=started | Job started",
+  "2026-11-13 09:30:02 INFO crm.changes who=admin record=setup kind=pick_edited | Pick list value changed: Where a request came from · Returning customer · Name in English: Returning customer → Past customer"
+];
+const errorCard = () => section(tt("health.errTitle"),
+  `<div class="d-flex flex-wrap gap-2 mb-2"><button type="button" class="btn btn-outline-secondary btn-sm" data-act="logDownload" data-which="errors">${ic("download")} ${tt("health.dlErrors")}</button>` +
+  `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="logDownload" data-which="changes">${ic("download")} ${tt("health.dlChanges")}</button></div>` +
+  `<pre class="small bg-body-tertiary border rounded p-2 mb-2 overflow-auto" style="max-height: 24rem; white-space: pre-wrap; overflow-wrap: anywhere" tabindex="0" id="errorLines">${ERROR_LINES.map(esc).join("\n")}</pre>` +
+  `<div class="form-text">${tt("health.errAbout")}</div>`);
+const statusPage = ADMIN_PAGES.find(p => p.id === "status"), statusBase = statusPage.render;
+statusPage.render = () => statusBase() + healthCard() + errorCard();
+// the file is made in the browser, from the sample lines
+function saveText(name, text, type) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: type || "text/plain;charset=utf-8" })); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+ACT.logDownload = d => saveText(d.which + ".log", (d.which === "errors" ? ERROR_LINES : CHANGE_LINES).join("\n") + "\n");
+
+/* ------------------------------ ADMIN: THE LOGO ON THE DOCUMENTS ------------------------------ */
+// A logo picked here is read in the browser (FileReader) and kept until the page is closed. A document that was signed or sent keeps the logo it had.
+function logoField() {
+  const has = !!S.company.logo;
+  return field(t("logo.title"), (has ? `<div class="d-flex align-items-center gap-3 mb-2"><img src="${S.company.logo}" class="border rounded bg-white p-2 flex-shrink-0" style="max-height: 5rem; max-width: 12rem" alt="" id="coLogoNow"><span class="small text-body-secondary">${tt("logo.now")}</span></div>` : "") +
+    `<input type="file" class="form-control" id="coLogo" accept="image/png,image/jpeg,image/webp"><div class="form-text">${tt("logo.help")}</div><div class="text-danger small mt-1 d-none" id="coLogoProblem"></div>` +
+    (has ? `<div class="form-check mt-2"><input class="form-check-input" type="checkbox" id="coLogoStop"><label class="form-check-label" for="coLogoStop">${tt("logo.stop")}</label></div>` : ""));
+}
+ACT.companySave = () => {
+  const changed = readCompany(); if (!changed) return;
+  const file = $("#coLogo") && $("#coLogo").files[0], stop = $("#coLogoStop") && $("#coLogoStop").checked, bad = k => { const p = $("#coLogoProblem"); p.textContent = t(k); p.classList.remove("d-none"); };
+  const done = logo => {
+    if (logo !== undefined) { S.company.logo = logo; addSetupLog(logo ? "log.logoUploaded" : "log.logoRemoved"); }
+    toast(t(changed.length || logo !== undefined ? "saved" : "edit.nothing")); render();
+  };
+  if (stop && !file) return done("");
+  if (!file) return done();
+  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) return bad("logo.type");
+  if (file.size > 5 * 1024 * 1024) return bad("logo.big");
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => (img.width < 200 ? bad("logo.small") : done(reader.result));
+    img.onerror = () => bad("logo.type");
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+/* ------------------------------ ADMIN: PICK LISTS ------------------------------ */
+ADMIN_PAGES.push({
+  id: "picks", icon: "list", title: "picks.title", desc: "picks.desc",
+  render() {
+    return pageHead(tt("picks.title"), tt("picks.sub")) + PICK_ORDER.map(id => {
+      const g = PICK_GROUPS.find(x => x.id === id);
+      return section(tt("picks." + id), `<div class="small text-body-secondary mb-2">${tt("picks." + id + "About")}</div><div class="table-responsive"><table class="table table-sm align-middle small mb-0"><thead><tr>` +
+        `<th>${tt("picks.english")}</th><th>${tt("picks.spanish")}</th><th class="text-end">${tt("picks.place")}</th><th></th><th></th></tr></thead><tbody>` +
+        PICKS[id].slice().sort((a, b) => a.pos - b.pos).map(x => `<tr${x.active ? "" : ' class="text-body-secondary"'}><td class="fw-semibold">${esc(x.en)}</td><td>${esc(x.es)}</td><td class="text-end">${x.pos}</td>` +
+          `<td>${g.builtIn.includes(x.key) ? badge(t("picks.builtIn"), "secondary") : x.active ? "" : badge(t("picks.off"), "secondary")}</td>` +
+          `<td class="text-end"><button type="button" class="btn btn-outline-secondary btn-sm" data-act="pickEdit" data-list="${id}" data-key="${x.key}">${ic("edit")} ${tt("docs.edit")}</button></td></tr>`).join("") +
+        `</tbody></table></div>`, `<button type="button" class="btn btn-primary btn-sm text-nowrap" data-act="pickEdit" data-list="${id}" data-key="">${ic("plus")} ${tt("picks.new")}</button>`);
+    }).join("");
+  }
+});
+ACT.pickEdit = d => {
+  const g = PICK_GROUPS.find(x => x.id === d.list), x = d.key ? PICKS[d.list].find(y => y.key === d.key) : { en: "", es: "", pos: Math.max(0, ...PICKS[d.list].map(y => y.pos)) + 10, active: true };
+  const built = g.builtIn.includes(x.key);
+  openModal(modalShell(tt(d.key ? "picks.edit" : "picks.new"),
+    `<p class="small text-body-secondary">${tt("picks." + d.list)}${built ? ". " + tt("picks.builtHelp") : ""}</p>` +
+    field(t("picks.nameEn"), `<input class="form-control" id="pkEn" value="${esc(x.en)}" autocomplete="off">`) + field(t("picks.nameEs"), `<input class="form-control" id="pkEs" value="${esc(x.es)}" autocomplete="off">`) +
+    field(t("picks.place"), `<input class="form-control" id="pkPos" inputmode="numeric" value="${x.pos}"><div class="form-text">${tt("picks.placeHelp")}</div>`) +
+    (built ? "" : `<div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" role="switch" id="pkOn"${x.active ? " checked" : ""}><label class="form-check-label" for="pkOn">${tt("picks.offered")}<br><span class="small text-body-secondary">${tt("picks.offeredHelp")}</span></label></div>`) +
+    `<div class="alert alert-danger py-2 small d-none" id="pkProblem"></div>`,
+    cancelBtn() + `<button type="button" class="btn btn-primary" data-act="pickSave" data-list="${d.list}" data-key="${d.key}">${tt("save")}</button>`));
+};
+ACT.pickSave = d => {
+  const g = PICK_GROUPS.find(x => x.id === d.list), en = val("pkEn"), es = val("pkEs"), pos = parseInt(val("pkPos"), 10) || 0, bad = k => { $("#pkProblem").textContent = t(k); $("#pkProblem").classList.remove("d-none"); };
+  if (!en || !es) return bad("picks.needNames");
+  let x = d.key ? PICKS[d.list].find(y => y.key === d.key) : null;
+  const on = $("#pkOn") ? $("#pkOn").checked : true;
+  if (x && x.active && !on && !PICKS[d.list].some(y => y !== x && y.active)) return bad("picks.last");
+  const title = I18N.en.picks[d.list];
+  if (!x) {
+    let base = en.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, g.length) || "value", key = base, n = 2;
+    while (PICKS[d.list].some(y => y.key === key)) key = base.slice(0, g.length - String(n).length) + n++;
+    x = { key, en, es, pos, active: on }; PICKS[d.list].push(x);
+    addSetupLog("log.pickAdded", { detail: title + " · " + en });
+  } else {
+    const was = { en: x.en, es: x.es, pos: x.pos, active: x.active }, parts = [];
+    if (was.en !== en) parts.push(t("picks.nameEn") + ": " + was.en + " → " + en);
+    if (was.es !== es) parts.push(t("picks.nameEs") + ": " + was.es + " → " + es);
+    if (was.pos !== pos) parts.push(t("picks.place") + ": " + was.pos + " → " + pos);
+    if (was.active !== on) parts.push(t("picks.offered") + ": " + t(was.active ? "yes" : "no") + " → " + t(on ? "yes" : "no"));
+    Object.assign(x, { en, es, pos, active: on });
+    if (parts.length) addSetupLog("log.pickEdited", { detail: title + " · " + was.en + " · " + parts.join("; ") });
+  }
+  syncPicks(); closeModal(); toast(t("saved")); render();
+};
+
+/* ------------------------------ ADMIN: IMPORT DATA (customers or leads) ------------------------------ */
+// The same steps as the app: template, upload, match the columns, review, confirm, results. Nothing here leaves the page.
+const IMP_FIELDS = {
+  customers: [["name", ["customer", "cliente", "account", "cuenta"]], ["kind", ["type", "tipo", "account type"]], ["language", ["lang"]], ["contact_name", ["contact", "contacto"]],
+    ["phone", ["telephone", "mobile", "cell", "telefono", "celular"]], ["email", ["e-mail", "correo", "email address"]], ["street", ["address", "direccion", "calle"]], ["city", []], ["state", []],
+    ["zip_code", ["zip", "zip code", "postal code", "codigo postal"]], ["note", ["notes", "details", "notas", "detalles"]]],
+  leads: [["name", ["customer", "cliente", "lead"]], ["phone", ["telephone", "mobile", "cell", "telefono", "celular"]], ["email", ["e-mail", "correo", "email address"]], ["street", ["address", "direccion", "calle"]],
+    ["city", []], ["state", []], ["zip_code", ["zip", "zip code", "postal code", "codigo postal"]], ["job_type", ["type", "service", "servicio", "tipo"]], ["message", ["request", "mensaje", "notes", "notas"]], ["language", ["lang"]]]
+};
+const impWord = k => t("imp.f." + k);
+const impTidy = s => String(s).toLowerCase().replace(/[\s_]+/g, " ").trim().replace(/[:.]+$/, "");
+const IMP = { kind: "customers", file: "", headings: [], rows: [], map: [], step: "start", result: null, problem: "" };
+function impExample(kind) {
+  const g = ACCOUNTS.find(a => a.id === "A8"), c = g.contacts[0], p = g.props[0];
+  return kind === "customers"
+    ? [["Otis Fenwick", "homeowner", "en", "Otis Fenwick", "(804) 555-0175", "ofenwick@example.com", "3518 Semmes Ave", "Richmond", "VA", "23225", "Prefers a call after 5 pm."]]
+    : [["Otis Fenwick", "(804) 555-0175", "ofenwick@example.com", "3518 Semmes Ave", "Richmond", "VA", "23225", "gutters", "The gutters overflow when it rains.", "en"]];
+}
+function impSample(kind) {
+  const g = ACCOUNTS.find(a => a.id === "A8"), c = g.contacts[0], p = g.props[0];
+  if (kind === "customers") return [IMP_FIELDS.customers.map(f => f[0]), ...impExample("customers"),
+    ["Camila Restrepo", "homeowner", "Spanish", "", "(804) 555-0171", "crestrepo@example.com", "9207 Jahnke Rd", "Richmond", "VA", "23235", "Habla español."],
+    [g.name, "", "en", "", c.phone, c.email, p.addr, "Richmond", "VA", "23233", "Wants a second quote for the garage."],
+    ["", "homeowner", "en", "", "(804) 555-0111", "", "9015 Patterson Ave", "", "", "", ""],
+    ["Otis Fenwick", "homeowner", "en", "", "(804) 555-0175", "", "2240 Corner Rock Rd", "", "", "", ""]];
+  const l = LEADS[0];
+  return [IMP_FIELDS.leads.map(f => f[0]), ...impExample("leads"),
+    ["Camila Restrepo", "(804) 555-0171", "", "9207 Jahnke Rd", "Richmond", "VA", "23235", "repair", "Hay una gotera en la cocina.", "es"],
+    [l.name, l.phone, l.email, l.addr, "Short Pump", "VA", "23233", "inspection", "Same request again.", "en"],
+    ["Naomi Iturralde", "", "", "", "", "", "", "", "", ""]];
+}
+function csvText(rows) { return rows.map(r => r.map(c => (/[",\n;]/.test(c) ? '"' + String(c).replace(/"/g, '""') + '"' : c)).join(",")).join("\n") + "\n"; }
+function csvParse(text) {
+  text = text.replace(/^\uFEFF/, "");
+  const first = text.split("\n")[0], delim = [",", ";", "\t"].map(d => [d, first.split(d).length]).sort((a, b) => b[1] - a[1])[0][0];
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (c === '"') q = false; else cell += c; }
+    else if (c === '"') q = true; else if (c === delim) { row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += c;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.map(r => r.map(c => c.replace(/\s+/g, " ").trim())).filter(r => r.some(Boolean));
+}
+function impLoad(rows, name) {
+  IMP.problem = "";
+  if (!rows.length) { IMP.problem = t("imp.empty"); return render(); }
+  if (rows.length - 1 > 5000) { IMP.problem = t("imp.tooMany", { n: rows.length - 1 }); return render(); }
+  if (rows.length < 2) { IMP.problem = t("imp.empty"); return render(); }
+  IMP.file = name; IMP.headings = rows[0]; IMP.rows = rows.slice(1).map(r => IMP.headings.map((h, i) => r[i] || ""));
+  const names = {}, used = new Set();
+  IMP_FIELDS[IMP.kind].forEach(([k, aliases]) => [k, k.replace(/_/g, " "), I18N.en.imp.f[k], I18N.es.imp.f[k], ...aliases].forEach(w => { if (!(impTidy(w) in names)) names[impTidy(w)] = k; }));
+  IMP.map = IMP.headings.map(h => { const k = names[impTidy(h)] || ""; if (used.has(k)) return ""; used.add(k); return k; });
+  IMP.step = "map"; render();
+}
+ACT.impKind = (d, el) => { IMP.kind = el.value; render(); };
+ACT.impTemplate = d => saveText("import-" + d.kind + ".csv", csvText([impSample(d.kind)[0], impExample(d.kind)[0]]), "text/csv;charset=utf-8");
+ACT.impSample = () => impLoad(impSample(IMP.kind), "sample-" + IMP.kind + ".csv");
+ACT.impRead = () => {
+  const file = $("#impFile").files[0]; if (!file) return;
+  if (/\.xlsx$/i.test(file.name)) { impLoad(impSample(IMP.kind), file.name); return; }      // the app reads Excel on the server: here the sample rows stand in
+  if (!/\.csv$/i.test(file.name)) { IMP.problem = t("imp.fileHelp"); render(); return; }
+  const reader = new FileReader();
+  reader.onload = () => impLoad(csvParse(reader.result), file.name);
+  reader.readAsText(file);
+};
+const digitsOnly = s => String(s || "").replace(/\D/g, "");
+function impCheck(kind, v) {
+  if (!v.name) return t("imp.needName");
+  if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) return t("imp.badEmail");
+  if (v.phone && ![10, 11].includes(digitsOnly(v.phone).length)) return t("imp.badPhone");
+  if (v.language) { const w = impTidy(v.language); v.language = ["es", "spanish", "español", "espanol"].includes(w) ? "es" : ["en", "english", "inglés", "ingles"].includes(w) ? "en" : null; if (!v.language) return t("imp.badLang"); } else v.language = "en";
+  if (v.phone) { const d = digitsOnly(v.phone).slice(-10); v.phone = `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`; }
+  v.state = (v.state || "VA").toUpperCase().slice(0, 2);
+  if (kind === "customers") {
+    if (v.kind) { const k = PICKS.kind.find(x => x.active && [x.key, impTidy(x.en), impTidy(x.es)].includes(impTidy(v.kind))); if (!k) return t("imp.badKind", { v: v.kind }); v.kind = k.key; } else v.kind = "homeowner";
+    if (!v.street) return t("imp.needStreet");
+    if (!(v.phone || v.email)) return t("imp.needContact");
+  } else {
+    if (v.job_type) { const k = TYPE_LIST.find(x => x.active && x.key !== "warranty" && [x.key, impTidy(I18N.en.type[x.key] || ""), impTidy(I18N.es.type[x.key] || "")].includes(impTidy(v.job_type))); if (!k) return t("imp.badType", { v: v.job_type }); v.job_type = k.key; } else v.job_type = "inspection";
+    if (!(v.phone || v.email)) return t("imp.needContact");
+  }
+  return "";
+}
+ACT.impMap = () => {
+  const map = IMP.headings.map((h, i) => val("impCol" + i)), used = map.filter(Boolean), required = IMP.kind === "customers" ? ["name", "street"] : ["name"];
+  IMP.map = map; IMP.problem = "";
+  if (used.length !== new Set(used).size) { IMP.problem = t("imp.dup"); return render(); }
+  const missing = required.filter(k => !used.includes(k));
+  if (missing.length) { IMP.problem = t("imp.needCol", { fields: missing.map(impWord).join(", ") }); return render(); }
+  const seen = new Map();
+  IMP.checked = IMP.rows.map((cells, n) => {
+    const v = {}; IMP.map.forEach((k, i) => { if (k && cells[i]) v[k] = cells[i]; });
+    const problem = impCheck(IMP.kind, v), row = { n: n + 2, v, cells, problem, state: problem ? "error" : "new", match: null, choice: "skip" };
+    if (!problem) {
+      if (IMP.kind === "customers") row.match = ACCOUNTS.find(a => a.contacts.some(c => (digitsOnly(c.phone) && digitsOnly(c.phone) === digitsOnly(v.phone)) || (c.email && v.email && c.email.toLowerCase() === v.email)) || a.props.some(p => v.street && p.addr.toLowerCase() === v.street.toLowerCase()));
+      else row.match = LEADS.find(l => (digitsOnly(l.phone) && digitsOnly(l.phone) === digitsOnly(v.phone)) || (l.email && v.email && l.email.toLowerCase() === v.email));
+      const token = digitsOnly(v.phone).slice(-10) || (v.email || "");
+      if (row.match) row.state = "exists"; else if (seen.has(token)) { row.state = "exists"; row.earlier = true; } else row.state = "new";
+      seen.set(token, true);
+    }
+    return row;
+  });
+  IMP.step = "review"; render();
+};
+ACT.impConfirm = () => {
+  const counts = { created: 0, added: 0, skipped: 0, failed: 0 }, kind = IMP.kind;
+  IMP.checked.forEach(row => {
+    const pick = $("#impChoice" + row.n); if (pick) row.choice = pick.value;
+    const v = row.v;
+    if (row.state === "error") { row.result = "failed"; row.message = row.problem; counts.failed++; return; }
+    if (row.state === "exists" && !(row.choice === "add" && row.match)) { row.result = "skipped"; row.message = t("imp.skippedMsg"); counts.skipped++; return; }
+    if (row.state === "exists" && kind === "customers") {
+      const a = row.match, added = [];
+      if (v.street && !a.props.some(p => p.addr.toLowerCase() === v.street.toLowerCase())) { a.props.push({ id: "P" + (a.props.length + 1) + a.id, addr: v.street, city: [v.city, v.state, v.zip_code].filter(Boolean).join(" "), lat: 37.5, lng: -77.45 }); added.push(t("property")); }
+      if (v.note) { a.details.unshift({ d: new Date(), w: me(), text: v.note, title: v.note.split("\n")[0] }); added.push(t("notes.add")); }
+      addLog(a, "log.importAdded", { detail: IMP.file + " · " + (added.join(", ") || "—") });
+      row.result = "added"; row.message = t("imp.addedMsg", { name: a.name, what: added.join(", ") || "—" }); row.rec = "#account/" + a.id; counts.added++; return;
+    }
+    if (kind === "customers") {
+      const n = ACCOUNTS.length + 1, home = v.kind === "homeowner";
+      const a = { id: "A" + n, name: v.name, type: home ? "person" : "company", kind: v.kind, lang: v.language, since: TODAY.getFullYear(),
+        contacts: [{ name: v.contact_name || v.name, role: home ? "owner" : "office", phone: v.phone || "", email: v.email || "" }],
+        props: [{ id: "P" + n, addr: v.street, city: [v.city, v.state, v.zip_code].filter(Boolean).join(" "), lat: 37.5, lng: -77.45 }],
+        details: v.note ? [{ d: new Date(), w: me(), text: v.note, title: v.note.split("\n")[0] }] : [], files: [] };
+      ACCOUNTS.push(a); addLog(a, "log.imported", { detail: IMP.file }); row.rec = "#account/" + a.id;
+    } else {
+      const l = { id: "L-" + (Math.max(...LEADS.map(x => +x.id.slice(2))) + 1), name: v.name, phone: v.phone || "", email: v.email || "", addr: v.street || "", city: [v.city, v.state, v.zip_code].filter(Boolean).join(" "),
+        lat: null, lng: null, type: v.job_type, lang: v.language, src: "imported", status: "new", owner: "office", got: new Date(), msg: v.message || "", msgLocked: !!v.message };
+      LEADS.unshift(l); addLog(l, "log.imported", { detail: IMP.file }); row.rec = "#lead/" + l.id;
+    }
+    row.result = "created"; row.message = row.result === "created" ? t("imp.createdMsg") : ""; counts.created++;
+  });
+  IMP.result = counts; IMP.step = "done";
+  addSetupLog("log.dataImported", { detail: t("imp." + kind) + " · " + IMP.file + " · " + t("imp.summary", counts) });
+  toast(t("imp.summary", counts)); render();
+};
+ACT.impResultsFile = () => saveText("results-" + IMP.kind + ".csv", csvText([[t("imp.row"), t("imp.result"), t("imp.message"), ...IMP.headings],
+  ...IMP.checked.map(r => [r.n, t("imp." + r.result), r.message, ...r.cells])]), "text/csv;charset=utf-8");
+ACT.impAgain = () => { Object.assign(IMP, { file: "", headings: [], rows: [], map: [], step: "start", result: null, problem: "", checked: [] }); render(); };
+ACT.impBack = d => { IMP.step = d.to; IMP.problem = ""; render(); };
+ADMIN_PAGES.push({
+  id: "import", icon: "upload", title: "imp.title", desc: "imp.desc",
+  render() {
+    const kinds = ["customers", "leads"], err = IMP.problem ? `<div class="alert alert-danger small">${esc(IMP.problem)}</div>` : "";
+    if (IMP.step === "start") return pageHead(tt("imp.title"), tt("imp.sub")) + err +
+      section("", `<h2 class="h6">${tt("imp.step1")}</h2><div class="d-flex flex-wrap gap-2 mb-3">${kinds.map(k => `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="impTemplate" data-kind="${k}">${ic("download")} ${tt("imp.tmplFor", { kind: t("imp." + k) })}</button>`).join("")}</div>` +
+        `<h2 class="h6">${tt("imp.step2")}</h2>` +
+        field(t("imp.kind"), `<select class="form-select" id="impKind" data-change="impKind">${kinds.map(k => `<option value="${k}"${k === IMP.kind ? " selected" : ""}>${tt("imp." + k)}</option>`).join("")}</select>`) +
+        field(t("imp.file"), `<input type="file" class="form-control" id="impFile" accept=".xlsx,.csv"><div class="form-text">${tt("imp.fileHelp")}</div>`) +
+        `<div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-primary" data-act="impRead">${ic("upload")} ${tt("imp.read")}</button><button type="button" class="btn btn-outline-secondary" data-act="impSample">${tt("imp.sample")}</button></div>`);
+    if (IMP.step === "map") {
+      const sample = IMP.rows.slice(0, 3), opts = IMP_FIELDS[IMP.kind].map(f => f[0]);
+      return pageHead(tt("imp.mapTitle"), esc(t("imp." + IMP.kind) + " · " + IMP.file + " · " + t("imp.rowsN", { n: IMP.rows.length })) + ". " + tt("imp.mapHint")) + err +
+        section("", `<div class="table-responsive"><table class="table table-sm small align-middle mb-0"><thead><tr><th>${tt("imp.colFile")}</th><th>${tt("imp.examples")}</th><th>${tt("imp.goesTo")}</th></tr></thead><tbody>` +
+          IMP.headings.map((h, i) => `<tr><td class="fw-semibold">${esc(h || "—")}</td><td class="text-body-secondary">${esc(sample.map(r => r[i]).filter(Boolean).join(" · ").slice(0, 60))}</td>` +
+            `<td><select class="form-select form-select-sm" id="impCol${i}"><option value="">${tt("imp.skipCol")}</option>${opts.map(k => `<option value="${k}"${k === IMP.map[i] ? " selected" : ""}>${esc(impWord(k))}</option>`).join("")}</select></td></tr>`).join("") +
+          `</tbody></table></div>`) +
+        `<div class="d-flex gap-2 justify-content-end"><button type="button" class="btn btn-outline-secondary" data-act="impAgain">${tt("cancel")}</button><button type="button" class="btn btn-primary" data-act="impMap">${tt("imp.reviewBtn")}</button></div>`;
+    }
+    if (IMP.step === "review") {
+      const by = s => IMP.checked.filter(r => r.state === s), customers = IMP.kind === "customers";
+      const tile = (n, label, cls) => `<div class="col-4"><div class="card shadow-sm text-center"><div class="card-body py-2"><div class="fs-4 fw-bold ${cls || ""}">${n}</div><div class="small text-body-secondary">${label}</div></div></div></div>`;
+      return pageHead(tt("imp.reviewTitle"), esc(t("imp." + IMP.kind) + " · " + IMP.file + " · " + t("imp.rowsN", { n: IMP.checked.length })) + ". " + tt("imp.nothingYet")) +
+        `<div class="row g-2 mb-3">${tile(by("new").length, tt("imp.newN"))}${tile(by("exists").length, tt("imp.existsN"))}${tile(by("error").length, tt("imp.problems"), by("error").length ? "text-danger" : "")}</div>` +
+        (by("error").length ? section(tt("imp.problemRows"), `<div class="small text-body-secondary mb-2">${tt("imp.problemHelp")}</div><table class="table table-sm small mb-0"><thead><tr><th>${tt("imp.row")}</th><th>${tt("imp.name")}</th><th>${tt("imp.why")}</th></tr></thead><tbody>` +
+          by("error").map(r => `<tr><td>${r.n}</td><td>${esc(r.v.name || r.cells[0] || "")}</td><td>${esc(r.problem)}</td></tr>`).join("") + `</tbody></table>`) : "") +
+        (by("exists").length ? section(tt("imp.existsN"), `<div class="small text-body-secondary mb-2">${tt("imp.existsHelp")}</div><table class="table table-sm small align-middle mb-0"><thead><tr><th>${tt("imp.row")}</th><th>${tt("imp.name")}</th><th>${tt("imp.matches")}</th><th>${tt("imp.todo")}</th></tr></thead><tbody>` +
+          by("exists").map(r => `<tr><td>${r.n}</td><td>${esc(r.v.name)}</td><td>${r.match ? `<a href="${customers ? "#account/" : "#lead/"}${r.match.id}">${esc(r.match.name)}</a>` : tt("imp.earlier")}</td>` +
+            `<td><select class="form-select form-select-sm" id="impChoice${r.n}"><option value="skip">${tt("imp.skip")}</option>${r.match ? `<option value="add">${tt(customers ? "imp.addTo" : "imp.addLead")}</option>` : ""}</select></td></tr>`).join("") + `</tbody></table>`) : "") +
+        section(tt("imp.newN"), by("new").length ? `<table class="table table-sm small mb-0"><thead><tr><th>${tt("imp.row")}</th><th>${tt("imp.name")}</th><th>${tt("phone")}</th><th>${tt("email")}</th></tr></thead><tbody>` +
+          by("new").slice(0, 50).map(r => `<tr><td>${r.n}</td><td>${esc(r.v.name)}</td><td>${esc(r.v.phone || "")}</td><td>${esc(r.v.email || "")}</td></tr>`).join("") + `</tbody></table>` : `<div class="small text-body-secondary">${tt("none")}</div>`) +
+        `<div class="d-flex gap-2 justify-content-end"><button type="button" class="btn btn-outline-secondary" data-act="impBack" data-to="map">${tt("imp.back")}</button><button type="button" class="btn btn-primary" data-act="impConfirm">${ic("check")} ${tt("imp.confirm")}</button></div>`;
+    }
+    return pageHead(tt("imp.results"), esc(t("imp." + IMP.kind) + " · " + IMP.file), `<button type="button" class="btn btn-outline-secondary btn-sm text-nowrap" data-act="impResultsFile">${ic("download")} ${tt("imp.resultsFile")}</button>`) +
+      `<div class="alert alert-secondary small">${tt("imp.summary", IMP.result)}</div>` +
+      section("", `<div class="table-responsive"><table class="table table-sm small align-middle mb-0"><thead><tr><th>${tt("imp.row")}</th><th>${tt("imp.result")}</th><th>${tt("imp.message")}</th><th></th></tr></thead><tbody>` +
+        IMP.checked.map(r => `<tr><td>${r.n}</td><td>${badge(t("imp." + r.result), r.result === "failed" ? "danger" : r.result === "skipped" ? "secondary" : "success")}</td><td>${esc(r.message)}</td>` +
+          `<td class="text-end">${r.rec && r.result !== "failed" ? `<a href="${r.rec}">${tt("imp.open")}</a>` : ""}</td></tr>`).join("") + `</tbody></table></div>`) +
+      `<button type="button" class="btn btn-outline-secondary" data-act="impAgain">${tt("imp.again")}</button>`;
   }
 });
 

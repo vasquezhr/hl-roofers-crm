@@ -80,9 +80,9 @@ class ExistingCustomer(Base):
         self.assertEqual((Lead.objects.count(), Opportunity.objects.count()), (1, 2))                 # a stranger is still a lead
 
     def test_a_new_address_of_an_existing_customer_becomes_a_property(self):
-        self.web(phone="(804) 555-0182", address="52 Birchwood Dr", city="Richmond", zip="23220")
+        self.web(phone="(804) 555-0182", address="9207 Jahnke Rd", city="Richmond", zip="23220")
         opp = Opportunity.objects.get()
-        self.assertEqual(opp.place.street, "52 Birchwood Dr")
+        self.assertEqual(opp.place.street, "9207 Jahnke Rd")
         self.assertEqual(self.account.properties.count(), 2)
 
     def test_the_person_named_in_company_details_is_emailed(self):
