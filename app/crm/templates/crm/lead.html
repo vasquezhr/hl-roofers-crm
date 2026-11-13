@@ -9,6 +9,7 @@
     <h1 class="h4 mb-0">{{ lead.name }}</h1>
     <div class="text-body-secondary small">{{ lead.get_job_type_display }} · {{ lead.get_source_display }} · {{ lead.received_at|ago }}</div>
   </div>
+  {% if user|may_edit:"lead" %}<a class="btn btn-outline-secondary btn-sm text-nowrap" href="{% url 'lead_edit' lead.pk %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
   {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm" href="{% url 'record_delete' 'lead' lead.pk %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">{% icon "trash" %}</a>{% endif %}
   {% stage_badge lead %}
 </div>

@@ -1405,6 +1405,12 @@ msgstr "no puede entrar"
 msgid "Everything"
 msgstr "Todo"
 
+msgid "every kind of record"
+msgstr "todo tipo de registro"
+
+msgid "nothing"
+msgstr "nada"
+
 msgid "Never"
 msgstr "Nunca"
 
@@ -1842,6 +1848,9 @@ msgstr "Proveedor"
 msgid "Product line"
 msgstr "Línea de producto"
 
+msgid "For an Office login: the kinds of record it may change on their Edit pages. The administrator may edit everything."
+msgstr "Para un usuario de Oficina: los tipos de registro que puede cambiar en sus páginas de Editar. El administrador puede editar todo."
+
 msgid "At least 10 characters. For a login that exists, leave this empty to keep its password."
 msgstr "Al menos 10 caracteres. Para un usuario que ya existe, déjelo vacío para conservar su contraseña."
 
@@ -1856,6 +1865,12 @@ msgstr "Para un usuario creado para una sola persona. El historial muestra enton
 
 msgid "Where the app sends this person's reminders. It can stay empty."
 msgstr "A dónde la app envía los recordatorios de esta persona. Puede quedar vacío."
+
+msgid "For a proposal that has lines, the lines are changed in the proposal builder."
+msgstr "En una propuesta con líneas, las líneas se cambian en el editor de propuestas."
+
+msgid "The price from the signed proposal. Signed change orders are added to it."
+msgstr "El precio de la propuesta firmada. Se le suman las órdenes de cambio firmadas."
 
 msgid "Enter a number of days from 1 to 60."
 msgstr "Escriba un número de días del 1 al 60."
@@ -1877,6 +1892,9 @@ msgstr "Escriba el monto recibido."
 
 msgid "That is more than the balance due."
 msgstr "Eso es más que el saldo pendiente."
+
+msgid "A price cannot be below zero."
+msgstr "Un precio no puede ser menor que cero."
 
 msgid "Start a new opportunity"
 msgstr "Empezar una oportunidad nueva"
@@ -1941,6 +1959,9 @@ msgstr "Este archivo no es una exportación de notas: debe tener una lista de no
 msgid "This file could not be read. Upload the .json file exported from Apple Notes."
 msgstr "No se pudo leer este archivo. Suba el archivo .json exportado de Notas de Apple."
 
+msgid "Edit the lead"
+msgstr "Editar el prospecto"
+
 msgid "For someone who is not a customer yet. For a customer already in the app, open their account and choose New opportunity."
 msgstr "Para alguien que todavía no es cliente. Para un cliente que ya está en la app, abra su cuenta y elija Oportunidad nueva."
 
@@ -1998,6 +2019,9 @@ msgstr "Visita de garantía"
 msgid "Other"
 msgstr "Otro"
 
+msgid "Notes in Details"
+msgstr "Notas en Detalles"
+
 msgid "name"
 msgstr "nombre"
 
@@ -2030,6 +2054,9 @@ msgstr "Eliminar registros"
 
 msgid "Crew Lead"
 msgstr "Líder de equipo"
+
+msgid "can edit"
+msgstr "puede editar"
 
 msgid "short name"
 msgstr "nombre corto"
@@ -2354,6 +2381,9 @@ msgstr "Propiedad cambiada: %(detail)s"
 
 msgid "Note added to Details"
 msgstr "Nota agregada a Detalles"
+
+msgid "Note in Details changed: %(detail)s"
+msgstr "Nota en Detalles cambiada: %(detail)s"
 
 msgid "Contact deleted: %(detail)s"
 msgstr "Contacto eliminado: %(detail)s"
@@ -2763,6 +2793,12 @@ msgstr "Trabajo que se agrega o se quita después de firmar la propuesta. Va al 
 msgid "Balance due: %(amount)s"
 msgstr "Saldo pendiente: %(amount)s"
 
+msgid "Edit the change order"
+msgstr "Editar la orden de cambio"
+
+msgid "Edit the payment"
+msgstr "Editar el pago"
+
 msgid "This customer has no email address. Add one to the contact, or mark it sent."
 msgstr "Este cliente no tiene correo. Agregue uno al contacto, o marque como enviado."
 
@@ -2783,6 +2819,9 @@ msgstr "propuesta"
 
 msgid "Payment recorded"
 msgstr "Pago registrado"
+
+msgid "A signed change order is part of the contract. Add a new change order instead."
+msgstr "Una orden de cambio firmada es parte del contrato. Agregue una orden de cambio nueva."
 
 msgid "An amount is too large."
 msgstr "Un monto es demasiado grande."
@@ -3131,6 +3170,15 @@ msgstr "Marcar terminado"
 
 msgid "This opens a new warranty job linked to job #%(number)s. It has its own number and no charge."
 msgstr "Esto abre un trabajo de garantía nuevo, ligado al trabajo #%(number)s. Tiene su propio número y no tiene costo."
+
+msgid "Edit the opportunity"
+msgstr "Editar la oportunidad"
+
+msgid "Edit the job"
+msgstr "Editar el trabajo"
+
+msgid "Edit the note"
+msgstr "Editar la nota"
 
 msgid "Saved"
 msgstr "Guardado"

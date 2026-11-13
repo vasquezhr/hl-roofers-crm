@@ -9,6 +9,7 @@
     <h1 class="h4 mb-0">{{ account.name }}</h1>
     <div class="text-body-secondary small">#{{ opp.number }} · {{ opp.get_job_type_display }}{% if opp.labor_only %} · {% trans "Labor only" %}{% endif %}</div>
   </div>
+  {% if user|may_edit:"opportunity" %}<a class="btn btn-outline-secondary btn-sm text-nowrap" href="{% url 'opp_edit' opp.number %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
   {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm" href="{% url 'record_delete' 'opp' opp.number %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">{% icon "trash" %}</a>{% endif %}
   {% stage_badge opp %}
 </div>

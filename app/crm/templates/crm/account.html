@@ -10,7 +10,7 @@
     <div class="text-body-secondary small">{% kind_badge account %} <span class="ms-1">{% trf "Customer since %(year)s" year=account.customer_since %}</span></div>
   </div>
   {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm" href="{% url 'record_delete' 'account' account.pk %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">{% icon "trash" %}</a>{% endif %}
-  <a class="btn btn-outline-secondary btn-sm text-nowrap" href="{% url 'account_edit' account.pk %}">{% icon "edit" %} {% trans "Edit" %}</a>
+  {% if user|may_edit:"account" %}<a class="btn btn-outline-secondary btn-sm text-nowrap" href="{% url 'account_edit' account.pk %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
   <a class="btn btn-primary btn-sm text-nowrap" href="{% url 'opp_new' account.pk %}">{% icon "plus" %} {% trans "New opportunity" %}</a>
 </div>
 
@@ -31,7 +31,7 @@
               <div class="fw-semibold">{{ contact.name }} <span class="text-body-secondary fw-normal small">· {{ contact.get_role_display }}{% if contact.is_primary %} · {% trans "main contact" %}{% endif %}</span></div>
               <div class="small">{% if contact.phone %}<a href="{{ contact.phone|tel }}">{{ contact.phone }}</a>{% endif %}{% if contact.phone and contact.email %} · {% endif %}{% if contact.email %}<a href="mailto:{{ contact.email }}">{{ contact.email }}</a>{% endif %}</div>
             </div>
-            <a class="btn btn-link btn-sm p-0" href="{% url 'contact_edit' contact.pk %}" aria-label="{% trans 'Edit' %}">{% icon "edit" %}</a>
+            {% if user|may_edit:"contact" %}<a class="btn btn-link btn-sm p-0" href="{% url 'contact_edit' contact.pk %}" aria-label="{% trans 'Edit' %}">{% icon "edit" %}</a>{% endif %}
           </li>
           {% empty %}
           <li class="small text-body-secondary">{% trans "None" %}</li>
@@ -55,7 +55,7 @@
               {% if place.access_notes %}<br>{{ place.access_notes }}{% endif %}
             </div>
           </div>
-          <a class="btn btn-link btn-sm p-0" href="{% url 'property_edit' place.pk %}" aria-label="{% trans 'Edit' %}">{% icon "edit" %}</a>
+          {% if user|may_edit:"property" %}<a class="btn btn-link btn-sm p-0" href="{% url 'property_edit' place.pk %}" aria-label="{% trans 'Edit' %}">{% icon "edit" %}</a>{% endif %}
           <a class="btn btn-outline-secondary btn-sm" href="{{ place|maps_href }}" target="_blank" rel="noopener" aria-label="{% trans 'Directions' %}">{% icon "nav" %}</a>
         </div>
         {% empty %}
@@ -71,7 +71,7 @@
         <h2 class="h6 mb-2">{% trans "Details" %}</h2>
         {% for note in account.notes.all %}
         <div class="mb-2">
-          <div class="small text-body-secondary mb-1">{{ note.get_source_display }}{% if note.source == "app" %} · {{ note.created_at|day_time }}{% if note.actor %} · {{ note.actor }}{% endif %}{% elif note.noted_on %} · {{ note.noted_on|date }}{% endif %}{% if user|can:"delete" %} · <a class="link-danger" href="{% url 'record_delete' 'note' note.pk %}">{% trans "Delete" %}</a>{% endif %}</div>
+          <div class="small text-body-secondary mb-1">{{ note.get_source_display }}{% if note.source == "app" %} · {{ note.created_at|day_time }}{% if note.actor %} · {{ note.actor }}{% endif %}{% elif note.noted_on %} · {{ note.noted_on|date }}{% endif %}{% if user|may_edit:"note" %} · <a href="{% url 'note_edit' note.pk %}">{% trans "Edit" %}</a>{% endif %}{% if user|can:"delete" %} · <a class="link-danger" href="{% url 'record_delete' 'note' note.pk %}">{% trans "Delete" %}</a>{% endif %}</div>
           <pre class="hl-pre small bg-body-tertiary border rounded p-2 mb-0">{{ note.text }}</pre>
         </div>
         {% empty %}

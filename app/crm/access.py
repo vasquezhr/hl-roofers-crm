@@ -51,6 +51,22 @@ def with_permission(*names):
     return decorate
 
 
+def may_edit(what):
+    """Edit pages: the administrator, and an office login allowed to edit this kind of record (Users and permissions).
+    A crew login is sent to its own first page."""
+    def decorate(view):
+        @wraps(view)
+        @login_required
+        def wrapper(request, *args, **kwargs):
+            if request.user.is_crew_profile:
+                return redirect("my_day")
+            if not request.user.may_edit(what):
+                raise PermissionDenied
+            return view(request, *args, **kwargs)
+        return wrapper
+    return decorate
+
+
 def jobs_for(user):
     """The jobs this login may see: every job for the office; only its own crew's jobs for a crew."""
     jobs = Job.objects.select_related("account", "place", "crew", "opportunity").prefetch_related("change_orders", "payments")

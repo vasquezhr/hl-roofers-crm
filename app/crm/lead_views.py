@@ -23,8 +23,9 @@ from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 
 from . import automations
-from .access import office_only
-from .forms import ConvertForm, LeadForm, UnfitForm
+from .access import may_edit, office_only
+from .forms import ConvertForm, LeadEditForm, LeadForm, UnfitForm
+from .history import changes
 from .importer import find_account
 from .models import JOB_TYPES, Account, Contact, Job, Lead, Opportunity, Property, log, street_key
 from .views import filter_pills, form_page, page_of, saved
@@ -207,3 +208,18 @@ def lead_in(request):
         log(lead, "lead_in", actor="Web")
         automations.lead_arrived(lead)                                  # routing: it goes to the person named in Company details
     return answer({"ok": True})
+
+
+@may_edit("lead")
+def lead_edit(request, pk):
+    """Every field of a request a person can change, and who it is assigned to."""
+    lead = get_object_or_404(Lead, pk=pk)
+    form = LeadEditForm(request.POST or None, instance=lead)
+    if form.is_valid():
+        form.save()
+        what = changes(form)
+        if what:
+            log(lead, "edited", request.user, detail=what)
+            saved(request)
+        return redirect("lead", pk=lead.pk)
+    return form_page(request, form, _("Edit the lead"), reverse("lead", args=[lead.pk]))

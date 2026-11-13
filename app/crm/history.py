@@ -89,6 +89,10 @@ def shown(field, text):
     if text == "":
         return _("empty")
     if field is not None:
+        if field.name == "edit_objects":                            # the kinds of record a login may edit
+            from .models import EDIT_OBJECTS
+            labels = dict(EDIT_OBJECTS)
+            return ", ".join(str(labels.get(key.strip(), key.strip())) for key in text.split(","))
         if field.choices:
             return str(dict(field.flatchoices).get(text, text))
         if isinstance(field, models.BooleanField):

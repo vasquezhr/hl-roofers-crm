@@ -61,6 +61,12 @@ def icon(name):
 
 
 @register.filter
+def may_edit(user, what):
+    """{% if user|may_edit:"job" %}: true when this login may change this kind of record."""
+    return bool(getattr(user, "is_authenticated", False)) and user.may_edit(what)
+
+
+@register.filter
 def can(user, what):
     """{% if user|can:"delete" %}: true when this login has the permission set. The Admin profile has every one."""
     return bool(getattr(user, "is_authenticated", False)) and user.can(what)

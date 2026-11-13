@@ -4,8 +4,8 @@ from django.contrib.auth import password_validation
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils.translation import gettext_lazy as _
 
-from .models import (JOB_TYPES, LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Opportunity, Payment, PriceItem, Property,
-                     User, Worker, is_day_off)
+from .models import (EDIT_OBJECTS, JOB_TYPES, LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment,
+                     PriceItem, Property, User, Worker, is_day_off)
 
 JOB_TYPES_TO_SELL = [choice for choice in JOB_TYPES if choice[0] != "warranty"]      # a warranty visit is opened from a job, never sold
 
@@ -313,6 +313,9 @@ class CompanyForm(Bootstrap, forms.ModelForm):
 class LoginDetailsForm(Bootstrap, forms.ModelForm):
     """A login: who it is for, its profile, its permission sets, and (when typed) a new password.
     The password box is not one of the login's own fields: a password is only ever saved through set_password, which scrambles it."""
+    edit_objects = forms.MultipleChoiceField(
+        label=_("Edit"), choices=EDIT_OBJECTS, required=False, widget=forms.CheckboxSelectMultiple,
+        help_text=_("For an Office login: the kinds of record it may change on their Edit pages. The administrator may edit everything."))
     new_password = forms.CharField(label=_("Password"), required=False, strip=False,
                                    widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
                                    help_text=_("At least 10 characters. For a login that exists, leave this empty to keep its password."))
@@ -320,7 +323,7 @@ class LoginDetailsForm(Bootstrap, forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["username", "first_name", "last_name", "email", "profile", "crew", "is_active",
+        fields = ["username", "first_name", "last_name", "email", "profile", "crew", "is_active", "edit_objects",
                   "can_price_book", "can_costs", "can_billing", "can_data_editor", "can_inspect", "can_delete", "can_crew_lead"]
         labels = {"is_active": _("Can sign in")}
         help_texts = {"is_active": _("Turn this off instead of deleting a login. Its name stays in the history."),
@@ -335,6 +338,10 @@ class LoginDetailsForm(Bootstrap, forms.ModelForm):
             for name in User.OFFICE_SETS + User.CREW_SETS:
                 if name not in self.sets_for(self.instance.profile):
                     del self.fields[f"can_{name}"]
+            if self.instance.profile != User.Profile.OFFICE:
+                del self.fields["edit_objects"]
+        else:
+            self.initial.setdefault("edit_objects", [key for key, _label in EDIT_OBJECTS])
 
     @staticmethod
     def sets_for(profile):
@@ -361,7 +368,83 @@ class LoginDetailsForm(Bootstrap, forms.ModelForm):
         for name in User.OFFICE_SETS + User.CREW_SETS:              # a set that is not for this profile goes back to how a new login starts
             if name not in self.sets_for(user.profile):
                 setattr(user, f"can_{name}", User._meta.get_field(f"can_{name}").default)
+        if user.profile == User.Profile.CREW:
+            user.edit_objects = []                                  # a crew login edits no record
+        elif "edit_objects" not in self.fields:
+            user.edit_objects = user.edit_objects or [key for key, _label in EDIT_OBJECTS]
         if self.cleaned_data["new_password"]:
             user.set_password(self.cleaned_data["new_password"])
         user.save()
         return user
+
+
+# ---------- Edit pages: every field a person can change on a record. Numbers, stages, dates stamped by a step,
+# links between records and customer links are kept by the app, so they are not here.
+class LeadEditForm(LeadForm):
+    class Meta(LeadForm.Meta):
+        fields = LeadForm.Meta.fields + ["owner"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["owner"].queryset = User.objects.filter(is_active=True).exclude(profile=User.Profile.CREW)
+        self.fields["owner"].label_from_instance = lambda user: user.label
+
+
+class OpportunityEditForm(Bootstrap, forms.ModelForm):
+    class Meta:
+        model = Opportunity
+        fields = ["place", "job_type", "source", "labor_only", "description", "lost_reason"]
+        labels = {"description": _("What is it for?")}
+        help_texts = {"description": _("For a proposal that has lines, the lines are changed in the proposal builder.")}
+        widgets = {"description": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        opp = self.instance
+        self.fields["place"].queryset = opp.account.properties.all()
+        self.fields["place"].empty_label = None
+        self.fields["job_type"].choices = JOB_TYPES_TO_SELL
+        if opp.proposal_lines.exists():
+            del self.fields["description"]                          # the proposal builder keeps it in step with the lines
+        if opp.stage != Opportunity.Stage.LOST:
+            del self.fields["lost_reason"]
+
+
+class JobEditForm(Bootstrap, forms.ModelForm):
+    class Meta:
+        model = Job
+        fields = ["place", "job_type", "price", "labor_only", "scope", "ref_type", "ref_number"]
+        help_texts = {"price": _("The price from the signed proposal. Signed change orders are added to it.")}
+        widgets = {"scope": forms.Textarea(attrs={"rows": 5})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["place"].queryset = self.instance.account.properties.all()
+        self.fields["place"].empty_label = None
+        if self.instance.is_warranty:
+            del self.fields["price"]
+            self.fields["job_type"].choices = [choice for choice in JOB_TYPES if choice[0] == "warranty"]
+        else:
+            self.fields["job_type"].choices = JOB_TYPES_TO_SELL
+
+    def clean(self):
+        data = super().clean()
+        if data.get("ref_number") and not data.get("ref_type"):
+            self.add_error("ref_type", _("Pick the kind of number."))
+        if not data.get("ref_number"):
+            data["ref_type"] = ""
+        if data.get("price") is not None and data["price"] < 0:
+            self.add_error("price", _("A price cannot be below zero."))
+        return data
+
+
+class PaymentEditForm(PaymentForm):
+    class Meta(PaymentForm.Meta):
+        fields = ["amount", "method", "check_number", "paid_on", "kind"]
+
+
+class NoteEditForm(Bootstrap, forms.ModelForm):
+    class Meta:
+        model = Note
+        fields = ["text", "noted_on"]
+        widgets = {"text": forms.Textarea(attrs={"rows": 6}), "noted_on": date_box()}

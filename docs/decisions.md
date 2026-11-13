@@ -427,3 +427,16 @@ The user: "There should also be the ability to schedule ANY day of the week, if 
 - **Everywhere the days are used follows:** the schedule shows the day off as its own column, marked "Day off"; My Day shows it, and finds it as the next day with work; the calendar feed has it; the job counts it ("day 3 of 3"); a crew is busy that day for suggestions.
 - **The history says who added or took off which day,** with the date and time.
 - Choices to confirm: the app does not know sunset times, so a Saturday is a whole day like any other; a job's added days are listed on its page, and only added days can be taken off one by one (the regular days change with the schedule form).
+
+**3. Edit any field, with an Edit permission for each object** (built Nov 13)
+
+The user: "There should also be the ability to edit any field on any record. I forgot to add that with the delete permission. There should also be a Edit permission for each object."
+
+- **Every kind of record has an Edit page:** leads (with who it is assigned to), accounts, contacts, properties, notes in Details, opportunities (property, type of work, where it came from, labor only, what it is for, the lost reason), jobs (property, type of work, price, labor only, scope, kind of outside number and the number), change orders and payments (amount, how it was paid, check number, date, deposit or payment).
+- **An Edit permission for each kind of record,** on Users and permissions: nine tick boxes for an Office login. Salesforce calls this object permissions ("Edit" in a permission set's Object Settings). The Administrator can edit everything. A crew login edits no record; it keeps what it already does on its own jobs (notes, payments, extra workers, Start and Done).
+- **A new office login starts with all nine ticked,** and the existing office logins kept all nine, so nothing the office could change before is taken away. The administrator takes away what a login should not change.
+- **Every edit writes a history line** with who, the date and time, and each field before and after. Saving with nothing changed writes nothing.
+- **What an Edit page does not change, and why:** the number of a record; its stage or status, which move only through their buttons (Convert, Mark signed, Start job, Mark done, the invoice, a payment) so that the history, the documents and the money stay in step; the dates a step stamps; the links between records; the customer links; and the schedule, which has its own form because a change there marks the job Changed for the crew. Corrections to those are made by the administrator in the admin site.
+- **A signed change order cannot be edited:** it is part of the contract. A further change is a new change order. A proposal's lines are edited in the proposal builder until it is signed.
+- **A price or a payment that changes** moves the job in or out of Paid as needed, and a corrected payment gets a new receipt.
+- Choices to confirm: whether Delete should also be one permission per kind of record (it is one "Delete records" set today); whether a crew lead should be able to edit anything; whether changing a scheduled job's address should mark it Changed for the crew (today it only goes in the history).

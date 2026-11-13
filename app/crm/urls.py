@@ -25,6 +25,7 @@ urlpatterns = [
     path("accounts/<int:pk>/properties/new/", views.property_new, name="property_new"),
     path("properties/<int:pk>/edit/", views.property_edit, name="property_edit"),
     path("accounts/<int:pk>/notes/new/", views.note_new, name="note_new"),
+    path("notes/<int:pk>/edit/", views.note_edit, name="note_edit"),
     path("accounts/<int:pk>/opportunities/new/", views.opp_new, name="opp_new"),
 
     # leads: requests from the website
@@ -33,6 +34,7 @@ urlpatterns = [
     path("leads/in/", lead_views.lead_in, name="lead_in"),                      # the website's form sends requests here
     path("leads/<int:pk>/", lead_views.lead, name="lead"),
     path("leads/<int:pk>/convert/", lead_views.lead_convert, name="lead_convert"),
+    path("leads/<int:pk>/edit/", lead_views.lead_edit, name="lead_edit"),
     path("leads/<int:pk>/not-a-fit/", lead_views.lead_unfit, name="lead_unfit"),
 
     path("opportunities/", views.opps, name="opps"),
@@ -43,6 +45,7 @@ urlpatterns = [
     path("opportunities/<str:number>/proposal/send/", money_views.opp_send, name="opp_send"),
     path("opportunities/<str:number>/sign/", views.opp_sign, name="opp_sign"),
     path("opportunities/<str:number>/lost/", views.opp_lost, name="opp_lost"),
+    path("opportunities/<str:number>/edit/", views.opp_edit, name="opp_edit"),
     path("opportunities/<str:number>/take/", admin_views.take_inspection, name="take_inspection"),
 
     # jobs: the office sees all of them, a crew only its own
@@ -51,6 +54,9 @@ urlpatterns = [
     path("jobs/<str:number>/schedule/", views.job_schedule, name="job_schedule"),
     path("jobs/<str:number>/stage/", views.job_stage, name="job_stage"),
     path("jobs/<str:number>/days/", views.job_day, name="job_day"),
+    path("jobs/<str:number>/edit/", views.job_edit, name="job_edit"),
+    path("jobs/<str:number>/change-orders/<int:n>/edit/", money_views.change_order_edit, name="change_order_edit"),
+    path("jobs/<str:number>/payments/<int:pk>/edit/", money_views.payment_edit, name="payment_edit"),
     path("jobs/<str:number>/number/", views.job_ref, name="job_ref"),
     path("jobs/<str:number>/warranty/", views.job_warranty, name="job_warranty"),
     path("jobs/<str:number>/note/", views.job_note, name="job_note"),

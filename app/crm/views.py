@@ -23,10 +23,11 @@ from django.views.decorators.http import require_POST
 
 from . import automations, scheduling
 from .documents import document_rows, keep, proposal_document
-from .access import job_or_404, jobs_for, office_only
+from .access import job_or_404, jobs_for, may_edit, office_only
 from .dates import day_text, range_code
 from .history import booking_code, changes, when_code
-from .forms import (AccountForm, ContactForm, InspectionForm, LostForm, NewAccountForm, NoteForm, OpportunityForm, PropertyForm,
+from .forms import (AccountForm, ContactForm, InspectionForm, JobEditForm, LostForm, NewAccountForm, NoteEditForm, NoteForm,
+                    OpportunityEditForm, OpportunityForm, PropertyForm,
                     RefForm, ScheduleForm, SignForm, WarrantyForm)
 from .importer import find_account
 from .models import Account, Activity, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, Property, Worker, is_day_off, log
@@ -176,7 +177,7 @@ def account_new(request):
     return form_page(request, form, _("New account"), reverse("accounts"), same=same)
 
 
-@office_only
+@may_edit("account")
 def account_edit(request, pk):
     account = get_object_or_404(Account, pk=pk)
     form = AccountForm(request.POST or None, instance=account)
@@ -204,7 +205,7 @@ def contact_new(request, pk):
     return form_page(request, form, _("New contact"), reverse("account", args=[account.pk]), intro=account.name)
 
 
-@office_only
+@may_edit("contact")
 def contact_edit(request, pk):
     contact = get_object_or_404(Contact, pk=pk)
     form = ContactForm(request.POST or None, instance=contact)
@@ -233,7 +234,7 @@ def property_new(request, pk):
     return form_page(request, form, _("New property"), reverse("account", args=[account.pk]), intro=account.name)
 
 
-@office_only
+@may_edit("property")
 def property_edit(request, pk):
     place = get_object_or_404(Property, pk=pk)
     form = PropertyForm(request.POST or None, instance=place)
@@ -535,7 +536,7 @@ def job_day(request, number):
     return redirect("job", number=job.number)
 
 
-@office_only
+@may_edit("job")
 def job_ref(request, number):
     """The outside number a job can carry: a claim, a purchase order or a work order."""
     job = get_object_or_404(Job, number=number)
@@ -632,3 +633,53 @@ def touch(request):
         raise Http404
     log(record, how, request.user)
     return HttpResponse(status=204)
+
+
+# ---------------------------------------------------------------- Edit pages, with the Edit permission for that kind of record
+def edit_page(request, form, record, title, back, name=""):
+    """Save an Edit form, and write what changed in the record's history: who, when, and each field before and after."""
+    if form.is_valid():
+        form.save()
+        what = changes(form, name=name)
+        if what:
+            kind = "note_edited" if isinstance(form.instance, Note) else "edited"
+            log(record, kind, request.user, detail=what)
+            saved(request)
+        else:
+            messages.info(request, _("Nothing was changed."))
+        return redirect(back)
+    return form_page(request, form, title, back, delete_url="")
+
+
+@may_edit("opportunity")
+def opp_edit(request, number):
+    opp = opp_or_404(number)
+    form = OpportunityEditForm(request.POST or None, instance=opp)
+    return edit_page(request, form, opp, _("Edit the opportunity"), reverse("opp", args=[opp.number]))
+
+
+@may_edit("job")
+def job_edit(request, number):
+    """Every field of a job a person can change. A change to the price is checked against what has been paid."""
+    job = get_object_or_404(Job.objects.select_related("account"), number=number)
+    form = JobEditForm(request.POST or None, instance=job)
+    response = edit_page(request, form, job, _("Edit the job"), reverse("job", args=[job.number]))
+    if request.method == "POST" and form.is_valid() and "price" in form.changed_data:
+        fresh = Job.objects.prefetch_related("change_orders", "payments").get(pk=job.pk)
+        fresh.recheck_paid()
+    return response
+
+
+@may_edit("note")
+def note_edit(request, pk):
+    note = get_object_or_404(Note.objects.select_related("account"), pk=pk)
+    back = reverse("account", args=[note.account_id]) if note.account_id else reverse("search")
+    form = NoteEditForm(request.POST or None, instance=note)
+    if note.account_id is None:                                         # an unlinked note has no history of its own
+        if form.is_valid():
+            form.save()
+            saved(request)
+            return redirect(back)
+        return form_page(request, form, _("Edit the note"), back)
+    first = (note.title or note.text).strip().splitlines()[0][:60] if (note.title or note.text).strip() else ""
+    return edit_page(request, form, note.account, _("Edit the note"), back, name=first)

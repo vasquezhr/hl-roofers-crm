@@ -23,7 +23,8 @@
           <td class="ps-3"><span class="fw-semibold">{{ login.label }}</span>{% if login.is_crew_profile and not login.first_name %} <span class="text-body-secondary">· {% trans "shared login" %}</span>{% endif %}
             <br><span class="text-body-secondary">{{ login.username }}{% if not login.is_active %} · {% trans "cannot sign in" %}{% endif %}</span></td>
           <td>{% if login.is_admin_profile %}{% badge login.get_profile_display "primary" %}{% else %}{% badge login.get_profile_display "secondary" %}{% endif %}</td>
-          <td>{% if login.is_admin_profile %}<span class="text-body-secondary">{% trans "Everything" %}</span>{% else %}{% for name in login.sets %}{% badge name "info" %} {% empty %}<span class="text-body-secondary">{% trans "None" %}</span>{% endfor %}{% endif %}</td>
+          <td>{% if login.is_admin_profile %}<span class="text-body-secondary">{% trans "Everything" %}</span>{% else %}{% for name in login.sets %}{% badge name "info" %} {% empty %}<span class="text-body-secondary">{% trans "None" %}</span>{% endfor %}
+            {% if login.is_office_profile %}<div class="text-body-secondary mt-1">{% trans "Edit" %}: {% if login.edits_everything %}{% trans "every kind of record" %}{% elif login.edit_names %}{{ login.edit_names|join:", " }}{% else %}{% trans "nothing" %}{% endif %}</div>{% endif %}{% endif %}</td>
           <td class="text-nowrap">{% if login.last_login %}{{ login.last_login|day_time }}{% else %}<span class="text-body-secondary">{% trans "Never" %}</span>{% endif %}</td>
           <td class="text-end pe-3"><a class="btn btn-outline-secondary btn-sm" href="{% url 'user_edit' login.pk %}">{% icon "edit" %} {% trans "Edit" %}</a></td>
         </tr>

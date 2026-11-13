@@ -13,6 +13,7 @@
     <h1 class="h4 mb-0">{{ account.name }}</h1>
     <div class="text-body-secondary small">#{{ job.number }} · {{ job.get_job_type_display }} {% job_tags job %}</div>
   </div>
+  {% if user|may_edit:"job" %}<a class="btn btn-outline-secondary btn-sm text-nowrap" href="{% url 'job_edit' job.number %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
   {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm" href="{% url 'record_delete' 'job' job.number %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">{% icon "trash" %}</a>{% endif %}
   {% stage_badge job %}
 </div>
@@ -137,7 +138,7 @@
           <dt class="col-4 text-body-secondary fw-normal">{% trans "Outside number" %}</dt>
           <dd class="col-8 mb-1">{% if job.ref_number %}{{ job.get_ref_type_display }} {{ job.ref_number }}{% else %}<span class="text-body-secondary">{% trans "None" %}</span>{% endif %}</dd>
         </dl>
-        {% if not crew_view %}
+        {% if user|may_edit:"job" %}
         <a class="btn btn-outline-secondary btn-sm mt-2" href="{% url 'job_ref' job.number %}">{% icon "edit" %} {% trans "Change the outside number" %}</a>
         {% endif %}
       </div>
@@ -191,7 +192,7 @@
           <div class="small text-uppercase text-body-secondary fw-semibold mt-3 mb-1">{% trans "Payments" %}</div>
           {% for payment in payments %}
           <div class="d-flex justify-content-between gap-3">
-            <span>{{ payment.paid_on|date }} · {{ payment.get_kind_display }} · {{ payment.get_method_display }}{% if payment.check_number %} #{{ payment.check_number }}{% endif %} <span class="text-body-secondary">· {{ payment.actor }}</span> · <a href="{% url 'receipt' job.number payment.pk %}">{% trans "Receipt" %}</a></span>
+            <span>{{ payment.paid_on|date }} · {{ payment.get_kind_display }} · {{ payment.get_method_display }}{% if payment.check_number %} #{{ payment.check_number }}{% endif %} <span class="text-body-secondary">· {{ payment.actor }}</span> · <a href="{% url 'receipt' job.number payment.pk %}">{% trans "Receipt" %}</a>{% if user|may_edit:"payment" %} · <a href="{% url 'payment_edit' job.number payment.pk %}">{% trans "Edit" %}</a>{% endif %}</span>
             <span class="text-nowrap">−{{ payment.amount|money }}{% if can_remove_payment %}
               <form method="post" action="{% url 'payment_remove' job.number payment.pk %}" class="d-inline">{% csrf_token %}<button type="submit" class="btn btn-link btn-sm text-danger p-0 ms-1 align-baseline" data-confirm="{% trans 'Remove this payment? Use this only for a payment recorded by mistake.' %}" aria-label="{% trans 'Remove this payment' %}">{% icon "trash" %}</button></form>{% endif %}</span>
           </div>

@@ -80,6 +80,17 @@ JOB_TYPES = [
 DAYS_BY_TYPE = {"replacement": 2, "tpo": 2, "metal": 2, "siding": 3}
 
 
+# ---------------------------------------------------------------- what a login may edit, object by object
+EDIT_OBJECTS = [("lead", _("Leads")), ("account", _("Accounts")), ("contact", _("Contacts")), ("property", _("Properties")),
+                ("note", _("Notes in Details")), ("opportunity", _("Opportunities")), ("job", _("Jobs")),
+                ("change_order", _("Change orders")), ("payment", _("Payments"))]
+
+
+def every_object():
+    """A new office login may edit every kind of record. The administrator can take any of them away."""
+    return [key for key, _label in EDIT_OBJECTS]
+
+
 # ---------------------------------------------------------------- the Recycle Bin
 class Visible(models.Manager):
     """The everyday list of a kind of record: everything except what is in the Recycle Bin.
@@ -153,8 +164,26 @@ class User(AbstractUser):
     can_crew_lead = models.BooleanField(_("Crew Lead"), default=True,
                                         help_text=_("Start and finish the crew's jobs, record a payment, change the extra workers and confirm changes. "
                                                     "Without it, a crew login only reads its crew's jobs and adds notes."))
+    # Edit, object by object: which kinds of record this login may change on their Edit pages (an Office login only)
+    edit_objects = models.JSONField(_("can edit"), default=every_object, blank=True)
     OFFICE_SETS = ["price_book", "costs", "billing", "data_editor", "inspect", "delete"]       # these add to the Office profile
     CREW_SETS = ["crew_lead"]                                                                  # this one adds to the Crew profile
+
+    def may_edit(self, what):
+        """True when this login may change this kind of record: user.may_edit("job"). The Admin profile may edit everything;
+        a crew login edits no record (it adds notes and payments on its own jobs instead)."""
+        if self.is_admin_profile:
+            return True
+        return not self.is_crew_profile and what in (self.edit_objects or [])
+
+    @property
+    def edits_everything(self):
+        return set(every_object()) <= set(self.edit_objects or [])
+
+    @property
+    def edit_names(self):
+        """The kinds of record this login may edit, for the Users page."""
+        return [label for key, label in EDIT_OBJECTS if key in (self.edit_objects or [])]
 
     def can(self, what):
         """True when this login has a permission set: user.can("price_book"). The Admin profile has every one."""
@@ -768,6 +797,15 @@ class Job(models.Model):
             return user.can("crew_lead") and self.stage in (self.Stage.IN_PROGRESS, self.Stage.DONE, self.Stage.INVOICED)
         return self.stage != self.Stage.PAID
 
+    def recheck_paid(self):
+        """After an amount changed (the price, a payment): a job that was Paid and owes money again goes back to
+        Invoice sent (or Done), and one that owes nothing now is Paid. Read the job fresh before calling this."""
+        if self.stage == self.Stage.PAID and self.balance > 0:
+            self.stage, self.paid_on = (self.Stage.INVOICED if self.invoiced_on else self.Stage.DONE), None
+            self.save()
+        else:
+            self.settle()
+
     def settle(self):
         """Once the work is done and nothing is owed, the job is Paid. Returns True when that just happened."""
         if self.stage in (self.Stage.DONE, self.Stage.INVOICED) and self.balance <= 0:
@@ -1101,7 +1139,7 @@ class Activity(models.Model):
         "edited": _("Changed: %(detail)s"),
         "contact_added": _("Contact added: %(detail)s"), "contact_edited": _("Contact changed: %(detail)s"),
         "property_added": _("Property added: %(detail)s"), "property_edited": _("Property changed: %(detail)s"),
-        "note_added": _("Note added to Details"),
+        "note_added": _("Note added to Details"), "note_edited": _("Note in Details changed: %(detail)s"),
         "contact_deleted": _("Contact deleted: %(detail)s"), "property_deleted": _("Property deleted: %(detail)s"),
         "note_deleted": _("Note deleted from Details"),
         "proposal_written": _("Proposal written: %(detail)s"), "proposal_edited": _("Proposal changed: %(detail)s"),
@@ -1134,7 +1172,7 @@ class Activity(models.Model):
     # how the stored detail of some kinds is put into words when it is read
     READERS = {"changed": range_from_code, "day_added": range_from_code, "day_removed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
                "edited": changes_text, "contact_edited": changes_text, "property_edited": changes_text,
-               "company_edited": changes_text, "price_set": changes_text, "login_edited": changes_text}
+               "company_edited": changes_text, "price_set": changes_text, "login_edited": changes_text, "note_edited": changes_text}
 
     lead = models.ForeignKey("Lead", null=True, blank=True, on_delete=models.CASCADE, related_name="activities")
     account = models.ForeignKey(Account, null=True, blank=True, on_delete=models.CASCADE, related_name="activities")

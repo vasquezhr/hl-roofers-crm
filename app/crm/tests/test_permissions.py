@@ -5,7 +5,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from crm import recycle
-from crm.models import Account, Activity, BinEntry, Contact, Job, Lead, Note, Opportunity, Payment, PriceEntry, PriceItem, Property, User
+from crm.models import (Account, Activity, BinEntry, Contact, Job, Lead, Note, Opportunity, Payment, PriceEntry, PriceItem, Property, User,
+                        every_object)
 
 from .base import MONDAY, Base
 
@@ -21,7 +22,7 @@ class UsersPage(Base):
 
     def details(self, **changes):
         return {"username": "glenda", "new_password": "shingles-and-nails", "first_name": "Glenda", "last_name": "", "email": "", "profile": "office", "crew": "",
-                "is_active": "on", **changes}
+                "is_active": "on", "edit_objects": every_object(), **changes}
 
     def test_the_administrator_sees_every_login(self):
         page = self.client.get(reverse("users"))

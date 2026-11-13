@@ -23,8 +23,9 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from . import documents
-from .access import job_or_404, office_only, with_permission
-from .forms import ChangeOrderForm, PaymentForm
+from .access import job_or_404, may_edit, office_only, with_permission
+from .forms import ChangeOrderForm, PaymentEditForm, PaymentForm
+from .history import changes
 from .mail import send
 from .models import ChangeOrder, Company, Job, Opportunity, Payment, PriceItem, log
 from .views import form_page, opp_or_404, saved, today
@@ -292,6 +293,8 @@ def change_order(request, number, n):
     here, actions = reverse("change_order", args=[job.number, order.number]), []
     if office and not order.is_signed:
         actions += [action(_("Email to the customer"), post="email", style="primary", icon="mail"), action(_("Mark signed"), post="signed", icon="check")]
+        if request.user.may_edit("change_order"):
+            actions.append(action(_("Edit"), reverse("change_order_edit", args=[job.number, order.number]), icon="edit"))
     actions.append(action(_("Download the PDF"), here + "?pdf=1", icon="doc"))
     if order.is_signed:
         note = _("Signed %(day)s") % {"day": documents.date_text(order.signed_on)} + (f" · {order.signed_by}" if order.signed_by else "")
@@ -538,3 +541,49 @@ def receipt_send(request, number, pk):
         else:
             messages.error(request, _("The email could not be sent. Check the email settings, or mark it sent."))
     return redirect("receipt", number=job.number, pk=payment.pk)
+
+
+# ---------------------------------------------------------------- Edit pages for change orders and payments
+@may_edit("change_order")
+def change_order_edit(request, number, n):
+    """A change order can be changed while it waits for the customer's signature. Once signed, it is part of the contract:
+    a further change is a new change order."""
+    order = order_or_404(number, n)
+    back = reverse("change_order", args=[number, order.number])
+    if order.is_signed:
+        messages.warning(request, _("A signed change order is part of the contract. Add a new change order instead."))
+        return redirect(back)
+    form = ChangeOrderForm(request.POST or None, instance=order)
+    if form.is_valid():
+        form.save()
+        what = changes(form, name=order.label)
+        if what:
+            log(order.job, "edited", request.user, detail=what)
+            saved(request)
+        return redirect(back)
+    return form_page(request, form, _("Edit the change order"), back, sub=f"#{order.job.number} · {order.label}")
+
+
+@may_edit("payment")
+def payment_edit(request, number, pk):
+    """Correct a payment: its amount, how it was paid, the check number, the date, deposit or payment.
+    The job's balance and stage follow, and the receipt is made again from the corrected payment."""
+    payment = get_object_or_404(Payment.objects.select_related("job__account", "job__place"), pk=pk, job__number=number)
+    job = Job.objects.prefetch_related("change_orders", "payments").get(pk=payment.job_id)
+    back = reverse("job", args=[job.number])
+    form = PaymentEditForm(request.POST or None, instance=payment, balance=job.balance + payment.amount)
+    if form.is_valid():
+        form.save()
+        what = changes(form, name=documents.receipt_number(payment))
+        if what:
+            company = Company.load()
+            job = Job.objects.prefetch_related("change_orders", "payments").select_related("account", "place").get(pk=job.pk)
+            job.recheck_paid()
+            payment.job = job
+            payment.kept.all().delete()                                 # the receipt says what the payment is now
+            documents.keep("receipt", lambda language: documents.receipt_document(payment, company, language), job.account, company,
+                           actor=request.user.label, payment=payment, job=job)
+            log(job, "edited", request.user, detail=what)
+            saved(request)
+        return redirect(back)
+    return form_page(request, form, _("Edit the payment"), back, sub=f"#{job.number} · {job.account.name}")
