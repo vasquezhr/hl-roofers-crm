@@ -5,6 +5,7 @@ The administrator's pages for people and for deleted records.
   Delete                   a button on a record's page, for a login with the "Delete records" permission
   Recycle Bin              what was deleted, by whom and when; restore it, or (the administrator) delete it for good
   Take an inspection       for a login with the "Inspector" permission
+  Colors and icon          the business's two colors and the app's icon (and the icon itself, which anyone may fetch)
 """
 from datetime import timedelta
 
@@ -12,9 +13,10 @@ from django.conf import settings
 from django.contrib import messages
 from django.core import signing
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.core.validators import validate_email
 from django.db import connection, transaction
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -23,11 +25,11 @@ from django.utils.text import slugify
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
-from . import automations, recycle
+from . import automations, look, recycle
 from .access import admin_only, with_permission
-from .forms import LoginDetailsForm, WorkTypeForm
+from .forms import LoginDetailsForm, LookForm, WorkTypeForm
 from .history import changes, field_changes
-from .models import (LANGS, Account, Attachment, BackupRun, BinEntry, ChangeSet, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, PriceUpload,
+from .models import (LANGS, Account, Activity, Attachment, BackupRun, BinEntry, ChangeSet, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, PriceUpload,
                      Property, User, WorkType, digits, log)
 from .views import form_page, page_of, saved
 
@@ -382,3 +384,52 @@ def work_type_edit(request, pk=None):
     title = _("Edit the type of work") if kind else _("New type of work")
     intro = _("A type of work is offered when a request, an opportunity or a job is made. Its usual days are what a new job gets on the schedule.")
     return form_page(request, form, title, reverse("work_types"), intro=intro)
+
+
+# ---------------------------------------------------------------- the business's look
+@admin_only
+def look_settings(request):
+    """Admin › Colors and icon: the two colors every page uses, and the app's icon."""
+    company = Company.load()
+    form = LookForm(request.POST or None, request.FILES or None, instance=company)
+    if form.is_valid():
+        old_icon = company.icon.name
+        what = field_changes("company", "", [(name, form.initial.get(name), form.cleaned_data[name])
+                                             for name in ("accent_color", "bar_color") if name in form.changed_data])
+        form.save()
+        if what:
+            log(None, "look_edited", request.user, detail=what)
+        if form.icon_png:
+            company.icon.save("icon.png", ContentFile(form.icon_png), save=True)
+            log(None, "icon_uploaded", request.user)
+        elif form.cleaned_data.get("no_icon"):
+            company.icon = ""
+            company.save(update_fields=["icon"])
+            log(None, "icon_removed", request.user)
+        if old_icon and old_icon != company.icon.name:
+            company.icon.storage.delete(old_icon)                  # the picture it replaced
+        saved(request)
+        return redirect("company_look")
+    if company.icon:
+        now = _("Now: the uploaded picture.")
+    elif look.is_hl(company):
+        now = _("Now: H & L's own icon. It is used while the name and both colors are H & L's.")
+    else:
+        now = _("Now: drawn by the app from the name and the colors.")
+    intro = _("The colors change every page at once, for everyone. The icon is the picture on the Mac's Dock, on a phone's home screen "
+              "and on the browser tab. A Mac or phone that already has the app on its Dock or home screen keeps the old icon "
+              "until the app is added there again.")
+    last = Activity.objects.filter(kind__in=["look_edited", "icon_uploaded", "icon_removed"]).first()
+    return form_page(request, form, _("Colors and icon"), reverse("admin_home"), intro=intro, multipart=True, icon_now=now,
+                     last_change=last)
+
+
+def app_icon(request):
+    """The app's icon. Anyone may fetch it, signed in or not: the sign-in page shows it, and so does the Dock."""
+    company = Company.load()
+    response = HttpResponse(look.icon_bytes(company), content_type="image/png")
+    # the pages ask for it with ?v=<a code that changes with the icon>, so a copy can be kept for a long time
+    fresh = request.GET.get("v") == look.version(company)
+    response["Cache-Control"] = "public, max-age=31536000, immutable" if fresh else "no-cache"
+    return response
+

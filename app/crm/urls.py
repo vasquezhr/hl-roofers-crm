@@ -8,6 +8,7 @@ from .forms import LoginForm
 urlpatterns = [
     # signing in and out
     path("login/", auth_views.LoginView.as_view(authentication_form=LoginForm), name="login"),
+    path("icon.png", admin_views.app_icon, name="app_icon"),             # the app's icon: anyone may fetch it
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
 
     # the office
@@ -102,6 +103,7 @@ urlpatterns = [
     # the administrator
     path("manage/", price_views.admin_home, name="admin_home"),
     path("manage/company/", price_views.company_details, name="company_details"),
+    path("manage/look/", admin_views.look_settings, name="company_look"),
     path("manage/history/", price_views.admin_history, name="admin_history"),
     path("manage/editor/", admin_views.editor, name="editor"),
     path("manage/editor/<int:pk>/undo/", admin_views.editor_undo, name="editor_undo"),

@@ -1,7 +1,8 @@
-"""What every page needs: the navigation tabs for the person's profile, and the business's name."""
+"""What every page needs: the navigation tabs for the person's profile, and the business's name and look."""
 from django.urls import NoReverseMatch, reverse
 from django.utils.translation import gettext_lazy as _
 
+from . import look
 from .models import Company
 
 # tab key -> (name of the page it opens, label, icon)
@@ -49,8 +50,9 @@ def exists(page):
 
 
 def company(request):
-    """The business's name and details, for the top bar and the documents."""
-    return {"company": Company.load()}
+    """The business's name and details, for the top bar and the documents, and its colors and icon (look.py)."""
+    firm = Company.load()
+    return {"company": firm, "look": look.of(firm)}
 
 
 def navigation(request):

@@ -3,14 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1f3a5f">
+<meta name="theme-color" content="{{ look.bar }}">
 <meta name="apple-mobile-web-app-title" content="{{ company.name }}">
 <title>{% block title %}{% endblock %} · {{ company.name }}</title>
-<link rel="icon" type="image/png" href="{% static 'crm/icon.png' %}">
-<link rel="apple-touch-icon" href="{% static 'crm/icon.png' %}">
+<link rel="icon" type="image/png" href="{{ look.icon }}">
+<link rel="apple-touch-icon" href="{{ look.icon }}">
 {# Bootstrap comes from the app's own files, so the app needs no internet connection of its own #}
 <link rel="stylesheet" href="{% static 'crm/bootstrap.min.css' %}">
 <link rel="stylesheet" href="{% static 'crm/hl.css' %}">
+{% if look.style %}<style>{{ look.style }}</style>{# the business's own colors in place of H & L's (look.py) #}{% endif %}
 <script src="{% static 'crm/hl.js' %}"></script>
 </head>
 <body data-touch-url="{% url 'touch' %}" data-csrf="{{ csrf_token }}">

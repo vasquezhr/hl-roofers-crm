@@ -1,39 +1,58 @@
 /* =====================================================================
-   H & L styles. Everything else on the page is plain Bootstrap.
-   Part 1 swaps Bootstrap's blue for the H & L colors.
+   The app's styles. Everything else on the page is plain Bootstrap.
+   Part 1 swaps Bootstrap's blue for the business's colors.
    Part 2 is the handful of pieces Bootstrap does not have.
    ===================================================================== */
 
-/* ---------- 1. H & L colors ---------- */
+/* ---------- 1. The business's colors ----------
+   These are H & L's, with every shade picked by hand. A business with other colors
+   (Admin › Colors and icon) gets its own shades on each page, worked out in look.py,
+   in place of these. Every color below this block comes from these variables. */
 :root {
-  --hl-navy: #1f3a5f;                 /* top bar */
-  --hl-accent: #b05a22;               /* buttons and highlights */
+  --hl-bar: #1f3a5f;                    /* top bar */
+  --hl-amp: #f0b07f;                    /* the "&" in the name on the top bar */
+  --hl-accent: #b05a22;                 /* buttons and highlights */
+  --hl-accent-rgb: 176, 90, 34;
+  --hl-accent-hover: #974d1d;           /* a button under the pointer */
+  --hl-accent-active: #8d481b;          /* a button being pressed */
+  --hl-accent-active-border: #844319;
+  --hl-accent-text: #6f3713;            /* writing in the main color on its pale background */
+  --hl-accent-subtle: #f6e3d4;          /* the pale background */
+  --hl-accent-border: #e7bf9f;
+  --hl-accent-focus: #d9a57f;           /* the border of the box being typed in */
+  /* the same, on the dark theme */
+  --hl-accent-dark: #e08a4c;
+  --hl-accent-dark-rgb: 224, 138, 76;
+  --hl-accent-dark-text: #f0b07f;
+  --hl-accent-dark-subtle: #3a2a1f;
+  --hl-accent-dark-border: #7a4a25;
+  --hl-chart-dark: #cf7a40;             /* chart marks on the dark theme */
 }
 [data-bs-theme=light] {
-  --bs-primary: #b05a22;
-  --bs-primary-rgb: 176, 90, 34;
-  --bs-primary-text-emphasis: #6f3713;
-  --bs-primary-bg-subtle: #f6e3d4;
-  --bs-primary-border-subtle: #e7bf9f;
+  --bs-primary: var(--hl-accent);
+  --bs-primary-rgb: var(--hl-accent-rgb);
+  --bs-primary-text-emphasis: var(--hl-accent-text);
+  --bs-primary-bg-subtle: var(--hl-accent-subtle);
+  --bs-primary-border-subtle: var(--hl-accent-border);
   --bs-link-color: #24507f;
   --bs-link-color-rgb: 36, 80, 127;
   --bs-link-hover-color: #1a3a5c;
   --bs-link-hover-color-rgb: 26, 58, 92;
   --bs-body-bg: #f4f1ec;              /* warm paper background */
   --bs-body-bg-rgb: 244, 241, 236;
-  --bs-focus-ring-color: rgba(176, 90, 34, .25);
+  --bs-focus-ring-color: rgba(var(--hl-accent-rgb), .25);
 }
 [data-bs-theme=dark] {
-  --bs-primary: #e08a4c;
-  --bs-primary-rgb: 224, 138, 76;
-  --bs-primary-text-emphasis: #f0b07f;
-  --bs-primary-bg-subtle: #3a2a1f;
-  --bs-primary-border-subtle: #7a4a25;
+  --bs-primary: var(--hl-accent-dark);
+  --bs-primary-rgb: var(--hl-accent-dark-rgb);
+  --bs-primary-text-emphasis: var(--hl-accent-dark-text);
+  --bs-primary-bg-subtle: var(--hl-accent-dark-subtle);
+  --bs-primary-border-subtle: var(--hl-accent-dark-border);
   --bs-link-color: #86b2ea;
   --bs-link-color-rgb: 134, 178, 234;
   --bs-link-hover-color: #a9c8f0;
   --bs-link-hover-color-rgb: 169, 200, 240;
-  --bs-focus-ring-color: rgba(224, 138, 76, .3);
+  --bs-focus-ring-color: rgba(var(--hl-accent-dark-rgb), .3);
 }
 /* white cards, lists and boxes to type in, on the warm background (light theme only) */
 [data-bs-theme=light] .card { --bs-card-bg: #fff; }
@@ -44,32 +63,32 @@
 .table { --bs-table-bg: transparent; }
 /* Bootstrap components that hard-code its blue */
 .btn-primary {
-  --bs-btn-color: #fff; --bs-btn-bg: #b05a22; --bs-btn-border-color: #b05a22;
-  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #974d1d; --bs-btn-hover-border-color: #8d481b;
-  --bs-btn-active-color: #fff; --bs-btn-active-bg: #8d481b; --bs-btn-active-border-color: #844319;
-  --bs-btn-disabled-color: #fff; --bs-btn-disabled-bg: #b05a22; --bs-btn-disabled-border-color: #b05a22;
-  --bs-btn-focus-shadow-rgb: 176, 90, 34;
+  --bs-btn-color: #fff; --bs-btn-bg: var(--hl-accent); --bs-btn-border-color: var(--hl-accent);
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: var(--hl-accent-hover); --bs-btn-hover-border-color: var(--hl-accent-active);
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: var(--hl-accent-active); --bs-btn-active-border-color: var(--hl-accent-active-border);
+  --bs-btn-disabled-color: #fff; --bs-btn-disabled-bg: var(--hl-accent); --bs-btn-disabled-border-color: var(--hl-accent);
+  --bs-btn-focus-shadow-rgb: var(--hl-accent-rgb);
 }
 .btn-outline-primary {
   --bs-btn-color: var(--bs-primary); --bs-btn-border-color: var(--bs-primary);
-  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #b05a22; --bs-btn-hover-border-color: #b05a22;
-  --bs-btn-active-color: #fff; --bs-btn-active-bg: #b05a22; --bs-btn-active-border-color: #b05a22;
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: var(--hl-accent); --bs-btn-hover-border-color: var(--hl-accent);
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: var(--hl-accent); --bs-btn-active-border-color: var(--hl-accent);
   --bs-btn-disabled-color: var(--bs-primary); --bs-btn-disabled-border-color: var(--bs-primary);
-  --bs-btn-focus-shadow-rgb: 176, 90, 34;
+  --bs-btn-focus-shadow-rgb: var(--hl-accent-rgb);
 }
-.nav-pills { --bs-nav-pills-link-active-bg: #b05a22; }
+.nav-pills { --bs-nav-pills-link-active-bg: var(--hl-accent); }
 .hl-side .nav, .hl-tabbar .nav { --bs-nav-link-color: var(--bs-body-color); --bs-nav-link-hover-color: var(--bs-primary); }
-.list-group { --bs-list-group-active-bg: #b05a22; --bs-list-group-active-border-color: #b05a22; }
-.dropdown-menu { --bs-dropdown-link-active-bg: #b05a22; }
-.form-check-input:checked { background-color: #b05a22; border-color: #b05a22; }
+.list-group { --bs-list-group-active-bg: var(--hl-accent); --bs-list-group-active-border-color: var(--hl-accent); }
+.dropdown-menu { --bs-dropdown-link-active-bg: var(--hl-accent); }
+.form-check-input:checked { background-color: var(--hl-accent); border-color: var(--hl-accent); }
 .form-control:focus, .form-select:focus, .form-check-input:focus {
-  border-color: #d9a57f; box-shadow: 0 0 0 .25rem rgba(176, 90, 34, .25);
+  border-color: var(--hl-accent-focus); box-shadow: 0 0 0 .25rem rgba(var(--hl-accent-rgb), .25);
 }
 
 /* ---------- 2. Pieces Bootstrap does not have ---------- */
 /* brand bar */
-.hl-topbar { background: var(--hl-navy); }
-.hl-amp { color: #f0b07f; }
+.hl-topbar { background: var(--hl-bar); }
+.hl-amp { color: var(--hl-amp); }
 .hl-tag { font-size: .62rem; letter-spacing: .04em; }
 /* page frame */
 .hl-side { width: 220px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
@@ -100,8 +119,8 @@
 .hl-map circle.hl-here { stroke: var(--bs-body-bg); stroke-width: 2; paint-order: normal; }
 
 /* charts: one color for the marks, checked on the light and the dark theme. Words and grid lines stay gray. */
-[data-bs-theme=light] { --hl-chart: #b05a22; }
-[data-bs-theme=dark] { --hl-chart: #cf7a40; }
+[data-bs-theme=light] { --hl-chart: var(--hl-accent); }
+[data-bs-theme=dark] { --hl-chart: var(--hl-chart-dark); }
 .hl-chart line { stroke: var(--bs-border-color); stroke-width: 1; }
 .hl-chart text { font-size: 11px; fill: var(--bs-secondary-color); }
 .hl-chart .hl-value { font-weight: 600; fill: var(--bs-body-color); }

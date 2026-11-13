@@ -32,6 +32,8 @@ This folder is the real app (Python, Django, PostgreSQL, Bootstrap). **All four 
 - **Documents:** a customer's work goes through four documents: the proposal, change orders, the invoice and receipts. Each is a page and a PDF. The account lists all of them with their status (sent, signed, paid). The job lists its own: the signed proposal, its change orders and its invoice. The job's crew can open and download them; they show the customer's prices, never H & L's costs.
 - **Price Book:** for the administrator. Each item has a cost and a selling price. An Excel price file is uploaded, reviewed (what changes, by how much, what is new) and then confirmed. Every price is kept as history, and the newest upload can be rolled back.
 - **Company details:** the business's name, license, address, phone and terms. They print on every proposal and invoice; an empty one prints as a `{placeholder}`.
+- **Types of work:** the list of what the business sells (Repair, Roof replacement, Gutters, …), each with its name in English and Spanish, the work days a job usually takes and whether it has its own column in the revenue report. Inspection, Warranty visit and Other are built in.
+- **Colors and icon:** the app's two colors (the main color for buttons, highlights and charts, and the top bar's color) and the app's icon on the Mac's Dock, a phone's home screen and the browser tab. A color must be dark enough for white writing on it. The icon is a picture the administrator uploads; without one, H & L keeps its own icon, and another business gets one drawn from its initials.
 
 Documents that go to a customer (the emailed PDF, the email's words, the Accept page) are in the customer's language. On screen they follow the language of the person looking.
 
@@ -102,7 +104,7 @@ Run the tests. They build their own empty database, so they never touch your dat
 python manage.py test
 ```
 
-It should end with `OK (skipped=1)`. There are 315 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, the dashboard and the reports, the automations and the scheduled command, the data editor, system status, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
+It should end with `OK (skipped=1)`. There are 325 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, the dashboard and the reports, the automations and the scheduled command, the data editor, system status, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
 
 Then click through it:
 
@@ -192,7 +194,8 @@ The tests fail if a label has no Spanish.
 | `crm\urls.py` | The address of every page |
 | `crm\templates\` | The pages' HTML. `base.html` is the frame around every page |
 | `crm\templatetags\crm_tags.py`, `crm\dates.py` | Small helpers for the templates: icons, dates, money, badges, the stage bar |
-| `crm\static\crm\` | Bootstrap 5.3.8 (its own copy, so no internet is needed), `hl.css` (the H & L colors and the few pieces Bootstrap lacks), `hl.js` (about 100 lines) and the app icon |
+| `crm\static\crm\` | Bootstrap 5.3.8 (its own copy, so no internet is needed), `hl.css` (the business's colors and the few pieces Bootstrap lacks), `hl.js` (about 100 lines) and H & L's app icon |
+| `crm\look.py` | The business's look: the shades worked out from its two colors, the check that white writing reads on them, and the app's icon (uploaded, H & L's own, or drawn from the initials) |
 | `crm\admin.py` | What the admin site shows |
 | `crm\management\commands\` | `demo` (made-up data), `spanish` (checks and builds the Spanish file), `tick` (the automations that go by the clock; Task Scheduler runs it) and `backup_ran` (the backup job reports in) |
 | `crm\tests\` | The tests |

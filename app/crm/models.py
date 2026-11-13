@@ -32,6 +32,7 @@ from django.dispatch import receiver
 from django.utils import timezone, translation
 from django.utils.translation import gettext_lazy as _
 
+from . import look
 from .dates import range_from_code
 from .history import booking_text, changes_text, file_text, when_text
 
@@ -274,6 +275,12 @@ class Company(models.Model):
     name = models.CharField(_("short name"), max_length=80, default="H & L Roofers",
                             help_text=_("Shown at the top of every page and used in emails and texts."))
     tagline = models.CharField(_("line under the name"), max_length=80, blank=True, default="Honest & Loyal · Virginia")
+    # the app's look, set under Admin › Colors and icon. H & L's are the defaults (see look.py)
+    accent_color = models.CharField(_("main color"), max_length=7, default=look.ACCENT, validators=[look.readable_color],
+                                    help_text=_("Buttons, highlights and charts. White writing goes on it, so it must be dark enough."))
+    bar_color = models.CharField(_("top bar color"), max_length=7, default=look.BAR, validators=[look.readable_color],
+                                 help_text=_("The bar at the top of every page, and the background of a drawn icon. White writing goes on it too."))
+    icon = models.ImageField(_("app icon"), upload_to="look/", blank=True, editable=False)
     legal_name = models.CharField(_("legal name"), max_length=160, blank=True)
     license_number = models.CharField(_("license number"), max_length=60, blank=True)
     address = models.CharField(_("business address"), max_length=200, blank=True)
@@ -1289,6 +1296,8 @@ class Activity(models.Model):
         "proposal_written": _("Proposal written: %(detail)s"), "proposal_edited": _("Proposal changed: %(detail)s"),
         # the app's own setup: these lines have no record and are on Admin > Setup history
         "company_edited": _("Company details changed: %(detail)s"),
+        "look_edited": _("Colors changed: %(detail)s"),
+        "icon_uploaded": _("App icon uploaded"), "icon_removed": _("Uploaded app icon taken away"),
         "price_set": _("Price changed: %(detail)s"), "price_item_added": _("Price Book item added: %(detail)s"),
         "price_file": _("Price file applied: %(detail)s"), "price_rollback": _("Price file rolled back: %(detail)s"),
         "notes_uploaded": _("Notes file uploaded: %(detail)s"), "notes_skipped": _("Imported notes skipped: %(detail)s"),
@@ -1317,7 +1326,7 @@ class Activity(models.Model):
     # how the stored detail of some kinds is put into words when it is read
     READERS = {"file_added": file_text, "changed": range_from_code, "day_added": range_from_code, "day_removed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
                "edited": changes_text, "contact_edited": changes_text, "property_edited": changes_text,
-               "type_edited": changes_text, "company_edited": changes_text, "price_set": changes_text, "login_edited": changes_text, "note_edited": changes_text}
+               "type_edited": changes_text, "company_edited": changes_text, "look_edited": changes_text, "price_set": changes_text, "login_edited": changes_text, "note_edited": changes_text}
 
     lead = models.ForeignKey("Lead", null=True, blank=True, on_delete=models.CASCADE, related_name="activities")
     account = models.ForeignKey(Account, null=True, blank=True, on_delete=models.CASCADE, related_name="activities")

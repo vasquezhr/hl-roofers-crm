@@ -465,3 +465,14 @@ The user asked whether the app could be "a shell … same exact CRM concept, jus
 - **Three are built in:** Inspection (where a request starts), Warranty visit (opened from a finished job) and Other. They are always offered and cannot be switched off.
 - **A type that is switched off** is no longer offered, and the records that have it keep showing its name.
 - **Everything follows the list:** the drop-downs on requests, opportunities, Convert and job edits; the names on documents (in the customer's language) and in the history; the website form's words; Search; and the revenue report's columns, which now follow the order of the list (Repair, Roof replacement, Gutters, Siding, then Other).
+
+**Colors and icon** (built Nov 13)
+
+- **The two colors are settings,** on **Admin › Colors and icon**: the main color (buttons, highlights, the active tab, charts) and the top bar's color. Both have white writing on them, so the app refuses a color that white writing does not read well on (contrast below 4.5 to 1, the WCAG AA level for ordinary text).
+- **H & L's look did not change.** H & L's colors are the defaults, and its hand-picked shades stay in the stylesheet. Screenshots of 14 pages, light and dark, on a computer and a phone, were compared pixel by pixel before and after, and the colors read from the browser were the same as before.
+- **Another business's shades are worked out by the app,** the way Bootstrap works out its own: a darker shade for a button under the pointer, a pale one for backgrounds, and a lighter one for the dark theme, made light enough to read on it. Only what differs from H & L's is replaced.
+- **The app icon** (the Mac's Dock, a phone's home screen, the browser tab) is a picture the administrator uploads. A square picture fills the icon; any other shape (a wide logo) is fitted whole on a white square. Without an upload, H & L keeps its own icon while its name and colors are its own, and another business gets one drawn from its initials ("Bluebird Gutters" → "BG") in white on its top bar's color.
+- **A Mac or phone that already has the app on its Dock or home screen keeps the old icon** until the app is added there again. The page says so.
+- **Who and when:** each change is a line on **Admin › Setup history** ("Colors changed: Main color: #b05a22 → #2e7d32"; "App icon uploaded").
+- **Not changed:** the proposals, change orders, invoices and receipts still print the business's name as text, in black. A logo on the documents waits for the logo sample the user deferred.
+

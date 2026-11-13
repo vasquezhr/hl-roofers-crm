@@ -334,6 +334,12 @@ msgstr "Datos de la compañía"
 msgid "The name, license, address, phone and terms printed on proposals and invoices."
 msgstr "El nombre, la licencia, la dirección, el teléfono y los términos que se imprimen en las propuestas y facturas."
 
+msgid "Colors and icon"
+msgstr "Colores e ícono"
+
+msgid "The app's two colors, and its icon on the Dock and the home screen."
+msgstr "Los dos colores de la app, y su ícono en el Dock y en la pantalla de inicio."
+
 msgid "Types of work"
 msgstr "Tipos de trabajo"
 
@@ -564,6 +570,9 @@ msgstr "Motivo (opcional)"
 
 msgid "Confirm %(count)s changes"
 msgstr "Confirmar %(count)s cambios"
+
+msgid "The app icon"
+msgstr "El ícono de la app"
 
 msgid "A customer with the same phone, email or address is already in the app:"
 msgstr "Ya hay un cliente en la app con el mismo teléfono, correo o dirección:"
@@ -1564,6 +1573,9 @@ msgstr "Cada usuario tiene un perfil. Los permisos adicionales se suman: los pri
 msgid "A type of work is offered when a request, an opportunity or a job is made. Its usual days are what a new job gets on the schedule."
 msgstr "Un tipo de trabajo se ofrece al crear una solicitud, una oportunidad o un trabajo. Sus días de costumbre son los que un trabajo nuevo recibe en la agenda."
 
+msgid "The colors change every page at once, for everyone. The icon is the picture on the Mac's Dock, on a phone's home screen and on the browser tab. A Mac or phone that already has the app on its Dock or home screen keeps the old icon until the app is added there again."
+msgstr "Los colores cambian todas las páginas a la vez, para todos. El ícono es la imagen en el Dock de la Mac, en la pantalla de inicio de un teléfono y en la pestaña del navegador. Una Mac o un teléfono que ya tiene la app en su Dock o en su pantalla de inicio conserva el ícono anterior hasta que se vuelva a agregar la app."
+
 msgid "A name cannot be empty."
 msgstr "El nombre no puede quedar vacío."
 
@@ -1576,6 +1588,9 @@ msgstr "Escoja un idioma."
 msgid "Edit the type of work"
 msgstr "Editar el tipo de trabajo"
 
+msgid "Now: the uploaded picture."
+msgstr "Ahora: la imagen que se subió."
+
 msgid "Deleted for good: %(detail)s"
 msgstr "Eliminado para siempre: %(detail)s"
 
@@ -1587,6 +1602,12 @@ msgstr "Apagada"
 
 msgid "%(count)s changes undone"
 msgstr "%(count)s cambios deshechos"
+
+msgid "Now: H & L's own icon. It is used while the name and both colors are H & L's."
+msgstr "Ahora: el ícono propio de H & L. Se usa mientras el nombre y los dos colores sean los de H & L."
+
+msgid "Now: drawn by the app from the name and the colors."
+msgstr "Ahora: lo dibuja la app con el nombre y los colores."
 
 msgid "Login added: %(detail)s"
 msgstr "Usuario agregado: %(detail)s"
@@ -1956,6 +1977,15 @@ msgstr "En una propuesta con líneas, las líneas se cambian en el editor de pro
 msgid "The price from the signed proposal. Signed change orders are added to it."
 msgstr "El precio de la propuesta firmada. Se le suman las órdenes de cambio firmadas."
 
+msgid "App icon"
+msgstr "Ícono de la app"
+
+msgid "A square picture works best, at least 180 × 180 pixels: PNG, JPEG or WebP. Any other shape is fitted on a white square. With no picture, the app draws one from the name and the colors."
+msgstr "Lo mejor es una imagen cuadrada, de al menos 180 × 180 píxeles: PNG, JPEG o WebP. Cualquier otra forma se acomoda en un cuadro blanco. Sin imagen, la app dibuja una con el nombre y los colores."
+
+msgid "Stop using the uploaded icon"
+msgstr "Dejar de usar el ícono que se subió"
+
 msgid "Enter a number of days from 1 to 60."
 msgstr "Escriba un número de días del 1 al 60."
 
@@ -1979,6 +2009,12 @@ msgstr "Eso es más que el saldo pendiente."
 
 msgid "A price cannot be below zero."
 msgstr "Un precio no puede ser menor que cero."
+
+msgid "The picture is larger than 25 MB."
+msgstr "La imagen pesa más de 25 MB."
+
+msgid "The picture is too small for an icon: its longer side needs at least 180 pixels."
+msgstr "La imagen es muy pequeña para un ícono: su lado más largo necesita al menos 180 píxeles."
 
 msgid "Start a new opportunity"
 msgstr "Empezar una oportunidad nueva"
@@ -2064,6 +2100,12 @@ msgstr "Todos"
 msgid "Open"
 msgstr "Abiertos"
 
+msgid "Pick a color, or type one like #1f3a5f."
+msgstr "Escoja un color, o escriba uno como #1f3a5f."
+
+msgid "White writing is hard to read on this color. Pick a darker one."
+msgstr "Las letras blancas se leen mal sobre este color. Escoja uno más oscuro."
+
 msgid "Notes in Details"
 msgstr "Notas en Detalles"
 
@@ -2108,6 +2150,15 @@ msgstr "nombre corto"
 
 msgid "line under the name"
 msgstr "línea debajo del nombre"
+
+msgid "main color"
+msgstr "color principal"
+
+msgid "top bar color"
+msgstr "color de la barra de arriba"
+
+msgid "app icon"
+msgstr "ícono de la app"
 
 msgid "legal name"
 msgstr "nombre legal"
@@ -2481,6 +2532,15 @@ msgstr "Propuesta cambiada: %(detail)s"
 msgid "Company details changed: %(detail)s"
 msgstr "Datos de la empresa cambiados: %(detail)s"
 
+msgid "Colors changed: %(detail)s"
+msgstr "Colores cambiados: %(detail)s"
+
+msgid "App icon uploaded"
+msgstr "Ícono de la app subido"
+
+msgid "Uploaded app icon taken away"
+msgstr "Se quitó el ícono de la app que se subió"
+
 msgid "Price changed: %(detail)s"
 msgstr "Precio cambiado: %(detail)s"
 
@@ -2609,6 +2669,12 @@ msgstr "Empezar y terminar los trabajos del equipo, registrar un pago, cambiar l
 
 msgid "Shown at the top of every page and used in emails and texts."
 msgstr "Se muestra arriba en cada página y se usa en los correos y mensajes."
+
+msgid "Buttons, highlights and charts. White writing goes on it, so it must be dark enough."
+msgstr "Botones, resaltados y gráficas. Lleva letras blancas encima, así que debe ser bastante oscuro."
+
+msgid "The bar at the top of every page, and the background of a drawn icon. White writing goes on it too."
+msgstr "La barra de arriba de cada página, y el fondo de un ícono dibujado. También lleva letras blancas encima."
 
 msgid "new website requests go to"
 msgstr "los pedidos nuevos del sitio web van a"

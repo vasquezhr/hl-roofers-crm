@@ -1,9 +1,12 @@
 """The forms people fill in. Each one gets Bootstrap's form styling automatically."""
 from django import forms
+from django.conf import settings
 from django.contrib.auth import password_validation
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils.translation import gettext_lazy as _
+from PIL import Image
 
+from . import look
 from .models import (EDIT_OBJECTS, LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment,
                      PriceItem, Property, User, Worker, WorkType, is_day_off, type_choices, work_types)
 
@@ -475,3 +478,45 @@ class WorkTypeForm(Bootstrap, forms.ModelForm):
         if not 1 <= days <= 60:
             raise forms.ValidationError(_("Enter a number of days from 1 to 60."))
         return days
+
+
+# ---------- the business's look
+class LookForm(Bootstrap, forms.ModelForm):
+    """Admin › Colors and icon. The picture is not stored as it came: clean_icon_upload fits it on a square (look.fitted_icon)."""
+    icon_upload = forms.ImageField(
+        label=_("App icon"), required=False, widget=forms.FileInput(attrs={"accept": "image/png,image/jpeg,image/webp"}),
+        help_text=_("A square picture works best, at least 180 × 180 pixels: PNG, JPEG or WebP. "
+                    "Any other shape is fitted on a white square. With no picture, the app draws one from the name and the colors."))
+    no_icon = forms.BooleanField(label=_("Stop using the uploaded icon"), required=False)
+
+    class Meta:
+        model = Company
+        fields = ["accent_color", "bar_color"]
+        widgets = {name: forms.TextInput(attrs={"type": "color", "class": "form-control-color"}) for name in ["accent_color", "bar_color"]}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.icon_png = None
+        if not self.instance.icon:
+            del self.fields["no_icon"]
+
+    def clean_accent_color(self):
+        return self.cleaned_data["accent_color"].strip().lower()
+
+    def clean_bar_color(self):
+        return self.cleaned_data["bar_color"].strip().lower()
+
+    def clean_icon_upload(self):
+        upload = self.cleaned_data.get("icon_upload")
+        if not upload:
+            return None
+        if upload.size > settings.MAX_FILE_SIZE:
+            raise forms.ValidationError(_("The picture is larger than 25 MB."))
+        upload.seek(0)
+        image = Image.open(upload)                  # already checked by the field: it is a picture
+        image.load()
+        if max(image.size) < look.SMALLEST:
+            raise forms.ValidationError(_("The picture is too small for an icon: its longer side needs at least 180 pixels."))
+        self.icon_png = look.fitted_icon(image)
+        return upload
+

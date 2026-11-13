@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>{% block title %}{% endblock %} · {{ company.name }}</title>
-<link rel="icon" type="image/png" href="{% static 'crm/icon.png' %}">
+<meta name="theme-color" content="{{ look.bar }}">
+<link rel="icon" type="image/png" href="{{ look.icon }}">
 <link rel="stylesheet" href="{% static 'crm/bootstrap.min.css' %}">
 <link rel="stylesheet" href="{% static 'crm/hl.css' %}">
+{% if look.style %}<style>{{ look.style }}</style>{% endif %}
 </head>
 {# The frame for a page a customer opens from an email. It has no menu and shows nothing of the app. #}
 <body>

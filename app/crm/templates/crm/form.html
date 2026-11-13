@@ -13,6 +13,13 @@
         {% if sub %}<div class="small text-body-secondary mb-2">{{ sub }}</div>{% endif %}
         {% if intro %}<p class="small text-body-secondary mb-3">{{ intro }}</p>{% endif %}
         {% if last_change %}<p class="small text-body-secondary mb-3">{% trans "Last change" %}: {{ last_change.at|day_time }} · {{ last_change.actor|default:"—" }}</p>{% endif %}
+        {% if icon_now %}
+        {# Colors and icon: the icon as it is now #}
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <img src="{{ look.icon }}" width="72" height="72" class="rounded-3 border flex-shrink-0" alt="{% trans 'The app icon' %}">
+          <div class="small text-body-secondary">{{ icon_now }}</div>
+        </div>
+        {% endif %}
         <form method="post" novalidate{% if multipart %} enctype="multipart/form-data"{% endif %}>
           {% csrf_token %}
           {% if same %}

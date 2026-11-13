@@ -51,6 +51,8 @@ ICONS = {
     "download": '<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>',
     "camera": '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
     "trash": '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+    "palette": '<path d="M12 3a9 9 0 100 18c1.1 0 1.6-.8 1.6-1.6 0-1.1-.9-1.6-.9-2.6s.8-1.8 1.8-1.8H16a5 5 0 005-5c0-3.9-4-7-9-7z"/>'
+               '<circle cx="7.5" cy="11.5" r="1"/><circle cx="9.5" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/>',
 }
 ICONS["my_jobs"] = ICONS["jobs"]
 
