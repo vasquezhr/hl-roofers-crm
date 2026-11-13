@@ -65,6 +65,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",         # English or Spanish, per person
     "django.middleware.common.CommonMiddleware",
+    "crm.inline.SectionMiddleware",                      # which section of a record is being edited in place (inline.py)
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",

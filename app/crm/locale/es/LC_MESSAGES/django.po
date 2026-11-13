@@ -3898,3 +3898,6 @@ msgstr "Mostrar los nombres"
 
 msgid "The customer wrote this. It came from a lead or the website, so it cannot be changed. Add your own notes on the record instead."
 msgstr "El cliente escribió esto. Vino de un prospecto o del sitio web, así que no se puede cambiar. Agregue sus propias notas en el registro."
+
+msgid "Edit this section"
+msgstr "Editar esta sección"

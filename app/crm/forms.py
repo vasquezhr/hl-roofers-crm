@@ -8,7 +8,7 @@ from django.utils.text import capfirst
 from django.utils.translation import gettext_lazy as _
 from PIL import Image
 
-from . import logo, look
+from . import inline, logo, look
 from .dates import days_off_text, work_days_text
 from .models import (EDIT_OBJECTS, LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment,
                      PickItem, PriceItem, Property, User, Worker, WorkType, home_state, is_day_off, pick_choices, pick_items, type_choices, work_types)
@@ -30,12 +30,20 @@ def pick_current(form, name, which, blank=False):
     form.fields[name].choices = pick_choices(which, current=getattr(form.instance, name, None) if form.instance.pk else None, blank=blank)
 
 
+class CapitalOptions:
+    """A drop-down whose options each start with a capital letter, in either language ("owner" is shown as "Owner")."""
+    def create_option(self, name, value, label, *args, **kwargs):
+        return super().create_option(name, value, capfirst(str(label)) if label else label, *args, **kwargs)
+
+
 class Bootstrap:
-    """Adds Bootstrap's classes to every field."""
+    """Adds Bootstrap's classes to every field, and a capital letter to the start of every drop-down option."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             widget = field.widget
+            if isinstance(widget, forms.Select) and not isinstance(widget, CapitalOptions):
+                widget.__class__ = type("Capital" + widget.__class__.__name__, (CapitalOptions, widget.__class__), {})
             if isinstance(widget, (forms.CheckboxInput, forms.CheckboxSelectMultiple, forms.RadioSelect)):
                 css = "form-check-input"
             elif isinstance(widget, forms.Select):
@@ -43,6 +51,17 @@ class Bootstrap:
             else:
                 css = "form-control"
             widget.attrs["class"] = (widget.attrs.get("class", "") + " " + css).strip()
+        self.section = ""
+
+    def prune(self):
+        """For editing one section of a record in place: keep only that section's fields (SECTIONS, inline.py). Called at the end of an edit form's __init__."""
+        names = getattr(self, "SECTIONS", {}).get(inline.current.get())
+        if names:
+            self.locked = [item for item in getattr(self, "locked", []) if item[0] in names]       # a comment that is not in this section is not shown in it
+            self.section = inline.current.get()
+            for name in list(self.fields):
+                if name not in names:
+                    del self.fields[name]
 
 
 def date_box():
@@ -272,7 +291,7 @@ class LeadForm(Bootstrap, forms.ModelForm):
 
     def clean(self):
         data = super().clean()
-        if not (data.get("phone") or data.get("email")):
+        if ("phone" in self.fields or "email" in self.fields) and not (data.get("phone") or data.get("email")):      # not when only another section is edited
             raise forms.ValidationError(_("Enter a phone number or an email address, so someone can answer."))
         return data
 
@@ -455,6 +474,9 @@ class LoginDetailsForm(Bootstrap, forms.ModelForm):
 # ---------- Edit pages: every field a person can change on a record. Numbers, stages, dates stamped by a step,
 # links between records and customer links are kept by the app, so they are not here.
 class LeadEditForm(LeadForm):
+    SECTIONS = {"request": ["job_type", "source", "message"], "assigned": ["owner"],
+                "contact": ["name", "phone", "email", "street", "city", "state", "zip_code", "language"]}
+
     class Meta(LeadForm.Meta):
         fields = LeadForm.Meta.fields + ["owner"]
 
@@ -462,13 +484,15 @@ class LeadEditForm(LeadForm):
         super().__init__(*args, **kwargs)
         self.locked = []
         if self.instance.message_locked:                            # the customer's own words are shown, not edited
-            self.locked = [(self.fields["message"].label, self.instance.message)]
+            self.locked = [("message", self.fields["message"].label, self.instance.message)]
             del self.fields["message"]
         self.fields["owner"].queryset = User.objects.filter(is_active=True).exclude(profile=User.Profile.CREW)
         self.fields["owner"].label_from_instance = lambda user: user.label
+        self.prune()
 
 
 class OpportunityEditForm(Bootstrap, forms.ModelForm):
+    SECTIONS = {"customer": ["place", "source", "lost_reason"], "proposal": ["job_type", "labor_only", "description"]}
     job_type = type_box()
     source = pick_box("source", capfirst(_("where it came from")))
     lost_reason = pick_box("lost_reason", capfirst(_("reason")), required=False)
@@ -490,15 +514,17 @@ class OpportunityEditForm(Bootstrap, forms.ModelForm):
         pick_current(self, "source", "source")
         self.locked = []
         if opp.description_locked and "description" in self.fields:
-            self.locked = [(self.fields["description"].label, opp.description)]
+            self.locked = [("description", self.fields["description"].label, opp.description)]
             del self.fields["description"]
         if opp.stage != Opportunity.Stage.LOST:
             del self.fields["lost_reason"]
         else:
             pick_current(self, "lost_reason", "lost_reason", blank=True)
+        self.prune()
 
 
 class JobEditForm(Bootstrap, forms.ModelForm):
+    SECTIONS = {"customer": ["place", "ref_type", "ref_number"], "scope": ["job_type", "labor_only", "scope"], "money": ["price"]}
     job_type = type_box()
 
     class Meta:
@@ -513,12 +539,14 @@ class JobEditForm(Bootstrap, forms.ModelForm):
         self.fields["place"].empty_label = None
         self.locked = []
         if self.instance.scope_locked:
-            self.locked = [(self.fields["scope"].label, self.instance.scope)]
+            self.locked = [("scope", self.fields["scope"].label, self.instance.scope)]
             del self.fields["scope"]
         if self.instance.is_warranty:
             del self.fields["price"]
             self.fields["job_type"].choices = [("warranty", work_types()["warranty"].name)]
-    
+        self.prune()
+
+
     def clean(self):
         data = super().clean()
         if data.get("ref_number") and not data.get("ref_type"):

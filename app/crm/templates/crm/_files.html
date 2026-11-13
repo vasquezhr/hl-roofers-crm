@@ -36,7 +36,7 @@
       <div class="col-6 col-md-3">
         <label class="form-label small fw-semibold mb-1" for="filesWhat">{% trans "What it is" %}</label>
         <select class="form-select form-select-sm" name="category" id="filesWhat">
-          {% for value, label in categories %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+          {% for value, label in categories %}<option value="{{ value }}">{{ label|capfirst }}</option>{% endfor %}
         </select>
       </div>
       {% if orders %}

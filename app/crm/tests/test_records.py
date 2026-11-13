@@ -163,7 +163,7 @@ class FromOpportunityToPaidJob(Base):
         kestrel, yard = self.customer("Kestrel Roofing & Exteriors", "(804) 555-0141", "", "9420 Iron Bridge Rd", "Chesterfield", "23832", kind="contractor")
         opp = self.opportunity(kestrel, yard, stage="proposal", total=2250, labor_only=True)
         page = self.client.get(reverse("opp_sign", args=[opp.number]))
-        self.assertContains(page, "their approval or PO")
+        self.assertContains(page, "Their approval or PO")
         self.assertNotContains(page, "online, from the email link")
         self.client.post(reverse("opp_sign", args=[opp.number]), {"signed_how": "po"})
         self.assertTrue(Job.objects.get().labor_only)

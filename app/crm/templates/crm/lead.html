@@ -3,13 +3,14 @@
 {% block title %}{{ lead.name }}{% endblock %}
 
 {% block content %}
+{% url 'lead_edit' lead.pk as edit_address %}
 {% trans "Leads" as words %}{% back_link 'leads' words %}
 <div class="d-flex align-items-start gap-2 mb-3">
   <div class="flex-grow-1 hl-minw0">
     <h1 class="h4 mb-0">{{ lead.name }}</h1>
     <div class="text-body-secondary small">{{ lead.get_job_type_display }} · {{ lead.get_source_display }} · {{ lead.received_at|ago }}</div>
   </div>
-  {% if user|may_edit:"lead" %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" href="{% url 'lead_edit' lead.pk %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
+  {% if user|may_edit:"lead" %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" data-edit-all href="{% url 'lead_edit' lead.pk %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
   {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm" href="{% url 'record_delete' 'lead' lead.pk %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">{% icon "trash" %}</a>{% endif %}
   {% stage_badge lead %}
 </div>
@@ -43,6 +44,7 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h2 class="h6 mb-2" data-section="request">{% trans "What they asked for" %}</h2>
+        {% pencil "lead" edit_address "request" %}
         {% if lead.message %}<blockquote class="border-start border-3 border-primary ps-3 mb-2 hl-pre">{{ lead.message }}</blockquote>{% endif %}
         <dl class="row mb-0 small">
           <dt class="col-4 text-body-secondary fw-normal">{% trans "Type of work" %}</dt><dd class="col-8 mb-1">{{ lead.get_job_type_display }}</dd>
@@ -56,6 +58,7 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h2 class="h6 mb-2" data-section="contact">{% trans "Contact" %}</h2>
+        {% pencil "lead" edit_address "contact" %}
         <dl class="row mb-0 small">
           {% if lead.phone %}<dt class="col-4 text-body-secondary fw-normal">{% trans "Phone" %}</dt><dd class="col-8 mb-1"><a href="{{ lead.phone|tel }}">{{ lead.phone }}</a></dd>{% endif %}
           {% if lead.email %}<dt class="col-4 text-body-secondary fw-normal">{% trans "Email" %}</dt><dd class="col-8 mb-1"><a href="mailto:{{ lead.email }}">{{ lead.email }}</a></dd>{% endif %}
@@ -67,6 +70,7 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h2 class="h6 mb-2" data-section="assigned">{% trans "Assigned to" %}</h2>
+        {% pencil "lead" edit_address "assigned" %}
         <div class="small"><span class="fw-semibold">{% if lead.owner %}{{ lead.owner.label }}{% else %}{% trans "Office" %}{% endif %}</span><br>
           <span class="text-body-secondary">{% trans "Requests from the website go to the person named under Admin › Company details." %}</span></div>
       </div>

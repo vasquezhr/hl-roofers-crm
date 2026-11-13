@@ -3,13 +3,14 @@
 {% block title %}#{{ job.number }} {{ account.name }}{% endblock %}
 
 {% block content %}
+{% url 'job_edit' job.number as edit_address %}
 {% if crew_view %}{% trans "My Jobs" as words %}{% back_link 'my_jobs' words %}{% else %}{% trans "Jobs" as words %}{% back_link 'jobs' words %}{% endif %}
 <div class="d-flex align-items-start gap-2 mb-3">
   <div class="flex-grow-1 hl-minw0">
     <h1 class="h4 mb-0">{{ account.name }}</h1>
     <div class="text-body-secondary small">#{{ job.number }} · {{ job.get_job_type_display }} {% job_tags job %}</div>
   </div>
-  {% if user|may_edit:"job" %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" href="{% url 'job_edit' job.number %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
+  {% if user|may_edit:"job" %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" data-edit-all href="{% url 'job_edit' job.number %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
   {% if user|can:"change_stages" and not crew_view %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" href="{% url 'change_stage' 'job' job.number %}">{% icon "undo" %} {% trans "Change stage" %}</a>{% endif %}
   {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm" href="{% url 'record_delete' 'job' job.number %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">{% icon "trash" %}</a>{% endif %}
   {% stage_badge job %}
@@ -52,6 +53,7 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h2 class="h6 mb-2" data-section="customer">{% trans "Customer" %}</h2>
+        {% pencil "job" edit_address "customer" %}
         {% include "crm/_customer.html" with place=job.place kind="job" ident=job.number source=job.source_name %}
       </div>
     </div>
@@ -59,6 +61,7 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h2 class="h6 mb-2" data-section="crew">{% trans "Crew and Dates" %}</h2>
+        {% if can_schedule and job.crew %}{% url 'job_schedule' job.number as schedule_address %}{% pencil "schedule" schedule_address "crew" %}{% endif %}
         {% if job.crew %}
         <dl class="row mb-0 small">
           <dt class="col-4 text-body-secondary fw-normal">{% trans "When" %}</dt>
@@ -131,6 +134,7 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h2 class="h6 mb-2" data-section="scope">{% trans "Scope of Work" %}</h2>
+        {% pencil "job" edit_address "scope" %}
         {% if job.scope_lines %}
         <ul class="small mb-0 ps-3">{% for line in job.scope_lines %}<li>{{ line }}</li>{% endfor %}</ul>
         {% else %}
@@ -142,6 +146,7 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h2 class="h6 mb-2" data-section="money">{% trans "Price and Payments" %}</h2>
+        {% pencil "job" edit_address "money" %}
         {% if job.is_warranty %}
         <div class="small">{% trans "Warranty job: no charge." %}</div>
         {% else %}

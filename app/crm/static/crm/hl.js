@@ -217,3 +217,50 @@ document.addEventListener("DOMContentLoaded", function () {
     try { localStorage.setItem("hl-side", icons ? "icons" : "open"); } catch (e) { /* a private window: not remembered */ }
   });
 });
+
+/* 14. Editing a section of a record page in place (inline.py).
+   The pencil is a link to the Edit page with ?section=...: that page asks for just its form (?partial=1), and the form is
+   shown where the section's content was, with Save and Cancel. Save posts to the Edit page itself, so the same rules apply.
+   Without JavaScript the link simply opens the Edit page. The Edit button at the top of a record opens every section at once. */
+document.addEventListener("click", function (event) {
+  var all = event.target.closest("[data-edit-all]");
+  if (all) {
+    var pencils = document.querySelectorAll("a.hl-pencil[data-inline]");
+    if (pencils.length) {
+      event.preventDefault();
+      pencils.forEach(function (pencil) { pencil.click(); });
+    }
+    return;
+  }
+  var link = event.target.closest("a[data-inline]");
+  if (link) {
+    event.preventDefault();
+    var holder = link.dataset.inlineIn ? link.closest(link.dataset.inlineIn) : link.closest(".card-body").querySelector("[id^=section-]");
+    if (!holder || holder.dataset.editing) return;
+    holder.dataset.editing = "1";
+    var url = link.getAttribute("href") + (link.getAttribute("href").indexOf("?") < 0 ? "?" : "&") + "partial=1";
+    fetch(url, { credentials: "same-origin", headers: { "X-Requested-With": "fetch" } }).then(function (answer) {
+      if (!answer.ok) throw new Error(answer.status);
+      return answer.text();
+    }).then(function (html) {
+      holder.dataset.original = holder.innerHTML;
+      holder.innerHTML = html;
+      var first = holder.querySelector("input:not([type=hidden]), select, textarea");
+      if (first) first.focus();
+    }).catch(function () {
+      delete holder.dataset.editing;
+      window.location.href = link.getAttribute("href");                  // the Edit page, as without JavaScript
+    });
+    return;
+  }
+  var cancel = event.target.closest("[data-inline-cancel]");
+  if (cancel) {
+    event.preventDefault();
+    var form = cancel.closest("[data-inline-form]"), place = form && form.parentElement;
+    if (place && place.dataset.original !== undefined) {
+      place.innerHTML = place.dataset.original;
+      delete place.dataset.original;
+      delete place.dataset.editing;
+    }
+  }
+});

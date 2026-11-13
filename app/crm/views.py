@@ -61,6 +61,8 @@ def filter_pills(current, options):
 
 def form_page(request, form, title, back, intro="", save_label="", **more):
     """The page used by every small form: a title, the fields, Save and Cancel."""
+    if request.GET.get("partial"):                                  # just the form, for the section being edited in place (inline.py)
+        return render(request, "crm/_inline_form.html", {"form": form, "locked": more.get("locked", []), "cancel": back})
     return render(request, "crm/form.html", {"form": form, "title": title, "back": back, "intro": intro,
                                              "save_label": save_label or _("Save"), **more})
 

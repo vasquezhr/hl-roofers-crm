@@ -150,3 +150,9 @@
 .hl-hit:hover + .hl-mark, .hl-hit:focus + .hl-mark { opacity: .7; }
 .hl-bar { --bs-progress-bar-bg: var(--hl-chart); min-width: 2px; }
 .hl-bar:hover, .hl-bar:focus { opacity: .7; outline: none; }
+
+/* the pencil at the top right of a section of a record page: it shows on hover on a computer, and always on a touch screen (hl.js, part 14) */
+.card-body { position: relative; }
+.hl-pencil { position: absolute; top: .55rem; right: .75rem; padding: .15rem; line-height: 1; color: var(--bs-secondary-color); border-radius: .25rem; }
+.hl-pencil:hover, .hl-pencil:focus-visible { color: var(--bs-primary); }
+@media (hover: hover) { .hl-pencil { opacity: 0; transition: opacity .15s; } .card-body:hover .hl-pencil, .hl-pencil:focus-visible { opacity: 1; } }

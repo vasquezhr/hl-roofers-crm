@@ -40,7 +40,7 @@
             </div>
           </div>
           {% endif %}
-          {% for label, text in locked %}
+          {% for name, label, text in locked %}
           {# the customer's own words, from a lead or the website: shown, never edited #}
           <div class="mb-3">
             <div class="form-label small fw-semibold mb-1">{{ label }}</div>
@@ -48,6 +48,7 @@
             <div class="form-text">{% trans "The customer wrote this. It came from a lead or the website, so it cannot be changed. Add your own notes on the record instead." %}</div>
           </div>
           {% endfor %}
+          {% if form.section %}<input type="hidden" name="section" value="{{ form.section }}">{% endif %}
           {% include "crm/_fields.html" %}
           <div class="d-flex gap-2 justify-content-end">
             {% if delete_url and user|can:"delete" %}<a class="btn btn-outline-danger me-auto" href="{{ delete_url }}">{% icon "trash" %} {% trans "Delete" %}</a>{% endif %}

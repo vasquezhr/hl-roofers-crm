@@ -124,6 +124,19 @@ def logo_url(firm):
     return logo.url_of(firm)
 
 
+# ---------- the pencil at the top right of a section (inline.py) ----------
+@register.simple_tag(takes_context=True)
+def pencil(context, kind, address, section="", inside=""):
+    """The small pencil that edits a section in place. Shown only to a login that may edit this kind of record. Without JavaScript it is a link to
+    the Edit page, which then shows only that section's fields. `inside`: a tag (li, div) whose content the form replaces, instead of the whole section."""
+    user = context["request"].user
+    if not (not user.is_crew_profile if kind == "schedule" else user.may_edit(kind)):      # "schedule": the office puts a job on the schedule
+        return ""
+    link = f"{address}?section={section}" if section else address
+    words = escape(_("Edit this section") if not inside else _("Edit"))
+    return mark_safe(f'<a class="hl-pencil" href="{escape(link)}" data-inline{f" data-inline-in={chr(34)}{inside}{chr(34)}" if inside else ""} title="{words}" aria-label="{words}">{icon("edit")}</a>')
+
+
 # ---------- the back link at the top of a record page ----------
 # the pages a person may come from to a record, by the name of their address: the words for the link
 BACK_LABELS = {"home": gettext_lazy("Today"), "schedule": gettext_lazy("Schedule"), "search": gettext_lazy("Search"), "jobs": gettext_lazy("Jobs"),

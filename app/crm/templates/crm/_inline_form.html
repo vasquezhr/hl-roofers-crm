@@ -1,0 +1,18 @@
+{% load i18n crm_tags %}
+{# Just the form of an Edit page, for a section of a record page that is being edited in place. Needs: form, locked, cancel #}
+<form method="post" action="{{ request.path }}" novalidate class="hl-inline-form" data-inline-form>
+  {% csrf_token %}
+  {% if form.section %}<input type="hidden" name="section" value="{{ form.section }}">{% endif %}
+  {% for name, label, text in locked %}
+  <div class="mb-3">
+    <div class="form-label small fw-semibold mb-1">{{ label }}</div>
+    <div class="hl-pre small bg-body-tertiary border rounded p-2">{{ text }}</div>
+    <div class="form-text">{% trans "The customer wrote this. It came from a lead or the website, so it cannot be changed. Add your own notes on the record instead." %}</div>
+  </div>
+  {% endfor %}
+  {% include "crm/_fields.html" %}
+  <div class="d-flex gap-2 justify-content-end">
+    <a class="btn btn-outline-secondary btn-sm" href="{{ cancel }}" data-inline-cancel>{% trans "Cancel" %}</a>
+    <button type="submit" class="btn btn-primary btn-sm">{% trans "Save" %}</button>
+  </div>
+</form>

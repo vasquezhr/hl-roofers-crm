@@ -477,6 +477,33 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
     await phone.context().close();
   }
 
+  // editing a section in place: the pencil, the form right there, Save and Cancel; the Edit button opens every section
+  await office.goto(base + '/jobs/26-104/');
+  const pencil = office.locator('a.hl-pencil[href*="section=scope"]');
+  check('the pencil is hidden until the pointer is over the section', (await pencil.evaluate(e => getComputedStyle(e).opacity)) === '0');
+  await office.hover('h2[data-section="scope"]');
+  await office.waitForTimeout(400);
+  check('and shows when it is', (await pencil.evaluate(e => getComputedStyle(e).opacity)) === '1');
+  await pencil.click();
+  await office.waitForSelector('[data-inline-form] textarea[name=scope]');
+  check('the pencil turns the section into a form, on the same page', office.url().endsWith('/jobs/26-104/') && (await office.locator('[data-inline-form] button:has-text("Save")').count()) === 1);
+  await office.click('[data-inline-form] a:has-text("Cancel")');
+  check('Cancel puts the section back', (await office.locator('[data-inline-form]').count()) === 0 && (await office.locator('h2[data-section="scope"]').isVisible()));
+  await office.hover('h2[data-section="money"]');
+  await office.locator('a.hl-pencil[href*="section=money"]').click();
+  await office.waitForSelector('[data-inline-form] input[name=price]');
+  const before = await office.inputValue('[data-inline-form] input[name=price]');
+  await office.fill('[data-inline-form] input[name=price]', String(Number(before) + 10));
+  await andWait(office, () => office.click('[data-inline-form] button:has-text("Save")'));
+  check('Save changes the price and writes it in the history', (await office.locator('main').evaluate(e => e.textContent)).includes('Price: ' + Number(before).toFixed(2) + ' → ' + (Number(before) + 10).toFixed(2)));
+  await office.click('a[data-edit-all]');
+  await office.waitForSelector('[data-inline-form]');
+  check('the Edit button opens every section at once', (await office.locator('[data-inline-form]').count()) >= 3);
+  const touch = await signIn(browser, 'office', { viewport: { width: 412, height: 900 }, hasTouch: true, isMobile: true });
+  await touch.goto(base + '/jobs/26-104/');
+  check('on a touch screen the pencil is always showing', (await touch.locator('a.hl-pencil[href*="section=scope"]').evaluate(e => getComputedStyle(e).opacity)) === '1');
+  await touch.context().close();
+
   const problems = [office, crew, other, admin, boss].flatMap(p => p.problems).filter(p => !p.includes('404') && !p.includes('403'));
   check('no errors in the browser', problems.length === 0, problems.join(' | '));
   await browser.close();

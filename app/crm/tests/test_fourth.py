@@ -302,3 +302,115 @@ class SourceInTheCustomerCard(Base):
         job = self.job(self.crew1, "done")
         warranty = Job.objects.create(number="26-900", account=self.account, place=self.place, job_type="warranty", price=0, warranty_for=job, stage="signed")
         self.assertEqual(warranty.source_name, "")
+
+
+class CapitalLetters(Base):
+    def test_every_drop_down_option_starts_with_a_capital(self):
+        import re
+        self.sign_in(self.office)
+        opp = self.opportunity(stage="proposal", total=500)
+        pages = [reverse("contact_new", args=[self.account.pk]), reverse("opp_sign", args=[opp.number]), reverse("account_new"), reverse("lead_new"),
+                 reverse("opp_new", args=[self.account.pk]), reverse("job", args=[self.job(self.crew1, "scheduled").number])]
+        for lang in ("en", "es"):
+            for address in pages:
+                html = self.client.get(address, HTTP_ACCEPT_LANGUAGE=lang).content.decode()
+                for value, label in re.findall(r'<option value="([^"]+)"[^>]*>\s*([^<]+?)\s*</option>', html):
+                    if label.isdigit() or label.startswith(("+", "—", "-")) or "@" in label:
+                        continue
+                    self.assertTrue(label[0].isupper() or not label[0].isalpha(), f"{lang} {address}: {label!r}")
+        page = self.client.get(reverse("contact_new", args=[self.account.pk]))
+        self.assertContains(page, ">Owner</option>")
+
+
+class EditInPlace(Base):
+    """The pencil on a section: the Edit page, cut down to that section, as a fragment or as a page."""
+
+    def setUp(self):
+        self.opp = self.opportunity(source="referral", description="Typed by the office", total=900)
+        self.roof = self.job(self.crew1, "scheduled", scope="Replace the porch roof")
+
+    def test_the_pencils_are_on_the_sections_for_a_login_that_may_edit(self):
+        self.sign_in(self.office)
+        page = self.client.get(reverse("job", args=[self.roof.number]))
+        for section in ["customer", "scope", "money", "crew"]:
+            self.assertContains(page, f"?section={section}")
+        self.assertContains(page, "data-edit-all")                                              # the Edit button opens every section
+        self.assertContains(self.client.get(reverse("opp", args=[self.opp.number])), "?section=customer")
+        self.assertContains(self.client.get(reverse("account", args=[self.account.pk])), 'data-inline data-inline-in="li"')
+        lead = Lead.objects.create(name="Mina Seo", phone="(804) 555-0178")
+        for section in ["request", "contact", "assigned"]:
+            self.assertContains(self.client.get(reverse("lead", args=[lead.pk])), f"?section={section}")
+        User.objects.filter(pk=self.office.pk).update(edit_objects=[])
+        self.sign_in(User.objects.get(pk=self.office.pk))
+        page = self.client.get(reverse("job", args=[self.roof.number]))
+        self.assertNotContains(page, "?section=scope")                                            # no Edit permission for jobs: no pencil
+        self.assertContains(page, "?section=crew")                                                # but the office still schedules
+        self.sign_in(self.login1)
+        self.assertNotContains(self.client.get(reverse("job", args=[self.roof.number])), "hl-pencil")
+
+    def test_the_edit_page_shows_only_that_sections_fields(self):
+        self.sign_in(self.office)
+        page = self.client.get(reverse("job_edit", args=[self.roof.number]) + "?section=money")
+        self.assertEqual(list(page.context["form"].fields), ["price"])
+        self.assertContains(page, 'name="section" value="money"')
+        self.assertEqual(list(self.client.get(reverse("job_edit", args=[self.roof.number])).context["form"].fields),
+                         ["place", "job_type", "price", "labor_only", "scope", "ref_type", "ref_number"])             # the whole page, without a section
+        self.assertEqual(list(self.client.get(reverse("opp_edit", args=[self.opp.number]) + "?section=customer").context["form"].fields), ["place", "source"])
+
+    def test_the_fragment_is_just_the_form(self):
+        self.sign_in(self.office)
+        page = self.client.get(reverse("job_edit", args=[self.roof.number]) + "?section=scope&partial=1")
+        self.assertTemplateUsed(page, "crm/_inline_form.html")
+        self.assertNotContains(page, "<html")
+        self.assertContains(page, "data-inline-cancel")
+        self.assertContains(page, f'action="{reverse("job_edit", args=[self.roof.number])}"')
+        self.assertContains(self.client.get(reverse("job_schedule", args=[self.roof.number]) + "?section=crew&partial=1"), 'name="first_day"')
+
+    def test_saving_a_section_changes_only_its_fields_and_writes_the_history(self):
+        self.sign_in(self.office)
+        answer = self.client.post(reverse("job_edit", args=[self.roof.number]), {"section": "money", "price": "700"})
+        self.assertRedirects(answer, reverse("job", args=[self.roof.number]))
+        job = Job.objects.get(pk=self.roof.pk)
+        self.assertEqual((job.price, job.scope), (700, "Replace the porch roof"))                  # the scope was not in the section: untouched
+        line = job.activities.filter(kind="edited").get()
+        self.assertEqual(line.actor, "office")
+        self.assertIn("Price: 685.00 → 700.00", line.text)
+        self.client.post(reverse("opp_edit", args=[self.opp.number]), {"section": "customer", "place": self.opp.place_id, "source": "web"})
+        self.assertEqual(Opportunity.objects.get(pk=self.opp.pk).source, "web")
+        self.assertEqual(Opportunity.objects.get(pk=self.opp.pk).description, "Typed by the office")
+
+    def test_a_section_that_fails_shows_its_errors(self):
+        self.sign_in(self.office)
+        page = self.client.post(reverse("job_edit", args=[self.roof.number]), {"section": "money", "price": "-5"})
+        self.assertContains(page, "A price cannot be below zero.")
+        self.assertContains(page, 'name="section" value="money"')
+        self.assertEqual(Job.objects.get(pk=self.roof.pk).price, 685)
+
+    def test_the_same_permissions_apply(self):
+        User.objects.filter(pk=self.office.pk).update(edit_objects=["lead"])
+        self.sign_in(User.objects.get(pk=self.office.pk))
+        self.assertEqual(self.client.post(reverse("job_edit", args=[self.roof.number]), {"section": "money", "price": "1"}).status_code, 403)
+        self.assertEqual(self.client.get(reverse("job_edit", args=[self.roof.number]) + "?section=money&partial=1").status_code, 403)
+        self.sign_in(self.login1)
+        self.assertNotEqual(self.client.post(reverse("job_edit", args=[self.roof.number]), {"section": "money", "price": "1"}).status_code, 200)
+        self.assertEqual(Job.objects.get(pk=self.roof.pk).price, 685)
+
+    def test_the_customers_comment_stays_read_only_in_a_section(self):
+        opp = self.opportunity(description="The roof leaks", description_locked=True)
+        self.sign_in(self.office)
+        page = self.client.get(reverse("opp_edit", args=[opp.number]) + "?section=proposal&partial=1")
+        self.assertNotIn("description", page.context["form"].fields)
+        self.assertContains(page, "The roof leaks")
+        self.assertContains(page, "The customer wrote this.")
+        page = self.client.get(reverse("opp_edit", args=[opp.number]) + "?section=customer&partial=1")
+        self.assertNotContains(page, "The roof leaks")                                           # the comment is not in the customer section
+        self.client.post(reverse("opp_edit", args=[opp.number]), {"section": "proposal", "job_type": "repair", "description": "Changed!"})
+        self.assertEqual(Opportunity.objects.get(pk=opp.pk).description, "The roof leaks")
+
+    def test_a_lead_section(self):
+        lead = Lead.objects.create(name="Mina Seo", phone="(804) 555-0178", message="Typed", source="referral")
+        self.sign_in(self.office)
+        self.client.post(reverse("lead_edit", args=[lead.pk]), {"section": "assigned", "owner": self.office.pk})
+        self.assertEqual(Lead.objects.get(pk=lead.pk).owner, self.office)
+        self.assertEqual(list(self.client.get(reverse("lead_edit", args=[lead.pk]) + "?section=contact").context["form"].fields),
+                         ["name", "phone", "email", "street", "city", "state", "zip_code", "language"])

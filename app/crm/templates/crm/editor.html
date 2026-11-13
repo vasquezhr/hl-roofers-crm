@@ -31,7 +31,7 @@
             <td class="{% if forloop.first %}ps-3{% endif %}{% if forloop.last %} pe-3{% endif %}">
               {% if cell.field == "language" %}
               <select class="form-select form-select-sm{% if cell.problem %} is-invalid{% elif cell.value != cell.was %} border-warning bg-warning-subtle{% endif %}" name="{{ cell.key }}" data-was="{{ cell.was }}" aria-label="{% trans 'Language' %}">
-                {% for code, label in languages %}<option value="{{ code }}"{% if code == cell.value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+                {% for code, label in languages %}<option value="{{ code }}"{% if code == cell.value %} selected{% endif %}>{{ label|capfirst }}</option>{% endfor %}
               </select>
               {% else %}
               <input class="form-control form-control-sm{% if cell.problem %} is-invalid{% elif cell.value != cell.was %} border-warning bg-warning-subtle{% endif %}" name="{{ cell.key }}" value="{{ cell.value }}" data-was="{{ cell.was }}" aria-label="{{ row.account.name }}">

@@ -22,7 +22,7 @@
             <td>
               <select class="form-select form-select-sm" name="column-{{ column.index }}" aria-label="{{ column.heading }}">
                 <option value="">{% trans "Don't import" %}</option>
-                {% for key, label in choices %}<option value="{{ key }}"{% if key == column.chosen %} selected{% endif %}>{{ label }}</option>{% endfor %}
+                {% for key, label in choices %}<option value="{{ key }}"{% if key == column.chosen %} selected{% endif %}>{{ label|capfirst }}</option>{% endfor %}
               </select>
             </td>
           </tr>
