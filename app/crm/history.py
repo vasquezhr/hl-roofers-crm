@@ -124,6 +124,14 @@ def changes_text(detail):
     return f"{data['name']} · {words}" if data.get("name") else words
 
 
+def file_text(code):
+    """before|IMG_1234.jpg -> Before · IMG_1234.jpg"""
+    category, _bar, name = code.partition("|")
+    from .models import Attachment
+    label = dict(Attachment.Category.choices).get(category)
+    return f"{label} · {name}" if label else code
+
+
 def when_text(code):
     """2026-11-10T10:00 -> Tue, Nov 10, 10:00 AM"""
     try:

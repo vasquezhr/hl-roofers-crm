@@ -2,7 +2,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from . import admin_views, import_views, lead_views, money_views, price_views, report_views, schedule_views, views
+from . import admin_views, file_views, import_views, lead_views, money_views, price_views, report_views, schedule_views, views
 from .forms import LoginForm
 
 urlpatterns = [
@@ -25,6 +25,9 @@ urlpatterns = [
     path("accounts/<int:pk>/properties/new/", views.property_new, name="property_new"),
     path("properties/<int:pk>/edit/", views.property_edit, name="property_edit"),
     path("accounts/<int:pk>/notes/new/", views.note_new, name="note_new"),
+    path("accounts/<int:pk>/files/", file_views.account_files, name="account_files"),
+    path("files/<int:pk>/", file_views.attachment_file, name="attachment_file"),
+    path("files/<int:pk>/small/", file_views.attachment_file, {"small": True}, name="attachment_small"),
     path("notes/<int:pk>/edit/", views.note_edit, name="note_edit"),
     path("accounts/<int:pk>/opportunities/new/", views.opp_new, name="opp_new"),
 
@@ -54,6 +57,7 @@ urlpatterns = [
     path("jobs/<str:number>/schedule/", views.job_schedule, name="job_schedule"),
     path("jobs/<str:number>/stage/", views.job_stage, name="job_stage"),
     path("jobs/<str:number>/days/", views.job_day, name="job_day"),
+    path("jobs/<str:number>/files/", file_views.job_files, name="job_files"),
     path("jobs/<str:number>/edit/", views.job_edit, name="job_edit"),
     path("jobs/<str:number>/change-orders/<int:n>/edit/", money_views.change_order_edit, name="change_order_edit"),
     path("jobs/<str:number>/payments/<int:pk>/edit/", money_views.payment_edit, name="payment_edit"),

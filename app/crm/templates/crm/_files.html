@@ -1,0 +1,60 @@
+{% load i18n crm_tags %}
+{# Photos and files. Needs: files (Attachments), add_url (or "" when this person cannot add), and on a job: orders (its change orders). #}
+<div class="card shadow-sm mb-3" id="files">
+  <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "Photos and files" %}</h2>
+    {% if files %}
+    <div class="row row-cols-3 row-cols-md-4 row-cols-lg-6 g-2 mb-2">
+      {% for item in files %}
+      <div class="col">
+        <a class="d-block text-decoration-none text-reset" href="{% url 'attachment_file' item.pk %}" target="_blank" rel="noopener" title="{{ item.name }}">
+          {% if item.thumb %}
+          <img class="w-100 rounded border object-fit-cover" style="aspect-ratio: 1" src="{% url 'attachment_small' item.pk %}" alt="{{ item.caption|default:item.get_category_display }}" loading="lazy">
+          {% else %}
+          <div class="ratio ratio-1x1 border rounded bg-body-tertiary"><div class="d-flex flex-column align-items-center justify-content-center small text-body-secondary p-1 text-center">{% icon "doc" %}<span class="text-truncate w-100">{{ item.name }}</span></div></div>
+          {% endif %}
+        </a>
+        <div class="small mt-1 lh-sm">
+          {% badge item.get_category_display "secondary" %}{% if item.change_order %} {{ item.change_order.label }}{% endif %}
+          {% if item.caption %}<div>{{ item.caption }}</div>{% endif %}
+          <div class="text-body-secondary">{{ item.uploaded_at|day_time }} · {{ item.actor|default:"—" }}{% if show_job and item.job %} · <a href="{% url 'job' item.job.number %}">#{{ item.job.number }}</a>{% endif %}</div>
+          {% if user|can:"delete" %}<a class="link-danger" href="{% url 'record_delete' 'file' item.pk %}">{% trans "Delete" %}</a>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="small text-body-secondary mb-2">{% trans "No photos or files yet." %}</div>
+    {% endif %}
+    {% if add_url %}
+    <form method="post" action="{{ add_url }}" enctype="multipart/form-data" class="row g-2 align-items-end">
+      {% csrf_token %}
+      <div class="col-12 col-md-5">
+        <label class="form-label small fw-semibold mb-1" for="filesPick">{% trans "Add photos or files" %}</label>
+        <input class="form-control form-control-sm" type="file" name="files" id="filesPick" multiple accept="image/*,application/pdf" required>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small fw-semibold mb-1" for="filesWhat">{% trans "What it is" %}</label>
+        <select class="form-select form-select-sm" name="category" id="filesWhat">
+          {% for value, label in categories %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      {% if orders %}
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-semibold mb-1" for="filesOrder">{% trans "Change order" %}</label>
+        <select class="form-select form-select-sm" name="change_order" id="filesOrder">
+          <option value="">—</option>
+          {% for order in orders %}<option value="{{ order.pk }}">{{ order.label }}</option>{% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="col-12 col-md">
+        <label class="form-label small fw-semibold mb-1" for="filesCaption">{% trans "A few words (optional)" %}</label>
+        <input class="form-control form-control-sm" name="caption" id="filesCaption" maxlength="200">
+      </div>
+      <div class="col-auto"><button type="submit" class="btn btn-outline-primary btn-sm">{% icon "camera" %} {% trans "Add" %}</button></div>
+      <div class="col-12 form-text mt-1">{% trans "On a phone, this opens the camera or the photo library. Photos and PDF files, up to 25 MB each." %}</div>
+    </form>
+    {% endif %}
+  </div>
+</div>

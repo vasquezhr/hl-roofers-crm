@@ -27,7 +27,7 @@ from .access import job_or_404, may_edit, office_only, with_permission
 from .forms import ChangeOrderForm, PaymentEditForm, PaymentForm
 from .history import changes
 from .mail import send
-from .models import ChangeOrder, Company, Job, Opportunity, Payment, PriceItem, log
+from .models import Attachment, ChangeOrder, Company, Job, Opportunity, Payment, PriceItem, log
 from .views import form_page, opp_or_404, saved, today
 
 
@@ -229,6 +229,7 @@ def job_proposal(request, number):
         signed += f" · {opp.signed_by}"
     return render(request, "crm/document.html", {
         "document": document, "firm": firm, "title": f"{_('Proposal')} #{opp.number}", "note": signed, "kept": copy, "not_kept": copy is None,
+        "papers": Attachment.objects.filter(job=job, category=Attachment.Category.SIGNED_PROPOSAL),
         "back": reverse("job", args=[job.number]),
         "actions": [action(_("Download the PDF"), reverse("job_proposal", args=[job.number]) + "?pdf=1", icon="doc")],
     })
@@ -302,6 +303,7 @@ def change_order(request, number, n):
         note = order.get_status_display()
     return render(request, "crm/document.html", {
         "document": document, "firm": firm, "kept": copy, "not_kept": order.is_signed and copy is None, "actions": actions, "note": note,
+        "papers": Attachment.objects.filter(change_order=order, category=Attachment.Category.SIGNED_CHANGE),
         "title": f"{_('Change order')} {order.label} · #{job.number}", "back": reverse("job", args=[job.number]),
         "send_to": reverse("change_order_send", args=[job.number, order.number]),
         "accept_link": settings.SITE_URL + reverse("accept_change", args=[order.accept_token]) if office and order.accept_token and not order.is_signed else "",

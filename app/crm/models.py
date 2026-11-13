@@ -19,6 +19,7 @@ The data model: what the CRM stores.
 """
 import re
 import secrets
+import uuid
 from decimal import Decimal
 from datetime import date, timedelta
 
@@ -26,11 +27,13 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .dates import range_from_code
-from .history import booking_text, changes_text, when_text
+from .history import booking_text, changes_text, file_text, when_text
 
 # ---------------------------------------------------------------- small helpers
 def is_day_off(day):
@@ -1072,6 +1075,69 @@ class KeptDocument(models.Model):
         ordering = ["-kept_at", "-id"]
 
 
+# ---------------------------------------------------------------- photos and files
+SUFFIX = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif", "application/pdf": ".pdf"}
+
+
+def file_path(attachment, _name):
+    """Files are kept in a folder for each customer, under a random name. The name the file had is kept in the database."""
+    return f"accounts/{attachment.account_id}/{uuid.uuid4().hex}{SUFFIX.get(attachment.content_type, '')}"
+
+
+def thumb_path(attachment, _name):
+    return f"accounts/{attachment.account_id}/small-{uuid.uuid4().hex}.jpg"
+
+
+class Attachment(models.Model):
+    """A photo or a file on a customer's account, most often on one of its jobs: before, during and after the work,
+    damage, a photo or scan of a signed paper, or another document. Shown only through the app, to the logins that
+    may see that job or account."""
+
+    class Category(models.TextChoices):
+        BEFORE = "before", _("Before")
+        DURING = "during", _("During the work")
+        AFTER = "after", _("After")
+        DAMAGE = "damage", _("Damage")
+        SIGNED_PROPOSAL = "signed_proposal", _("Signed proposal, on paper")
+        SIGNED_CHANGE = "signed_change", _("Signed change order, on paper")
+        DOCUMENT = "document", _("Other document")
+
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="attachments")
+    job = models.ForeignKey(Job, null=True, blank=True, on_delete=models.CASCADE, related_name="attachments")
+    change_order = models.ForeignKey(ChangeOrder, null=True, blank=True, on_delete=models.CASCADE, related_name="attachments")
+    category = models.CharField(_("what it is"), max_length=16, choices=Category.choices, default=Category.BEFORE)
+    caption = models.CharField(_("a few words about it"), max_length=200, blank=True)
+    file = models.FileField(upload_to=file_path, max_length=200)
+    thumb = models.FileField(upload_to=thumb_path, max_length=200, blank=True)     # a small copy of a photo, for the lists
+    name = models.CharField(max_length=200)                     # the file's name when it was added
+    content_type = models.CharField(max_length=40)
+    size = models.PositiveIntegerField(default=0)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    actor = models.CharField(max_length=80, blank=True)
+    uploaded_at = models.DateTimeField(default=timezone.now)
+    bin = models.ForeignKey("BinEntry", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
+    objects = Visible()                                         # leaves out what is in the Recycle Bin
+    everything = models.Manager()
+
+    class Meta:
+        ordering = ["-uploaded_at", "-id"]
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def is_image(self):
+        return self.content_type.startswith("image/")
+
+
+@receiver(post_delete, sender=Attachment)
+def remove_the_files(sender, instance, **kwargs):
+    """A photo or file deleted for good leaves no copy behind on the disk."""
+    for stored in (instance.file, instance.thumb):
+        if stored:
+            stored.delete(save=False)
+
+
 # ---------------------------------------------------------------- the data editor's change log, and backups that reported in
 class ChangeSet(models.Model):
     """One confirmed set of changes from the data editor: who made it, when, why, and each field's value before and after,
@@ -1140,6 +1206,7 @@ class Activity(models.Model):
         "contact_added": _("Contact added: %(detail)s"), "contact_edited": _("Contact changed: %(detail)s"),
         "property_added": _("Property added: %(detail)s"), "property_edited": _("Property changed: %(detail)s"),
         "note_added": _("Note added to Details"), "note_edited": _("Note in Details changed: %(detail)s"),
+        "file_added": _("Added: %(detail)s"), "file_deleted": _("Photo or file deleted: %(detail)s"),
         "contact_deleted": _("Contact deleted: %(detail)s"), "property_deleted": _("Property deleted: %(detail)s"),
         "note_deleted": _("Note deleted from Details"),
         "proposal_written": _("Proposal written: %(detail)s"), "proposal_edited": _("Proposal changed: %(detail)s"),
@@ -1170,7 +1237,7 @@ class Activity(models.Model):
         "data_edited": _("Data editor: %(detail)s changes saved"), "data_undone": _("Data editor: %(detail)s changes undone"),
     }
     # how the stored detail of some kinds is put into words when it is read
-    READERS = {"changed": range_from_code, "day_added": range_from_code, "day_removed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
+    READERS = {"file_added": file_text, "changed": range_from_code, "day_added": range_from_code, "day_removed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
                "edited": changes_text, "contact_edited": changes_text, "property_edited": changes_text,
                "company_edited": changes_text, "price_set": changes_text, "login_edited": changes_text, "note_edited": changes_text}
 

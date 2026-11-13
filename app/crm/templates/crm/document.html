@@ -36,6 +36,22 @@
 </div>
 {% endif %}
 
+{% if papers %}
+<div class="card shadow-sm mb-3">
+  <div class="card-body py-2">
+    <div class="small fw-semibold mb-2">{% icon "camera" %} {% trans "The signed paper" %}</div>
+    <div class="d-flex flex-wrap gap-2">
+      {% for item in papers %}
+      <a href="{% url 'attachment_file' item.pk %}" target="_blank" rel="noopener" class="small text-decoration-none">
+        {% if item.thumb %}<img class="rounded border object-fit-cover" style="width: 6rem; height: 6rem" src="{% url 'attachment_small' item.pk %}" alt="{{ item.name }}">{% else %}{% icon "doc" %} {{ item.name }}{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+    <div class="form-text">{% trans "Added on the job, under Photos and files." %}</div>
+  </div>
+</div>
+{% endif %}
+
 <div class="row">
   <div class="col-lg-10 col-xl-9">{% include "crm/_paper.html" %}</div>
 </div>

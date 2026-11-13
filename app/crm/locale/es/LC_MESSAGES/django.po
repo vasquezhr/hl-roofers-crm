@@ -142,6 +142,33 @@ msgstr "Envíe a cada equipo su propia dirección, para que sus teléfonos muest
 msgid "None"
 msgstr "Ninguno"
 
+msgid "Photos and files"
+msgstr "Fotos y archivos"
+
+msgid "Delete"
+msgstr "Eliminar"
+
+msgid "No photos or files yet."
+msgstr "Todavía no hay fotos ni archivos."
+
+msgid "Add photos or files"
+msgstr "Agregar fotos o archivos"
+
+msgid "What it is"
+msgstr "Qué es"
+
+msgid "Change order"
+msgstr "Orden de cambio"
+
+msgid "A few words (optional)"
+msgstr "Unas palabras (opcional)"
+
+msgid "Add"
+msgstr "Agregar"
+
+msgid "On a phone, this opens the camera or the photo library. Photos and PDF files, up to 25 MB each."
+msgstr "En un teléfono, esto abre la cámara o las fotos. Fotos y archivos PDF, de hasta 25 MB cada uno."
+
 msgid "No history yet."
 msgstr "Nada todavía."
 
@@ -223,9 +250,6 @@ msgstr "Cuentas"
 msgid "Customer since %(year)s"
 msgstr "Cliente desde %(year)s"
 
-msgid "Delete"
-msgstr "Eliminar"
-
 msgid "Edit"
 msgstr "Editar"
 
@@ -234,9 +258,6 @@ msgstr "Oportunidad nueva"
 
 msgid "Contacts"
 msgstr "Contactos"
-
-msgid "Add"
-msgstr "Agregar"
 
 msgid "main contact"
 msgstr "contacto principal"
@@ -471,6 +492,12 @@ msgstr "Abrir la página"
 
 msgid "The email carries this link. The customer reads the document there, types their name and accepts. The app keeps the name, the date and the time."
 msgstr "El correo lleva este enlace. El cliente lee el documento ahí, escribe su nombre y acepta. La app guarda el nombre, la fecha y la hora."
+
+msgid "The signed paper"
+msgstr "El papel firmado"
+
+msgid "Added on the job, under Photos and files."
+msgstr "Se agrega en el trabajo, en Fotos y archivos."
 
 msgid "Changes are held, not saved, until you review and confirm them. Every change is logged and can be undone."
 msgstr "Los cambios quedan retenidos, sin guardarse, hasta que usted los revise y confirme. Cada cambio se registra y se puede deshacer."
@@ -1704,9 +1731,6 @@ msgstr "D, j M"
 msgid "M j"
 msgstr "j M"
 
-msgid "Change order"
-msgstr "Orden de cambio"
-
 msgid "This change order becomes part of the job once the customer signs it."
 msgstr "Esta orden de cambio pasa a ser parte del trabajo cuando el cliente la firma."
 
@@ -1769,6 +1793,24 @@ msgstr "Enviada el %(day)s"
 
 msgid "Paid %(day)s"
 msgstr "Pagada el %(day)s"
+
+msgid "Pick at least one photo or file. Altogether they must be under 100 MB."
+msgstr "Escoja al menos una foto o un archivo. Entre todos deben pesar menos de 100 MB."
+
+msgid "Add at most %(count)s files at a time."
+msgstr "Agregue como máximo %(count)s archivos a la vez."
+
+msgid "Pick the change order the signed paper is for."
+msgstr "Escoja la orden de cambio a la que corresponde el papel firmado."
+
+msgid "%(count)s added"
+msgstr "%(count)s agregados"
+
+msgid "%(name)s is larger than 25 MB."
+msgstr "%(name)s pesa más de 25 MB."
+
+msgid "%(name)s is not a photo or a PDF. Only photos (JPEG, PNG, WebP) and PDF files can be added."
+msgstr "%(name)s no es una foto ni un PDF. Solo se pueden agregar fotos (JPEG, PNG, WebP) y archivos PDF."
 
 msgid "Workers who help on this job. They have no login; this records who worked."
 msgstr "Trabajadores que ayudan en este trabajo. No tienen usuario; aquí se anota quién trabajó."
@@ -1935,8 +1977,8 @@ msgstr "%(count)s notas no tienen nombre ni dirección para crear una cuenta. Á
 msgid "The file was read. Review the notes below."
 msgstr "Se leyó el archivo. Revise las notas abajo."
 
-msgid "No file arrived. A file larger than 25 MB is refused."
-msgstr "No llegó ningún archivo. No se aceptan archivos de más de 25 MB."
+msgid "No file arrived. A file larger than 100 MB is refused."
+msgstr "No llegó ningún archivo. Un archivo de más de 100 MB se rechaza."
 
 msgid "Added to the Details of %(name)s"
 msgstr "Agregada a los Detalles de %(name)s"
@@ -2241,6 +2283,12 @@ msgstr "artículo"
 msgid "selling price"
 msgstr "precio de venta"
 
+msgid "what it is"
+msgstr "qué es"
+
+msgid "a few words about it"
+msgstr "unas palabras sobre esto"
+
 msgid "Called"
 msgstr "Llamada"
 
@@ -2384,6 +2432,12 @@ msgstr "Nota agregada a Detalles"
 
 msgid "Note in Details changed: %(detail)s"
 msgstr "Nota en Detalles cambiada: %(detail)s"
+
+msgid "Added: %(detail)s"
+msgstr "Agregado: %(detail)s"
+
+msgid "Photo or file deleted: %(detail)s"
+msgstr "Foto o archivo eliminado: %(detail)s"
 
 msgid "Contact deleted: %(detail)s"
 msgstr "Contacto eliminado: %(detail)s"
@@ -2766,6 +2820,21 @@ msgstr "artículo de la lista de precios"
 msgid "price book items"
 msgstr "artículos de la lista de precios"
 
+msgid "During the work"
+msgstr "Durante el trabajo"
+
+msgid "Damage"
+msgstr "Daño"
+
+msgid "Signed proposal, on paper"
+msgstr "Propuesta firmada, en papel"
+
+msgid "Signed change order, on paper"
+msgstr "Orden de cambio firmada, en papel"
+
+msgid "Other document"
+msgstr "Otro documento"
+
 msgid "Mirrored SSDs"
 msgstr "Discos SSD en espejo"
 
@@ -2993,6 +3062,9 @@ msgstr "No se pudo leer este archivo. Suba un archivo de Excel (.xlsx)."
 
 msgid "This address has opportunities or jobs. Delete those first, or give them another address."
 msgstr "Esta dirección tiene oportunidades o trabajos. Elimínelos primero, o póngales otra dirección."
+
+msgid "Its job is in the Recycle Bin too. Restore job #%(number)s first."
+msgstr "Su trabajo también está en la Papelera. Restaure primero el trabajo #%(number)s."
 
 msgid "Automation"
 msgstr "Automatización"

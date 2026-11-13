@@ -49,6 +49,7 @@ ICONS = {
     "bell": '<path d="M6 9a6 6 0 1112 0c0 6 2 7 2 7H4s2-1 2-7z"/><path d="M10 20a2 2 0 004 0"/>',
     "undo": '<path d="M4 8v5h5"/><path d="M4.5 13A8 8 0 1112 20"/>',
     "download": '<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>',
+    "camera": '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
     "trash": '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
 }
 ICONS["my_jobs"] = ICONS["jobs"]

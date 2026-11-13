@@ -26,7 +26,7 @@ from . import automations, recycle
 from .access import admin_only, with_permission
 from .forms import LoginDetailsForm
 from .history import changes, field_changes
-from .models import (LANGS, Account, BackupRun, BinEntry, ChangeSet, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, PriceUpload,
+from .models import (LANGS, Account, Attachment, BackupRun, BinEntry, ChangeSet, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, PriceUpload,
                      Property, User, digits, log)
 from .views import form_page, page_of, saved
 
@@ -75,7 +75,7 @@ def user_edit(request, pk):
 # ---------------------------------------------------------------- delete, with the "Delete records" permission
 # what can be deleted: the word in the address -> (the kind of record, the field that names it)
 CAN_DELETE = {"lead": (Lead, "pk"), "account": (Account, "pk"), "opp": (Opportunity, "number"), "job": (Job, "number"),
-              "contact": (Contact, "pk"), "property": (Property, "pk"), "note": (Note, "pk")}
+              "contact": (Contact, "pk"), "property": (Property, "pk"), "note": (Note, "pk"), "file": (Attachment, "pk")}
 
 
 def pages_of(kind, record):
@@ -88,6 +88,9 @@ def pages_of(kind, record):
         return reverse("opp", args=[record.number]), reverse("opps")
     if kind == "job":
         return reverse("job", args=[record.number]), reverse("jobs")
+    if kind == "file" and record.job_id:
+        here = reverse("job", args=[record.job.number]) + "#files"
+        return here, here
     account = reverse("account", args=[record.account_id]) if record.account_id else reverse("accounts")
     return account, account
 

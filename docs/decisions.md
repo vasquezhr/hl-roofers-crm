@@ -440,3 +440,16 @@ The user: "There should also be the ability to edit any field on any record. I f
 - **A signed change order cannot be edited:** it is part of the contract. A further change is a new change order. A proposal's lines are edited in the proposal builder until it is signed.
 - **A price or a payment that changes** moves the job in or out of Paid as needed, and a corrected payment gets a new receipt.
 - Choices to confirm: whether Delete should also be one permission per kind of record (it is one "Delete records" set today); whether a crew lead should be able to edit anything; whether changing a scheduled job's address should mark it Changed for the crew (today it only goes in the history).
+
+### Photos and files (built Nov 13; the "signed paper" idea approved by the user on Nov 12)
+
+The mockup's job page has a Photos section and the breakdown's data model has a File / Photo record (file, category before / after / damage / document, who uploaded it, on a Job or an Account). They had not been built in the app. The user approved "a photo of a paper signature attached to the proposal", which needs them.
+
+- **A Photos and files card on every job and every account.** Add one or several photos (on an iPhone the button opens the camera or the photo library) or PDF files, say what they are, and add a few words. Kinds: before, during the work, after, damage, signed proposal on paper, signed change order on paper (pick which), other document.
+- **Who adds:** the office on any job or account; a crew on its own jobs, from the phone. A crew login without Crew Lead can add photos too, like notes.
+- **Who sees:** the office sees everything; a crew sees the photos and files of its own jobs only, never an account's own papers. Files are not plain web addresses: every file goes through the same check as the job page.
+- **Only photos (JPEG, PNG, WebP, GIF) and PDF files are kept,** recognised by what is inside the file, not by its name. 25 MB at most for each, 20 files and 100 MB at most in one upload. The photo is kept exactly as it came, with its date and details; a small copy, turned upright, is made for the lists.
+- **The signed paper** shows on the signed proposal's page, or on its change order's page.
+- **The history says who added what, when.** Deleting a file needs the Delete permission; it goes to the Recycle Bin like any record, and the file leaves the disk only when it is deleted for good.
+- **The files live in a folder on the server** (`MEDIA_ROOT`), not in the database, so the backups must include that folder. The breakdown already lists photos in the nightly backup and on the USB drive.
+- Choices to confirm: the list of kinds; whether a crew should see an account's own papers; whether the before/during/after photos should be required before "Done" (the breakdown's "photo checklist per job type" idea, not built).

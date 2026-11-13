@@ -18,11 +18,12 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from .models import Account, BinEntry, Contact, Job, Lead, Note, Opportunity, Property, log
+from .models import Account, Attachment, BinEntry, Contact, Job, Lead, Note, Opportunity, Property, log
 
 KEEP_DAYS = 30
-IN_BIN = [Lead, Account, Contact, Property, Note, Opportunity, Job]         # every kind of record that can be in the bin
-KIND = {Lead: "lead", Account: "account", Opportunity: "deal", Job: "deal", Contact: "contact", Property: "property", Note: "note"}
+IN_BIN = [Lead, Account, Contact, Property, Note, Opportunity, Job, Attachment]     # every kind of record that can be in the bin
+KIND = {Lead: "lead", Account: "account", Opportunity: "deal", Job: "deal", Contact: "contact", Property: "property", Note: "note",
+        Attachment: "file"}
 
 
 class Blocked(Exception):
@@ -59,6 +60,8 @@ def label_of(record):
         return f"{record.name} ({record.account.name})"
     if isinstance(record, Property):
         return f"{record.street} ({record.account.name})"
+    if isinstance(record, Attachment):
+        return f"{record.name} ({record.account.name})"
     if isinstance(record, Note):
         first_line = (record.title or record.text).strip().splitlines()[0][:60] if (record.title or record.text).strip() else ""
         return f"{first_line} ({record.account.name})" if record.account_id else first_line
@@ -101,6 +104,8 @@ def delete(record, user):
             if model in (Lead, Account, Opportunity, Job):
                 log(one, "deleted", user)                           # a line in its own history, for when it is restored
         model.objects.filter(pk__in=ids).update(bin=entry)
+    if isinstance(record, Attachment):                                  # a line in its job's history, or its customer's
+        log(record.job or record.account, "file_deleted", user, detail=record.name)
     if isinstance(record, (Contact, Property, Note)) and record.account_id:            # a line in its customer's history
         kind, detail = {Contact: ("contact_deleted", getattr(record, "name", "")), Property: ("property_deleted", getattr(record, "street", "")),
                         Note: ("note_deleted", "")}[type(record)]
@@ -113,10 +118,13 @@ def delete(record, user):
 def restore(entry, user):
     """Take an entry out of the Recycle Bin: its records are back everywhere, as they were."""
     if entry.kind != "account":
-        for model in (Opportunity, Job, Contact, Property, Note):
+        for model in (Opportunity, Job, Contact, Property, Note, Attachment):
             hidden = model.everything.filter(bin=entry, account__bin__isnull=False).select_related("account").first()
             if hidden:
                 raise Blocked(_("Its customer is in the Recycle Bin too. Restore the account first: %(name)s") % {"name": hidden.account.name})
+        on_job = Attachment.everything.filter(bin=entry, job__bin__isnull=False).select_related("job").first()
+        if on_job:
+            raise Blocked(_("Its job is in the Recycle Bin too. Restore job #%(number)s first.") % {"number": on_job.job.number})
     for model in IN_BIN:
         records = model.everything.filter(bin=entry)
         ids = pks(records)
@@ -143,7 +151,7 @@ def purge(entry, user=None, actor=""):
     Job.everything.filter(warranty_for__in=jobs).delete()
     Job.everything.filter(pk__in=jobs).delete()
     Opportunity.everything.filter(pk__in=opps).delete()
-    for model in (Lead, Contact, Note, Property):
+    for model in (Lead, Contact, Note, Property, Attachment):
         model.everything.filter(bin=entry).delete()
     Account.everything.filter(pk__in=accounts).delete()
     log(None, "record_purged", user, detail=entry.label, actor=actor)

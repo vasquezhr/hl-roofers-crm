@@ -26,6 +26,7 @@ This folder is the real app (Python, Django, PostgreSQL, Bootstrap). **All four 
 - **Change orders:** work added or taken off after signing. They go to the customer the same way (PDF, email, Accept page) and count in the job's total once signed.
 - **Payments:** a deposit before the work, a payment after. The office can record one at any point; a crew can on its own job once the work has started. The job shows its total, what was paid and the balance due.
 - **Invoices:** built from the job (the signed price, signed change orders, payments, balance due), as a page and a PDF. Sending it moves the job to Invoice sent; the payment that brings the balance to zero moves it to Paid.
+- **Photos and files:** every job and every account has a Photos and files card. Add photos (on a phone, straight from the camera) or PDF files, mark what they are (before, during the work, after, damage, a signed proposal or change order on paper, another document) and add a few words. A crew adds them on its own jobs. Each file says who added it and when, and goes in the history. Files are shown only through the app, to the logins that may see that job or account. A photo of a signed paper also shows on that proposal's or change order's page.
 - **Kept copies:** a proposal and a change order are kept exactly as they were signed, an invoice as it was sent, and a receipt as the payment was recorded: every word, amount and term, and the business's details as they were, in the customer's language. Changing the company details or terms later does not change them.
 - **Receipts:** every payment has a receipt (a page and a PDF) that says what was received, what has been paid so far and what is still owed. The office can email it; the crew can open it on its own job.
 - **Documents:** a customer's work goes through four documents: the proposal, change orders, the invoice and receipts. Each is a page and a PDF. The account lists all of them with their status (sent, signed, paid). The job lists its own: the signed proposal, its change orders and its invoice. The job's crew can open and download them; they show the customer's prices, never H & L's costs.
@@ -67,7 +68,7 @@ Documents that go to a customer (the emailed PDF, the email's words, the Accept 
 - **Data editor** (Admin, or an Office login with the Data Editor set): change the name, phone, email and language of many customers on one page. Changed boxes turn yellow; nothing is saved until you review the list of changes and confirm. Each confirmed set is in a change log and can be undone.
 - **System status** (Admin): when each backup copy last reported, whether the scheduled command is running, whether email and the website form are set up, and a few counts. The dashboard shows the short version.
 
-**Not built:** photos on a job, and the Measure calculator (parked by the user).
+**Not built:** the Measure calculator (parked by the user).
 
 ## Try it on your Windows PC
 
@@ -101,7 +102,7 @@ Run the tests. They build their own empty database, so they never touch your dat
 python manage.py test
 ```
 
-It should end with `OK (skipped=1)`. There are 301 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, the dashboard and the reports, the automations and the scheduled command, the data editor, system status, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
+It should end with `OK (skipped=1)`. There are 309 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, the dashboard and the reports, the automations and the scheduled command, the data editor, system status, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
 
 Then click through it:
 
@@ -224,7 +225,8 @@ schtasks /Create /TN "CRM tick" /SC MINUTE /MO 15 /RU SYSTEM /TR "C:\crm\app\.ve
 ```
 
    Without it the app still works, but no reminder emails go out, overdue invoices are not noted, the Monday summary is not sent and the Recycle Bin is never emptied. **Admin › System status** shows whether it is running.
-6. **Backups report in.** The app does not make the backups. Whatever makes them should run `python manage.py backup_ran ssd` (or `cloud`, or `usb`) as its last step, and `--failed` when it did not work, so System status can show each copy. The backup tools are still to be chosen.
+6. **Photos and files** are kept in the folder named by `MEDIA_ROOT` in `.env` (on a PC, the `media` folder next to `manage.py`). **The backups must include that folder** as well as the database: the photos are not in the database.
+7. **Backups report in.** The app does not make the backups. Whatever makes them should run `python manage.py backup_ran ssd` (or `cloud`, or `usb`) as its last step, and `--failed` when it did not work, so System status can show each copy. The backup tools are still to be chosen.
 
 - **Never run `demo` on the server.** It refuses to run when `DEBUG` is off.
 - **Work days** are Monday to Friday: `WORK_WEEKDAYS` in `hlcrm\settings.py`. Suggestions never offer another day; the office can book one by hand with "Work on a day off". Sundays are not decided yet.

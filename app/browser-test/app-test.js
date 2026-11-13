@@ -171,6 +171,12 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await crew.click('button:has-text("Save the note")');
   await crew.waitForLoadState('networkidle');
   check('the crew adds a note for the office', (await crew.locator('#notes').innerText()).includes('Left the old gutters by the driveway'));
+  const dot = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+  await crew.setInputFiles('#filesPick', { name: 'after.png', mimeType: 'image/png', buffer: dot });
+  await crew.selectOption('#filesWhat', 'after');
+  await crew.click('#files button:has-text("Add")');
+  await crew.waitForLoadState('networkidle');
+  check('the crew adds a photo from the phone', await crew.locator('#files img').count() === 1 && (await crew.locator('#files').innerText()).includes('After'));
   await snap(crew, 'job-crew-phone');
   const other = await signIn(browser, 'crew2');
   const response = await other.goto(`${base}/jobs/${number}/`);

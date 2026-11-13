@@ -46,7 +46,7 @@ def imports(request):
                 messages.success(request, _("The file was read. Review the notes below."))
                 return redirect(reverse("import_queue") + f"?batch={batch.pk}")
         elif not request.FILES:
-            form.add_error(None, _("No file arrived. A file larger than 25 MB is refused."))
+            form.add_error(None, _("No file arrived. A file larger than 100 MB is refused."))
     batches = ImportBatch.objects.select_related("uploaded_by").annotate(
         pending=how_many(Status.PENDING), accepted=how_many(Status.ACCEPTED), unlinked=how_many(Status.UNLINKED), skipped=how_many(Status.SKIPPED))
     return render(request, "crm/imports.html", {"form": form, "batches": batches})

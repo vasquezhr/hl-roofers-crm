@@ -174,4 +174,9 @@ IMPORT_SKIP_FOLDERS = [f.strip() for f in env("IMPORT_SKIP_FOLDERS", "Passwords 
 # The notes export holds passwords, so the uploaded file is only ever held in memory, never written to the disk.
 # A file larger than this is refused.
 FILE_UPLOAD_HANDLERS = ["django.core.files.uploadhandler.MemoryFileUploadHandler"]
-FILE_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024        # one upload, all files together: room for a dozen phone photos
+
+# Photos and files added to jobs and accounts. They are kept in this folder, which the backups must include, and are
+# shown only through the app, to the logins that may see that job or account. On the server, set MEDIA_ROOT in .env.
+MEDIA_ROOT = Path(env("MEDIA_ROOT") or BASE_DIR / "media")
+MAX_FILE_SIZE = 25 * 1024 * 1024                        # one photo or file

@@ -30,7 +30,7 @@ from .forms import (AccountForm, ContactForm, InspectionForm, JobEditForm, LostF
                     OpportunityEditForm, OpportunityForm, PropertyForm,
                     RefForm, ScheduleForm, SignForm, WarrantyForm)
 from .importer import find_account
-from .models import Account, Activity, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, Property, Worker, is_day_off, log
+from .models import Account, Activity, Attachment, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, Property, Worker, is_day_off, log
 from .search import search as find_records
 from .templatetags.crm_tags import ago
 
@@ -158,6 +158,10 @@ def account(request, pk):
     return render(request, "crm/account.html", {
         "account": account, "note_form": NoteForm(), "opps": opps, "jobs": jobs,
         "documents": document_rows(opps, jobs),                       # every proposal, change order and invoice of this customer
+        # photos and files: the account's own, and its jobs' (not those of a job in the Recycle Bin)
+        "files": Attachment.objects.filter(account=account).exclude(job__bin__isnull=False).select_related("job", "change_order"),
+        "add_url": reverse("account_files", args=[account.pk]), "show_job": True,
+        "categories": [choice for choice in Attachment.Category.choices if choice[0] != Attachment.Category.SIGNED_CHANGE],
         "history": account.activities.all()[:60],
     })
 
@@ -414,6 +418,9 @@ def job(request, number):
         "job": job, "account": job.account, "crew_view": not office, "step": next_step(job, request.user),
         "can_schedule": office and not job.is_finished,
         "added_days": [{"day": day, "off": is_day_off(day)} for day in job.added_days],
+        # photos and files: the office and the job's own crew can add them
+        "files": Attachment.objects.filter(job=job).select_related("change_order"), "add_url": reverse("job_files", args=[job.number]),
+        "categories": Attachment.Category.choices,
         "can_open_warranty": office and job.is_finished and not job.is_warranty,
         # money: the office adds change orders and sends the invoice; the office or the crew records a payment
         "orders": orders, "orders_waiting": any(not order.is_signed for order in orders), "payments": list(job.payments.all()),
