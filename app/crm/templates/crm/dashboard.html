@@ -46,6 +46,7 @@
       <dt class="col-6 col-md-4 text-body-secondary fw-normal">{% trans "Backup" %}: {{ copy.label }}</dt><dd class="col-6 col-md-8 mb-1">{% include "crm/_state.html" with state=copy.state %}</dd>
       {% endfor %}
       <dt class="col-6 col-md-4 text-body-secondary fw-normal">{% trans "Reminders by the clock" %}</dt><dd class="col-6 col-md-8 mb-1">{% include "crm/_state.html" with state=clock %}</dd>
+      <dt class="col-6 col-md-4 text-body-secondary fw-normal">{% trans "Disk space and memory" %}</dt><dd class="col-6 col-md-8 mb-1">{% if health_low %}{% trans "Low" as words %}{% badge words "danger" %}{% elif health_known %}{% trans "OK" as words %}{% badge words "success" %}{% else %}{% trans "Not yet" as words %}{% badge words "secondary" %}{% endif %}</dd>
       <dt class="col-6 col-md-4 text-body-secondary fw-normal">{% trans "Last price upload" %}</dt><dd class="col-6 col-md-8 mb-1">{% if last_upload %}{{ last_upload.file_name }} · {{ last_upload.uploaded_at|day }}{% else %}{% trans "None" %}{% endif %}</dd>
     </dl>
   </div>

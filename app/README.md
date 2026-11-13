@@ -69,7 +69,9 @@ Documents that go to a customer (the emailed PDF, the email's words, the Accept 
 - **Automations** (Admin): ten ready-made automations, eight with an on/off switch. They route a new website request and email the person it goes to, remind about a request nobody answered, put proposal follow-ups and "send the invoice" on Today, mark a moved job Changed, note an invoice still unpaid after 15 and 30 days, email the Monday summary, and (off until you approve the wording) thank a customer who paid with the review link. "What ran lately" lists what they did.
 - **The scheduled command:** the ones that go by the clock run from `python manage.py tick`, which Windows Task Scheduler runs every 15 minutes on the server. It also empties what has been in the Recycle Bin for more than 30 days.
 - **Data editor** (Admin, or an Office login with the Data Editor set): change the name, phone, email and language of many customers on one page. Changed boxes turn yellow; nothing is saved until you review the list of changes and confirm. Each confirmed set is in a change log and can be undone.
-- **System status** (Admin): when each backup copy last reported, whether the scheduled command is running, whether email and the website form are set up, and a few counts. The dashboard shows the short version.
+- **System status** (Admin): when each backup copy last reported, whether the scheduled command is running, the latest free disk space and free memory (and when they were read), whether email and the website form are set up, a few counts, and the **Error log** card. The dashboard shows the short version.
+- **The error log and the change log:** the app writes two files, `errors.log` (every error with its full traceback, and everything the app could not do) and `changes.log` (one line for every change anyone made). See "The log files" below.
+- **Low disk space and low memory:** `python manage.py tick` reads the free space of the drive that holds the database, the photos and files, and the logs, and the computer's free memory. Below a limit it writes a warning in `errors.log`, adds a line to Setup history and emails the administrators (when email is set up), once a day for each problem.
 
 **Not built:** the Measure calculator (parked by the user).
 
@@ -105,7 +107,7 @@ Run the tests. They build their own empty database, so they never touch your dat
 python manage.py test
 ```
 
-It should end with `OK (skipped=1)`. There are 345 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, the dashboard and the reports, the automations and the scheduled command, the data editor, system status, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
+It should end with `OK (skipped=1)`. There are 381 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, the dashboard and the reports, the automations and the scheduled command, the data editor, system status, the error log and the health check, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
 
 Then click through it:
 
@@ -131,6 +133,22 @@ On your PC no email is sent: when you press an Email button, the email is writte
 There is also a browser test that clicks through those flows by itself: `browser-test\app-test.js`. It needs Node.js and Playwright, and the app running with the demo data. The steps are at the top of that file.
 
 Tested here in Chromium at computer and phone size, in English and Spanish, on SQLite and on PostgreSQL 16. **Not yet opened in Safari on a Mac or iPhone**, which is what the business uses, and not yet run on Windows. Those checks need the real machines.
+
+## The log files
+
+The app writes two files into the folder named by `LOG_DIR` in `.env` (empty: the `logs` folder next to `manage.py`). They are not in git and the backups need not include them. Each file rotates at about 5 MB and keeps the last 10 (`errors.log.1`, `errors.log.2`, ...). Every line starts with the date, the time, the level and the logger, then the message.
+
+- **`errors.log`**, WARNING and up:
+  - every error on a page, with its full traceback (a 500 error);
+  - what the app could not do, with who, which file or row, and why: an Apple Notes file that could not be read, a note that failed (its number in the file, never its words), a price file that could not be read or applied (each row left out, by Excel's row number), a photo or file that was refused or could not be saved, a data editor change that was left out or failed, an email that could not be sent (or that was not sent because email is not set up), a request from the website's form that was refused (which fields, never what was typed) or could not be saved, and a part of `tick` that failed;
+  - low disk space and low memory, from the health check.
+- **`changes.log`**, INFO: one line for every line of history, in English: `who=Crew 1 record=job 26-101 kind=started | Job started`. A password is never in it, and what a note says is not copied (the history itself keeps it).
+
+Where to read them: **Admin › System status › Error log** shows the last 50 lines of `errors.log`, with a link to download each file (administrator only). Or open the file in Notepad. To find one problem, search the file for the file's name, the login's name or the word `ERROR`.
+
+On the PC the warnings and errors are also printed in the window where `runserver` runs. On the server the Waitress service's output holds the same lines.
+
+The health check's limits are in `.env`: `DISK_MIN_GB` (default 10), `DISK_MIN_PERCENT` (10) and `RAM_MIN_MB` (500). Free memory is read with the `psutil` library (in `requirements.txt`). On the Windows server, run `pip install -r requirements.txt` once after updating. The check only runs while Task Scheduler runs `tick`.
 
 ## The Apple Notes import
 
@@ -188,6 +206,7 @@ The tests fail if a label has no Spanish.
 | `crm\report_views.py`, `crm\reports.py` | The dashboard, the Reports page, each report and its spreadsheet file; how every number and both charts are counted |
 | `crm\admin_views.py`, `crm\recycle.py` | Users and permissions, the Delete page, the Recycle Bin, "take an inspection", the Automations page, the data editor and System status; what a delete takes with it, restoring and deleting for good |
 | `crm\import_views.py`, `crm\importer.py` | The Apple Notes import: the pages, and the reading and matching rules |
+| `crm\logs.py`, `crm\health.py` | The log files (the rotating file handler, reading the end of a file) and the health check (free disk space and memory, the readings and the once-a-day warnings). The log setup itself is `LOGGING` in `hlcrm\settings.py`; `log()` in `models.py` writes `changes.log` |
 | `crm\search.py` | Search |
 | `crm\access.py` | Who may open what |
 | `crm\history.py` | What a history line says: which fields a form changed, and how a stored change is put into words. The lines themselves are the `Activity` model |
@@ -199,7 +218,7 @@ The tests fail if a label has no Spanish.
 | `crm\look.py` | The business's look: the shades worked out from its two colors, the check that white writing reads on them, and the app's icon (uploaded, H & L's own, or drawn from the initials) |
 | `crm\admin.py` | What the admin site shows |
 | `crm\management\commands\` | `demo` (made-up data), `spanish` (checks and builds the Spanish file), `tick` (the automations that go by the clock; Task Scheduler runs it), `backup_ran` (the backup job reports in) and `start_business` (sets up another business in a new, empty database) |
-| `crm\tests\` | The tests |
+| `crm\tests\` | The tests (`test_logs.py`: the logs and the health check) |
 | `browser-test\app-test.js` | A test that clicks through the app in a real browser |
 | `sample\` | A made-up notes export and a made-up price file, for trying the import and the upload |
 

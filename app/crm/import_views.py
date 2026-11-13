@@ -8,6 +8,7 @@ The administrator's pages for the Apple Notes import.
 Nothing is added to a customer's Details until it is accepted here. A change to many notes
 at once always shows a confirmation page first.
 """
+import logging
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -24,6 +25,8 @@ from .models import Account, ImportBatch, ImportedNote, log
 from .search import account_has, every_word, words_of
 from .views import filter_pills, page_of
 
+logger = logging.getLogger(__name__)
+
 Status, Proposal = ImportedNote.Status, ImportedNote.Proposal
 
 
@@ -39,10 +42,15 @@ def imports(request):
         if form.is_valid():
             try:
                 batch = importer.import_file(form.cleaned_data["file"], request.user, importer.folder_list(form.cleaned_data["skip_folders"]))
-            except importer.ImportProblem as problem:
+            except importer.ImportProblem as problem:                    # already written to errors.log by the importer
                 form.add_error("file", str(problem))
+            except Exception:                                            # a bug or a database error: nothing from the file was kept
+                logger.exception("Notes import failed unexpectedly: file=%r by %s", form.cleaned_data["file"].name, request.user.label)
+                form.add_error("file", _("The import failed and nothing was added. The reason is in the error log (Admin, System status)."))
             else:
                 log(None, "notes_uploaded", request.user, detail=batch.file_name)
+                if batch.unreadable:
+                    messages.warning(request, _("%(count)s notes could not be read and were left out. The reason is in the error log (Admin, System status).") % {"count": batch.unreadable})
                 messages.success(request, _("The file was read. Review the notes below."))
                 return redirect(reverse("import_queue") + f"?batch={batch.pk}")
         elif not request.FILES:
@@ -123,19 +131,24 @@ def queue_action(request, waiting, in_list, show, here):
 
     done = stuck = 0
     account = None
+    failed = 0
     for note in chosen.order_by("id"):
-        if do == "accept":
-            account = importer.accept(note, request.user)
-            if account:
+        try:
+            if do == "accept":
+                account = importer.accept(note, request.user)
+                if account:
+                    done += 1
+                else:
+                    stuck += 1
+            elif do == "unlinked":
+                importer.keep_unlinked(note)
                 done += 1
             else:
-                stuck += 1
-        elif do == "unlinked":
-            importer.keep_unlinked(note)
-            done += 1
-        else:
-            importer.skip(note)
-            done += 1
+                importer.skip(note)
+                done += 1
+        except Exception:                                            # this note stays in the queue; the others carry on
+            failed += 1
+            logger.exception("Notes import: note %s could not be %s, by %s", note.pk, {"accept": "added to a customer", "unlinked": "kept unlinked", "skip": "skipped"}[do], request.user.label)
     if done and do != "accept":                                      # an accepted note is in its customer's history instead
         log(None, "notes_unlinked" if do == "unlinked" else "notes_skipped", request.user, detail=str(done))
     if count == 1 and done:                                          # one note: say exactly what happened to it
@@ -146,6 +159,8 @@ def queue_action(request, waiting, in_list, show, here):
         text = {"accept": _("%(count)s notes added to customers' Details."), "unlinked": _("%(count)s notes kept as unlinked notes."),
                 "skip": _("%(count)s notes skipped.")}[do]
         messages.success(request, text % {"count": done})
+    if failed:
+        messages.error(request, _("%(count)s notes could not be changed and are still in the list. The reason is in the error log (Admin, System status).") % {"count": failed})
     if stuck:
         messages.warning(request, _("%(count)s notes have no name or address to make an account from. Open them to choose a customer.") % {"count": stuck})
     return redirect(here)

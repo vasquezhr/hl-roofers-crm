@@ -39,6 +39,45 @@
 
 <div class="card shadow-sm mb-3">
   <div class="card-body">
+    <h2 class="h6 mb-2">{% trans "Disk space and memory" %}</h2>
+    {% if readings %}
+    <div class="list-group list-group-flush small">
+      {% for reading in readings %}
+      <div class="list-group-item d-flex gap-2 align-items-start px-0{% if reading.low %} text-danger{% endif %}">
+        <div class="flex-grow-1">
+          <div class="fw-semibold">{% if reading.kind == "disk" %}{% trans "Disk space" %}: {{ reading.place }}{% if reading.names %} ({{ reading.names }}){% endif %}{% else %}{% trans "Memory (RAM)" %}{% endif %}</div>
+          <div{% if not reading.low %} class="text-body-secondary"{% endif %}>{% trf "%(free)s free of %(total)s (%(percent)s%%)" free=reading.free_mb|megabytes total=reading.total_mb|megabytes percent=reading.percent_free %} · {% trans "Taken" %}: {{ reading.taken_at|day_time }}</div>
+        </div>
+        {% if reading.low %}{% trans "Low" as words %}{% badge words "danger" %}{% else %}{% trans "OK" as words %}{% badge words "success" %}{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="small text-body-secondary">{% trans "No reading yet. The scheduled command takes one every 15 minutes." %}</div>
+    {% endif %}
+    <div class="form-text">{% trf "A reading turns red below %(gb)s GB or %(percent)s%% of a drive, or below %(ram)s MB of memory. Then the administrators are emailed and a line is added to the Setup history, once a day. The limits are DISK_MIN_GB, DISK_MIN_PERCENT and RAM_MIN_MB in the .env file." gb=limits.gb|floatformat:"-1" percent=limits.percent|floatformat:"-1" ram=limits.ram|floatformat:"-1" %}</div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <div class="d-flex align-items-baseline gap-2 mb-2 flex-wrap">
+      <h2 class="h6 mb-0 flex-grow-1">{% trans "Error log" %}</h2>
+      {% for file in log_files %}{% if file.exists %}<a class="small" href="{% url 'log_download' file.name %}" download>{% if file.name == "errors" %}{% trans "Download errors.log" %}{% else %}{% trans "Download changes.log" %}{% endif %}</a>{% endif %}{% endfor %}
+    </div>
+    {% if error_lines %}
+    <pre class="small bg-body-tertiary border rounded p-2 mb-2 overflow-auto" style="max-height: 24rem; white-space: pre-wrap; overflow-wrap: anywhere;" tabindex="0">{% for line in error_lines %}{{ line }}
+{% endfor %}</pre>
+    <div class="form-text">{% trans "The last 50 lines of errors.log, newest at the bottom." %}</div>
+    {% else %}
+    <div class="small text-body-secondary">{% trans "Nothing has been written to the error log yet." %}</div>
+    {% endif %}
+    <div class="form-text">{% trf "errors.log holds every error with its full detail, and everything the app could not do: an import, a file, an email, the website's form. changes.log has one line for every change anyone made. Both are in the folder %(folder)s and are replaced by a new file at about 5 MB, keeping the last 10." folder=log_dir %}</div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
     <h2 class="h6 mb-2">{% trans "The app" %}</h2>
     <dl class="row small mb-0">
       <dt class="col-5 col-md-4 text-body-secondary fw-normal">{% trans "Address" %}</dt><dd class="col-7 col-md-8 mb-1">{{ address }}</dd>

@@ -6,6 +6,7 @@ administrator; the office meets it only as "Add from the Price Book" on a propos
 selling price. Crews never see it.
 """
 import io
+import logging
 
 from django.contrib import messages
 from django.contrib.admin.models import LogEntry
@@ -24,6 +25,8 @@ from .forms import CompanyForm, NewPriceForm, PriceItemForm, PriceUploadForm
 from .history import changes, field_changes
 from .models import Activity, Company, ImportedNote, PriceEntry, PriceItem, PriceUpload, log
 from .views import filter_pills, form_page, saved
+
+logger = logging.getLogger(__name__)
 
 HELD = "price_upload"          # where a file that was read waits (in the session) until it is confirmed
 
@@ -133,7 +136,7 @@ def price_upload(request):
     if request.method == "POST" and form.is_valid():
         file = form.cleaned_data["file"]
         try:
-            rows = pricebook.read_price_file(file)
+            rows = pricebook.read_price_file(file, request.user.label)
         except pricebook.PriceFileProblem as problem:
             form.add_error("file", str(problem))
         else:
@@ -152,7 +155,12 @@ def price_review(request):
         return redirect("price_upload")
     found = pricebook.compare(held["rows"], held["supplier"], held["line"])
     if request.method == "POST":
-        upload = pricebook.apply(held["rows"], held["file_name"], held["supplier"], held["line"], request.user)
+        try:
+            upload = pricebook.apply(held["rows"], held["file_name"], held["supplier"], held["line"], request.user)
+        except Exception:                                                  # nothing was saved: apply is all or nothing
+            logger.exception("Price file %r (%s, %s) could not be applied, by %s: nothing was saved", held["file_name"], held["supplier"], held["line"], request.user.label)
+            messages.error(request, _("The prices could not be saved and nothing was changed. The reason is in the error log (Admin, System status)."))
+            return redirect("price_upload")
         log(None, "price_file", request.user, detail=upload.file_name)
         del request.session[HELD]
         saved(request, _("%(count)s prices added or changed") % {"count": upload.added + upload.changed})

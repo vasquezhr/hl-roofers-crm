@@ -532,3 +532,17 @@ The user answered the three questions and added ideas to discuss, and asked for 
 - **The app remembers the choice on that phone or computer,** for that section on every record of the same kind: hide History once on a job, and it stays hidden on every job until opened again. Nothing is stored on the server. The mockup remembers it while the page is open.
 - **Choice to confirm:** remembered for every record of the same kind (not record by record), on each device separately.
 
+
+### Requests from the user on Nov 13, 2026 (third message)
+
+The user answered the shell questions and added three things to build: an error log, the business's logo on the documents, and editable pick lists.
+
+**1. "Yes, definitely need a detailed error log for any import failures, database record updates, low ram, low disk space, etc."** (built Nov 13)
+
+- **Two files, in a log folder** (`LOG_DIR` in `.env`; default `app\logs`): `errors.log` (WARNING and up) and `changes.log` (every line of history). Each line has the date, time, level, logger and message. Each file rotates at about 5 MB and keeps 10 older ones. The warnings and errors still print to the console on the PC.
+- **`errors.log` holds:** every 500 error with its full traceback; and, from the app's own code, what could not be done with who, which file or row and why: the Apple Notes import (a file that cannot be read, a note that fails, a note that cannot be accepted), the price file (cannot be read, each row left out by its Excel row number, prices that could not be saved), photos and files (refused, or not saved: a full disk), the data editor (a change left out, a save that failed), email (not sent, or not set up), the website's form (wrong key, wrong fields, a request that could not be saved) and each part of `tick`. A failed save is logged and the page says so; nothing is swallowed.
+- **Private things are kept out:** a note's words, what a visitor typed in the website's form, the values in the data editor, the form's key and every password are never written to a log. A note's text in the history is not copied to `changes.log` either.
+- **Health check in `tick`:** free space on the drive(s) that hold the database (SQLite only), the photos and files, and the logs, and the computer's free memory (the `psutil` library, pinned in `requirements.txt`). Limits in `.env`: `DISK_MIN_GB=10`, `DISK_MIN_PERCENT=10`, `RAM_MIN_MB=500`. Every reading is stored for 14 days. Below a limit: a warning in `errors.log`, a line on Setup history and an email to the active administrators that have an email address (only when email is set up), **once a day for each problem** (so a drive that stays low is not reported every 15 minutes; the System status page stays red).
+- **Admin › System status** shows the latest readings and when they were taken (a problem in red), and an **Error log** card: the last 50 lines of `errors.log`, with links to download `errors.log` and `changes.log` (administrator only). The dashboard's short version has a "Disk space and memory" row.
+- **Choices to confirm:** the three limits (10 GB or 10% of a drive, 500 MB of memory); that the warning, the Setup history line and the email are all once a day; and that the logs are not part of the backups.
+- **Not checked:** on a real Windows server. On Windows a log file cannot be renamed while another program has it open, and the web server and `tick` both write to it; the app then keeps writing to the same file and tries the rotation again later, so a log can grow past 5 MB until the next successful rotation.

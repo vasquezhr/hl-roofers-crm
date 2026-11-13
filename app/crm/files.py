@@ -6,6 +6,7 @@ so a renamed program or web page is refused. A photo is turned the right way up 
 "rotate this" as a note in the photo); the photo itself is kept exactly as it came, with its date and other details.
 """
 import io
+import logging
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -13,6 +14,8 @@ from django.utils.translation import gettext as _
 from PIL import Image, ImageOps
 
 from .models import Attachment
+
+logger = logging.getLogger(__name__)
 
 IMAGES = {"JPEG": "image/jpeg", "MPO": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp", "GIF": "image/gif"}
 MOST = 20                                                           # files in one upload
@@ -44,17 +47,31 @@ def small_copy(image):
 
 
 def keep(upload, *, account, user, category, job=None, change_order=None, caption=""):
-    """Check one uploaded file and keep it. Returns the Attachment, or raises Refused with the reason."""
+    """Check one uploaded file and keep it. Returns the Attachment, or raises Refused with the reason.
+    A refused file and a file that could not be saved are written to errors.log: which file, who, and why."""
+    where = f"job {job.number}" if job else f"account {account.pk}"
     if upload.size > settings.MAX_FILE_SIZE:
+        logger.warning("File refused: %r is %s MB, over the limit (%s, by %s)", upload.name, upload.size // (1024 * 1024), where, user.label)
         raise Refused(_("%(name)s is larger than 25 MB.") % {"name": upload.name})
     data = upload.read()
     content_type, image = kind_of(data)
     if not content_type:
+        logger.warning("File refused: %r is not a photo or a PDF (%s, by %s)", upload.name, where, user.label)
         raise Refused(_("%(name)s is not a photo or a PDF. Only photos (JPEG, PNG, WebP) and PDF files can be added.") % {"name": upload.name})
     attachment = Attachment(account=account, job=job, change_order=change_order, category=category, caption=caption[:200],
                             name=upload.name[:200], content_type=content_type, size=len(data), uploaded_by=user, actor=user.label)
-    attachment.file.save(upload.name, ContentFile(data), save=False)
-    if image is not None:
-        attachment.thumb.save("small.jpg", ContentFile(small_copy(image)), save=False)
-    attachment.save()
+    try:
+        attachment.file.save(upload.name, ContentFile(data), save=False)
+        if image is not None:
+            attachment.thumb.save("small.jpg", ContentFile(small_copy(image)), save=False)
+        attachment.save()
+    except Exception:                                               # a full disk, a folder that cannot be written, a database error
+        logger.exception("File could not be saved: %r, %s bytes (%s, by %s, into %s)", upload.name, len(data), where, user.label, settings.MEDIA_ROOT)
+        for stored in (attachment.file, attachment.thumb):          # what was already written to the disk is taken away again
+            try:
+                if stored and stored.name:
+                    stored.storage.delete(stored.name)
+            except Exception:
+                logger.exception("A half-saved file could not be removed: %s", stored.name)
+        raise Refused(_("%(name)s could not be saved. The reason is in the error log (Admin, System status).") % {"name": upload.name})
     return attachment

@@ -7,6 +7,7 @@ The administrator's pages for people and for deleted records.
   Take an inspection       for a login with the "Inspector" permission
   Colors and icon          the business's two colors and the app's icon (and the icon itself, which anyone may fetch)
 """
+import logging
 from datetime import timedelta
 
 from django.conf import settings
@@ -16,7 +17,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.validators import validate_email
 from django.db import connection, transaction
-from django.http import Http404, HttpResponse
+from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -25,13 +26,16 @@ from django.utils.text import slugify
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
-from . import automations, look, recycle
+from . import automations, health, look, logs, recycle
 from .access import admin_only, with_permission
 from .forms import LoginDetailsForm, LookForm, WorkTypeForm
 from .history import changes, field_changes
 from .models import (LANGS, Account, Activity, Attachment, BackupRun, BinEntry, ChangeOrder, ChangeSet, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, Payment, PriceUpload,
                      Property, User, WorkType, digits, log)
 from .views import form_page, page_of, saved
+
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------- users and permission sets
@@ -237,12 +241,15 @@ def read_changes(post, accounts):
 @transaction.atomic
 def write_changes(found, user, back=False):
     """Save each change (or, with back=True, put the old value back) if the field still holds what the editor saw.
-    Each one is a line in the customer's history. Returns the changes that were written."""
+    Each one is a line in the customer's history. Returns the changes that were written.
+    A change that is left out is written to errors.log, with the account and the field (never the values)."""
     written = []
     for change in found:
         account = Account.objects.filter(pk=change["account"]).first()
         before, after = (change["new"], change["old"]) if back else (change["old"], change["new"])
         if account is None or editor_values(account)[change["field"]] != before:
+            logger.warning("Data editor: %s of %s on account %s left out, %s (by %s)", "undoing the change" if back else "the change", change["field"], change["account"],
+                           "the customer is gone" if account is None else "the field was changed by someone else in the meantime", user.label)
             continue                                                    # someone changed it since, or the customer was deleted
         if change["field"] in ("name", "language"):
             setattr(account, change["field"], after)
@@ -271,7 +278,12 @@ def editor(request):
         except signing.BadSignature:
             messages.warning(request, _("That review page is too old. Make the changes again."))
             return redirect("editor")
-        written = write_changes(found, request.user)
+        try:
+            written = write_changes(found, request.user)                # all or nothing
+        except Exception:
+            logger.exception("Data editor: saving %s changes failed, nothing was saved (by %s)", len(found), request.user.label)
+            messages.error(request, _("The changes could not be saved and nothing was changed. The reason is in the error log (Admin, System status)."))
+            return redirect("editor")
         if written:
             ChangeSet.objects.create(user=request.user, actor=request.user.label, reason=request.POST.get("reason", "").strip()[:200], changes=written)
             log(None, "data_edited", request.user, detail=str(len(written)))
@@ -312,7 +324,12 @@ def shown_changes(found):
 def editor_undo(request, pk):
     """Put back what a set of changes replaced, wherever the field still holds what that set wrote."""
     one = get_object_or_404(ChangeSet, pk=pk, undone_at__isnull=True)
-    written = write_changes(one.changes, request.user, back=True)
+    try:
+        written = write_changes(one.changes, request.user, back=True)
+    except Exception:
+        logger.exception("Data editor: undoing change set %s failed, nothing was changed (by %s)", one.pk, request.user.label)
+        messages.error(request, _("The changes could not be undone and nothing was changed. The reason is in the error log (Admin, System status)."))
+        return redirect("editor")
     one.undone_at, one.undone_by = timezone.now(), request.user.label
     one.save()
     log(None, "data_undone", request.user, detail=str(len(written)))
@@ -350,7 +367,21 @@ def system_status(request):
         "logins": User.objects.filter(is_active=True).count(),
         "counts": {"accounts": Account.objects.count(), "jobs": Job.objects.count(), "leads": Lead.objects.count()},
         "notes_waiting": ImportedNote.objects.filter(status=ImportedNote.Status.PENDING).count(), "in_bin": BinEntry.objects.count(),
+        "readings": health.latest(), "error_lines": logs.tail(logs.path_of("errors")), "log_dir": settings.LOG_DIR,
+        "log_files": [{"name": name, "exists": logs.path_of(name).exists()} for name in logs.NAMES],
+        "limits": {"gb": settings.DISK_MIN_GB, "percent": settings.DISK_MIN_PERCENT, "ram": settings.RAM_MIN_MB},
     })
+
+
+@admin_only
+def log_download(request, name):
+    """errors.log or changes.log, as a download. Only the administrator."""
+    path = logs.path_of(name)
+    if path is None or not path.exists():
+        raise Http404
+    response = FileResponse(open(path, "rb"), content_type="text/plain; charset=utf-8", as_attachment=True, filename=path.name)
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 

@@ -114,6 +114,12 @@ def money(value):
 
 
 @register.filter
+def megabytes(value):
+    """4300 -> 4.2 GB; 800 -> 800 MB (a free-space reading)"""
+    return f"{value / 1024:.1f} GB" if value >= 1024 else f"{value} MB"
+
+
+@register.filter
 def qty(value):
     """A quantity for its box: 50.00 -> 50. What was typed is shown as it was typed."""
     if value in (None, ""):

@@ -9,6 +9,7 @@ Convert creates the customer (account, contact, property) and an opportunity in 
 For a customer already in the app it uses that account, so nobody is entered twice.
 """
 import json
+import logging
 from datetime import timedelta
 
 from django.conf import settings
@@ -29,6 +30,9 @@ from .history import changes
 from .importer import find_account
 from .models import Account, Contact, Job, Lead, Opportunity, Property, log, street_key, work_types
 from .views import filter_pills, form_page, page_of, saved
+
+
+logger = logging.getLogger(__name__)
 
 
 def customer_of(lead):
@@ -162,6 +166,12 @@ def answer(data, status=200):
     return response
 
 
+def sender_of(request):
+    """Who sent a request to the website's form, for errors.log: the address (Cloudflare passes the real one on) and the web page it came from."""
+    address = request.META.get("HTTP_CF_CONNECTING_IP") or request.META.get("REMOTE_ADDR", "?")
+    return f"{address} (from {request.META.get('HTTP_ORIGIN') or request.META.get('HTTP_REFERER') or 'no web page given'})"
+
+
 def job_type_from(text):
     """'gutters', 'Gutters' or 'Canaletas' -> gutters: the type's key, its name in either language, or one of its other words
     (Admin > Types of work). Anything else is 'other'."""
@@ -184,15 +194,18 @@ def lead_in(request):
     if request.method == "OPTIONS":                                   # the browser asks first whether it may send
         return answer(None)
     if request.method != "POST":
+        logger.warning("Website form: refused a %s request, only POST is accepted; from %s", request.method, sender_of(request))
         return answer({"ok": False, "error": "POST only"}, 405)
     try:
         sent = json.loads(request.body) if request.content_type == "application/json" else request.POST
     except ValueError:
         sent = None
     if not hasattr(sent, "get"):
+        logger.warning("Website form: the request could not be read (it is not a form or one JSON object); from %s", sender_of(request))
         return answer({"ok": False, "error": "send the fields as a form or as one JSON object"}, 400)
     field = lambda name: str(sent.get(name) or "").strip()            # noqa: E731
     if not constant_time_compare(field("key"), settings.LEAD_FORM_KEY):
+        logger.warning("Website form: refused, the key is wrong or missing; from %s", sender_of(request))        # the key itself is never logged
         return answer({"ok": False, "error": "wrong key"}, 403)
     if field("website"):                                              # a box people cannot see; only robots fill it in
         return answer({"ok": True})
@@ -201,14 +214,24 @@ def lead_in(request):
                      "message": field("message"), "language": "es" if field("language").lower().startswith("es") else "en",
                      "source": Opportunity.Source.WEB})
     if not form.is_valid():
+        # which fields and why, never what the person typed
+        logger.warning("Website form: a request was refused, wrong fields: %s; from %s",
+                       ", ".join(f"{name} ({'/'.join(error.code or 'invalid' for error in errors)})" for name, errors in sorted(form.errors.as_data().items())), sender_of(request))
         return answer({"ok": False, "error": "missing or wrong fields", "fields": sorted(form.errors)}, 400)
     lead = form.save(commit=False)
     again = Lead.objects.filter(received_at__gte=timezone.now() - timedelta(days=1), name__iexact=lead.name, message=lead.message,
                                 phone=lead.phone, email__iexact=lead.email)
     if not again.exists():
-        lead.save()
-        log(lead, "lead_in", actor="Web")
-        automations.lead_arrived(lead)                                  # routing: it goes to the person named in Company details
+        try:
+            lead.save()
+            log(lead, "lead_in", actor="Web")
+        except Exception:                                               # the website must be told, so the visitor can try again or phone
+            logger.exception("Website form: a request could not be saved (lead of %s characters, from %s)", len(lead.message), sender_of(request))
+            return answer({"ok": False, "error": "could not save the request"}, 500)
+        try:
+            automations.lead_arrived(lead)                              # routing: it goes to the person named in Company details
+        except Exception:                                               # the request is saved; only the routing or its email failed
+            logger.exception("Website form: request %s was saved, but routing it or emailing the person it goes to failed", lead.pk)
     return answer({"ok": True})
 
 

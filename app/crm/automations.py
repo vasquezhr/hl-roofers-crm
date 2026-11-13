@@ -10,6 +10,7 @@ done). The others need the clock, so they run from the scheduled command:
 Whatever an automation does is written in the history, with "Automation" as who did it.
 An email to the staff is written in English and Spanish. An email to a customer is in the customer's language.
 """
+import logging
 from datetime import timedelta
 from decimal import Decimal
 
@@ -19,10 +20,12 @@ from django.utils import timezone, translation
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
-from . import recycle
+from . import health, recycle
 from .documents import money
 from .mail import send
 from .models import Activity, Company, Job, Lead, Payment, User, log
+
+logger = logging.getLogger(__name__)
 
 ROBOT = "Automation"            # who did it, in the history
 
@@ -226,18 +229,28 @@ def send_weekly_summary(company, now):
     return 0
 
 
+def attempt(name, work):
+    """Run one part of tick. A part that fails is logged, with its traceback, and does not stop the others."""
+    try:
+        return work()
+    except Exception:
+        logger.exception("tick: %s failed", name)
+        return 0
+
+
 def tick(now=None):
     """Everything that runs by the clock. Safe to run as often as you like: each thing is done once.
-    Returns what it did, as counts."""
+    Returns what it did, as counts. A part that fails is written to errors.log and counts as 0."""
     now = now or timezone.now()
     today = timezone.localtime(now).date()
     company = Company.load()
     done = {
-        "reminders": remind_about_leads(company, now) if company.auto_remind else 0,
-        "overdue": mark_overdue(today) if company.auto_overdue else 0,
-        "reviews": ask_for_reviews(company, today) if company.auto_review else 0,
-        "summary": send_weekly_summary(company, now) if company.auto_weekly else 0,
-        "emptied": recycle.empty_old(),
+        "reminders": attempt("lead reminders", lambda: remind_about_leads(company, now)) if company.auto_remind else 0,
+        "overdue": attempt("overdue invoices", lambda: mark_overdue(today)) if company.auto_overdue else 0,
+        "reviews": attempt("review requests", lambda: ask_for_reviews(company, today)) if company.auto_review else 0,
+        "summary": attempt("weekly summary", lambda: send_weekly_summary(company, now)) if company.auto_weekly else 0,
+        "emptied": attempt("emptying the Recycle Bin", recycle.empty_old),
+        "low": attempt("health check", lambda: health.check(now)),          # drives or memory below a limit
     }
     if done["emptied"]:
         log(None, "auto_bin", detail=str(done["emptied"]), actor=ROBOT)

@@ -107,6 +107,7 @@ urlpatterns = [
     path("manage/editor/", admin_views.editor, name="editor"),
     path("manage/editor/<int:pk>/undo/", admin_views.editor_undo, name="editor_undo"),
     path("manage/status/", admin_views.system_status, name="status"),
+    path("manage/logs/<str:name>.log", admin_views.log_download, name="log_download"),
     path("manage/types/", admin_views.work_type_list, name="work_types"),
     path("manage/types/new/", admin_views.work_type_edit, name="work_type_new"),
     path("manage/types/<int:pk>/", admin_views.work_type_edit, name="work_type_edit"),

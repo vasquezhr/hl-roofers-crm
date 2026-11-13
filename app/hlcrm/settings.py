@@ -6,6 +6,8 @@ web address) is read from a file named ".env" next to manage.py. Copy
 ".env.example" to ".env" and edit it. The .env file is never put in git.
 """
 import os
+import sys
+import tempfile
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -208,3 +210,44 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024        # one upload, all files t
 # shown only through the app, to the logins that may see that job or account. On the server, set MEDIA_ROOT in .env.
 MEDIA_ROOT = Path(env("MEDIA_ROOT") or BASE_DIR / "media")
 MAX_FILE_SIZE = 25 * 1024 * 1024                        # one photo or file
+
+
+# ---------- health: free disk space and free memory (checked by "python manage.py tick") ----------
+# Below any of these, the app writes a warning in errors.log and in Admin > Setup history, and emails the administrators.
+DISK_MIN_GB = float(env("DISK_MIN_GB", "10"))           # less than this many GB free on a drive the app uses
+DISK_MIN_PERCENT = float(env("DISK_MIN_PERCENT", "10"))  # or less than this share of the drive free
+RAM_MIN_MB = float(env("RAM_MIN_MB", "500"))            # less than this many MB of memory free
+
+# ---------- the log files ----------
+# errors.log (WARNING and up, with full tracebacks) and changes.log (every history line), in this folder. The backups
+# need not include it. Admin > System status shows the end of errors.log and has a link to download each file.
+LOG_DIR = Path(env("LOG_DIR") or BASE_DIR / "logs")
+TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
+if TESTING:
+    LOG_DIR = Path(tempfile.gettempdir()) / "hl-crm-test-logs"      # the tests never write into the real log folder
+try:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+except OSError:
+    pass                                                    # a log folder that cannot be made must not stop the app
+
+_LINE = "%(asctime)s %(levelname)s %(name)s %(message)s"
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"line": {"format": _LINE, "datefmt": "%Y-%m-%d %H:%M:%S"}},
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "line", "level": "WARNING"},
+        "errors": {"class": "crm.logs.QuietRotatingFileHandler", "filename": str(LOG_DIR / "errors.log"), "formatter": "line", "level": "WARNING"},
+        "changes": {"class": "crm.logs.QuietRotatingFileHandler", "filename": str(LOG_DIR / "changes.log"), "formatter": "line", "level": "INFO"},
+    },
+    # everything of WARNING and up goes to errors.log and to the console: Django's 500 errors with their tracebacks,
+    # the app's own "crm" loggers, and anything else that complains
+    "root": {"handlers": ["console", "errors"], "level": "WARNING"},
+    "loggers": {
+        "django": {"handlers": [], "level": "INFO", "propagate": True},      # Django's own console printing is replaced by the root's
+        "django.request": {"level": "ERROR"},                                  # the 500 errors; a page not found or refused (404, 403) is not an error
+        "crm.changes": {"handlers": ["changes"], "level": "INFO", "propagate": False},
+    },
+}
+if TESTING:
+    LOGGING["handlers"]["console"]["level"] = "CRITICAL"       # a test run stays quiet; the tests that look for log lines catch them themselves

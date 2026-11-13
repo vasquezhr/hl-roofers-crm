@@ -15,6 +15,7 @@ The export file is a .json file holding a list of notes. Each note has: folder, 
 """
 import hashlib
 import json
+import logging
 import re
 from datetime import datetime
 from functools import lru_cache
@@ -27,8 +28,19 @@ from django.utils.translation import gettext as _
 from .models import Account, Contact, ImportBatch, ImportedNote, Note, Property, digits, log, street_key
 
 
+logger = logging.getLogger(__name__)
+
+
 class ImportProblem(Exception):
-    """The file could not be read. The message is shown to the administrator."""
+    """The file could not be read. The first argument is shown to the administrator; the second, when there is one,
+    is the technical reason, for errors.log."""
+
+    def __str__(self):
+        return str(self.args[0])
+
+    @property
+    def reason(self):
+        return str(self.args[1]) if len(self.args) > 1 else str(self.args[0])
 
 
 # ---------------------------------------------------------------- 1. logins and passwords
@@ -249,10 +261,14 @@ def read_export(upload):
     """The list of notes in the uploaded file."""
     try:
         notes = json.loads(upload.read().decode("utf-8-sig"))
-    except (UnicodeDecodeError, ValueError):
-        raise ImportProblem(_("This file could not be read. Upload the .json file exported from Apple Notes."))
-    if not isinstance(notes, list) or not all(isinstance(n, dict) and isinstance(n.get("text", ""), str) for n in notes):
-        raise ImportProblem(_("This file is not a notes export: it should hold a list of notes."))
+    except (UnicodeDecodeError, ValueError) as problem:
+        raise ImportProblem(_("This file could not be read. Upload the .json file exported from Apple Notes."), f"{type(problem).__name__}: {problem}")
+    if not isinstance(notes, list):
+        raise ImportProblem(_("This file is not a notes export: it should hold a list of notes."), f"the file holds a {type(notes).__name__}, not a list")
+    bad = [n for n, note in enumerate(notes, 1) if not (isinstance(note, dict) and isinstance(note.get("text", ""), str))]
+    if bad:
+        raise ImportProblem(_("This file is not a notes export: it should hold a list of notes."),
+                            f"{len(bad)} of {len(notes)} entries are not notes with a text; the first is number {bad[0]}")
     return notes
 
 
@@ -264,13 +280,20 @@ def folder_list(text):
 @transaction.atomic
 def import_file(upload, user, skip_folders=None):
     """Read the export and fill the review queue. Returns the ImportBatch with its counts.
-    `skip_folders` are the Apple Notes folders to leave out; without it, the list in the settings is used."""
-    notes = read_export(upload)
+    `skip_folders` are the Apple Notes folders to leave out; without it, the list in the settings is used.
+    A note that cannot be read is left out and written to errors.log (its number in the file, never its text);
+    the batch's `unreadable` says how many there were."""
+    try:
+        notes = read_export(upload)
+    except ImportProblem as problem:
+        logger.warning("Notes import refused: file=%r by %s: %s", upload.name, user.label, problem.reason)
+        raise
     batch = ImportBatch.objects.create(file_name=upload.name[:200], uploaded_by=user, notes_read=len(notes))
+    batch.unreadable = 0
     skip_folders = {folder.lower() for folder in (settings.IMPORT_SKIP_FOLDERS if skip_folders is None else skip_folders)}
     known = set(ImportedNote.objects.values_list("digest", flat=True))
     any_accounts = Account.objects.exists()               # with no customers yet, there is nobody to match
-    for raw in notes:
+    for row, raw in enumerate(notes, 1):
         text = (raw.get("text") or "").replace("\r\n", "\n").replace("￼", "").strip()      # ￼ marks a picture
         title = str(raw.get("title") or "").replace("￼", "").strip()[:200]
         folder = str(raw.get("folder") or "").strip()
@@ -284,15 +307,23 @@ def import_file(upload, user, skip_folders=None):
         if digest in known:
             batch.duplicates += 1
             continue
-        known.add(digest)
-        parsed = read_note(text)
-        proposal, account, reason = propose(parsed, text, look=any_accounts)
-        ImportedNote.objects.create(
-            batch=batch, digest=digest, title=title or text.splitlines()[0][:200], text=text, folder=folder[:120],
-            noted_on=note_date(raw.get("created")), proposal=proposal, account=account, match_reason=reason,
-            parsed_name=parsed["name"][:160], parsed_street=parsed["street"][:160], parsed_city=parsed["city"][:80],
-            parsed_zip=parsed["zip_code"][:10], parsed_phone=parsed["phone"][:30], parsed_email=parsed["email"][:160])
+        try:
+            with transaction.atomic():                   # one note that fails leaves the others alone
+                parsed = read_note(text)
+                proposal, account, reason = propose(parsed, text, look=any_accounts)
+                ImportedNote.objects.create(
+                    batch=batch, digest=digest, title=title or text.splitlines()[0][:200], text=text, folder=folder[:120],
+                    noted_on=note_date(raw.get("created")), proposal=proposal, account=account, match_reason=reason,
+                    parsed_name=parsed["name"][:160], parsed_street=parsed["street"][:160], parsed_city=parsed["city"][:80],
+                    parsed_zip=parsed["zip_code"][:10], parsed_phone=parsed["phone"][:30], parsed_email=parsed["email"][:160])
+        except Exception:
+            batch.unreadable += 1
+            logger.exception("Notes import: note number %s of %r (folder %r) could not be read, by %s", row, upload.name, folder, user.label)
+        else:
+            known.add(digest)
     batch.save()
+    if batch.unreadable:
+        logger.warning("Notes import: %s of %s notes in %r could not be read (see the errors above), by %s", batch.unreadable, len(notes), upload.name, user.label)
     return batch
 
 

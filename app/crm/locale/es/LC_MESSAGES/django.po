@@ -3449,3 +3449,96 @@ msgstr "Personas"
 
 msgid "Companies"
 msgstr "Compañías"
+
+msgid "Disk space and memory"
+msgstr "Espacio en disco y memoria"
+
+msgid "Low"
+msgstr "Bajo"
+
+msgid "Disk space"
+msgstr "Espacio en disco"
+
+msgid "Memory (RAM)"
+msgstr "Memoria (RAM)"
+
+msgid "%(free)s free of %(total)s (%(percent)s%%)"
+msgstr "%(free)s libres de %(total)s (%(percent)s%%)"
+
+msgid "Taken"
+msgstr "Tomada"
+
+msgid "No reading yet. The scheduled command takes one every 15 minutes."
+msgstr "Todavía no hay ninguna lectura. El comando programado toma una cada 15 minutos."
+
+msgid "A reading turns red below %(gb)s GB or %(percent)s%% of a drive, or below %(ram)s MB of memory. Then the administrators are emailed and a line is added to the Setup history, once a day. The limits are DISK_MIN_GB, DISK_MIN_PERCENT and RAM_MIN_MB in the .env file."
+msgstr "Una lectura se pone en rojo por debajo de %(gb)s GB o del %(percent)s%% de una unidad, o por debajo de %(ram)s MB de memoria. Entonces se envía un correo a los administradores y se agrega una línea al Historial de configuración, una vez al día. Los límites son DISK_MIN_GB, DISK_MIN_PERCENT y RAM_MIN_MB en el archivo .env."
+
+msgid "Error log"
+msgstr "Registro de errores"
+
+msgid "Download errors.log"
+msgstr "Descargar errors.log"
+
+msgid "Download changes.log"
+msgstr "Descargar changes.log"
+
+msgid "The last 50 lines of errors.log, newest at the bottom."
+msgstr "Las últimas 50 líneas de errors.log, las más nuevas al final."
+
+msgid "Nothing has been written to the error log yet."
+msgstr "Todavía no se ha escrito nada en el registro de errores."
+
+msgid "errors.log holds every error with its full detail, and everything the app could not do: an import, a file, an email, the website's form. changes.log has one line for every change anyone made. Both are in the folder %(folder)s and are replaced by a new file at about 5 MB, keeping the last 10."
+msgstr "errors.log guarda cada error con todo su detalle, y todo lo que la aplicación no pudo hacer: una importación, un archivo, un correo, el formulario del sitio web. changes.log tiene una línea por cada cambio que hizo alguien. Ambos están en la carpeta %(folder)s y se reemplazan por un archivo nuevo a los 5 MB aproximadamente, conservando los últimos 10."
+
+msgid "The changes could not be undone and nothing was changed. The reason is in the error log (Admin, System status)."
+msgstr "No se pudieron deshacer los cambios y no se cambió nada. El motivo está en el registro de errores (Administración, Estado del sistema)."
+
+msgid "The changes could not be saved and nothing was changed. The reason is in the error log (Admin, System status)."
+msgstr "No se pudieron guardar los cambios y no se cambió nada. El motivo está en el registro de errores (Administración, Estado del sistema)."
+
+msgid "%(name)s could not be saved. The reason is in the error log (Admin, System status)."
+msgstr "No se pudo guardar %(name)s. El motivo está en el registro de errores (Administración, Estado del sistema)."
+
+msgid "Low disk space on the CRM's computer"
+msgstr "Poco espacio en disco en la computadora del CRM"
+
+msgid "Low memory on the CRM's computer"
+msgstr "Poca memoria en la computadora del CRM"
+
+msgid ""
+"The computer that runs the CRM is running out of disk space: %(words)s.\n"
+"\n"
+"Free some space, for example by emptying the Recycle Bin or old backups."
+msgstr ""
+"La computadora que ejecuta el CRM se está quedando sin espacio en disco: %(words)s.\n"
+"\n"
+"Libere espacio, por ejemplo vaciando la Papelera o las copias de seguridad viejas."
+
+msgid ""
+"The computer that runs the CRM is low on memory: %(words)s.\n"
+"\n"
+"If this goes on, restart the computer or ask the administrator to look at it."
+msgstr ""
+"La computadora que ejecuta el CRM tiene poca memoria: %(words)s.\n"
+"\n"
+"Si esto continúa, reinicie la computadora o pida al administrador que la revise."
+
+msgid "%(count)s notes could not be changed and are still in the list. The reason is in the error log (Admin, System status)."
+msgstr "No se pudieron cambiar %(count)s notas y siguen en la lista. El motivo está en el registro de errores (Administración, Estado del sistema)."
+
+msgid "The import failed and nothing was added. The reason is in the error log (Admin, System status)."
+msgstr "La importación falló y no se agregó nada. El motivo está en el registro de errores (Administración, Estado del sistema)."
+
+msgid "%(count)s notes could not be read and were left out. The reason is in the error log (Admin, System status)."
+msgstr "No se pudieron leer %(count)s notas y se dejaron fuera. El motivo está en el registro de errores (Administración, Estado del sistema)."
+
+msgid "Low disk space: %(detail)s"
+msgstr "Poco espacio en disco: %(detail)s"
+
+msgid "Low memory (RAM): %(detail)s"
+msgstr "Poca memoria (RAM): %(detail)s"
+
+msgid "The prices could not be saved and nothing was changed. The reason is in the error log (Admin, System status)."
+msgstr "No se pudieron guardar los precios y no se cambió nada. El motivo está en el registro de errores (Administración, Estado del sistema)."

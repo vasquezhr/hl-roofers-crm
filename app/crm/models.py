@@ -17,6 +17,7 @@ The data model: what the CRM stores.
     PriceItem ──< PriceEntry       the Price Book: every price an item has had. PriceUpload is one uploaded spreadsheet.
     Company                        the business's own name, license, address and terms (one row).
 """
+import logging
 import re
 import secrets
 import uuid
@@ -35,6 +36,9 @@ from django.utils.translation import gettext_lazy as _
 from . import look
 from .dates import range_from_code
 from .history import booking_text, changes_text, file_text, when_text
+
+changes_log = logging.getLogger("crm.changes")             # changes.log: one line for every history line
+
 
 # ---------------------------------------------------------------- small helpers
 def home_state():
@@ -1343,6 +1347,8 @@ class Activity(models.Model):
         "auto_bin": _("Recycle Bin: %(detail)s old entries deleted for good"),
         "auto_switched_on": _("Automation switched on: %(detail)s"), "auto_switched_off": _("Automation switched off: %(detail)s"),
         "data_edited": _("Data editor: %(detail)s changes saved"), "data_undone": _("Data editor: %(detail)s changes undone"),
+        # the health check (python manage.py tick)
+        "low_disk": _("Low disk space: %(detail)s"), "low_ram": _("Low memory (RAM): %(detail)s"),
     }
     # how the stored detail of some kinds is put into words when it is read
     READERS = {"file_added": file_text, "changed": range_from_code, "day_added": range_from_code, "day_removed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
@@ -1374,9 +1380,51 @@ class Activity(models.Model):
 def log(record, kind, user=None, detail="", actor=""):
     """Add a history line to an account, a lead, an opportunity or a job. The date and time are added by themselves.
     With no record (None), the line is about the app's own setup.
-    `actor` names who did it when it was not a login: a customer accepting online, or the website."""
+    `actor` names who did it when it was not a login: a customer accepting online, or the website.
+    The line is also written to changes.log. A password is never in a detail, so never in the log."""
     target = {} if record is None else {{Account: "account", Lead: "lead", Opportunity: "opportunity", Job: "job"}[type(record)]: record}
-    return Activity.objects.create(**target, kind=kind, detail=detail, user=user, actor=actor or (user.label if user else ""))
+    line = Activity.objects.create(**target, kind=kind, detail=detail, user=user, actor=actor or (user.label if user else ""))
+    write_change_log(line, record)
+    return line
+
+
+# what a note says is not copied to changes.log: it is free text, and it may hold a gate code
+NOT_COPIED = {"note", "lead_attached"}
+
+
+def write_change_log(line, record):
+    """changes.log: who, which record, what kind of change and what it says, in English, on one line."""
+    if record is None:
+        where = "setup"
+    else:
+        where = f"{type(record).__name__.lower()} {getattr(record, 'number', None) or record.pk}"
+    with translation.override("en"):
+        words = "(text not copied)" if line.kind in NOT_COPIED else " ".join(line.text.split())[:400]
+    changes_log.info("who=%s record=%s kind=%s | %s", line.actor or "-", where, line.kind, words)
+
+
+class HealthReading(models.Model):
+    """One reading of free disk space or free memory, taken by `python manage.py tick` (see health.py).
+    Admin > System status shows the latest of each."""
+
+    class Kind(models.TextChoices):
+        DISK = "disk", _("Disk space")
+        RAM = "ram", _("Memory (RAM)")
+
+    kind = models.CharField(max_length=4, choices=Kind.choices)
+    place = models.CharField(max_length=300)                    # the folder on the drive, or "memory"
+    names = models.CharField(max_length=200, blank=True)        # what lives there: "database, photos and files"
+    free_mb = models.BigIntegerField()
+    total_mb = models.BigIntegerField()
+    low = models.BooleanField(default=False)                    # below a limit set in .env when it was taken
+    taken_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-taken_at", "-id"]
+
+    @property
+    def percent_free(self):
+        return round(self.free_mb * 100 / self.total_mb) if self.total_mb else 0
 
 
 # ---------------------------------------------------------------- the Apple Notes import

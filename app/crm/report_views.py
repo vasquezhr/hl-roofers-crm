@@ -16,7 +16,7 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import formats
 
-from . import reports, scheduling
+from . import health, reports, scheduling
 from .access import admin_only, office_only
 from .admin_views import backup_copies, clock_state
 from .models import Company, Job, Opportunity, PriceUpload
@@ -44,6 +44,7 @@ def dashboard(request):
     (last_month, last), (before_month, before) = totals[-1], totals[-2]
     change = reports.percent(last - before, before)                      # None when there is nothing to compare with
     week = scheduling.week()
+    readings = health.latest()
     return render(request, "crm/dashboard.html", {
         "day": day, **today_counts(), **drawings,
         "revenue_last": last, "last_month": reports.month_name(last_month), "before_month": formats.date_format(before_month, "F"),
@@ -52,6 +53,7 @@ def dashboard(request):
         "inspections_open": Opportunity.objects.filter(stage=Opportunity.Stage.INSPECTION).count(),
         "last_upload": PriceUpload.objects.filter(rolled_back_at__isnull=True).first(),
         "copies": backup_copies(), "clock": clock_state(Company.load()),
+        "health_known": bool(readings), "health_low": any(reading.low for reading in readings),
     })
 
 

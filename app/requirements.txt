@@ -7,3 +7,4 @@ polib==1.2.0            # compiles the Spanish translation file (no extra tools 
 reportlab==5.1.0        # draws the proposal and invoice PDFs
 openpyxl==3.1.5         # reads the price spreadsheets and writes the report exports
 zipcodes==3.0.1         # where each ZIP code is, for "near that day's other stops" (works with no internet)
+psutil==7.2.2          # free memory, for the health check in "tick"

@@ -12,7 +12,10 @@ def send(to, subject, body, attachment=None):
 
     With no email set up, the server only has somewhere to send it on a PC, where the email is
     written to the server window. A failure is logged and reported as False; it never breaks the page."""
-    if not (to and settings.EMAIL_READY):
+    if not to:
+        return False
+    if not settings.EMAIL_READY:
+        log.warning("Email not sent, because email is not set up (EMAIL_HOST in .env): to=%s subject=%r", to, subject)
         return False
     message = EmailMessage(subject, body, settings.DEFAULT_FROM_EMAIL, [to] if isinstance(to, str) else list(to))
     if attachment:
@@ -20,5 +23,6 @@ def send(to, subject, body, attachment=None):
     try:
         return message.send() == 1
     except Exception:                                              # a wrong password, no network, a refused address
-        log.exception("Email to %s could not be sent", to)
+        log.exception("Email could not be sent: to=%s subject=%r attachment=%s (a wrong password, no network or a refused address)",
+                      to, subject, attachment[0] if attachment else "none")
         return False
