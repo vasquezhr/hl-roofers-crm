@@ -19,15 +19,16 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import urlencode
+from django.utils.text import slugify
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from . import automations, recycle
 from .access import admin_only, with_permission
-from .forms import LoginDetailsForm
+from .forms import LoginDetailsForm, WorkTypeForm
 from .history import changes, field_changes
 from .models import (LANGS, Account, Attachment, BackupRun, BinEntry, ChangeSet, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, PriceUpload,
-                     Property, User, digits, log)
+                     Property, User, WorkType, digits, log)
 from .views import form_page, page_of, saved
 
 
@@ -343,3 +344,41 @@ def system_status(request):
         "counts": {"accounts": Account.objects.count(), "jobs": Job.objects.count(), "leads": Lead.objects.count()},
         "notes_waiting": ImportedNote.objects.filter(status=ImportedNote.Status.PENDING).count(), "in_bin": BinEntry.objects.count(),
     })
+
+
+
+# ---------------------------------------------------------------- types of work
+@admin_only
+def work_type_list(request):
+    return render(request, "crm/work_types.html", {"kinds": WorkType.objects.all()})
+
+
+def new_key(name):
+    """The word a new type is stored as, made from its English name: "Solar panels" -> solar-panels."""
+    base = slugify(name)[:10] or "type"
+    key, n = base, 2
+    while WorkType.objects.filter(key=key).exists():
+        key, n = f"{base[:9]}{n}", n + 1
+    return key
+
+
+@admin_only
+def work_type_edit(request, pk=None):
+    kind = get_object_or_404(WorkType, pk=pk) if pk else None
+    form = WorkTypeForm(request.POST or None, instance=kind)
+    if form.is_valid():
+        if kind is None:
+            created = form.save(commit=False)
+            created.key = new_key(created.name_en)
+            created.save()
+            log(None, "type_added", request.user, detail=created.name_en)
+        else:
+            form.save()
+            what = changes(form, name=kind.name_en)
+            if what:
+                log(None, "type_edited", request.user, detail=what)
+        saved(request)
+        return redirect("work_types")
+    title = _("Edit the type of work") if kind else _("New type of work")
+    intro = _("A type of work is offered when a request, an opportunity or a job is made. Its usual days are what a new job gets on the schedule.")
+    return form_page(request, form, title, reverse("work_types"), intro=intro)

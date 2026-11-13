@@ -27,7 +27,7 @@ from .access import may_edit, office_only
 from .forms import ConvertForm, LeadEditForm, LeadForm, UnfitForm
 from .history import changes
 from .importer import find_account
-from .models import JOB_TYPES, Account, Contact, Job, Lead, Opportunity, Property, log, street_key
+from .models import Account, Contact, Job, Lead, Opportunity, Property, log, street_key, work_types
 from .views import filter_pills, form_page, page_of, saved
 
 
@@ -163,11 +163,13 @@ def answer(data, status=200):
 
 
 def job_type_from(text):
-    """'gutters', 'Gutters' or 'Canaletas' -> gutters. Anything else is 'other'."""
+    """'gutters', 'Gutters' or 'Canaletas' -> gutters: the type's key, its name in either language, or one of its other words
+    (Admin > Types of work). Anything else is 'other'."""
     text = str(text or "").strip().lower()
-    for key, label in JOB_TYPES:
-        if key != "warranty" and text in (key, str(label).lower()):
-            return key
+    for kind in work_types().values():
+        names = {kind.key, kind.name_en.lower(), kind.name_es.lower()} | {word.strip().lower() for word in kind.words.split(",") if word.strip()}
+        if kind.key != "warranty" and kind.active and text in names:
+            return kind.key
     return "other" if text else "inspection"
 
 

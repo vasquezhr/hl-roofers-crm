@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Types of work" %}{% endblock %}
+
+{# The types of work this business sells. Each business sets its own. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'admin_home' %}">‹ {% trans "Admin" %}</a>
+<div class="d-flex align-items-start gap-2 mb-3">
+  <div class="flex-grow-1 hl-minw0">
+    <h1 class="h4 mb-0">{% trans "Types of work" %}</h1>
+    <div class="text-body-secondary small">{% trans "What the business sells, in English and Spanish. Inspection, Warranty visit and Other are built in." %}</div>
+  </div>
+  <a class="btn btn-primary btn-sm text-nowrap" href="{% url 'work_type_new' %}">{% icon "plus" %} {% trans "New type of work" %}</a>
+</div>
+<div class="card shadow-sm mb-3">
+  <div class="table-responsive">
+    <table class="table table-sm align-middle small mb-0">
+      <thead><tr><th class="ps-3">{% trans "English" %}</th><th>{% trans "Spanish" %}</th><th class="text-end">{% trans "Usual days" %}</th><th>{% trans "Revenue report" %}</th><th></th><th></th></tr></thead>
+      <tbody>
+        {% for kind in kinds %}
+        <tr{% if not kind.active %} class="text-body-secondary"{% endif %}>
+          <td class="ps-3 fw-semibold">{{ kind.name_en }}</td>
+          <td>{{ kind.name_es }}</td>
+          <td class="text-end">{{ kind.days }}</td>
+          <td>{% if kind.in_revenue_report or kind.key == "other" %}{% trans "Own column" %}{% else %}<span class="text-body-secondary">{% trans "Other" %}</span>{% endif %}</td>
+          <td>{% if kind.built_in %}{% trans "Built in" as built %}{% badge built "secondary" %}{% elif not kind.active %}{% trans "Not offered" as off %}{% badge off "secondary" %}{% endif %}</td>
+          <td class="text-end pe-3"><a class="btn btn-outline-secondary btn-sm" href="{% url 'work_type_edit' kind.pk %}">{% icon "edit" %} {% trans "Edit" %}</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

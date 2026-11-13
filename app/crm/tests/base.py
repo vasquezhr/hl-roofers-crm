@@ -4,7 +4,7 @@ from datetime import date
 from django.test import TestCase
 from django.utils import timezone, translation
 
-from crm.models import Account, Contact, Crew, Opportunity, Property, User, Worker
+from crm.models import Account, Contact, Crew, Opportunity, Property, User, Worker, forget_work_types
 
 MONDAY, FRIDAY, SATURDAY = date(2026, 11, 9), date(2026, 11, 13), date(2026, 11, 14)
 
@@ -15,8 +15,9 @@ def number(n):
 
 
 class StartInEnglish:
-    """Every test starts in English, whatever language the test before it left switched on."""
+    """Every test starts in English, whatever language the test before it left switched on, and reads the types of work afresh."""
     def __call__(self, result=None):
+        forget_work_types()
         with translation.override("en"):
             return super().__call__(result)
 

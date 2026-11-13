@@ -4,10 +4,14 @@ from django.contrib.auth import password_validation
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils.translation import gettext_lazy as _
 
-from .models import (EDIT_OBJECTS, JOB_TYPES, LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment,
-                     PriceItem, Property, User, Worker, is_day_off)
+from .models import (EDIT_OBJECTS, LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment,
+                     PriceItem, Property, User, Worker, WorkType, is_day_off, type_choices, work_types)
 
-JOB_TYPES_TO_SELL = [choice for choice in JOB_TYPES if choice[0] != "warranty"]      # a warranty visit is opened from a job, never sold
+
+
+def type_box():
+    """The type of work, picked from the business's own list (Admin > Types of work)."""
+    return forms.ChoiceField(label=_("Type of work"), choices=type_choices)
 
 
 class Bootstrap:
@@ -91,6 +95,8 @@ class NoteForm(Bootstrap, forms.Form):
 
 # ---------- opportunities ----------
 class OpportunityForm(Bootstrap, forms.ModelForm):
+    job_type = type_box()
+
     class Meta:
         model = Opportunity
         fields = ["place", "job_type", "source", "labor_only", "description"]
@@ -102,7 +108,6 @@ class OpportunityForm(Bootstrap, forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["place"].queryset = account.properties.all()
         self.fields["place"].empty_label = None
-        self.fields["job_type"].choices = JOB_TYPES_TO_SELL
         self.fields["source"].choices = [("", "---------")] + list(Opportunity.Source.choices)
 
 
@@ -208,6 +213,8 @@ class ImportedNoteForm(Bootstrap, forms.Form):
 # ---------- leads ----------
 class LeadForm(Bootstrap, forms.ModelForm):
     """A request typed in by the office, or sent by the website's form."""
+    job_type = type_box()
+
     class Meta:
         model = Lead
         fields = ["name", "phone", "email", "street", "city", "state", "zip_code", "job_type", "message", "language", "source"]
@@ -215,7 +222,6 @@ class LeadForm(Bootstrap, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["job_type"].choices = JOB_TYPES_TO_SELL
 
     def clean(self):
         data = super().clean()
@@ -226,7 +232,7 @@ class LeadForm(Bootstrap, forms.ModelForm):
 
 class ConvertForm(Bootstrap, forms.Form):
     """Convert a lead: the type of work, and (for a customer with an open job) where the request goes."""
-    job_type = forms.ChoiceField(label=_("Type of work"), choices=JOB_TYPES_TO_SELL)
+    job_type = type_box()
     add_to_job = forms.ChoiceField(label=_("What should happen?"), widget=forms.RadioSelect, required=False)
 
     def __init__(self, *args, open_job=None, **kwargs):
@@ -391,6 +397,8 @@ class LeadEditForm(LeadForm):
 
 
 class OpportunityEditForm(Bootstrap, forms.ModelForm):
+    job_type = type_box()
+
     class Meta:
         model = Opportunity
         fields = ["place", "job_type", "source", "labor_only", "description", "lost_reason"]
@@ -403,7 +411,6 @@ class OpportunityEditForm(Bootstrap, forms.ModelForm):
         opp = self.instance
         self.fields["place"].queryset = opp.account.properties.all()
         self.fields["place"].empty_label = None
-        self.fields["job_type"].choices = JOB_TYPES_TO_SELL
         if opp.proposal_lines.exists():
             del self.fields["description"]                          # the proposal builder keeps it in step with the lines
         if opp.stage != Opportunity.Stage.LOST:
@@ -411,6 +418,8 @@ class OpportunityEditForm(Bootstrap, forms.ModelForm):
 
 
 class JobEditForm(Bootstrap, forms.ModelForm):
+    job_type = type_box()
+
     class Meta:
         model = Job
         fields = ["place", "job_type", "price", "labor_only", "scope", "ref_type", "ref_number"]
@@ -423,10 +432,8 @@ class JobEditForm(Bootstrap, forms.ModelForm):
         self.fields["place"].empty_label = None
         if self.instance.is_warranty:
             del self.fields["price"]
-            self.fields["job_type"].choices = [choice for choice in JOB_TYPES if choice[0] == "warranty"]
-        else:
-            self.fields["job_type"].choices = JOB_TYPES_TO_SELL
-
+            self.fields["job_type"].choices = [("warranty", work_types()["warranty"].name)]
+    
     def clean(self):
         data = super().clean()
         if data.get("ref_number") and not data.get("ref_type"):
@@ -448,3 +455,23 @@ class NoteEditForm(Bootstrap, forms.ModelForm):
         model = Note
         fields = ["text", "noted_on"]
         widgets = {"text": forms.Textarea(attrs={"rows": 6}), "noted_on": date_box()}
+
+
+class WorkTypeForm(Bootstrap, forms.ModelForm):
+    """A type of work. The three built in (Inspection, Warranty visit, Other) are always offered."""
+    class Meta:
+        model = WorkType
+        fields = ["name_en", "name_es", "days", "in_revenue_report", "words", "position", "active"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk and self.instance.built_in:
+            del self.fields["active"]
+            if self.instance.key == "other":
+                del self.fields["in_revenue_report"]            # "Other" is always a column of its own
+
+    def clean_days(self):
+        days = self.cleaned_data["days"]
+        if not 1 <= days <= 60:
+            raise forms.ValidationError(_("Enter a number of days from 1 to 60."))
+        return days

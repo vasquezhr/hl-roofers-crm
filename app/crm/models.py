@@ -29,7 +29,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
-from django.utils import timezone
+from django.utils import timezone, translation
 from django.utils.translation import gettext_lazy as _
 
 from .dates import range_from_code
@@ -74,13 +74,39 @@ def street_key(text):
 
 
 LANGS = [("en", _("English")), ("es", _("Spanish"))]
-JOB_TYPES = [
-    ("repair", _("Repair")), ("replacement", _("Roof replacement")), ("gutters", _("Gutters")), ("tpo", _("Flat roof (TPO)")),
-    ("siding", _("Siding")), ("chimney", _("Chimney")), ("skylight", _("Skylight")), ("metal", _("Metal roof")),
-    ("soffit", _("Soffit, fascia and trim")), ("inspection", _("Inspection")), ("warranty", _("Warranty visit")), ("other", _("Other")),
-]
-# how many work days a job gets by default when it is scheduled
-DAYS_BY_TYPE = {"replacement": 2, "tpo": 2, "metal": 2, "siding": 3}
+# ---------------------------------------------------------------- types of work: set by each business (Admin > Types of work)
+_types = None                                   # every type, read once and read again after one is saved
+
+
+def work_types():
+    """Every type of work, in order: {key: WorkType}."""
+    global _types
+    if _types is None:
+        _types = {kind.key: kind for kind in WorkType.objects.all()}
+    return _types
+
+
+def forget_work_types():
+    global _types
+    _types = None
+
+
+def type_name(key):
+    """A type of work's name in the reader's language: "repair" -> Repair, or Reparación."""
+    kind = work_types().get(key)
+    return kind.name if kind else key
+
+
+def type_choices(sell=True):
+    """The types of work to pick from. A warranty visit is opened from a finished job, never sold, so it is left out to sell."""
+    return [(kind.key, kind.name) for kind in work_types().values() if kind.active and not (sell and kind.key == "warranty")]
+
+
+def type_days(key):
+    kind = work_types().get(key)
+    return kind.days if kind else 1
+
+
 
 
 # ---------------------------------------------------------------- what a login may edit, object by object
@@ -528,7 +554,7 @@ class Opportunity(models.Model):
     account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name="opportunities")
     # "place" is the property where the work is done ("property" is a reserved word in Python classes)
     place = models.ForeignKey(Property, verbose_name=_("property"), on_delete=models.PROTECT, related_name="opportunities")
-    job_type = models.CharField(_("type of work"), max_length=12, choices=JOB_TYPES, default="repair")
+    job_type = models.CharField(_("type of work"), max_length=12, default="repair")
     stage = models.CharField(_("stage"), max_length=10, choices=Stage.choices, default=Stage.INSPECTION)
     source = models.CharField(_("where it came from"), max_length=10, choices=Source.choices, default=Source.REPEAT)
     labor_only = models.BooleanField(_("labor only"), default=False, help_text=_("The customer supplies the materials."))
@@ -555,6 +581,9 @@ class Opportunity(models.Model):
     class Meta:
         ordering = ["-created_at"]
         verbose_name, verbose_name_plural = _("opportunity"), _("opportunities")
+
+    def get_job_type_display(self):
+        return type_name(self.job_type)
 
     def __str__(self):
         return f"#{self.number} {self.account}"
@@ -621,7 +650,7 @@ class Opportunity(models.Model):
             self.save()
             return Job.objects.create(number=self.number, opportunity=self, account=self.account, place=self.place,
                                       job_type=self.job_type, price=self.total or 0, labor_only=self.labor_only,
-                                      scope=self.description, days=DAYS_BY_TYPE.get(self.job_type, 1))
+                                      scope=self.description, days=type_days(self.job_type))
 
 
 class ProposalLine(models.Model):
@@ -662,7 +691,7 @@ class Job(models.Model):
     warranty_for = models.ForeignKey("self", null=True, blank=True, on_delete=models.PROTECT, related_name="warranty_jobs")
     account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name="jobs")
     place = models.ForeignKey(Property, verbose_name=_("property"), on_delete=models.PROTECT, related_name="jobs")
-    job_type = models.CharField(_("type of work"), max_length=12, choices=JOB_TYPES, default="repair")
+    job_type = models.CharField(_("type of work"), max_length=12, default="repair")
     stage = models.CharField(_("stage"), max_length=10, choices=Stage.choices, default=Stage.SIGNED)
     price = models.DecimalField(_("price"), max_digits=10, decimal_places=2, default=0)
     labor_only = models.BooleanField(_("labor only"), default=False)
@@ -697,6 +726,9 @@ class Job(models.Model):
     class Meta:
         ordering = ["first_day", "id"]
         verbose_name, verbose_name_plural = _("job"), _("jobs")
+
+    def get_job_type_display(self):
+        return type_name(self.job_type)
 
     def __str__(self):
         return f"#{self.number} {self.account}"
@@ -921,7 +953,7 @@ class Lead(models.Model):
     city = models.CharField(_("city"), max_length=80, blank=True)
     state = models.CharField(_("state"), max_length=2, default="VA", blank=True)
     zip_code = models.CharField(_("ZIP"), max_length=10, blank=True)
-    job_type = models.CharField(_("type of work"), max_length=12, choices=JOB_TYPES, default="inspection")
+    job_type = models.CharField(_("type of work"), max_length=12, default="inspection")
     message = models.TextField(_("what they asked for"), blank=True)
     language = models.CharField(_("language"), max_length=2, choices=LANGS, default="en")
     source = models.CharField(_("where it came from"), max_length=10, choices=Opportunity.Source.choices, default=Opportunity.Source.WEB)
@@ -942,6 +974,9 @@ class Lead(models.Model):
     class Meta:
         ordering = ["-received_at"]
         verbose_name, verbose_name_plural = _("lead"), _("leads")
+
+    def get_job_type_display(self):
+        return type_name(self.job_type)
 
     def __str__(self):
         return self.name
@@ -1028,6 +1063,48 @@ class PriceEntry(models.Model):
 
     class Meta:
         ordering = ["effective_on", "id"]
+
+
+# ---------------------------------------------------------------- types of work
+class WorkType(models.Model):
+    """A type of work the business sells: Repair, Roof replacement, Gutters... Each business sets its own on
+    Admin > Types of work. Three are built in and are always offered: Inspection (where a request starts),
+    Warranty visit (opened from a finished job) and Other."""
+    BUILT_IN = ["inspection", "warranty", "other"]
+
+    key = models.SlugField(max_length=12, unique=True, editable=False)     # what leads, opportunities and jobs store
+    name_en = models.CharField(_("name in English"), max_length=60)
+    name_es = models.CharField(_("name in Spanish"), max_length=60)
+    days = models.PositiveSmallIntegerField(_("work days a job usually takes"), default=1)
+    in_revenue_report = models.BooleanField(_("its own column in the revenue report"), default=False)
+    words = models.CharField(_("other words for it"), max_length=300, blank=True,
+                             help_text=_("Words the website's form may send for this type, separated by commas."))
+    position = models.PositiveSmallIntegerField(_("place in the list"), default=0)
+    active = models.BooleanField(_("offered"), default=True, help_text=_("Switched off, it is no longer offered, and old records keep it."))
+
+    class Meta:
+        ordering = ["position", "id"]
+        verbose_name, verbose_name_plural = _("type of work"), _("types of work")
+
+    def __str__(self):
+        return self.name_en
+
+    @property
+    def name(self):
+        return self.name_es if (translation.get_language() or "").startswith("es") else self.name_en
+
+    @property
+    def built_in(self):
+        return self.key in self.BUILT_IN
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        forget_work_types()
+
+    def delete(self, *args, **kwargs):
+        result = super().delete(*args, **kwargs)
+        forget_work_types()
+        return result
 
 
 # ---------------------------------------------------------------- the Recycle Bin's entries
@@ -1217,6 +1294,7 @@ class Activity(models.Model):
         "notes_uploaded": _("Notes file uploaded: %(detail)s"), "notes_skipped": _("Imported notes skipped: %(detail)s"),
         "notes_unlinked": _("Imported notes kept with no customer: %(detail)s"),
         "calendar_reset": _("Calendar address replaced: %(detail)s"),
+        "type_added": _("Type of work added: %(detail)s"), "type_edited": _("Type of work changed: %(detail)s"),
         "login_added": _("Login added: %(detail)s"), "login_edited": _("Login changed: %(detail)s"),
         "login_password": _("Password changed for %(detail)s"),
         # deleting, and the Recycle Bin
@@ -1239,7 +1317,7 @@ class Activity(models.Model):
     # how the stored detail of some kinds is put into words when it is read
     READERS = {"file_added": file_text, "changed": range_from_code, "day_added": range_from_code, "day_removed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
                "edited": changes_text, "contact_edited": changes_text, "property_edited": changes_text,
-               "company_edited": changes_text, "price_set": changes_text, "login_edited": changes_text, "note_edited": changes_text}
+               "type_edited": changes_text, "company_edited": changes_text, "price_set": changes_text, "login_edited": changes_text, "note_edited": changes_text}
 
     lead = models.ForeignKey("Lead", null=True, blank=True, on_delete=models.CASCADE, related_name="activities")
     account = models.ForeignKey(Account, null=True, blank=True, on_delete=models.CASCADE, related_name="activities")

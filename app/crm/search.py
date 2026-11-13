@@ -17,7 +17,7 @@ from django.db.models.lookups import GreaterThanOrEqual
 from django.utils.translation import gettext as _
 
 from .access import jobs_for
-from .models import JOB_TYPES, Account, Contact, Lead, Note, Opportunity, Property, digits, street_key
+from .models import Account, Contact, Lead, Note, Opportunity, Property, digits, street_key, work_types
 
 LIMIT = 25          # rows shown in each group
 CLOSE = 0.45        # how alike two spellings must be, from 0 (nothing in common) to 1 (the same)
@@ -30,7 +30,7 @@ def words_of(q):
 
 def job_types_matching(word):
     """Typing "gutters" (or "canalones" in Spanish) finds gutter jobs."""
-    return [key for key, label in JOB_TYPES if len(word) >= 3 and word in str(label).lower()]
+    return [kind.key for kind in work_types().values() if len(word) >= 3 and (word in kind.name_en.lower() or word in kind.name_es.lower())]
 
 
 def phone_part(word):

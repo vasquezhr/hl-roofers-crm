@@ -89,6 +89,9 @@ def shown(field, text):
     if text == "":
         return _("empty")
     if field is not None:
+        if field.name == "job_type":                                # the type's name in the reader's language
+            from .models import type_name
+            return type_name(text)
         if field.name == "edit_objects":                            # the kinds of record a login may edit
             from .models import EDIT_OBJECTS
             labels = dict(EDIT_OBJECTS)

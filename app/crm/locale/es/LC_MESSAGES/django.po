@@ -334,6 +334,12 @@ msgstr "Datos de la compañía"
 msgid "The name, license, address, phone and terms printed on proposals and invoices."
 msgstr "El nombre, la licencia, la dirección, el teléfono y los términos que se imprimen en las propuestas y facturas."
 
+msgid "Types of work"
+msgstr "Tipos de trabajo"
+
+msgid "What the business sells, in both languages, with the usual number of days."
+msgstr "Lo que vende el negocio, en los dos idiomas, con los días de costumbre."
+
 msgid "Users and permissions"
 msgstr "Usuarios y permisos"
 
@@ -1498,6 +1504,36 @@ msgstr "Un teléfono se queda con la sesión abierta 30 días, para que nadie es
 msgid "To take a login away, turn off 'Can sign in'. Its name stays in the history."
 msgstr "Para retirar un usuario, apague 'Puede entrar'. Su nombre se queda en el historial."
 
+msgid "What the business sells, in English and Spanish. Inspection, Warranty visit and Other are built in."
+msgstr "Lo que vende el negocio, en inglés y en español. Inspección, Visita de garantía y Otro vienen incluidos."
+
+msgid "New type of work"
+msgstr "Tipo de trabajo nuevo"
+
+msgid "English"
+msgstr "Inglés"
+
+msgid "Spanish"
+msgstr "Español"
+
+msgid "Usual days"
+msgstr "Días de costumbre"
+
+msgid "Revenue report"
+msgstr "Reporte de ingresos"
+
+msgid "Own column"
+msgstr "Columna propia"
+
+msgid "Other"
+msgstr "Otro"
+
+msgid "Built in"
+msgstr "Incluido"
+
+msgid "Not offered"
+msgstr "No se ofrece"
+
 msgid "Sign in"
 msgstr "Entrar"
 
@@ -1525,6 +1561,9 @@ msgstr "Fechas"
 msgid "Each login has one profile. Permission sets add to it: the first six are for an Office login, and Crew Lead is for a Crew login. The Administrator profile has all of them."
 msgstr "Cada usuario tiene un perfil. Los permisos adicionales se suman: los primeros seis son para un usuario de Oficina, y Líder de equipo es para un usuario de Equipo. El perfil Administrador los tiene todos."
 
+msgid "A type of work is offered when a request, an opportunity or a job is made. Its usual days are what a new job gets on the schedule."
+msgstr "Un tipo de trabajo se ofrece al crear una solicitud, una oportunidad o un trabajo. Sus días de costumbre son los que un trabajo nuevo recibe en la agenda."
+
 msgid "A name cannot be empty."
 msgstr "El nombre no puede quedar vacío."
 
@@ -1533,6 +1572,9 @@ msgstr "Un teléfono necesita 10 dígitos."
 
 msgid "Pick a language."
 msgstr "Escoja un idioma."
+
+msgid "Edit the type of work"
+msgstr "Editar el tipo de trabajo"
 
 msgid "Deleted for good: %(detail)s"
 msgstr "Eliminado para siempre: %(detail)s"
@@ -2022,45 +2064,6 @@ msgstr "Todos"
 msgid "Open"
 msgstr "Abiertos"
 
-msgid "English"
-msgstr "Inglés"
-
-msgid "Spanish"
-msgstr "Español"
-
-msgid "Repair"
-msgstr "Reparación"
-
-msgid "Roof replacement"
-msgstr "Techo nuevo"
-
-msgid "Gutters"
-msgstr "Canaletas"
-
-msgid "Flat roof (TPO)"
-msgstr "Techo plano (TPO)"
-
-msgid "Siding"
-msgstr "Siding"
-
-msgid "Chimney"
-msgstr "Chimenea"
-
-msgid "Skylight"
-msgstr "Tragaluz"
-
-msgid "Metal roof"
-msgstr "Techo de metal"
-
-msgid "Soffit, fascia and trim"
-msgstr "Soffit, fascia y molduras"
-
-msgid "Warranty visit"
-msgstr "Visita de garantía"
-
-msgid "Other"
-msgstr "Otro"
-
 msgid "Notes in Details"
 msgstr "Notas en Detalles"
 
@@ -2283,6 +2286,27 @@ msgstr "artículo"
 msgid "selling price"
 msgstr "precio de venta"
 
+msgid "name in English"
+msgstr "nombre en inglés"
+
+msgid "name in Spanish"
+msgstr "nombre en español"
+
+msgid "work days a job usually takes"
+msgstr "días de trabajo que suele tomar"
+
+msgid "its own column in the revenue report"
+msgstr "columna propia en el reporte de ingresos"
+
+msgid "other words for it"
+msgstr "otras palabras para este tipo"
+
+msgid "place in the list"
+msgstr "lugar en la lista"
+
+msgid "offered"
+msgstr "se ofrece"
+
 msgid "what it is"
 msgstr "qué es"
 
@@ -2480,6 +2504,12 @@ msgstr "Notas importadas guardadas sin cliente: %(detail)s"
 
 msgid "Calendar address replaced: %(detail)s"
 msgstr "Dirección del calendario reemplazada: %(detail)s"
+
+msgid "Type of work added: %(detail)s"
+msgstr "Tipo de trabajo agregado: %(detail)s"
+
+msgid "Type of work changed: %(detail)s"
+msgstr "Tipo de trabajo cambiado: %(detail)s"
 
 msgid "Login changed: %(detail)s"
 msgstr "Usuario cambiado: %(detail)s"
@@ -2819,6 +2849,15 @@ msgstr "artículo de la lista de precios"
 
 msgid "price book items"
 msgstr "artículos de la lista de precios"
+
+msgid "Words the website's form may send for this type, separated by commas."
+msgstr "Palabras que el formulario del sitio web puede enviar para este tipo, separadas por comas."
+
+msgid "Switched off, it is no longer offered, and old records keep it."
+msgstr "Apagado, ya no se ofrece, y los registros anteriores lo conservan."
+
+msgid "types of work"
+msgstr "tipos de trabajo"
 
 msgid "During the work"
 msgstr "Durante el trabajo"

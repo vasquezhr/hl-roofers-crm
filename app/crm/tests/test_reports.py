@@ -53,8 +53,8 @@ class Numbers(AsIfNovember):
         self.paid_job(date(2026, 9, 15), 1120, "chimney")                           # a type with no column of its own: Other
         self.paid_job(date(2025, 12, 30), 5000)                                     # last year: outside "This year"
         columns, rows = reports.revenue(*reports.span("y"))
-        self.assertEqual([label for label, _kind in columns], ["Month", "Roof replacement", "Repair", "Gutters", "Siding", "Other", "Total"])
-        self.assertEqual(rows, [["October 2026", 2800, 690, 0, 0, 0, 3490], ["September 2026", 0, 0, 0, 0, 1120, 1120], ["Total", 2800, 690, 0, 0, 1120, 4610]])
+        self.assertEqual([label for label, _kind in columns], ["Month", "Repair", "Roof replacement", "Gutters", "Siding", "Other", "Total"])   # as on Types of work
+        self.assertEqual(rows, [["October 2026", 690, 2800, 0, 0, 0, 3490], ["September 2026", 0, 0, 0, 0, 1120, 1120], ["Total", 690, 2800, 0, 0, 1120, 4610]])
         self.assertEqual(reports.revenue(*reports.span("m"))[1], [])                # nothing this month
 
     def test_a_deleted_job_leaves_the_numbers(self):
@@ -166,8 +166,8 @@ class Pages(AsIfNovember):
         text = self.client.get(address, {"range": "y", "export": 1}).content.decode("utf-8")
         self.assertTrue(text.startswith("﻿"))                                  # so Excel reads accents the right way
         rows = list(csv.reader(io.StringIO(text.lstrip("﻿"))))
-        self.assertEqual(rows[0], ["Month", "Roof replacement", "Repair", "Gutters", "Siding", "Other", "Total"])
-        self.assertEqual(rows[1], ["October 2026", "2800.00", "0.00", "0.00", "0.00", "0.00", "2800.00"])     # plain numbers a spreadsheet can add up
+        self.assertEqual(rows[0], ["Month", "Repair", "Roof replacement", "Gutters", "Siding", "Other", "Total"])
+        self.assertEqual(rows[1], ["October 2026", "0.00", "2800.00", "0.00", "0.00", "0.00", "2800.00"])     # plain numbers a spreadsheet can add up
         self.assertEqual(rows[-1][-1], "4550.00")
 
     def test_crews_never_see_reports(self):

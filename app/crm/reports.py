@@ -19,10 +19,12 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
 from .documents import money
-from .models import Crew, Job, Lead, Opportunity, Payment, PriceItem
+from .models import Crew, Job, Lead, Opportunity, Payment, PriceItem, type_name, work_types
 
 RANGES = [("m", gettext_lazy("This month")), ("q", gettext_lazy("Last 3 months")), ("y", gettext_lazy("This year"))]
-REVENUE_TYPES = ["replacement", "repair", "gutters", "siding"]         # the columns of the revenue report; every other type is "Other"
+def revenue_types():
+    """The types of work with a column of their own in the revenue report (Admin > Types of work); every other type is "Other"."""
+    return [kind.key for kind in work_types().values() if kind.in_revenue_report and kind.key != "other"]
 
 
 # ---------------------------------------------------------------- periods
@@ -68,10 +70,10 @@ def percent(part, whole):
 # ---------------------------------------------------------------- the reports
 def revenue_sums(start, end):
     """Money received from `start` to `end`: {first day of the month: {type of work or "other": amount}}"""
-    sums = {}
+    sums, columns = {}, revenue_types()
     payments = Payment.objects.filter(paid_on__range=(start, end), job__bin__isnull=True).values_list("paid_on", "job__job_type", "amount")
     for paid_on, job_type, amount in payments:
-        column = job_type if job_type in REVENUE_TYPES else "other"
+        column = job_type if job_type in columns else "other"
         month = sums.setdefault(paid_on.replace(day=1), {})
         month[column] = month.get(column, Decimal("0")) + amount
     return sums
@@ -113,8 +115,7 @@ def close_rate(start, end):
     sent = Opportunity.objects.filter(sent_on__range=(start, end)).values("job_type").annotate(n=Count("id"))
     signed = dict(Opportunity.objects.filter(sent_on__range=(start, end), stage=Opportunity.Stage.WON)
                   .values("job_type").annotate(n=Count("id")).values_list("job_type", "n"))
-    names = dict(Opportunity._meta.get_field("job_type").flatchoices)
-    rows = [[str(names.get(row["job_type"], row["job_type"])), row["n"], signed.get(row["job_type"], 0), percent(signed.get(row["job_type"], 0), row["n"])]
+    rows = [[type_name(row["job_type"]), row["n"], signed.get(row["job_type"], 0), percent(signed.get(row["job_type"], 0), row["n"])]
             for row in sent]
     rows.sort(key=lambda row: (-row[1], row[0]))
     return [(_("Type of work"), "text"), (_("Proposals sent"), "count"), (_("Signed"), "count"), (_("Rate"), "percent")], rows
@@ -122,13 +123,12 @@ def close_rate(start, end):
 
 def revenue(start, end):
     sums = revenue_sums(start, end)
-    names = dict(Job._meta.get_field("job_type").flatchoices)
-    keys = REVENUE_TYPES + ["other"]
+    keys = revenue_types() + ["other"]
     rows = [[month_name(month)] + [sums[month].get(key, Decimal("0")) for key in keys] + [sum(sums[month].values(), Decimal("0"))]
             for month in months_between(start, end) if month in sums]
     if rows:
         rows.append([_("Total")] + [sum((row[i] for row in rows), Decimal("0")) for i in range(1, len(keys) + 2)])
-    columns = [(_("Month"), "text")] + [(str(names[key]), "money") for key in REVENUE_TYPES] + [(_("Other"), "money"), (_("Total"), "money")]
+    columns = [(_("Month"), "text")] + [(type_name(key), "money") for key in revenue_types()] + [(_("Other"), "money"), (_("Total"), "money")]
     return columns, rows
 
 

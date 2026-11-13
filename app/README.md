@@ -102,7 +102,7 @@ Run the tests. They build their own empty database, so they never touch your dat
 python manage.py test
 ```
 
-It should end with `OK (skipped=1)`. There are 309 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, the dashboard and the reports, the automations and the scheduled command, the data editor, system status, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
+It should end with `OK (skipped=1)`. There are 315 tests: the path from a new customer to a paid job, numbering, who may open what, search, leads, proposals and the customer's Accept page, change orders, payments and invoices, the documents on the account and the job, the Price Book, the notes import, the schedule (work days, suggested times, booking, changes, My Day, the calendar address), the history (who, when and what changed), logins and permission sets, deleting and the Recycle Bin, the dashboard and the reports, the automations and the scheduled command, the data editor, system status, and Spanish on every page. The one skipped on your PC is the close-spelling search, which needs PostgreSQL; it runs on the server's database.
 
 Then click through it:
 

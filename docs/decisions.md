@@ -453,3 +453,15 @@ The mockup's job page has a Photos section and the breakdown's data model has a 
 - **The history says who added what, when.** Deleting a file needs the Delete permission; it goes to the Recycle Bin like any record, and the file leaves the disk only when it is deleted for good.
 - **The files live in a folder on the server** (`MEDIA_ROOT`), not in the database, so the backups must include that folder. The breakdown already lists photos in the nightly backup and on the USB drive.
 - Choices to confirm: the list of kinds; whether a crew should see an account's own papers; whether the before/during/after photos should be required before "Done" (the breakdown's "photo checklist per job type" idea, not built).
+
+### The shell: the same app for another business (approved by the user on Nov 12: "create the shell")
+
+The user asked whether the app could be "a shell … same exact CRM concept, just a different business", then: "create the shell". The plan: one copy of the code; each business gets its own install, with its own database, its own `.env` and its own settings in the app. Everything that was still written into the code for H & L becomes a setting. H & L's own install keeps every value it had.
+
+**Types of work** (built Nov 13)
+
+- **The types of work are a list each business keeps,** on **Admin › Types of work**: the name in English and in Spanish, the work days a job usually takes, whether it has its own column in the revenue report, other words the website's form may send for it, its place in the list, and whether it is still offered.
+- **H & L's twelve types are in the list,** with the same names, Spanish, usual days and report columns as before. Every database starts with them.
+- **Three are built in:** Inspection (where a request starts), Warranty visit (opened from a finished job) and Other. They are always offered and cannot be switched off.
+- **A type that is switched off** is no longer offered, and the records that have it keep showing its name.
+- **Everything follows the list:** the drop-downs on requests, opportunities, Convert and job edits; the names on documents (in the customer's language) and in the history; the website form's words; Search; and the revenue report's columns, which now follow the order of the list (Repair, Roof replacement, Gutters, Siding, then Other).

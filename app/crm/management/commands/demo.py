@@ -14,6 +14,7 @@ from django.utils import timezone
 
 from crm.dates import range_code
 from crm.documents import invoice_document, keep, proposal_document, receipt_document
+from crm.models import type_name
 from crm.models import (Account, Activity, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment, PriceEntry, PriceItem,
                         PriceUpload, Property, Sequence, User, Worker)
 
@@ -276,7 +277,7 @@ class Command(BaseCommand):
         for months_ago, key, which, job_type, price, crew, labor_only in PAST_JOBS:
             count += 1
             created, signed, worked = month_day(months_ago, 2), month_day(months_ago, 6), month_day(months_ago, 12)
-            words = dict(Opportunity._meta.get_field("job_type").flatchoices)[job_type]
+            words = type_name(job_type)
             opp = Opportunity.objects.create(
                 number=f"{created.year % 100:02d}-{count:03d}", account=accounts[key], place=places[key][which], job_type=job_type, stage="won",
                 source={"A3": "contractor", "A6": "warranty"}.get(key, "repeat"), labor_only=labor_only, sent_on=month_day(months_ago, 4),
@@ -298,7 +299,7 @@ class Command(BaseCommand):
             created = month_day(months_ago, 8)
             lost = Opportunity.objects.create(number=f"{created.year % 100:02d}-{count:03d}", account=accounts[key], place=places[key][0], job_type=job_type,
                                               stage="lost", source="repeat", sent_on=month_day(months_ago, 10), lost_on=month_day(months_ago, 20), lost_reason=reason)
-            lost.set_lines([(str(dict(Opportunity._meta.get_field("job_type").flatchoices)[job_type]), price)])
+            lost.set_lines([(type_name(job_type), price)])
             history(lost, "opp_created", created)
             lead_for(lost, at(created) - timedelta(hours=4))
             history(lost, "lost", lost.lost_on)
