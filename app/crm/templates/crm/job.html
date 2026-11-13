@@ -3,17 +3,14 @@
 {% block title %}#{{ job.number }} {{ account.name }}{% endblock %}
 
 {% block content %}
-{% if crew_view %}
-<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'my_jobs' %}">‹ {% trans "My Jobs" %}</a>
-{% else %}
-<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'jobs' %}">‹ {% trans "Jobs" %}</a>
-{% endif %}
+{% if crew_view %}{% trans "My Jobs" as words %}{% back_link 'my_jobs' words %}{% else %}{% trans "Jobs" as words %}{% back_link 'jobs' words %}{% endif %}
 <div class="d-flex align-items-start gap-2 mb-3">
   <div class="flex-grow-1 hl-minw0">
     <h1 class="h4 mb-0">{{ account.name }}</h1>
     <div class="text-body-secondary small">#{{ job.number }} · {{ job.get_job_type_display }} {% job_tags job %}</div>
   </div>
-  {% if user|may_edit:"job" %}<a class="btn btn-outline-secondary btn-sm text-nowrap" href="{% url 'job_edit' job.number %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
+  {% if user|may_edit:"job" %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" href="{% url 'job_edit' job.number %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
+  {% if user|can:"change_stages" and not crew_view %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" href="{% url 'change_stage' 'job' job.number %}">{% icon "undo" %} {% trans "Change stage" %}</a>{% endif %}
   {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm" href="{% url 'record_delete' 'job' job.number %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">{% icon "trash" %}</a>{% endif %}
   {% stage_badge job %}
 </div>
@@ -55,44 +52,15 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h2 class="h6 mb-2" data-section="customer">{% trans "Customer" %}</h2>
-        {% include "crm/_customer.html" with place=job.place kind="job" ident=job.number %}
+        {% include "crm/_customer.html" with place=job.place kind="job" ident=job.number source=job.source_name %}
       </div>
     </div>
 
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2" data-section="crew">{% trans "Crew and dates" %}</h2>
+        <h2 class="h6 mb-2" data-section="crew">{% trans "Crew and Dates" %}</h2>
         {% if job.crew %}
         <dl class="row mb-0 small">
-          <dt class="col-4 text-body-secondary fw-normal">{% trans "Crew" %}</dt>
-          <dd class="col-8 mb-1"><span class="fw-semibold">{{ job.crew.name }}</span>{% if job.crew.lead_name %} · {% trans "Lead" %}: {{ job.crew.lead_name }}{% endif %}
-            {% if members %}<br><span class="text-body-secondary">{% for worker in members %}{{ worker.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>{% endif %}</dd>
-          {% if can_change_workers %}
-          {# the office or the crew adds and takes off extra workers until the job is done #}
-          <dt class="col-4 text-body-secondary fw-normal">{% trans "Extra workers" %}</dt>
-          <dd class="col-8 mb-1">
-            <div class="d-flex flex-wrap align-items-center gap-1">
-              {% for worker in workers %}
-              <form method="post" action="{% url 'job_worker' job.number %}" class="badge text-bg-secondary fw-normal d-inline-flex align-items-center gap-1">
-                {% csrf_token %}<input type="hidden" name="worker" value="{{ worker.pk }}"><input type="hidden" name="do" value="remove">
-                {{ worker.name }}<button type="submit" class="btn btn-link btn-sm p-0 lh-1 text-reset text-decoration-none" aria-label="{% trf 'Take %(name)s off this job' name=worker.name %}">×</button>
-              </form>
-              {% endfor %}
-              {% if free_workers %}
-              <form method="post" action="{% url 'job_worker' job.number %}" class="d-inline-flex gap-1">
-                {% csrf_token %}<input type="hidden" name="do" value="add">
-                <select class="form-select form-select-sm w-auto" name="worker" aria-label="{% trans 'Add a worker' %}" data-submit-on-change>
-                  <option value="">+ {% trans "Add a worker" %}</option>
-                  {% for worker in free_workers %}<option value="{{ worker.pk }}">{{ worker.name }}</option>{% endfor %}
-                </select>
-              </form>
-              {% endif %}
-            </div>
-          </dd>
-          {% elif workers %}
-          <dt class="col-4 text-body-secondary fw-normal">{% trans "Extra workers" %}</dt>
-          <dd class="col-8 mb-1">{% for worker in workers %}{{ worker.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd>
-          {% endif %}
           <dt class="col-4 text-body-secondary fw-normal">{% trans "When" %}</dt>
           <dd class="col-8 mb-1">{% job_dates job %}{% if job.day_count > 1 %}<br><span class="text-body-secondary">{% trf "%(days)s work days" days=job.day_count %}</span>{% endif %}
             {% for day in job.days_off %}<br>{% trans "Day off" as off %}{% badge off "warning" %} {{ day|day }}{% endfor %}
@@ -122,24 +90,38 @@
               </form>
             </details>
             {% endif %}</dd>
+          <dt class="col-4 text-body-secondary fw-normal">{% trans "Crew" %}</dt>
+          <dd class="col-8 mb-1"><span class="fw-semibold">{{ job.crew.name }}</span>{% if job.crew.lead_name %} · {% trans "Lead" %}: {{ job.crew.lead_name }}{% endif %}
+            {% if members %}<br><span class="text-body-secondary">{% for worker in members %}{{ worker.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>{% endif %}</dd>
+          {% if can_change_workers %}
+          {# the office or the crew adds and takes off extra workers until the job is done #}
+          <dt class="col-4 text-body-secondary fw-normal">{% trans "Extra workers" %}</dt>
+          <dd class="col-8 mb-1">
+            <div class="d-flex flex-wrap align-items-center gap-1">
+              {% for worker in workers %}
+              <form method="post" action="{% url 'job_worker' job.number %}" class="badge text-bg-secondary fw-normal d-inline-flex align-items-center gap-1">
+                {% csrf_token %}<input type="hidden" name="worker" value="{{ worker.pk }}"><input type="hidden" name="do" value="remove">
+                {{ worker.name }}<button type="submit" class="btn btn-link btn-sm p-0 lh-1 text-reset text-decoration-none" aria-label="{% trf 'Take %(name)s off this job' name=worker.name %}">×</button>
+              </form>
+              {% endfor %}
+              {% if free_workers %}
+              <form method="post" action="{% url 'job_worker' job.number %}" class="d-inline-flex gap-1">
+                {% csrf_token %}<input type="hidden" name="do" value="add">
+                <select class="form-select form-select-sm w-auto" name="worker" aria-label="{% trans 'Add a worker' %}" data-submit-on-change>
+                  <option value="">+ {% trans "Add a worker" %}</option>
+                  {% for worker in free_workers %}<option value="{{ worker.pk }}">{{ worker.name }}</option>{% endfor %}
+                </select>
+              </form>
+              {% endif %}
+            </div>
+          </dd>
+          {% elif workers %}
+          <dt class="col-4 text-body-secondary fw-normal">{% trans "Extra workers" %}</dt>
+          <dd class="col-8 mb-1">{% for worker in workers %}{{ worker.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd>
+          {% endif %}
         </dl>
         {% else %}
         <div class="small text-body-secondary">{% trans "Not scheduled yet" %}</div>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="card shadow-sm mb-3">
-      <div class="card-body">
-        <h2 class="h6 mb-2" data-section="numbers">{% trans "Numbers" %}</h2>
-        <dl class="row mb-0 small">
-          <dt class="col-4 text-body-secondary fw-normal">{% trans "Our number" %}</dt>
-          <dd class="col-8 mb-1">#{{ job.number }}</dd>
-          <dt class="col-4 text-body-secondary fw-normal">{% trans "Outside number" %}</dt>
-          <dd class="col-8 mb-1">{% if job.ref_number %}{{ job.get_ref_type_display }} {{ job.ref_number }}{% else %}<span class="text-body-secondary">{% trans "None" %}</span>{% endif %}</dd>
-        </dl>
-        {% if user|may_edit:"job" %}
-        <a class="btn btn-outline-secondary btn-sm mt-2" href="{% url 'job_ref' job.number %}">{% icon "edit" %} {% trans "Change the outside number" %}</a>
         {% endif %}
       </div>
     </div>
@@ -148,7 +130,7 @@
   <div class="col-lg-6">
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2" data-section="scope">{% trans "Scope of work" %}</h2>
+        <h2 class="h6 mb-2" data-section="scope">{% trans "Scope of Work" %}</h2>
         {% if job.scope_lines %}
         <ul class="small mb-0 ps-3">{% for line in job.scope_lines %}<li>{{ line }}</li>{% endfor %}</ul>
         {% else %}
@@ -159,7 +141,7 @@
 
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2" data-section="money">{% trans "Price and payments" %}</h2>
+        <h2 class="h6 mb-2" data-section="money">{% trans "Price and Payments" %}</h2>
         {% if job.is_warranty %}
         <div class="small">{% trans "Warranty job: no charge." %}</div>
         {% else %}
@@ -210,7 +192,7 @@
     {% if job.opportunity_id or job.warranty_for or warranty_jobs %}
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h2 class="h6 mb-2" data-section="linked">{% trans "Linked records" %}</h2>
+        <h2 class="h6 mb-2" data-section="linked">{% trans "Linked Records" %}</h2>
         <ul class="list-unstyled small mb-0">
           {% if job.opportunity_id and not crew_view %}
           <li class="mb-1">{% icon "link" %} <a href="{% url 'opp' job.number %}">{% trf "Opportunity #%(number)s" number=job.number %}</a></li>

@@ -55,9 +55,7 @@ def leads(request):
     count = dict(everything.values_list("status").annotate(n=Count("id")))
     chosen = (everything.filter(status__in=[Status.NEW, Status.CONTACTED]) if show == "open" else everything if show == "all"
               else everything.filter(status=show))
-    page = page_of(request, chosen)
-    for lead in page:
-        lead.returning = lead.is_open and customer_of(lead) is not None
+    page = page_of(request, chosen)                                      # a request from a customer already in the app is never a lead, so nothing is matched here
     return render(request, "crm/leads.html", {
         "page": page, "show": show,
         "pills": filter_pills(show, [("open", _("Open"), count.get(Status.NEW, 0) + count.get(Status.CONTACTED, 0))]
@@ -80,6 +78,11 @@ def lead_new(request):
     form = LeadForm(request.POST or None, initial={"source": Opportunity.Source.REFERRAL})
     if form.is_valid():
         lead = form.save(commit=False)
+        customer = customer_of(lead)
+        if customer:                                                      # a customer already in the app: straight to an opportunity
+            opp = existing_customer_opportunity(lead, customer, "typed", request.user)
+            saved(request, _("%(name)s is already a customer: opportunity #%(number)s was created.") % {"name": customer.name, "number": opp.number})
+            return redirect("opp", number=opp.number)
         lead.owner = request.user
         lead.save()
         log(lead, "lead_typed", request.user)
@@ -108,6 +111,30 @@ def lead_convert(request, pk):
     return render(request, "crm/lead_convert.html", {"lead": lead, "customer": customer, "open_job": open_job, "form": form})
 
 
+def existing_customer_opportunity(lead, customer, how, user=None):
+    """A request from a customer already in the app does not become a lead: it becomes a new opportunity (at the Inspection stage)
+    on that customer's account, with the source "Existing customer". `lead` is a Lead that is not saved; how is "web" or "typed".
+    The opportunity is on the Today page until its inspection is set up, and the person named in Company details is emailed."""
+    with transaction.atomic():
+        place = next((p for p in customer.properties.all() if lead.street and p.street_key == street_key(lead.street)), None)
+        if place is None and lead.street:
+            new_address = customer.properties.exists()
+            place = Property.objects.create(account=customer, street=lead.street, city=lead.city, state=lead.state, zip_code=lead.zip_code)
+            if new_address:
+                log(customer, "property_added", user, detail=place.street, actor="" if user else "Web")
+        place = place or customer.main_property or Property.objects.create(account=customer, street=_("Address not given yet"))
+        kind = lead.job_type if lead.job_type != "warranty" else "repair"
+        opp = Opportunity.objects.create(account=customer, place=place, job_type=kind, source="existing", description=lead.message,
+                                         description_locked=how == "web" and bool(lead.message))
+        log(opp, "opp_web" if how == "web" else "opp_typed", user, actor="" if user else "Web")
+    if how == "web":
+        try:
+            automations.existing_customer_arrived(opp, lead)
+        except Exception:
+            logger.exception("Website form: opportunity %s was saved, but emailing the person it goes to failed", opp.number)
+    return opp
+
+
 @transaction.atomic
 def convert(lead, customer, job_type, user):
     """One step: the account, its contact and its property (unless the customer exists), then the opportunity."""
@@ -124,7 +151,8 @@ def convert(lead, customer, job_type, user):
             log(customer, "property_added", user, detail=place.street)
     if place is None:
         place = customer.main_property or Property.objects.create(account=customer, street=_("Address not given yet"))
-    opp = Opportunity.objects.create(account=customer, place=place, job_type=job_type, source=lead.source, description=lead.message)
+    opp = Opportunity.objects.create(account=customer, place=place, job_type=job_type, source=lead.source, description=lead.message,
+                                     description_locked=lead.message_locked and bool(lead.message))
     log(opp, "opp_from_lead", user)
     lead.status, lead.account, lead.opportunity = Lead.Status.CONVERTED, customer, opp
     lead.save()
@@ -219,6 +247,17 @@ def lead_in(request):
                        ", ".join(f"{name} ({'/'.join(error.code or 'invalid' for error in errors)})" for name, errors in sorted(form.errors.as_data().items())), sender_of(request))
         return answer({"ok": False, "error": "missing or wrong fields", "fields": sorted(form.errors)}, 400)
     lead = form.save(commit=False)
+    lead.message_locked = bool(lead.message)                              # the customer's own words: no Edit page changes them
+    customer = customer_of(lead)
+    if customer:                                                          # a customer already in the app: no lead, a new opportunity on their account
+        since = timezone.now() - timedelta(days=1)
+        if not Opportunity.objects.filter(account=customer, source="existing", description=lead.message, created_at__gte=since).exists():
+            try:
+                existing_customer_opportunity(lead, customer, "web")
+            except Exception:
+                logger.exception("Website form: a request from the existing customer %s could not be saved (%s characters, from %s)", customer.pk, len(lead.message), sender_of(request))
+                return answer({"ok": False, "error": "could not save the request"}, 500)
+        return answer({"ok": True})
     again = Lead.objects.filter(received_at__gte=timezone.now() - timedelta(days=1), name__iexact=lead.name, message=lead.message,
                                 phone=lead.phone, email__iexact=lead.email)
     if not again.exists():
@@ -247,4 +286,4 @@ def lead_edit(request, pk):
             log(lead, "edited", request.user, detail=what)
             saved(request)
         return redirect("lead", pk=lead.pk)
-    return form_page(request, form, _("Edit the lead"), reverse("lead", args=[lead.pk]))
+    return form_page(request, form, _("Edit the lead"), reverse("lead", args=[lead.pk]), locked=form.locked)

@@ -12,17 +12,19 @@
 <link rel="stylesheet" href="{% static 'crm/bootstrap.min.css' %}">
 <link rel="stylesheet" href="{% static 'crm/hl.css' %}">
 {% if look.style %}<style>{{ look.style }}</style>{# the business's own colors in place of H & L's (look.py) #}{% endif %}
+<script>try { if (localStorage.getItem("hl-side") === "icons") document.documentElement.classList.add("hl-side-icons"); } catch (e) {}</script>
 <script src="{% static 'crm/hl.js' %}"></script>
 </head>
-<body data-touch-url="{% url 'touch' %}" data-csrf="{{ csrf_token }}" data-hide="{% trans 'Hide this section' %}" data-show="{% trans 'Show this section' %}">
+<body data-touch-url="{% url 'touch' %}" data-csrf="{{ csrf_token }}" data-hide="{% trans 'Hide this section' %}" data-show="{% trans 'Show this section' %}" data-side-fold="{% trans 'Show only the icons' %}" data-side-open="{% trans 'Show the names' %}">
 
 <div class="d-flex min-vh-100">
   {# side navigation (computers) #}
   {% if nav_tabs %}
   <aside class="d-none d-lg-flex flex-column flex-shrink-0 bg-body-tertiary border-end p-3 hl-side">
+    <button type="button" class="btn btn-link p-0 mb-2 hl-side-toggle align-self-start" data-side-toggle aria-expanded="true">{% icon "sidebar" %}</button>
     <ul class="nav nav-pills flex-column gap-1">
       {% for tab in nav_tabs %}
-      <li class="nav-item"><a class="nav-link d-flex align-items-center gap-2{% if tab.active %} active{% endif %}" href="{% url tab.url %}"{% if tab.active %} aria-current="page"{% endif %}>{% icon tab.icon %}<span>{{ tab.label }}</span></a></li>
+      <li class="nav-item"><a class="nav-link d-flex align-items-center gap-2{% if tab.active %} active{% endif %}" href="{% url tab.url %}" title="{{ tab.label }}"{% if tab.active %} aria-current="page"{% endif %}>{% icon tab.icon %}<span>{{ tab.label }}</span></a></li>
       {% endfor %}
     </ul>
   </aside>

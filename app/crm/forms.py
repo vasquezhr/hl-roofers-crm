@@ -162,6 +162,25 @@ class LostForm(Bootstrap, forms.Form):
     lost_reason = pick_box("lost_reason", _("Reason"))
 
 
+class StageForm(Bootstrap, forms.Form):
+    """Change stage: any stage of an opportunity or a job. A move to Lost also asks why."""
+    stage = forms.ChoiceField(label=_("Move it to"))
+    lost_reason = pick_box("lost_reason", _("Reason"), required=False)
+
+    def __init__(self, *args, record, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["stage"].choices = [(value, label) for value, label in type(record).Stage.choices]
+        self.fields["stage"].initial = record.stage
+        if not isinstance(record, Opportunity):
+            del self.fields["lost_reason"]
+
+    def clean(self):
+        data = super().clean()
+        if data.get("stage") == "lost" and not data.get("lost_reason"):
+            self.add_error("lost_reason", _("Pick the reason it was lost."))
+        return data
+
+
 # ---------- jobs ----------
 class ScheduleForm(Bootstrap, forms.ModelForm):
     day_off_ok = day_off_box()
@@ -379,7 +398,7 @@ class LoginDetailsForm(Bootstrap, forms.ModelForm):
     class Meta:
         model = User
         fields = ["username", "first_name", "last_name", "email", "profile", "crew", "is_active", "edit_objects",
-                  "can_price_book", "can_costs", "can_billing", "can_data_editor", "can_inspect", "can_delete", "can_crew_lead"]
+                  "can_price_book", "can_costs", "can_billing", "can_data_editor", "can_inspect", "can_delete", "can_change_stages", "can_crew_lead"]
         labels = {"is_active": _("Can sign in")}
         help_texts = {"is_active": _("Turn this off instead of deleting a login. Its name stays in the history."),
                       "first_name": _("For a login made for one person. The history then shows this name."),
@@ -441,6 +460,10 @@ class LeadEditForm(LeadForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.locked = []
+        if self.instance.message_locked:                            # the customer's own words are shown, not edited
+            self.locked = [(self.fields["message"].label, self.instance.message)]
+            del self.fields["message"]
         self.fields["owner"].queryset = User.objects.filter(is_active=True).exclude(profile=User.Profile.CREW)
         self.fields["owner"].label_from_instance = lambda user: user.label
 
@@ -465,6 +488,10 @@ class OpportunityEditForm(Bootstrap, forms.ModelForm):
         if opp.proposal_lines.exists():
             del self.fields["description"]                          # the proposal builder keeps it in step with the lines
         pick_current(self, "source", "source")
+        self.locked = []
+        if opp.description_locked and "description" in self.fields:
+            self.locked = [(self.fields["description"].label, opp.description)]
+            del self.fields["description"]
         if opp.stage != Opportunity.Stage.LOST:
             del self.fields["lost_reason"]
         else:
@@ -484,6 +511,10 @@ class JobEditForm(Bootstrap, forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["place"].queryset = self.instance.account.properties.all()
         self.fields["place"].empty_label = None
+        self.locked = []
+        if self.instance.scope_locked:
+            self.locked = [(self.fields["scope"].label, self.instance.scope)]
+            del self.fields["scope"]
         if self.instance.is_warranty:
             del self.fields["price"]
             self.fields["job_type"].choices = [("warranty", work_types()["warranty"].name)]

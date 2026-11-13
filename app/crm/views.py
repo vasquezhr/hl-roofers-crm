@@ -23,12 +23,12 @@ from django.views.decorators.http import require_POST
 
 from . import automations, scheduling
 from .documents import document_rows, keep, proposal_document
-from .access import job_or_404, jobs_for, may_edit, office_only
+from .access import job_or_404, jobs_for, may_edit, office_only, with_permission
 from .dates import day_text, range_code, work_days_text
 from .history import booking_code, changes, when_code
 from .forms import (AccountForm, ContactForm, InspectionForm, JobEditForm, LostForm, NewAccountForm, NoteEditForm, NoteForm,
                     OpportunityEditForm, OpportunityForm, PropertyForm,
-                    RefForm, ScheduleForm, SignForm, WarrantyForm)
+                    RefForm, ScheduleForm, SignForm, StageForm, WarrantyForm)
 from .importer import find_account
 from .models import Account, Activity, Attachment, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, Property, Worker, is_day_off, log, pick_choices
 from .search import search as find_records
@@ -103,6 +103,9 @@ def home(request):
     for opp in (opps.filter(stage=Opportunity.Stage.PROPOSAL, sent_on__lte=week_ago).order_by("sent_on") if company.auto_follow_up else []):
         attention.append({"icon": "mail", "url": reverse("opp", args=[opp.number]),
                           "text": _("Follow up with %(name)s: the proposal was sent %(days)s days ago") % {"name": opp.account.name, "days": (day - opp.sent_on).days}})
+    for opp in opps.filter(stage=Opportunity.Stage.INSPECTION, source="existing", inspection_at__isnull=True).order_by("created_at"):
+        attention.append({"icon": "phone", "url": reverse("opp", args=[opp.number]),
+                          "text": _("%(name)s is already a customer and sent a request: set up the inspection") % {"name": opp.account.name}})
     for job in jobs.filter(stage=Job.Stage.SIGNED):
         attention.append({"icon": "schedule", "url": reverse("job", args=[job.number]),
                           "text": _("Schedule job #%(number)s for %(name)s") % {"number": job.number, "name": job.account.name}})
@@ -367,6 +370,49 @@ def opp_lost(request, number):
         return redirect("opp", number=opp.number)
     return form_page(request, form, _("Mark lost"), reverse("opp", args=[opp.number]), intro=f"#{opp.number} · {opp.account.name}",
                      save_label=_("Mark lost"))
+
+
+@with_permission("change_stages")
+def change_stage(request, kind, number):
+    """Change stage: the administrator, or an Office login with the "Change stages" set, moves an opportunity or a job to any stage.
+    The move is in the history with the stage it was and the stage it is. Nothing else about the record changes, except what the
+    stage itself needs: a move to Won creates the job if there is none, a move to Lost keeps the reason, and a job's date for the
+    stage it reaches is filled in when it has none."""
+    if kind not in ("opp", "job"):
+        raise Http404
+    record = opp_or_404(number) if kind == "opp" else get_object_or_404(Job.objects.select_related("account"), number=number)
+    back = reverse(kind, args=[record.number])
+    form = StageForm(request.POST or None, record=record)
+    if form.is_valid():
+        old, new = record.stage, form.cleaned_data["stage"]
+        if new == old:
+            messages.info(request, _("It is already at that stage."))
+            return redirect(back)
+        if kind == "opp":
+            if new == Opportunity.Stage.LOST:
+                record.lost_on, record.lost_reason = today(), form.cleaned_data["lost_reason"]
+            elif old == Opportunity.Stage.LOST:
+                record.lost_on, record.lost_reason = None, ""
+            if new == Opportunity.Stage.WON and not Job.objects.filter(opportunity=record).exists():
+                record.sign(Opportunity.SignedHow.PAPER, by=request.user.label)           # the job is made, as when a proposal is signed
+                record.refresh_from_db()
+            else:
+                record.stage = new
+                if new == Opportunity.Stage.PROPOSAL and not record.sent_on:
+                    record.sent_on = today()
+                record.save()
+        else:
+            record.stage = new
+            stamp = {Job.Stage.DONE: "done_on", Job.Stage.INVOICED: "invoiced_on", Job.Stage.PAID: "paid_on"}.get(new)
+            if stamp and not getattr(record, stamp):
+                setattr(record, stamp, today())
+            record.save()
+        log(record, "stage_changed", request.user, detail=f"{kind if kind == 'job' else 'opp'}|{old}|{new}")
+        saved(request, _("Stage changed"))
+        return redirect(back)
+    intro = f"#{record.number} · {record.account.name}"
+    help_text = _("Any stage, in any direction. Nothing else about the record changes, and the history keeps the old stage and the new one.")
+    return form_page(request, form, _("Change stage"), back, intro=intro + ". " + str(help_text), save_label=_("Change stage"))
 
 
 # ---------------------------------------------------------------- jobs
@@ -654,7 +700,7 @@ def edit_page(request, form, record, title, back, name=""):
         else:
             messages.info(request, _("Nothing was changed."))
         return redirect(back)
-    return form_page(request, form, title, back, delete_url="")
+    return form_page(request, form, title, back, delete_url="", locked=getattr(form, "locked", []))
 
 
 @may_edit("opportunity")

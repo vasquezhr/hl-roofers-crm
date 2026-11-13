@@ -1,11 +1,22 @@
 {% load i18n crm_tags %}
 {# The customer and the place, on an opportunity or a job. Needs: account, place, kind ("opp" or "job"), ident, crew_view #}
 <dl class="row mb-0 small">
+  {% if kind == "job" %}
+  <dt class="col-4 text-body-secondary fw-normal">{% trans "Job #" %}</dt>
+  <dd class="col-8 mb-1">#{{ job.number }}</dd>
+  <dt class="col-4 text-body-secondary fw-normal">{% trans "External Job #" %}</dt>
+  <dd class="col-8 mb-1">{% if job.ref_number %}{{ job.get_ref_type_display }} {{ job.ref_number }}{% else %}<span class="text-body-secondary">{% trans "None" %}</span>{% endif %}
+    {% if user|may_edit:"job" %}<a class="ms-1" href="{% url 'job_ref' job.number %}">{% trans "Change" %}</a>{% endif %}</dd>
+  {% endif %}
   <dt class="col-4 text-body-secondary fw-normal">{% trans "Customer" %}</dt>
   <dd class="col-8 mb-1">{% if crew_view %}{{ account.name }}{% else %}<a href="{% url 'account' account.pk %}">{{ account.name }}</a>{% endif %} {% kind_badge account %}</dd>
   {% if place.site_name %}
   <dt class="col-4 text-body-secondary fw-normal">{% trans "Site contact" %}</dt>
   <dd class="col-8 mb-1">{{ place.site_name }}{% if place.site_phone %} · <a href="{{ place.site_phone|tel }}">{{ place.site_phone }}</a>{% endif %}</dd>
+  {% endif %}
+  {% if source %}
+  <dt class="col-4 text-body-secondary fw-normal">{% trans "Source" %}</dt>
+  <dd class="col-8 mb-1">{{ source }}</dd>
   {% endif %}
   <dt class="col-4 text-body-secondary fw-normal">{% trans "Property" %}</dt>
   <dd class="col-8 mb-1">{{ place.street }}<br><span class="text-body-secondary">{{ place.city_line }}</span>{% if place.access_notes %}<br>{{ place.access_notes }}{% endif %}</dd>

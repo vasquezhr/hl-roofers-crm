@@ -22,6 +22,8 @@ const check = (label, ok, detail = '') => { if (!ok) failed++; console.log((ok ?
 
 async function signIn(browser, who, options = {}) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'en-US', ...options });
+  // the test opens every section of a job once, so its steps can reach them; a job page's own defaults are checked on their own
+  await context.addInitScript(() => { try { if (!sessionStorage.getItem('hl-test-open')) { sessionStorage.setItem('hl-test-open', '1'); ['linked', 'documents', 'files', 'notes', 'history'].forEach(n => localStorage.setItem('hl-hide:jobs:' + n, 'open')); } } catch (e) {} });
   const page = await context.newPage();
   page.problems = [];
   page.on('console', m => { if (m.type() === 'error') page.problems.push(m.text()); });
@@ -120,7 +122,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   check('booking a suggested time schedules the job', office.url().endsWith(`/jobs/${number}/`) && (await text(office, '.hl-stage .cur')) === 'Scheduled');
   check('two work days are shown', (await main(office)).includes('2 work days'));
   await andWait(office, () => office.selectOption('select[name=worker]', { label: 'Fermín' }));
-  check('an extra worker is added to the job', (await main(office)).includes('Extra worker added: Fermín'));
+  check('an extra worker is added to the job', (await office.locator('main').evaluate(e => e.textContent)).includes('Extra worker added: Fermín'));
 
   // moving a job that is already scheduled: the crew must see it
   await office.click('a:has-text("Change the schedule")');
@@ -136,7 +138,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await office.click('[data-touch=call]');
   await office.waitForTimeout(400);
   await office.reload();
-  check('tapping Call is written in the history', (await office.locator('main').innerText()).includes('Called'));
+  check('tapping Call is written in the history', (await office.locator('main').evaluate(e => e.textContent)).includes('Called'));
   await snap(office, 'job-office');
 
   console.log('Crew 1: its own jobs only');
@@ -418,15 +420,62 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await boss.click('button:has-text("Save")');
   await boss.waitForLoadState('networkidle');
   check("back to H & L's colors: no page carries other colors", (await boss.content()).includes('<style>') === false);
-  // hiding a section on a record: the arrow folds it, and it stays folded on this computer
+  // a job opens with Customer, Crew and Dates, Scope of Work and Price and Payments open and the rest folded; a choice is kept for every job
+  await office.evaluate(() => localStorage.clear());
   await office.goto(base + '/jobs/26-104/');
+  const openNow = async name => (await office.getAttribute(`h2[data-section="${name}"] .hl-fold`, 'aria-expanded')) === 'true';
+  check('a job opens with the four main sections open', (await openNow('customer')) && (await openNow('crew')) && (await openNow('scope')) && (await openNow('money')));
+  check('and the other sections folded', !(await openNow('history')) && !(await openNow('notes')) && !(await openNow('files')) && !(await openNow('linked')));
   await office.click('h2[data-section="history"] .hl-fold');
-  check('the arrow hides the History', !(await office.isVisible('text=Payment restored')));
+  check('the arrow opens the History', await office.isVisible('text=Payment restored'));
   await office.reload();
   await office.waitForLoadState('networkidle');
-  check('it stays hidden after a reload', (await office.getAttribute('h2[data-section="history"] .hl-fold', 'aria-expanded')) === 'false');
+  check('it stays open after a reload', await openNow('history'));
+  await office.goto(base + '/jobs/26-118/');
+  check('and on the next job too', await openNow('history'));
+  await office.click('h2[data-section="customer"] .hl-fold');
+  await office.goto(base + '/jobs/26-104/');
+  check('a section folded by the person stays folded', !(await openNow('customer')));
+  await office.click('h2[data-section="customer"] .hl-fold');
   await office.click('h2[data-section="history"] .hl-fold');
-  check('and opens again', await office.isVisible('text=Payment restored'));
+  check('and closes again', !(await openNow('history')));
+  // the side menu folds to icons and opens again, and the choice is kept on this computer
+  const sideWidth = async () => await office.evaluate(() => Math.round(document.querySelector('.hl-side').getBoundingClientRect().width));
+  const wide = await sideWidth();
+  await office.click('[data-side-toggle]');
+  check('the side menu folds to icons only', (await sideWidth()) < 90 && wide > 150, `${wide} -> ${await sideWidth()}`);
+  await office.reload();
+  await office.waitForLoadState('networkidle');
+  check('it stays folded after a reload', (await sideWidth()) < 90);
+  await office.click('[data-side-toggle]');
+  check('and opens again', (await sideWidth()) === wide);
+
+  // the fourth message: the back link, a folded card, and phone widths (Pixel 9 is 412 px wide, an iPhone 16 Pro Max 440)
+  await office.goto(base + '/schedule/');
+  const jobLink = office.locator('a[href^="/jobs/26-"]').first();
+  if (await jobLink.count()) {
+    await andWait(office, () => jobLink.click());
+    check('a job opened from the Schedule says "Schedule" at its top left', (await text(office, 'a.hl-back')) === 'Schedule');
+    await andWait(office, () => office.click('a.hl-back'));
+    check('and the arrow goes back to the Schedule', office.url().includes('/schedule/'));
+  }
+  await office.goto(base + '/jobs/26-104/');
+  const folded = await office.evaluate(() => { const b = document.querySelector('h2[data-section="history"]').closest('.card-body'); return b.getBoundingClientRect().height; });
+  check('a folded card is only as tall as its title', folded < 50, String(folded));
+  for (const width of [412, 440]) {
+    const phone = await signIn(browser, 'office', { viewport: { width, height: 900 } });
+    for (const address of ['/', '/jobs/26-104/', '/jobs/', '/accounts/', '/opportunities/', '/leads/', '/schedule/', '/search/?q=grove', '/manage/', '/manage/lists/', '/manage/import/', '/manage/status/']) {
+      await phone.goto(base + address);
+      await phone.waitForLoadState('networkidle');
+      const wide = await phone.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      check(`no sideways scroll at ${width} px on ${address}`, wide <= 0, `${wide}px too wide`);
+    }
+    await phone.goto(base + '/jobs/26-104/');
+    const bar = await phone.evaluate(() => { const b = document.querySelector('.hl-stage'); return b.scrollWidth - b.clientWidth; });
+    check(`the stage bar fits at ${width} px, with no scroll bar`, bar <= 0, `${bar}px`);
+    await snap(phone, `phone-${width}-job`);
+    await phone.context().close();
+  }
 
   const problems = [office, crew, other, admin, boss].flatMap(p => p.problems).filter(p => !p.includes('404') && !p.includes('403'));
   check('no errors in the browser', problems.length === 0, problems.join(' | '));

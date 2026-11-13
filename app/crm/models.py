@@ -35,7 +35,7 @@ from django.utils.translation import gettext_lazy as _
 
 from . import look
 from .dates import range_from_code
-from .history import booking_text, changes_text, file_text, when_text
+from .history import booking_text, changes_text, file_text, stage_text, when_text
 
 changes_log = logging.getLogger("crm.changes")             # changes.log: one line for every history line
 
@@ -124,8 +124,8 @@ def type_days(key):
 # changes, so old records and their history stay right when a name is changed or a value is switched off.
 # The built-in values are the ones the code relies on: they can be renamed and moved, but not switched off.
 PICK_LISTS = {
-    "source": {"title": _("Where a request came from"), "length": 12, "built_in": ["web", "referral", "repeat", "contractor", "warranty", "imported"],
-               "about": _("On a lead and on an opportunity. The website's form is always Website form, a new lead typed in starts as Referral, and a lead from the data import is Imported.")},
+    "source": {"title": _("Where a request came from"), "length": 12, "built_in": ["web", "referral", "repeat", "contractor", "warranty", "imported", "existing"],
+               "about": _("On a lead and on an opportunity. The website's form is always Website form, a new lead typed in starts as Referral, a lead from the data import is Imported, and a request from an existing customer is Existing customer.")},
     "lost_reason": {"title": _("Why an opportunity was lost"), "length": 12, "built_in": [],
                     "about": _("Asked when an opportunity is marked lost. The Reports count them.")},
     "unfit_reason": {"title": _("Why a lead is not a fit"), "length": 12, "built_in": [],
@@ -260,12 +260,14 @@ class User(AbstractUser):
     can_delete = models.BooleanField(_("Delete records"), default=False,
                                      help_text=_("Delete any kind of record: leads, accounts, contacts, properties, notes, opportunities, jobs, "
                                                  "change orders, payments, photos and files. They go to the Recycle Bin and can be restored for 30 days."))
+    can_change_stages = models.BooleanField(_("Change stages"), default=False,
+                                            help_text=_("Move an opportunity or a job to any stage, with the Change stage button. Every move is in the history."))
     can_crew_lead = models.BooleanField(_("Crew Lead"), default=True,
                                         help_text=_("Start and finish the crew's jobs, record a payment, change the extra workers and confirm changes. "
                                                     "Without it, a crew login only reads its crew's jobs and adds notes."))
     # Edit, object by object: which kinds of record this login may change on their Edit pages (an Office login only)
     edit_objects = models.JSONField(_("can edit"), default=every_object, blank=True)
-    OFFICE_SETS = ["price_book", "costs", "billing", "data_editor", "inspect", "delete"]       # these add to the Office profile
+    OFFICE_SETS = ["price_book", "costs", "billing", "data_editor", "inspect", "delete", "change_stages"]       # these add to the Office profile
     CREW_SETS = ["crew_lead"]                                                                  # this one adds to the Crew profile
 
     def may_edit(self, what):
@@ -458,6 +460,12 @@ class Account(models.Model):
         return pick_name("account_kind", self.kind)
 
     @property
+    def source_name(self):
+        """Where the customer first came from: the source of their oldest opportunity."""
+        first = self.opportunities.order_by("created_at", "id").first()
+        return first.get_source_display() if first else ""
+
+    @property
     def is_company(self):
         return self.kind != self.Kind.HOMEOWNER
 
@@ -628,6 +636,7 @@ class Opportunity(models.Model):
     source = models.CharField(_("where it came from"), max_length=12, default=Source.REPEAT)
     labor_only = models.BooleanField(_("labor only"), default=False, help_text=_("The customer supplies the materials."))
     description = models.TextField(_("what the proposal covers"), blank=True, help_text=_("One line for each item."))
+    description_locked = models.BooleanField(default=False, editable=False)   # True while it is the customer's own comment, carried from a lead
     total = models.DecimalField(_("price"), max_digits=10, decimal_places=2, null=True, blank=True)
     inspection_at = models.DateTimeField(_("inspection"), null=True, blank=True)
     inspector = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("inspector"), null=True, blank=True, on_delete=models.SET_NULL,
@@ -705,6 +714,7 @@ class Opportunity(models.Model):
                 ProposalLine.objects.create(opportunity=self, position=position, text=row["text"], quantity=row.get("quantity"),
                                             unit=row.get("unit") or "", each=row.get("each"), amount=row["amount"])
             self.description = "\n".join(scope_line(row) for row in rows)
+            self.description_locked = False                      # the office's own lines now
             self.total = sum((row["amount"] for row in rows if row["amount"] is not None), Decimal("0"))
             self.save()
 
@@ -725,7 +735,7 @@ class Opportunity(models.Model):
             self.save()
             return Job.objects.create(number=self.number, opportunity=self, account=self.account, place=self.place,
                                       job_type=self.job_type, price=self.total or 0, labor_only=self.labor_only,
-                                      scope=self.description, days=type_days(self.job_type))
+                                      scope=self.description, scope_locked=self.description_locked, days=type_days(self.job_type))
 
 
 class ProposalLine(models.Model):
@@ -771,6 +781,7 @@ class Job(models.Model):
     price = models.DecimalField(_("price"), max_digits=10, decimal_places=2, default=0)
     labor_only = models.BooleanField(_("labor only"), default=False)
     scope = models.TextField(_("scope of work"), blank=True)
+    scope_locked = models.BooleanField(default=False, editable=False)          # True while it is the customer's own comment, carried from a lead
     # the schedule: whole work days (WORK_WEEKDAYS in the settings)
     crew = models.ForeignKey(Crew, verbose_name=_("crew"), null=True, blank=True, on_delete=models.SET_NULL, related_name="jobs")
     first_day = models.DateField(_("first day"), null=True, blank=True)
@@ -858,6 +869,11 @@ class Job(models.Model):
     @property
     def is_finished(self):
         return self.stage in (self.Stage.DONE, self.Stage.INVOICED, self.Stage.PAID)
+
+    @property
+    def source_name(self):
+        """Where the work came from: the source of the opportunity it was signed from (none for a warranty job)."""
+        return self.opportunity.get_source_display() if self.opportunity_id else ""
 
     @property
     def scope_lines(self):
@@ -1037,6 +1053,7 @@ class Lead(models.Model):
     zip_code = models.CharField(_("ZIP"), max_length=10, blank=True)
     job_type = models.CharField(_("type of work"), max_length=12, default="inspection")
     message = models.TextField(_("what they asked for"), blank=True)
+    message_locked = models.BooleanField(default=False, editable=False)      # True when the customer wrote it (the website's form, an import): no Edit page changes it
     language = models.CharField(_("language"), max_length=2, choices=LANGS, default="en")
     source = models.CharField(_("where it came from"), max_length=12, default=Opportunity.Source.WEB)      # a value of the pick list "source"
     status = models.CharField(_("status"), max_length=12, choices=Status.choices, default=Status.NEW)
@@ -1428,6 +1445,9 @@ class Activity(models.Model):
         "type_added": _("Type of work added: %(detail)s"), "type_edited": _("Type of work changed: %(detail)s"),
         "imported": _("Added by the data import: %(detail)s"), "import_added": _("Added from the data import: %(detail)s"),
         "data_imported": _("Data import: %(detail)s"),
+        "opp_web": _("Opportunity created from a website request by an existing customer"),
+        "opp_typed": _("Opportunity created from a new lead by an existing customer"),
+        "stage_changed": _("Stage changed: %(detail)s"),
         "pick_added": _("Pick list value added: %(detail)s"), "pick_edited": _("Pick list value changed: %(detail)s"),
         "login_added": _("Login added: %(detail)s"), "login_edited": _("Login changed: %(detail)s"),
         "login_password": _("Password changed for %(detail)s"),
@@ -1451,7 +1471,7 @@ class Activity(models.Model):
         "low_disk": _("Low disk space: %(detail)s"), "low_ram": _("Low memory (RAM): %(detail)s"),
     }
     # how the stored detail of some kinds is put into words when it is read
-    READERS = {"file_added": file_text, "changed": range_from_code, "day_added": range_from_code, "day_removed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
+    READERS = {"stage_changed": stage_text, "file_added": file_text, "changed": range_from_code, "day_added": range_from_code, "day_removed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
                "edited": changes_text, "contact_edited": changes_text, "property_edited": changes_text,
                "type_edited": changes_text, "pick_edited": changes_text, "company_edited": changes_text, "look_edited": changes_text, "price_set": changes_text, "login_edited": changes_text, "note_edited": changes_text}
 

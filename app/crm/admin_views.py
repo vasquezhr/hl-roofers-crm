@@ -47,7 +47,7 @@ def users(request):
 
 
 def login_page(request, form, title):
-    intro = _("Each login has one profile. Permission sets add to it: the first six are for an Office login, and Crew Lead is for a Crew login. "
+    intro = _("Each login has one profile. Permission sets add to it: the first seven are for an Office login, and Crew Lead is for a Crew login. "
               "The Administrator profile has all of them.")
     return form_page(request, form, title, reverse("users"), intro=intro)
 

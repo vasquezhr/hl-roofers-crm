@@ -20,7 +20,7 @@
     <div class="d-flex gap-2 align-items-start">
       <div class="flex-grow-1 hl-minw0">
         <div class="small text-body-secondary">{{ lead.get_job_type_display }} · {{ lead.get_source_display }} · {{ lead.received_at|ago }}</div>
-        <div class="fw-semibold text-truncate">{{ lead.name }}{% if lead.returning %} {% trans "Returning customer" as returning %}{% badge returning "primary" %}{% endif %}</div>
+        <div class="fw-semibold text-truncate">{{ lead.name }}</div>
         <div class="small text-body-secondary text-truncate">{{ lead.full_address }}</div>
       </div>
       <div class="text-end flex-shrink-0">{% stage_badge lead %}</div>

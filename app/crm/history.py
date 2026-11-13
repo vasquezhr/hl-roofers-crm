@@ -138,6 +138,15 @@ def file_text(code):
     return f"{pick_name('file_kind', category)} · {name}" if category in pick_items("file_kind") else code
 
 
+def stage_text(code):
+    """job|scheduled|inprogress -> Job: Scheduled → In progress"""
+    from .models import Job, Opportunity
+    record, old, new = (code.split("|") + ["", "", ""])[:3]
+    names = dict((Job if record == "job" else Opportunity).Stage.choices)
+    label = _("Job") if record == "job" else _("Opportunity")
+    return f"{label}: {names.get(old, old)} → {names.get(new, new)}"
+
+
 def when_text(code):
     """2026-11-10T10:00 -> Tue, Nov 10, 10:00 AM"""
     try:

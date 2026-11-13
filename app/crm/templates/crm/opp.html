@@ -3,13 +3,14 @@
 {% block title %}#{{ opp.number }} {{ account.name }}{% endblock %}
 
 {% block content %}
-<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'opps' %}">‹ {% trans "Opportunities" %}</a>
+{% trans "Opportunities" as words %}{% back_link 'opps' words %}
 <div class="d-flex align-items-start gap-2 mb-3">
   <div class="flex-grow-1 hl-minw0">
     <h1 class="h4 mb-0">{{ account.name }}</h1>
     <div class="text-body-secondary small">#{{ opp.number }} · {{ opp.get_job_type_display }}{% if opp.labor_only %} · {% trans "Labor only" %}{% endif %}</div>
   </div>
-  {% if user|may_edit:"opportunity" %}<a class="btn btn-outline-secondary btn-sm text-nowrap" href="{% url 'opp_edit' opp.number %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
+  {% if user|may_edit:"opportunity" %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" href="{% url 'opp_edit' opp.number %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
+  {% if user|can:"change_stages" %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" href="{% url 'change_stage' 'opp' opp.number %}">{% icon "undo" %} {% trans "Change stage" %}</a>{% endif %}
   {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm" href="{% url 'record_delete' 'opp' opp.number %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">{% icon "trash" %}</a>{% endif %}
   {% stage_badge opp %}
 </div>
@@ -46,7 +47,7 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h2 class="h6 mb-2" data-section="customer">{% trans "Customer" %}</h2>
-        {% include "crm/_customer.html" with place=opp.place kind="opp" ident=opp.number %}
+        {% include "crm/_customer.html" with place=opp.place kind="opp" ident=opp.number source=opp.get_source_display %}
       </div>
     </div>
 
@@ -94,13 +95,6 @@
         {% if opp.sent_on %}
         <div class="small text-body-secondary mt-2">{% trans "Sent on" %}: {{ opp.sent_on|date }}{% if opp.signed_on %} · {% trans "Signed on" %}: {{ opp.signed_on|date }} ({{ opp.get_signed_how_display }}){% endif %}</div>
         {% endif %}
-      </div>
-    </div>
-
-    <div class="card shadow-sm mb-3">
-      <div class="card-body">
-        <h2 class="h6 mb-2" data-section="source">{% trans "Where it came from" %}</h2>
-        <div class="small">{{ opp.get_source_display }}</div>
       </div>
     </div>
   </div>

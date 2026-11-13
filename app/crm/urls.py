@@ -50,6 +50,7 @@ urlpatterns = [
     path("opportunities/<str:number>/proposal/send/", money_views.opp_send, name="opp_send"),
     path("opportunities/<str:number>/sign/", views.opp_sign, name="opp_sign"),
     path("opportunities/<str:number>/lost/", views.opp_lost, name="opp_lost"),
+    path("stage/<str:kind>/<str:number>/", views.change_stage, name="change_stage"),
     path("opportunities/<str:number>/edit/", views.opp_edit, name="opp_edit"),
     path("opportunities/<str:number>/take/", admin_views.take_inspection, name="take_inspection"),
 

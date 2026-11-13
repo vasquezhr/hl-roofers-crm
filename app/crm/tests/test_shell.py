@@ -262,7 +262,7 @@ class RegionAndWeek(Base):
         self.assertEqual(Property.objects.create(account=self.account, street="4417 Snapdragon Ln").state, "NC")
         self.sign_in(self.office)
         self.assertContains(self.client.get(reverse("account_new")), 'value="NC"')
-        self.client.post(reverse("lead_in"), {"key": "k", "name": "Mina Seo", "phone": "(804) 555-0178", "address": "4417 Snapdragon Ln"})
+        self.client.post(reverse("lead_in"), {"key": "k", "name": "Mina Seo", "phone": "(804) 555-0178", "address": "52 Birchwood Dr"})
         self.assertEqual(Lead.objects.get().state, "NC")
 
     def test_the_import_reads_the_business_region(self):

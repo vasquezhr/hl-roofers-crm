@@ -156,9 +156,18 @@ document.addEventListener("DOMContentLoaded", function () {
    A section is marked in the page with <h2 data-section="history">. */
 document.addEventListener("DOMContentLoaded", function () {
   var kind = location.pathname.split("/")[1] || "", words = document.body.dataset;
-  function hiddenBefore(key) { try { return localStorage.getItem(key) === "hidden"; } catch (e) { return false; } }
+  // A job page opens with Customer, Crew and Dates, Scope of Work and Price and Payments open and every other section folded.
+  // A section the person has folded or opened keeps that choice, for every job.
+  var OPEN_ON_A_JOB = ["customer", "crew", "scope", "money"];
+  function startsHidden(name) { return kind === "jobs" && OPEN_ON_A_JOB.indexOf(name) < 0; }
+  function hiddenBefore(key, name) {
+    try {
+      var kept = localStorage.getItem(key);
+      return kept ? kept === "hidden" : startsHidden(name);
+    } catch (e) { return startsHidden(name); }
+  }
   function remember(key, hidden) {
-    try { if (hidden) localStorage.setItem(key, "hidden"); else localStorage.removeItem(key); } catch (e) { /* a private window: not remembered */ }
+    try { localStorage.setItem(key, hidden ? "hidden" : "open"); } catch (e) { /* a private window: not remembered */ }
   }
   document.querySelectorAll("h2[data-section]").forEach(function (title, n) {
     var body = title.closest(".card-body");
@@ -181,11 +190,30 @@ document.addEventListener("DOMContentLoaded", function () {
       arrow.setAttribute("aria-label", (open ? words.hide : words.show) + ": " + title.textContent.trim());
       arrow.title = open ? words.hide : words.show;
     }
-    show(!hiddenBefore(key));
+    show(!hiddenBefore(key, title.dataset.section));
     arrow.addEventListener("click", function () {
       var open = rest.hidden;
       show(open);
       remember(key, !open);
     });
+  });
+});
+
+/* 13. The side menu on a computer can be folded to icons only, and opened again.
+   The choice is remembered on this computer (base.html puts the class on the page before it is drawn, so nothing jumps). */
+document.addEventListener("DOMContentLoaded", function () {
+  var toggle = document.querySelector("[data-side-toggle]");
+  if (!toggle) return;
+  function show(icons) {
+    document.documentElement.classList.toggle("hl-side-icons", icons);
+    toggle.setAttribute("aria-expanded", icons ? "false" : "true");
+    toggle.title = icons ? document.body.dataset.sideOpen : document.body.dataset.sideFold;
+    toggle.setAttribute("aria-label", toggle.title);
+  }
+  show(document.documentElement.classList.contains("hl-side-icons"));
+  toggle.addEventListener("click", function () {
+    var icons = !document.documentElement.classList.contains("hl-side-icons");
+    show(icons);
+    try { localStorage.setItem("hl-side", icons ? "icons" : "open"); } catch (e) { /* a private window: not remembered */ }
   });
 });

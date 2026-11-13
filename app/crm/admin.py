@@ -82,6 +82,9 @@ class AccountAdmin(PickLists, admin.ModelAdmin):
 
 @admin.register(Lead)
 class LeadAdmin(PickLists, admin.ModelAdmin):
+    def get_readonly_fields(self, request, obj=None):
+        return ("message",) if obj and obj.message_locked else ()
+
     list_display = ("name", "job_type", "status", "source", "owner", "received_at")
     list_filter = ("status", "source")
     search_fields = ("name", "phone", "email", "street")
@@ -97,7 +100,9 @@ class OpportunityAdmin(PickLists, admin.ModelAdmin):
     list_display = ("number", "account", "job_type", "stage", "total", "created_at")
     list_filter = ("stage", "job_type")
     search_fields = ("number", "account__name")
-    readonly_fields = ("number",)
+
+    def get_readonly_fields(self, request, obj=None):
+        return ("number", "description") if obj and obj.description_locked else ("number",)
     inlines = [ProposalLineInline]
 
 
@@ -118,7 +123,9 @@ class JobAdmin(admin.ModelAdmin):
     list_display = ("number", "account", "job_type", "stage", "crew", "first_day", "price")
     list_filter = ("stage", "crew", "job_type")
     search_fields = ("number", "account__name", "ref_number")
-    readonly_fields = ("number",)
+
+    def get_readonly_fields(self, request, obj=None):
+        return ("number", "scope") if obj and obj.scope_locked else ("number",)
     inlines = [ChangeOrderInline, PaymentInline]
 
 

@@ -92,6 +92,13 @@
 .hl-tag { font-size: .62rem; letter-spacing: .04em; }
 /* page frame */
 .hl-side { width: 220px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.hl-side-toggle { color: var(--bs-secondary-color); }
+.hl-side-toggle:hover { color: var(--bs-primary); }
+/* the side menu folded to icons only (hl.js, part 13) */
+.hl-side-icons .hl-side { width: 4.25rem; }
+.hl-side-icons .hl-side .nav-link { justify-content: center; padding-left: .5rem; padding-right: .5rem; }
+.hl-side-icons .hl-side .nav-link span { display: none; }
+.hl-side-icons .hl-side .hl-side-toggle { align-self: center !important; }
 .hl-main { max-width: 1000px; padding-bottom: 5.5rem; }    /* leaves room for the phone tab bar */
 @media (min-width: 992px) { .hl-main { padding-bottom: 2rem; } }
 .hl-minw0 { min-width: 0; }
@@ -107,11 +114,20 @@
 .hl-fold .hl-ic { transition: transform .15s; }
 .hl-fold[aria-expanded=false] .hl-ic { transform: rotate(-90deg); }
 .hl-folded > :first-child { margin-bottom: 0 !important; }
+.card-body.hl-folded { padding-top: .5rem; padding-bottom: .5rem; }       /* a folded card is only as tall as its title */
+.card-body.hl-folded > :first-child { line-height: 1.5rem; }
+/* the Edit and Change stage buttons in a record's header: small, level with the stage badge */
+.hl-edit { --bs-btn-padding-y: .1rem; --bs-btn-padding-x: .45rem; --bs-btn-font-size: .75rem; line-height: 1.4; align-self: center; }
+/* the arrow at the top left of a record page */
+.hl-back { color: var(--bs-secondary-color); }
+.hl-back:hover, .hl-back:focus-visible { color: var(--bs-primary); }
 /* notes keep their line breaks */
 .hl-pre { white-space: pre-wrap; }
 /* stage bar: one step per stage, from Inspection to Paid */
-.hl-stage { display: flex; gap: .25rem; overflow-x: auto; }
-.hl-stage > div { flex: 1; min-width: 4.4rem; text-align: center; font-size: .68rem; font-weight: 700; color: var(--bs-secondary-color); }
+.hl-stage { display: flex; flex-wrap: wrap; gap: .25rem; }
+.hl-stage > div { flex: 1 1 4.4rem; min-width: 0; text-align: center; font-size: .68rem; font-weight: 700; color: var(--bs-secondary-color); overflow-wrap: anywhere; }
+/* on a phone the steps wrap onto a second row (four to a row), so the bar fits the screen with no scroll bar */
+@media (max-width: 575.98px) { .hl-stage > div { flex: 1 0 calc(25% - .25rem); } }
 .hl-stage > div::before { content: ""; display: block; height: .4rem; border-radius: 1rem; background: var(--bs-border-color); margin-bottom: .3rem; }
 .hl-stage > .done::before { background: var(--bs-success); }
 .hl-stage > .cur::before { background: var(--bs-primary); }

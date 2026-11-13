@@ -28,7 +28,7 @@ class PickLists(Base):
         for words in ["Website form", "Formulario del sitio web", "Went with a lower price", "Eligió un precio más bajo", "No answer after 3 tries", "Cheque",
                       "Property manager", "Signed change order, on paper", "Orden de cambio firmada, en papel"]:
             self.assertContains(page, words)
-        self.assertEqual(PickItem.objects.count(), 31)
+        self.assertEqual(PickItem.objects.count(), 32)
         with translation.override("es"):
             self.assertEqual(pick_name("source", "web"), "Formulario del sitio web")
         self.assertEqual(self.client.get(reverse("admin_home")).status_code, 200)

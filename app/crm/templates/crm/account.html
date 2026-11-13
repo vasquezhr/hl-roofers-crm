@@ -3,14 +3,14 @@
 {% block title %}{{ account.name }}{% endblock %}
 
 {% block content %}
-<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'accounts' %}">‹ {% trans "Accounts" %}</a>
+{% trans "Accounts" as words %}{% back_link 'accounts' words %}
 <div class="d-flex align-items-start gap-2 mb-3">
   <div class="flex-grow-1 hl-minw0">
     <h1 class="h4 mb-0">{{ account.name }}</h1>
     <div class="text-body-secondary small">{% kind_badge account %} <span class="ms-1">{% trf "Customer since %(year)s" year=account.customer_since %}</span></div>
   </div>
   {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm" href="{% url 'record_delete' 'account' account.pk %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">{% icon "trash" %}</a>{% endif %}
-  {% if user|may_edit:"account" %}<a class="btn btn-outline-secondary btn-sm text-nowrap" href="{% url 'account_edit' account.pk %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
+  {% if user|may_edit:"account" %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" href="{% url 'account_edit' account.pk %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
   <a class="btn btn-primary btn-sm text-nowrap" href="{% url 'opp_new' account.pk %}">{% icon "plus" %} {% trans "New opportunity" %}</a>
 </div>
 
@@ -24,6 +24,7 @@
           <h2 class="h6 mb-0 flex-grow-1" data-section="contacts">{% trans "Contacts" %}</h2>
           <a class="btn btn-outline-secondary btn-sm" href="{% url 'contact_new' account.pk %}">{% icon "plus" %} {% trans "Add" %}</a>
         </div>
+        {% if account.source_name %}<dl class="row mb-2 small"><dt class="col-4 text-body-secondary fw-normal">{% trans "Source" %}</dt><dd class="col-8 mb-0">{{ account.source_name }}</dd></dl>{% endif %}
         <ul class="list-unstyled mb-0">
           {% for contact in account.contacts.all %}
           <li class="d-flex align-items-start gap-2 mb-2">

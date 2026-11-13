@@ -148,9 +148,6 @@ msgstr "Envíe a cada equipo su propia dirección, para que sus teléfonos muest
 msgid "None"
 msgstr "Ninguno"
 
-msgid "Photos and files"
-msgstr "Fotos y archivos"
-
 msgid "Delete"
 msgstr "Eliminar"
 
@@ -811,9 +808,6 @@ msgstr "Ver la factura"
 msgid "New warranty job"
 msgstr "Trabajo de garantía nuevo"
 
-msgid "Crew and dates"
-msgstr "Equipo y fechas"
-
 msgid "Crew"
 msgstr "Equipo"
 
@@ -859,23 +853,8 @@ msgstr "Cualquier día de la semana, para trabajo que no sigue a los otros días
 msgid "Not scheduled yet"
 msgstr "Sin programar"
 
-msgid "Numbers"
-msgstr "Números"
-
-msgid "Our number"
-msgstr "Número de H & L"
-
 msgid "Outside number"
 msgstr "Número externo"
-
-msgid "Change the outside number"
-msgstr "Cambiar el número externo"
-
-msgid "Scope of work"
-msgstr "Trabajo a realizar"
-
-msgid "Price and payments"
-msgstr "Precio y pagos"
 
 msgid "Warranty job: no charge."
 msgstr "Trabajo de garantía: sin costo."
@@ -918,9 +897,6 @@ msgstr "Factura enviada"
 
 msgid "Paid"
 msgstr "Pagado"
-
-msgid "Linked records"
-msgstr "Registros relacionados"
 
 msgid "Opportunity #%(number)s"
 msgstr "Oportunidad #%(number)s"
@@ -1011,9 +987,6 @@ msgstr "Pedidos del sitio web, en espera de que alguien los revise."
 
 msgid "New lead"
 msgstr "Prospecto nuevo"
-
-msgid "Returning customer"
-msgstr "Cliente que regresa"
 
 msgid "My Day"
 msgstr "Mi día"
@@ -1569,9 +1542,6 @@ msgstr "Perfil en la app"
 
 msgid "Dates"
 msgstr "Fechas"
-
-msgid "Each login has one profile. Permission sets add to it: the first six are for an Office login, and Crew Lead is for a Crew login. The Administrator profile has all of them."
-msgstr "Cada usuario tiene un perfil. Los permisos adicionales se suman: los primeros seis son para un usuario de Oficina, y Líder de equipo es para un usuario de Equipo. El perfil Administrador los tiene todos."
 
 msgid "A type of work is offered when a request, an opportunity or a job is made. Its usual days are what a new job gets on the schedule."
 msgstr "Un tipo de trabajo se ofrece al crear una solicitud, una oportunidad o un trabajo. Sus días de costumbre son los que un trabajo nuevo recibe en la agenda."
@@ -3807,9 +3777,6 @@ msgstr "La hoja de cálculo"
 msgid "An Excel file (.xlsx) or a CSV file (.csv), with the field names as the headings."
 msgstr "Un archivo de Excel (.xlsx) o un archivo CSV (.csv), con los nombres de los campos como encabezados."
 
-msgid "On a lead and on an opportunity. The website's form is always Website form, a new lead typed in starts as Referral, and a lead from the data import is Imported."
-msgstr "En un prospecto y en una oportunidad. El formulario del sitio web siempre es Formulario del sitio web, un prospecto nuevo escrito a mano empieza como Recomendación, y un prospecto de la importación de datos es Importado."
-
 msgid "Added by the data import: %(detail)s"
 msgstr "Agregado por la importación de datos: %(detail)s"
 
@@ -3836,3 +3803,98 @@ msgstr "Agregado a un cliente"
 
 msgid "Not imported"
 msgstr "No importado"
+
+msgid "Job #"
+msgstr "Trabajo n.º"
+
+msgid "External Job #"
+msgstr "Trabajo n.º externo"
+
+msgid "Photos and Files"
+msgstr "Fotos y archivos"
+
+msgid "Change stage"
+msgstr "Cambiar etapa"
+
+msgid "Crew and Dates"
+msgstr "Equipo y fechas"
+
+msgid "Scope of Work"
+msgstr "Trabajo a realizar"
+
+msgid "Price and Payments"
+msgstr "Precio y pagos"
+
+msgid "Linked Records"
+msgstr "Registros relacionados"
+
+msgid "Each login has one profile. Permission sets add to it: the first seven are for an Office login, and Crew Lead is for a Crew login. The Administrator profile has all of them."
+msgstr "Cada usuario tiene un perfil. Los permisos adicionales se suman: los primeros siete son para un usuario de Oficina, y Líder de equipo es para un usuario de Equipo. El perfil Administrador los tiene todos."
+
+msgid "New request from %(name)s, an existing customer"
+msgstr "Solicitud nueva de %(name)s, un cliente existente"
+
+msgid ""
+"%(name)s, who is already a customer, sent a request from the website: %(type)s.\n"
+"%(message)s\n"
+"\n"
+"Open the opportunity: %(link)s"
+msgstr ""
+"%(name)s, que ya es cliente, envió una solicitud desde el sitio web: %(type)s.\n"
+"%(message)s\n"
+"\n"
+"Abra la oportunidad: %(link)s"
+
+msgid "Move it to"
+msgstr "Pasarlo a"
+
+msgid "Pick the reason it was lost."
+msgstr "Elija el motivo por el que se perdió."
+
+msgid "Opportunity"
+msgstr "Oportunidad"
+
+msgid "%(name)s is already a customer: opportunity #%(number)s was created."
+msgstr "%(name)s ya es cliente: se creó la oportunidad n.º %(number)s."
+
+msgid "On a lead and on an opportunity. The website's form is always Website form, a new lead typed in starts as Referral, a lead from the data import is Imported, and a request from an existing customer is Existing customer."
+msgstr "En un prospecto y en una oportunidad. El formulario del sitio web siempre es Formulario del sitio web, un prospecto nuevo escrito a mano empieza como Recomendación, un prospecto de la importación de datos es Importado, y una solicitud de un cliente existente es Cliente existente."
+
+msgid "Change stages"
+msgstr "Cambiar etapas"
+
+msgid "Opportunity created from a website request by an existing customer"
+msgstr "Oportunidad creada a partir de una solicitud del sitio web de un cliente existente"
+
+msgid "Opportunity created from a new lead by an existing customer"
+msgstr "Oportunidad creada a partir de un prospecto nuevo de un cliente existente"
+
+msgid "Stage changed: %(detail)s"
+msgstr "Etapa cambiada: %(detail)s"
+
+msgid "Move an opportunity or a job to any stage, with the Change stage button. Every move is in the history."
+msgstr "Pasar una oportunidad o un trabajo a cualquier etapa, con el botón Cambiar etapa. Cada cambio queda en el historial."
+
+msgid "Any stage, in any direction. Nothing else about the record changes, and the history keeps the old stage and the new one."
+msgstr "Cualquier etapa, en cualquier dirección. Nada más del registro cambia, y el historial guarda la etapa anterior y la nueva."
+
+msgid "Stage changed"
+msgstr "Etapa cambiada"
+
+msgid "It is already at that stage."
+msgstr "Ya está en esa etapa."
+
+msgid "%(name)s is already a customer and sent a request: set up the inspection"
+msgstr "%(name)s ya es cliente y envió una solicitud: programe la inspección"
+
+msgid "Lead page"
+msgstr "Prospecto"
+
+msgid "Show only the icons"
+msgstr "Mostrar solo los íconos"
+
+msgid "Show the names"
+msgstr "Mostrar los nombres"
+
+msgid "The customer wrote this. It came from a lead or the website, so it cannot be changed. Add your own notes on the record instead."
+msgstr "El cliente escribió esto. Vino de un prospecto o del sitio web, así que no se puede cambiar. Agregue sus propias notas en el registro."

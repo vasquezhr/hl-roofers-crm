@@ -6,10 +6,12 @@ import re
 from urllib.parse import quote
 
 from django import template
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 
 from crm import documents, logo
 from crm.dates import day_text, month_day_text, range_text, stamp_text
@@ -50,6 +52,8 @@ ICONS = {
     "undo": '<path d="M4 8v5h5"/><path d="M4.5 13A8 8 0 1112 20"/>',
     "download": '<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>',
     "camera": '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    "sidebar": '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>',
+    "back": '<path d="M19 12H5M11 6l-6 6 6 6"/>',
     "list": '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
     "trash": '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
     "palette": '<path d="M12 3a9 9 0 100 18c1.1 0 1.6-.8 1.6-1.6 0-1.1-.9-1.6-.9-2.6s.8-1.8 1.8-1.8H16a5 5 0 005-5c0-3.9-4-7-9-7z"/>'
@@ -118,6 +122,46 @@ def money(value):
 def logo_url(firm):
     """The address of the business's logo (for a company, or for the details kept with a document), or "" when it has none."""
     return logo.url_of(firm)
+
+
+# ---------- the back link at the top of a record page ----------
+# the pages a person may come from to a record, by the name of their address: the words for the link
+BACK_LABELS = {"home": gettext_lazy("Today"), "schedule": gettext_lazy("Schedule"), "search": gettext_lazy("Search"), "jobs": gettext_lazy("Jobs"),
+               "my_jobs": gettext_lazy("My Jobs"), "my_day": gettext_lazy("My Day"), "leads": gettext_lazy("Leads"), "lead": gettext_lazy("Lead page"),
+               "opps": gettext_lazy("Opportunities"), "opp": gettext_lazy("Opportunity"), "accounts": gettext_lazy("Accounts"),
+               "account": gettext_lazy("Account"), "job": gettext_lazy("Job"), "dashboard": gettext_lazy("Dashboard"), "reports": gettext_lazy("Reports"),
+               "report": gettext_lazy("Reports")}
+
+
+def came_from(request):
+    """The page of this app the person came from, as (its address with its query, the name of its page), or None.
+    It is read from the Referer header, and only an address on this same site that is one of the pages above is used,
+    so the link can never point to another site."""
+    from urllib.parse import urlsplit
+    from django.urls import Resolver404, resolve
+    seen = request.META.get("HTTP_REFERER", "")
+    if not seen:
+        return None
+    parts = urlsplit(seen)
+    if parts.netloc != request.get_host() or not parts.path.startswith("/") or parts.path.startswith("//"):
+        return None
+    try:
+        name = resolve(parts.path).url_name
+    except Resolver404:
+        return None
+    if name not in BACK_LABELS or parts.path == request.path:
+        return None
+    return parts.path + ("?" + parts.query if parts.query else ""), name
+
+
+@register.inclusion_tag("crm/_back.html", takes_context=True)
+def back_link(context, fallback, words):
+    """The arrow at the top left of a lead, account, opportunity or job: back to the page the person came from, named,
+    or (with no page to go back to) to the list, named `words`."""
+    found = came_from(context["request"]) if context.get("request") else None
+    if found:
+        return {"url": found[0], "label": BACK_LABELS[found[1]]}
+    return {"url": reverse(fallback), "label": words}
 
 
 @register.filter

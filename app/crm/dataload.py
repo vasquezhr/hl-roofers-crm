@@ -320,7 +320,8 @@ def add_to_customer(account, values, run, user):
 def add_lead(values, run, user):
     lead = Lead.objects.create(name=values["name"], phone=values.get("phone", ""), email=values.get("email", ""), street=values.get("street", ""),
                                city=values["city"], state=values["state"], zip_code=values["zip_code"], job_type=values["job_type"],
-                               message=values.get("message", ""), language=values["language"], source=IMPORTED, owner=user)
+                               message=values.get("message", ""), message_locked=bool(values.get("message")), language=values["language"],
+                               source=IMPORTED, owner=user)
     log(lead, "imported", user, detail=run.file_name)
     return lead
 

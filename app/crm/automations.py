@@ -117,6 +117,18 @@ def lead_arrived(lead):
                  "name": lead.name, "type": lead.get_job_type_display(), "message": lead.message, "link": link("lead", lead.pk)})
 
 
+def existing_customer_arrived(opp, lead):
+    """A website request from a customer already in the app became an opportunity: the person named in Company details is emailed."""
+    company = Company.load()
+    owner = company.lead_owner
+    if not (company.auto_route and owner):
+        return
+    to_staff([owner.email],
+             lambda: _("New request from %(name)s, an existing customer") % {"name": opp.account.name},
+             lambda: _("%(name)s, who is already a customer, sent a request from the website: %(type)s.\n%(message)s\n\nOpen the opportunity: %(link)s") % {
+                 "name": opp.account.name, "type": opp.get_job_type_display(), "message": lead.message, "link": link("opp", opp.number)})
+
+
 def job_done(job):
     """Job done: the logins that do billing are told the job is ready to invoice."""
     if not Company.load().auto_job_done or job.is_warranty:
