@@ -731,7 +731,7 @@ const MORE_IN = {
       receipt: "Receipt", receivedFrom: "Received from", forJob: "For the work", jobTotal: "Job total", paidSoFar: "Paid so far", thanks: "Thank you.", emailReceipt: "Email the receipt",
       signedOn: "Signed {d}", notAccepted: "Not accepted", sentOn: "Sent {d}", receivedOn: "Received {d}", paidDoc: "Paid", documents: "Documents",
       noDocs: "No documents yet. A proposal shows here once it is sent, and an invoice once it is sent." },
-    sched: { rowHelp: "The job's days run in a row, days off included (Saturday and Sunday). Left empty, the days skip days off.", bookDay: "Book this day", clickHint: "Click a day's date (+) to open the form for the visit below with that day.", clickedOff: "{day} is a day off. To book it, tick “Work on a day off”.", inspForm: "Inspection", dayOff: "Day off", workDayOff: "Work on a day off", dayOffHelp: "Saturday and Sunday are days off. Tick this only when the work really has to be on one of them.",
+    sched: { bookDay: "Book this day", clickHint: "Click a day's date (+) to open the form for the visit below with that day.", clickedOff: "{day} is a day off. To book it, tick “Work on a day off”.", inspForm: "Inspection", dayOff: "Day off", workDayOff: "Work on a day off", dayOffHelp: "Saturday and Sunday are days off. Tick this only when the work really has to be on one of them.",
       pickWorkDay: "Pick a work day (Monday to Friday). To use a day off, tick “Work on a day off”.", ownTime: "Or pick a day and time yourself", day: "Day", time: "Time",
       pickDayTime: "Pick a day and a time.", feedOffice: "The office: every crew", feedReset: "New address", feedResetAsk: "Make a new address? The old one stops working, in every calendar that has it.",
       feedResetDone: "New address made", feedResetNote: "Each crew adds its own address on its phones. Make a new address if one was shared by mistake: the old one stops working." },
@@ -773,7 +773,7 @@ const MORE_IN = {
       receipt: "Recibo", receivedFrom: "Recibido de", forJob: "Por el trabajo", jobTotal: "Total del trabajo", paidSoFar: "Pagado hasta ahora", thanks: "Gracias.", emailReceipt: "Enviar el recibo",
       signedOn: "Firmada {d}", notAccepted: "No aceptada", sentOn: "Enviada {d}", receivedOn: "Recibido {d}", paidDoc: "Pagada", documents: "Documentos",
       noDocs: "Todavía no hay documentos. Una propuesta aparece aquí cuando se envía, y una factura cuando se envía." },
-    sched: { rowHelp: "Los días del trabajo van seguidos, incluidos los días libres (sábado y domingo). Sin marcar, los días se saltan los días libres.", bookDay: "Reservar este día", clickHint: "Haga clic en la fecha de un día (+) para abrir el formulario de la visita de abajo con ese día.", clickedOff: "{day} es un día libre. Para reservarlo, marque “Trabajar en un día libre”.", inspForm: "Inspección", dayOff: "Día libre", workDayOff: "Trabajar en un día libre", dayOffHelp: "Sábado y domingo son días libres. Marque esto solo cuando el trabajo de verdad tenga que ser uno de esos días.",
+    sched: { bookDay: "Reservar este día", clickHint: "Haga clic en la fecha de un día (+) para abrir el formulario de la visita de abajo con ese día.", clickedOff: "{day} es un día libre. Para reservarlo, marque “Trabajar en un día libre”.", inspForm: "Inspección", dayOff: "Día libre", workDayOff: "Trabajar en un día libre", dayOffHelp: "Sábado y domingo son días libres. Marque esto solo cuando el trabajo de verdad tenga que ser uno de esos días.",
       pickWorkDay: "Escoja un día de trabajo (de lunes a viernes). Para usar un día libre, marque “Trabajar en un día libre”.", ownTime: "O escoja usted el día y la hora", day: "Día", time: "Hora",
       pickDayTime: "Escoja un día y una hora.", feedOffice: "La oficina: todos los equipos", feedReset: "Dirección nueva", feedResetAsk: "¿Hacer una dirección nueva? La anterior deja de funcionar en cada calendario que la tenga.",
       feedResetDone: "Dirección nueva hecha", feedResetNote: "Cada equipo agrega su propia dirección en sus teléfonos. Haga una dirección nueva si una se compartió por error: la anterior deja de funcionar." },
@@ -1598,8 +1598,8 @@ ACT.demoOnly = () => toast(t("demoOnly"));
 const DAYS_BY_TYPE = { repair: 1, replacement: 2, gutters: 1, tpo: 2, siding: 3, chimney: 1, skylight: 1, inspection: 1, warranty: 1 };
 const crewBusy = (crewId, day, exceptId) => JOBS.some(j => j.crew === crewId && j.id !== exceptId && j.days.some(x => sameDay(x, day)));
 // The first day can be any day of the week; a day off (Saturday or Sunday) needs "Work on a day off" ticked.
-const dayOffBox = (id, help = "sched.dayOffHelp", on = false) => `<div class="form-check mb-1"><input class="form-check-input" type="checkbox" id="${id}"${on ? " checked" : ""}><label class="form-check-label" for="${id}">${tt("sched.workDayOff")}</label></div>` +
-  `<div class="form-text mt-0 mb-3">${tt(help)}</div>`;
+const dayOffBox = (id, help = "sched.dayOffHelp", on = false) => `<div class="form-check ${help ? "mb-1" : "mb-3"}"><input class="form-check-input" type="checkbox" id="${id}"${on ? " checked" : ""}><label class="form-check-label" for="${id}">${tt("sched.workDayOff")}</label></div>` +
+  `${help ? `<div class="form-text mt-0 mb-3">${tt(help)}</div>` : ""}`;
 ACT.jobSchedule = d => {
   const j = jobOf(d.id), crewId = d.crew || j.crew || "c1", days = j.days.length || DAYS_BY_TYPE[j.type] || 1;
   const clicked = d.day && j.stage === "signed" ? dayFromIso(d.day) : null;          // a day clicked on the Schedule calendar: filled in, nothing booked yet
@@ -1609,7 +1609,7 @@ ACT.jobSchedule = d => {
     field(t("crew"), `<select class="form-select" id="jsCrew">${CREWS.map(c => `<option value="${c.id}"${c.id === crewId ? " selected" : ""}>${esc(crewName(c))} · ${esc(c.lead)}</option>`).join("")}</select>`) +
     `<div class="row g-2"><div class="col-7">${field(t("job.firstDay"), `<input type="date" class="form-control" id="jsDay" value="${iso(first)}">`)}</div>` +
     `<div class="col-5">${field(t("job.howManyDays"), `<input type="number" class="form-control" id="jsDays" min="1" max="20" value="${days}">`)}</div></div>` +
-    dayOffBox("jsOff", "sched.rowHelp", !!j.throughOff) + (clicked && isOff(clicked) ? `<div class="alert alert-warning py-2 small">${tt("sched.clickedOff", { day: fmtDay(clicked) })}</div>` : "") +
+    dayOffBox("jsOff", "", !!j.throughOff) + (clicked && isOff(clicked) ? `<div class="alert alert-warning py-2 small">${tt("sched.clickedOff", { day: fmtDay(clicked) })}</div>` : "") +
     `<div class="alert alert-danger py-2 small d-none" id="jsProblem"></div>` +
     `<div class="form-text">${tt("job.scheduleHint")}</div>`,
     cancelBtn() + `<button type="button" class="btn btn-primary" data-act="saveSchedule" data-id="${j.id}">${tt("job.schedule")}</button>`));
@@ -2843,8 +2843,8 @@ const bookCur = () => { const l = toBook(); return l.find(x => x.key === S.book)
 function schedDay(d) {
   const f = S.f.sched, cur = bookCur();
   const items = stopsOn(d).filter(s => f === "all" || (f === "insp" ? s.kind === "insp" : s.kind === "job" && s.rec.crew === f));
-  return `<div class="col"><div class="card h-100${sameDay(d, TODAY) ? " border-primary" : isOff(d) ? " border-warning" : ""}">` +
-    `<div class="card-header d-flex justify-content-between py-1 px-2 small"><span class="fw-semibold text-uppercase">${esc(d.toLocaleDateString(loc(), { weekday: "short" }))}</span>` +
+  return `<div class="col-12 col-sm-6 col-lg-3 col-xl"><div class="card h-100${sameDay(d, TODAY) ? " border-primary" : ""}${isOff(d) ? " bg-body-tertiary" : ""}">` +
+    `<div class="card-header d-flex justify-content-between py-1 px-2 small${isOff(d) ? " bg-body-secondary" : ""}"><span class="fw-semibold text-uppercase">${esc(d.toLocaleDateString(loc(), { weekday: "short" }))}</span>` +
     `${isOff(d) ? badge(t("sched.dayOff"), "warning") : ""}<span>${cur ? `<a href="#" class="text-reset" data-act="clickDay" data-day="${iso(d)}" title="${esc(t("sched.bookDay"))}" aria-label="${esc(t("sched.bookDay"))}">` : ""}${esc(d.toLocaleDateString(loc(), { month: "short", day: "numeric" }))}${cur ? " +</a>" : ""}</span></div>` +
     `<div class="card-body d-flex flex-column gap-1 p-2">${items.length ? items.map(s => schedItem(s, d)).join("") : `<div class="small text-body-secondary">—</div>`}</div></div></div>`;
 }
@@ -2933,14 +2933,12 @@ function bookCard() {
 route("schedule", {
   roles: ["admin", "office"], icon: "schedule",
   render() {
-    const work = Array.from({ length: 5 }, (_, i) => wd(S.week * 5 + i)), days = work.slice();
-    for (const d = new Date(work[0]); d <= work[4]; d.setDate(d.getDate() + 1)) if (isOff(d) && stopsOn(d).length) days.push(new Date(d));
-    days.sort((a, b) => a - b);
+    const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(TODAY); d.setDate(d.getDate() + 7 * S.week + i); return d; });     // every day of the week, days off included
     const nav = `<div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-secondary" data-act="schedWeek" data-by="-1"${S.week ? "" : " disabled"} aria-label="${tt("sched.prev")}">‹</button>` +
       `<button type="button" class="btn btn-outline-secondary" data-act="schedWeek" data-by="1" aria-label="${tt("sched.next")}">›</button></div>`;
     return pageHead(tt("nav.schedule"), esc(fmtDay(days[0]) + " – " + fmtDay(days[days.length - 1])), nav) +
       pills("sched", S.f.sched, [["all", t("all")], ...CREWS.map(c => [c.id, crewName(c)]), ["insp", t("sched.inspections")]]) +
-      `<div class="row row-cols-1 row-cols-md-${Math.min(days.length, 6)} g-2 mb-3">${days.map(schedDay).join("")}</div>` +
+      `<div class="row g-2 mb-3">${days.map(schedDay).join("")}</div>` +
       `<div class="d-flex flex-wrap gap-3 small text-body-secondary mb-3">` + CREWS.map(c => `<span><span class="badge bg-${CREW_TONE[c.id]} rounded-circle p-1">&nbsp;</span> ${esc(crewName(c))}</span>`).join("") +
       `<span><span class="badge bg-info rounded-circle p-1">&nbsp;</span> ${tt("sched.inspections")}</span>` + (bookCur() ? `<span>${tt("sched.clickHint")}</span>` : "") +
       `<button type="button" class="btn btn-link btn-sm p-0 ms-auto" data-act="calFeed">${ic("schedule")} ${tt("sched.feed")}</button></div>` + bookCard();

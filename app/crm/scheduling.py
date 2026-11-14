@@ -51,6 +51,12 @@ def week(offset=0):
     return [work_day(offset * 5 + i) for i in range(5)]
 
 
+def calendar_days(offset=0):
+    """The seven days on the Schedule calendar, every day of the week, days off included: offset 0 starts today, 1 is the seven after that."""
+    first = timezone.localdate() + timedelta(days=7 * offset)
+    return [first + timedelta(days=i) for i in range(7)]
+
+
 # ---------------------------------------------------------------- distance
 @lru_cache(maxsize=2000)
 def zip_point(zip_code):

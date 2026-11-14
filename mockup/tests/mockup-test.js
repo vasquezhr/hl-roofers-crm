@@ -154,11 +154,11 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
   if (upTo >= 3) {
     await go("#schedule"); v = await view();
     ok(/Crew 1 · day 2 of 3/.test(v) && /Denise Wyckoff/.test(v) && /Changed/.test(v) && /Inspections/.test(v) && /Book a visit/.test(v), "week view: " + v.slice(0, 500));
-    ok((await p.$$("#view .row.row-cols-md-5 > .col")).length === 5, "week shows five work days");
-    ok(!/Sat|Sun/.test(await p.textContent("#view .row.row-cols-md-5")), "no Saturday or Sunday in the week");
+    ok((await p.$$("#view .row.g-2 > .col-12")).length === 7, "the week shows all seven days");
+    ok(/Sat/.test(await p.textContent("#view .row.g-2")) && /Sun/.test(await p.textContent("#view .row.g-2")), "Saturday and Sunday are in the week, as days off");
     await shot("p3-schedule");
     await p.click('[data-act="setFilter"][data-value="c2"]'); await p.waitForTimeout(200);
-    ok(!/Denise Wyckoff/.test(await p.textContent("#view .row.row-cols-md-5")), "crew filter hides other crews");
+    ok(!/Denise Wyckoff/.test(await p.textContent("#view .row.g-2")), "crew filter hides other crews");
     await p.click('[data-act="setFilter"][data-value="all"]'); await p.waitForTimeout(200);
     await act("schedWeek", '[data-by="1"]'); ok(!(await p.isDisabled('[data-act="schedWeek"][data-by="-1"]')), "can go back after moving a week ahead");
     await act("schedWeek", '[data-by="-1"]'); ok(await p.isDisabled('[data-act="schedWeek"][data-by="-1"]'), "cannot go before today");
@@ -271,7 +271,8 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await role("admin"); await go("#lead/L-305"); await act("askDelete"); v = await modal(); ok(/Delete Desmond Farrow\?/.test(v) && /30 days/.test(v), "delete asks first: " + v);
     await inModal("doDelete"); ok((await hash()) === "#leads", "a deleted record's page is left");
     await go("#lead/L-305"); ok(/Not found/.test(await view()), "the deleted lead is gone from the app");
-    await go("#bin"); v = await view(); ok(/Desmond Farrow/.test(v) && /Deleted by Admin/.test(v) && /30 days left/.test(v), "Recycle Bin lists it: " + v.slice(0, 400));
+    // (on a weekend the demo clock jumps to Monday, so a fresh entry can already read 28 days left)
+    await go("#bin"); v = await view(); ok(/Desmond Farrow/.test(v) && /Deleted by Admin/.test(v) && /(28|29|30) days left/.test(v), "Recycle Bin lists it: " + v.slice(0, 400));
     await shot("p5-recycle-bin");
     await act("binRestore"); await go("#lead/L-305"); v = await view(); ok(/Desmond Farrow/.test(v) && /Restored from the Recycle Bin/.test(v), "restored, with a history line");
     await go("#account/A7"); await act("askDelete"); v = await modal(); ok(/Opportunities: 1 · Jobs: 1/.test(v), "delete says what goes along: " + v);
@@ -341,23 +342,28 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await shot("p5-schedule-day-off");
     // "Work on a day off" is stored on the job: ticked, its days run straight through, days off included
     await go("#job/26-118"); await act("jobSchedule"); ok(await p.isChecked("#jsOff"), "the saved tick shows ticked on an edit");
-    ok(/days off included/.test(await p.textContent("#modal")), "the tick explains itself");
+    ok((await p.locator("#modal .form-check + .form-text").count()) === 0, "just the tick and its label, no sentence under it");
     await p.fill("#jsDay", await day(4)); await p.fill("#jsDays", "5"); await inModal("saveSchedule");           // Thursday, 5 days, ticked
     ok(await p.evaluate(() => { const j = jobOf("26-118"); return j.throughOff && j.days.length === 5 && j.days.map(x => x.getDay()).join() === "4,5,6,0,1"; }), "ticked: Thu, Fri, Sat, Sun, Mon");
     await act("jobSchedule"); await p.uncheck("#jsOff"); await inModal("saveSchedule"); v = await view();
     ok(await p.evaluate(() => { const j = jobOf("26-118"); return !j.throughOff && j.days.map(x => x.getDay()).join() === "4,5,1,2,3"; }), "not ticked: the days skip days off");
     ok(/Work on a day off: yes → no/.test(v), "the history shows the tick before and after: " + v.slice(0, 400));
     // clicking a day on the Schedule calendar opens the form with that day; it books nothing by itself
+    await p.setViewportSize({ width: 390, height: 844 }); await go("#schedule"); await p.waitForTimeout(300);
+    ok(await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) <= 0, "the seven-day calendar fits a 390 px phone with no sideways scroll");
+    await p.setViewportSize({ width: 1280, height: 900 });
     await go("#schedule"); await p.selectOption("#bookPick", { index: 0 }); await p.waitForTimeout(300);
     const opens = await p.evaluate(() => toBook().length);
     ok(opens > 0 && await p.isVisible('[data-act="clickDay"]'), "days on the calendar can be clicked while something is waiting to be booked");
     await p.evaluate(() => { S.book = toBook().find(x => x.kind === "job").key; render(); }); await p.waitForTimeout(300);
     const waitingId = await p.evaluate(() => S.book.split(":")[1]);
-    const tuesday = await day(2);
+    const tuesday = await p.evaluate(() => iso(TODAY));                  // the first day on the calendar
     await p.click(`[data-act="clickDay"][data-day="${tuesday}"]`); await p.waitForTimeout(380);
     ok((await p.inputValue("#jsDay")) === tuesday && !/is a day off/.test(await p.textContent("#modal")), "the job form opens on the clicked day");
     await p.click("#modal .btn-close"); await p.waitForTimeout(400);
-    await p.evaluate(d => ACT.clickDay({ day: d }), saturday); await p.waitForTimeout(380);          // a Saturday is not on the calendar unless something is booked on it
+    ok((await p.locator('#view [data-act="clickDay"]').count()) === 7, "all seven days are on the calendar, each clickable");
+    ok(await p.isVisible(`[data-act="clickDay"][data-day="${saturday}"]`) && await p.isVisible(`[data-act="clickDay"][data-day="${sunday}"]`), "Saturday and Sunday are there with nothing booked");
+    await p.click(`[data-act="clickDay"][data-day="${saturday}"]`); await p.waitForTimeout(380);
     ok((await p.inputValue("#jsDay")) === saturday && /is a day off/.test(await p.textContent("#modal")), "a clicked day off says so");
     ok(await p.evaluate(id => jobOf(id).stage === "signed" && !jobOf(id).days.length, waitingId), "the click booked nothing");
     await p.click("#modal .btn-close"); await p.waitForTimeout(400);

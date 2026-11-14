@@ -23,11 +23,11 @@
 </div>
 
 {# five work days #}
-<div class="row row-cols-1 row-cols-md-{{ width }} g-2 mb-3">
+<div class="row g-2 mb-3">
   {% for column in columns %}
-  <div class="col">
-    <div class="card h-100{% if column.is_today %} border-primary{% endif %}">
-      <div class="card-header d-flex justify-content-between py-1 px-2 small{% if column.day_off %} bg-warning-subtle{% endif %}"><span class="fw-semibold text-uppercase">{{ column.day|date:"D" }}{% if column.day_off %} · {% trans "Day off" %}{% endif %}</span><span>{% if column.click %}<a class="text-reset" href="{{ column.click }}" title="{% trans 'Book this day' %}" aria-label="{% trans 'Book this day' %}">{{ column.day|month_day }} +</a>{% else %}{{ column.day|month_day }}{% endif %}</span></div>
+  <div class="col-12 col-sm-6 col-lg-3 col-xl">
+    <div class="card h-100{% if column.is_today %} border-primary{% endif %}{% if column.day_off %} bg-body-tertiary{% endif %}">
+      <div class="card-header d-flex justify-content-between py-1 px-2 small{% if column.day_off %} bg-body-secondary{% endif %}"><span class="fw-semibold text-uppercase">{{ column.day|date:"D" }}{% if column.day_off %} · {% trans "Day off" %}{% endif %}</span><span>{% if column.click %}<a class="text-reset" href="{{ column.click }}" title="{% trans 'Book this day' %}" aria-label="{% trans 'Book this day' %}">{{ column.day|month_day }} +</a>{% else %}{{ column.day|month_day }}{% endif %}</span></div>
       <div class="card-body d-flex flex-column gap-1 p-2">
         {% for item in column.stops %}
         {% with stop=item.stop record=item.stop.record %}

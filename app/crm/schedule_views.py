@@ -45,12 +45,8 @@ def feed_address(request, token):
 def schedule(request):
     offset = max(0, int(request.GET["week"])) if request.GET.get("week", "").isdigit() else 0
     show = request.GET.get("show", "all")
-    days = scheduling.week(offset)
-    # the five work days, plus any day off in between that has something booked on it by hand
-    start = today() if offset == 0 else days[0]
-    end = scheduling.week(offset + 1)[0] - timedelta(days=1)
-    booked = scheduling.stops_between(start, end)
-    days = sorted(set(days) | {day for day in booked if start <= day <= end})
+    days = scheduling.calendar_days(offset)                         # all seven days, days off included
+    booked = scheduling.stops_between(days[0], days[-1])
     crews = list(Crew.objects.filter(active=True))
     tones = crew_tones()
 
@@ -77,7 +73,7 @@ def schedule(request):
                 "stops": [{"stop": stop, "tone": "info" if stop.kind == "inspection" else tones.get(stop.record.crew_id, "secondary")}
                           for stop in booked.get(day, []) if wanted(stop)]} for day in days]
     return render(request, "crm/schedule.html", {
-        "columns": columns, "width": min(len(columns), 6), "offset": offset, "show": show, "first": days[0], "last": days[-1],
+        "columns": columns, "offset": offset, "show": show, "first": days[0], "last": days[-1],
         "pills": filter_pills(show, [("all", _("All"), "")] + [(str(crew.pk), crew.name, "") for crew in crews] + [("inspections", _("Inspections"), "")]),
         "legend": [(tones[crew.pk], crew.name) for crew in crews],
         # the office's calendar address, and each crew's own, which the office can send to that crew

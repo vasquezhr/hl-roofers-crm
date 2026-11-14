@@ -250,7 +250,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
 
   console.log('The schedule and the calendar address');
   await office.goto(base + '/schedule/');
-  check('the schedule shows five work days', await office.locator('.row-cols-md-5 .card-header').count() === 5);
+  check('the schedule shows all seven days', await office.locator('.row.g-2 > .col-12 > .card > .card-header').count() === 7);
   const week = await main(office);
   check('with both crews and the inspections', ['Crew 1', 'Crew 2', 'Inspection', 'Mina Seo'].every(words => week.includes(words)));
   await snap(office, 'schedule');
@@ -450,6 +450,10 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await office.click('[data-side-toggle]');
   check('and opens again', (await sideWidth()) === wide);
 
+  // the Schedule shows all seven days, days off included, each with its "+" while something waits to be booked
+  await office.goto(base + '/schedule/');
+  check('the Schedule calendar shows seven days', (await office.locator('.row.g-2 > .col-12 > .card').count()) === 7);
+  check('days off are shaded', (await office.locator('.row.g-2 > .col-12 > .card.bg-body-tertiary').count()) === 2);
   // the fourth message: the back link, a folded card, and phone widths (Pixel 9 is 412 px wide, an iPhone 16 Pro Max 440)
   await office.goto(base + '/schedule/');
   const jobLink = office.locator('a[href^="/jobs/26-"]:not([href*="/schedule/"])').first();
@@ -462,7 +466,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await office.goto(base + '/jobs/26-104/');
   const folded = await office.evaluate(() => { const b = document.querySelector('h2[data-section="history"]').closest('.card-body'); return b.getBoundingClientRect().height; });
   check('a folded card is only as tall as its title', folded < 50, String(folded));
-  for (const width of [412, 440]) {
+  for (const width of [390, 412, 440]) {
     const phone = await signIn(browser, 'office', { viewport: { width, height: 900 } });
     for (const address of ['/', '/jobs/26-104/', '/jobs/', '/accounts/', '/opportunities/', '/leads/', '/schedule/', '/search/?q=grove', '/manage/', '/manage/lists/', '/manage/import/', '/manage/status/']) {
       await phone.goto(base + address);

@@ -82,20 +82,31 @@ class SchedulePage(OnMonday):
 
     def test_the_week_shows_jobs_and_inspections(self):
         page = self.client.get(reverse("schedule"))
-        self.assertEqual([column["day"] for column in page.context["columns"]], [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY])
-        self.assertEqual(self.stops(), [[self.roof], [self.visit, self.roof], [self.repair], [], []])       # an inspection comes first in its day
+        self.assertEqual([column["day"] for column in page.context["columns"]], [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, date(2026, 11, 15)])      # all seven days
+        self.assertEqual(self.stops(), [[self.roof], [self.visit, self.roof], [self.repair], [], [], [], []])       # an inspection comes first in its day
         for words in ["Crew 1", "day 1 of 2", "day 2 of 2", "Denise Wyckoff", "10:00 AM", "Anjali Raman", "Crew 2", "Terrence Oakes"]:
             self.assertContains(page, words)
         self.assertTrue(page.context["columns"][0]["is_today"])
 
+    def test_days_off_are_always_on_the_calendar_shaded_and_clickable(self):
+        page = self.client.get(reverse("schedule"), {"book": f"job:{self.waiting.number}", "crew": self.crew2.pk})
+        off = [column for column in page.context["columns"] if column["day_off"]]
+        self.assertEqual([column["day"] for column in off], [SATURDAY, date(2026, 11, 15)])      # nothing is booked on them
+        self.assertTrue(all(column["stops"] == [] for column in off))
+        self.assertEqual([column["click"] for column in page.context["columns"] if column["day"] == SATURDAY],
+                         [f"/jobs/{self.waiting.number}/schedule/?day=2026-11-14&crew={self.crew2.pk}"])
+        self.assertContains(page, "bg-body-tertiary")
+        self.assertContains(page, "Day off")
+
     def test_the_filters(self):
-        self.assertEqual(self.stops(show=self.crew1.pk), [[self.roof], [self.roof], [], [], []])
-        self.assertEqual(self.stops(show=self.crew2.pk), [[], [], [self.repair], [], []])
-        self.assertEqual(self.stops(show="inspections"), [[], [self.visit], [], [], []])
+        self.assertEqual(self.stops(show=self.crew1.pk), [[self.roof], [self.roof], [], [], [], [], []])
+        self.assertEqual(self.stops(show=self.crew2.pk), [[], [], [self.repair], [], [], [], []])
+        self.assertEqual(self.stops(show="inspections"), [[], [self.visit], [], [], [], [], []])
 
     def test_later_weeks(self):
         later = self.job(self.crew1, "scheduled", account=self.kincaid, place=self.kincaid_place, first_day=NEXT_MONDAY)
         self.assertEqual(self.stops(week=1)[0], [later])
+        self.assertEqual(self.client.get(reverse("schedule"), {"week": 1}).context["columns"][0]["day"], NEXT_MONDAY)
         self.assertEqual(self.stops(week="nonsense"), self.stops())                 # an odd address shows this week
 
     def test_a_job_waiting_for_a_date_is_offered_for_booking(self):
@@ -546,7 +557,7 @@ class DaysOff(OnMonday):
         page = self.client.get(reverse("job", args=[job.number]))
         for words in ["Days added by hand", "Day off", "3 work days", "Thu, Nov 12 – Sat, Nov 14"]:
             self.assertContains(page, words)
-        # it shows on the schedule as a column of its own, marked Day off, and in the crew's calendar
+        # it shows on the schedule on its Day off column, and in the crew's calendar
         columns = self.client.get(reverse("schedule")).context["columns"]
         saturday = next(column for column in columns if column["day"] == SATURDAY)
         self.assertTrue(saturday["day_off"])
@@ -623,7 +634,7 @@ class StraightThrough(OnMonday):
         self.move(job, THURSDAY, 5, crew=self.crew1, day_off_ok="on")
         page = self.client.get(reverse("job_schedule", args=[job.number]))
         self.assertTrue(page.context["form"]["day_off_ok"].value())
-        self.assertContains(page, "The job&#x27;s days run in a row, days off included (Saturday and Sunday).")
+        self.assertNotContains(page, "form-text\">Days off")                        # just the tick and its label, no sentence
         self.move(job, THURSDAY, 5, crew=self.crew1)                                # the tick is left off
         job = Job.objects.get(pk=job.pk)
         self.assertFalse(job.day_off_ok)

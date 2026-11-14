@@ -242,7 +242,7 @@ class RegionAndWeek(Base):
         job = self.job()
         page = self.client.get(reverse("job_schedule", args=[job.number]))
         self.assertContains(page, "The job gets whole work days (Monday to Saturday).")
-        self.assertContains(page, "days run in a row, days off included (Sunday).")
+        self.assertNotContains(page, "Tick this only when")                         # the tick on a job's schedule has no sentence under it
         self.client.post(reverse("job_schedule", args=[job.number]), {"crew": self.crew1.pk, "first_day": SATURDAY.isoformat(), "days": "1"})
         job.refresh_from_db()
         self.assertEqual((job.stage, job.first_day, job.days_off), ("scheduled", SATURDAY, []))
@@ -251,11 +251,10 @@ class RegionAndWeek(Base):
         self.sign_in(self.office)
         page = self.client.get(reverse("job_schedule", args=[self.job().number]))
         self.assertContains(page, "The job gets whole work days (Monday to Friday).")
-        self.assertContains(page, "days run in a row, days off included (Saturday and Sunday).")
+        self.assertNotContains(page, "Tick this only when")
         with translation.override("es"):
             page = self.client.get(reverse("job_schedule", args=[self.job().number]), HTTP_ACCEPT_LANGUAGE="es")
             self.assertContains(page, "días de trabajo completos (de lunes a viernes)")
-            self.assertContains(page, "incluidos los días libres (sábado y domingo).")
 
     @override_settings(STATE="NC", LEAD_FORM_KEY="k")
     def test_new_addresses_start_in_the_business_state(self):
