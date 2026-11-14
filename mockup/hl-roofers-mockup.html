@@ -407,8 +407,7 @@ const I18N = {
       overdue: "Invoice overdue", overdueD: "15 and 30 days after an invoice is sent: puts it on the overdue list. The reminder email to the customer is off.",
       review: "Review request", reviewD: "When an invoice is paid: sends a thank-you email with the Google review link. Off until the wording is approved.",
       weekly: "Weekly summary", weeklyD: "Monday morning: emails the owners last week's leads, jobs, revenue and unpaid total." },
-    imp: { title: "Apple Notes import", desc: "Move ten years of notes into each customer's Details, with a review step",
-      sub: "The app reads each note and proposes the customer it belongs to. Nothing is added until someone accepts it.",
+    nimp: { sub: "The app reads each note and proposes the customer it belongs to. Nothing is added until someone accepts it.",
       read: "Notes read", matched: "Matched to a customer", review: "To review", aside: "Set aside: logins and passwords",
       asideNote: "Notes that look like logins or passwords are set aside automatically. They are never imported and never shown here.",
       queue: "Review queue", left: "{n} of {of} left in this sample", acceptAll: "Accept all matches",
@@ -595,8 +594,7 @@ const I18N = {
       overdue: "Factura vencida", overdueD: "A los 15 y 30 días de enviada una factura: la pone en la lista de vencidas. El correo de recordatorio al cliente está apagado.",
       review: "Pedir reseña", reviewD: "Cuando se paga una factura: envía un correo de agradecimiento con el enlace para la reseña en Google. Apagada hasta que se apruebe el texto.",
       weekly: "Resumen semanal", weeklyD: "Lunes por la mañana: envía a los dueños por correo los prospectos, trabajos, ingresos y el total sin pagar de la semana pasada." },
-    imp: { title: "Importar Notas de Apple", desc: "Pasar diez años de notas a los Detalles de cada cliente, con un paso de revisión",
-      sub: "La app lee cada nota y propone a qué cliente pertenece. Nada se agrega hasta que alguien lo acepta.",
+    nimp: { sub: "La app lee cada nota y propone a qué cliente pertenece. Nada se agrega hasta que alguien lo acepta.",
       read: "Notas leídas", matched: "Con cliente propuesto", review: "Por revisar", aside: "Apartadas: usuarios y contraseñas",
       asideNote: "Las notas que parecen usuarios o contraseñas se apartan automáticamente. Nunca se importan ni se muestran aquí.",
       queue: "Cola de revisión", left: "quedan {n} de {of} en este ejemplo", acceptAll: "Aceptar todas las propuestas",
@@ -2670,10 +2668,10 @@ route("admin", {
   roles: ["admin"], icon: "admin",
   render(arg) {
     const pg = ADMIN_PAGES.find(p => p.id === arg);
-    if (pg) return backLink("#admin", t("nav.admin")) + pg.render();
+    if (pg) return ((pg.back && pg.back()) || backLink("#admin", t("nav.admin"))) + pg.render();
     return pageHead(tt("nav.admin"), tt("admin.sub")) + `<div class="row row-cols-1 row-cols-md-2 g-3">` + ADMIN_PAGES.map(p =>
       `<div class="col"><a class="card h-100 shadow-sm text-decoration-none" href="${p.href || "#admin/" + p.id}"><div class="card-body d-flex gap-3 align-items-start">` +
-      `<span class="text-primary fs-4 lh-1">${ic(p.icon)}</span><div><div class="fw-semibold">${tt(p.title)}</div><div class="small text-body-secondary">${tt(p.desc)}</div></div></div></a></div>`).join("") + `</div>`;
+      `<span class="text-primary fs-4 lh-1">${ic(p.icon)}</span><div><div class="fw-semibold">${tt(p.title)}</div><div class="small text-body-secondary">${tt(p.desc)}${p.extra ? p.extra() : ""}</div></div></div></a></div>`).join("") + `</div>`;
   },
   after(arg) { const pg = ADMIN_PAGES.find(p => p.id === arg); if (pg && pg.after) pg.after(); }
 });
@@ -3341,30 +3339,28 @@ const QUEUE = [
   { id: "n5", d: new Date(2021, 7, 3), text: "Cumpleaños de la abuela\nComprar el pastel\nLlamar a la tía", kind: "personal" }
 ];
 function queueCard(n) {
-  const proposal = n.kind === "new" ? `${ic("plus")} ${tt("imp.pNew")}: <span class="fw-semibold">${esc(n.name)}</span>, ${esc(n.addr)}`
-    : n.kind === "acct" ? `${ic("link")} ${tt("imp.pMatch")}: <a href="#account/${n.acct}">${esc(acct(n.acct).name)}</a> (${tt("imp.byPhone")})`
-    : n.kind === "none" ? `${ic("alert")} ${tt("imp.pNone")}` : `${ic("user")} ${tt("imp.pPersonal")}`;
+  const proposal = n.kind === "new" ? `${ic("plus")} ${tt("nimp.pNew")}: <span class="fw-semibold">${esc(n.name)}</span>, ${esc(n.addr)}`
+    : n.kind === "acct" ? `${ic("link")} ${tt("nimp.pMatch")}: <a href="#account/${n.acct}">${esc(acct(n.acct).name)}</a> (${tt("nimp.byPhone")})`
+    : n.kind === "none" ? `${ic("alert")} ${tt("nimp.pNone")}` : `${ic("user")} ${tt("nimp.pPersonal")}`;
   const btn = (how, label, main) => `<button type="button" class="btn btn-sm ${main ? "btn-primary" : "btn-outline-secondary"}" data-act="impDo" data-id="${n.id}" data-how="${how}">${esc(label)}</button>`;
-  const btns = n.done ? badge(t("imp.did_" + n.done), n.done === "skip" ? "secondary" : "success")
-    : (n.kind === "new" || n.kind === "acct" ? btn("accept", t("imp.accept"), true) + btn("skip", t("imp.skip"))
-      : n.kind === "none" ? btn("keep", t("imp.keep"), true) + btn("skip", t("imp.skip")) : btn("skip", t("imp.skip"), true) + btn("keep", t("imp.keep")));
+  const btns = n.done ? badge(t("nimp.did_" + n.done), n.done === "skip" ? "secondary" : "success")
+    : (n.kind === "new" || n.kind === "acct" ? btn("accept", t("nimp.accept"), true) + btn("skip", t("nimp.skip"))
+      : n.kind === "none" ? btn("keep", t("nimp.keep"), true) + btn("skip", t("nimp.skip")) : btn("skip", t("nimp.skip"), true) + btn("keep", t("nimp.keep")));
   return `<div class="card shadow-sm mb-3"><div class="card-body"><div class="row g-3"><div class="col-md-6"><div class="small text-body-secondary mb-1">${esc(fmtDate(n.d))}</div>` +
     `<pre class="hl-pre small bg-body-tertiary border rounded p-2 mb-0">${esc(n.text)}</pre></div>` +
     `<div class="col-md-6 d-flex flex-column"><div class="small mb-2">${proposal}</div><div class="d-flex flex-wrap gap-2 mt-auto">${btns}</div></div></div></div></div>`;
 }
-ADMIN_PAGES.push({
-  id: "imports", icon: "upload", title: "imp.title", desc: "imp.desc",
-  render() {
-    const tile = (v, l, tone) => `<div class="col"><div class="card h-100 shadow-sm"><div class="card-body p-3"><div class="fs-4 fw-bold${tone ? " text-" + tone : ""}">${v.toLocaleString("en-US")}</div><div class="small text-body-secondary">${esc(l)}</div></div></div></div>`;
-    const left = QUEUE.filter(n => !n.done).length;
-    return pageHead(tt("imp.title"), tt("imp.sub")) +
-      `<div class="row row-cols-2 row-cols-md-4 g-2 mb-3">${tile(NOTES_IN.read, t("imp.read"))}${tile(NOTES_IN.matched, t("imp.matched"))}${tile(NOTES_IN.review, t("imp.review"))}${tile(NOTES_IN.aside, t("imp.aside"), "danger")}</div>` +
-      `<div class="alert alert-warning small">${ic("shield")} ${tt("imp.asideNote")}</div>` +
-      `<div class="d-flex align-items-center gap-2 mb-2"><h2 class="h6 mb-0 flex-grow-1">${tt("imp.queue")} <span class="text-body-secondary fw-normal">${tt("imp.left", { n: left, of: QUEUE.length })}</span></h2>` +
-      (QUEUE.some(n => !n.done && (n.kind === "new" || n.kind === "acct")) ? `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="impAll">${ic("check")} ${tt("imp.acceptAll")}</button>` : "") + `</div>` +
-      QUEUE.map(queueCard).join("");
-  }
-});
+// The review step of the notes import: it is on Admin > Import data, with Apple Notes picked (see IMPORT DATA below).
+function notesQueue() {
+  const tile = (v, l, tone) => `<div class="col"><div class="card h-100 shadow-sm"><div class="card-body p-3"><div class="fs-4 fw-bold${tone ? " text-" + tone : ""}">${v.toLocaleString("en-US")}</div><div class="small text-body-secondary">${esc(l)}</div></div></div></div>`;
+  const left = QUEUE.filter(n => !n.done).length;
+  return pageHead(tt("imp.queueTitle"), tt("nimp.sub")) +
+    `<div class="row row-cols-2 row-cols-md-4 g-2 mb-3">${tile(NOTES_IN.read, t("nimp.read"))}${tile(NOTES_IN.matched, t("nimp.matched"))}${tile(NOTES_IN.review - QUEUE.filter(n => n.done).length, t("nimp.review"))}${tile(NOTES_IN.aside, t("nimp.aside"), "danger")}</div>` +
+    `<div class="alert alert-warning small">${ic("shield")} ${tt("nimp.asideNote")}</div>` +
+    `<div class="d-flex align-items-center gap-2 mb-2"><h2 class="h6 mb-0 flex-grow-1">${tt("nimp.queue")} <span class="text-body-secondary fw-normal">${tt("nimp.left", { n: left, of: QUEUE.length })}</span></h2>` +
+    (QUEUE.some(n => !n.done && (n.kind === "new" || n.kind === "acct")) ? `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="impAll">${ic("check")} ${tt("nimp.acceptAll")}</button>` : "") + `</div>` +
+    QUEUE.map(queueCard).join("");
+}
 function importNote(n, how) {
   n.done = how;
   if (how !== "accept") return;
@@ -3375,8 +3371,8 @@ function importNote(n, how) {
     props: [{ id: "P" + k, addr: n.addr, city: n.city, lat: 37.52, lng: -77.47 }], details: [note] };
   a.files = []; ACCOUNTS.push(a); addLog(a, "log.noteImported"); n.acct = a.id;
 }
-ACT.impDo = d => { importNote(QUEUE.find(n => n.id === d.id), d.how); toast(t("imp.did_" + d.how)); render(); };
-ACT.impAll = () => { QUEUE.filter(n => !n.done && (n.kind === "new" || n.kind === "acct")).forEach(n => importNote(n, "accept")); toast(t("imp.did_accept")); render(); };
+ACT.impDo = d => { importNote(QUEUE.find(n => n.id === d.id), d.how); toast(t("nimp.did_" + d.how)); render(); };
+ACT.impAll = () => { QUEUE.filter(n => !n.done && (n.kind === "new" || n.kind === "acct")).forEach(n => importNote(n, "accept")); toast(t("nimp.did_accept")); render(); };
 
 /* ------------------------------ DATA EDITOR ------------------------------ */
 // Edits are held, reviewed, confirmed, logged, and can be undone. Nothing is written until Confirm.
@@ -3696,9 +3692,18 @@ const FOURTH = {
       method: "Ways of paying", methodAbout: "Asked when a payment is recorded, and printed on the receipt. Check is the starting choice.",
       kind: "Kinds of account", kindAbout: "A homeowner is a person; every other kind is a company.",
       fileKind: "Kinds of photo or file", fileKindAbout: "What a photo or file on a job or an account is. The signed paper of a proposal or a change order shows on that document." },
-    imp: { title: "Import data", desc: "Bring customers or leads in from a spreadsheet, with a template, matching and a review before anything is saved.",
+    imp: { title: "Import data", desc: "Bring in customers or leads from a spreadsheet, or the business's Apple Notes into each customer's Details. Pick the type of data; nothing is saved until you have reviewed it.",
+      pageSub: "Pick the type of data to import. Nothing is saved until you have reviewed it.", kindPick: "Type of data", choose: "Choose…", notes: "Apple Notes",
+      waiting: "{n} waiting for review.", notesUp: "Upload the notes export", rule1: "Notes that look like logins or passwords are counted and thrown away. They are never stored.",
+      rule2: "Notes in the folders you list under Folders to leave out are counted and thrown away too.", rule3: "Nothing is added to a customer until you accept it in the review queue.",
+      rule4: "Uploading the same file twice does not import a note twice.", notesFile: "The notes export file",
+      notesFileHelp: "The .json file exported from Apple Notes. In this mockup the file is not read: the sample notes, already in the review queue, stand in for it.",
+      skipFolders: "Folders to leave out", skipHelp: "Apple Notes folders that are never imported, separated by commas. Their notes are counted, not stored.",
+      notesRead: "The file was read. Review the notes below.", queueTitle: "Review the imported notes", history: "Imports so far", histFile: "File", colStatus: "Status",
+      notFinished: "Not finished", resultsBtn: "Results", continueBtn: "Continue", reviewWaiting: "Review waiting notes", reviewAll: "Review all waiting notes", noneYet: "No file has been read yet.",
+      batch1: "{read} notes read: {aside} logins and passwords, not stored · {empty} empty · {dup} already imported", batch2: "{pending} to review", batch3: "{accepted} accepted · {unlinked} unlinked · {skipped} skipped",
       sub: "One row is one record and one column is one field, with the field's name as the heading. You match the columns and review the rows before anything is saved.",
-      step1: "1. Download the template", tmplFor: "Template for {kind}", step2: "2. Fill it in and upload it", customers: "Customers", leads: "Leads", kind: "What is in the file",
+      step1: "1. Download the template", tmplFor: "Template for {kind}", step2: "2. Fill it in and upload it", customers: "Customers", leads: "Leads",
       file: "The spreadsheet", fileHelp: "An .xlsx or a .csv file, up to 5,000 rows and 10 MB. In this mockup a CSV file is read in your browser; an .xlsx file shows the sample rows, because the app reads Excel files on the server.",
       sample: "Use the sample file", read: "Read the file", mapTitle: "Match the columns", mapHint: "The columns whose heading names a field are already matched. Pick “Don't import” for a column you do not need.",
       colFile: "Column in the file", examples: "Examples", goesTo: "Goes to", skipCol: "Don't import", reviewBtn: "Review the rows", reviewTitle: "Review the rows",
@@ -3753,9 +3758,18 @@ const FOURTH = {
       method: "Formas de pago", methodAbout: "Se pregunta al registrar un pago y se imprime en el recibo. Cheque es la opción inicial.",
       kind: "Tipos de cuenta", kindAbout: "Un dueño de casa es una persona; cualquier otro tipo es una empresa.",
       fileKind: "Tipos de foto o archivo", fileKindAbout: "Qué es una foto o un archivo de un trabajo o de una cuenta. El papel firmado de una propuesta o de una orden de cambio aparece en ese documento." },
-    imp: { title: "Importar datos", desc: "Traiga clientes o prospectos desde una hoja de cálculo, con una plantilla, asignación de columnas y una revisión antes de guardar nada.",
+    imp: { title: "Importar datos", desc: "Traiga clientes o prospectos desde una hoja de cálculo, o las Notas de Apple del negocio a los Detalles de cada cliente. Elija el tipo de datos; no se guarda nada hasta que usted lo revise.",
+      pageSub: "Elija el tipo de datos que va a importar. No se guarda nada hasta que usted lo revise.", kindPick: "Tipo de datos", choose: "Elija…", notes: "Notas de Apple",
+      waiting: "{n} esperan revisión.", notesUp: "Suba el archivo exportado de las notas", rule1: "Las notas que parecen usuarios o contraseñas se cuentan y se descartan. Nunca se guardan.",
+      rule2: "Las notas de las carpetas que escriba en Carpetas que no se importan también se cuentan y se descartan.", rule3: "No se agrega nada a un cliente hasta que usted lo acepte en la lista de revisión.",
+      rule4: "Subir el mismo archivo dos veces no importa una nota dos veces.", notesFile: "El archivo exportado de las notas",
+      notesFileHelp: "El archivo .json exportado de Notas de Apple. En este prototipo el archivo no se lee: las notas de ejemplo, que ya están en la lista de revisión, lo reemplazan.",
+      skipFolders: "Carpetas que no se importan", skipHelp: "Carpetas de Notas de Apple que nunca se importan, separadas por comas. Sus notas se cuentan, no se guardan.",
+      notesRead: "Se leyó el archivo. Revise las notas abajo.", queueTitle: "Revisar las notas importadas", history: "Importaciones hasta ahora", histFile: "Archivo", colStatus: "Estado",
+      notFinished: "Sin terminar", resultsBtn: "Resultados", continueBtn: "Continuar", reviewWaiting: "Revisar las notas pendientes", reviewAll: "Revisar todas las notas pendientes", noneYet: "Todavía no se ha leído ningún archivo.",
+      batch1: "{read} notas leídas: {aside} usuarios y contraseñas, sin guardar · {empty} vacías · {dup} ya importadas", batch2: "{pending} por revisar", batch3: "{accepted} aceptadas · {unlinked} sin cliente · {skipped} omitidas",
       sub: "Una fila es un registro y una columna es un campo, con el nombre del campo como encabezado. Usted asigna las columnas y revisa las filas antes de guardar nada.",
-      step1: "1. Descargue la plantilla", tmplFor: "Plantilla de {kind}", step2: "2. Llénela y súbala", customers: "Clientes", leads: "Prospectos", kind: "Qué hay en el archivo",
+      step1: "1. Descargue la plantilla", tmplFor: "Plantilla de {kind}", step2: "2. Llénela y súbala", customers: "Clientes", leads: "Prospectos",
       file: "La hoja de cálculo", fileHelp: "Un archivo .xlsx o .csv, de hasta 5,000 filas y 10 MB. En este prototipo un archivo CSV se lee en su navegador; un archivo .xlsx muestra las filas de ejemplo, porque la aplicación lee los archivos de Excel en el servidor.",
       sample: "Usar el archivo de ejemplo", read: "Leer el archivo", mapTitle: "Asigne las columnas", mapHint: "Las columnas cuyo encabezado nombra un campo ya están asignadas. Elija “No importar” para una columna que no necesite.",
       colFile: "Columna del archivo", examples: "Ejemplos", goesTo: "Va a", skipCol: "No importar", reviewBtn: "Revise las filas", reviewTitle: "Revise las filas",
@@ -4008,8 +4022,10 @@ ACT.pickSave = d => {
   syncPicks(); closeModal(); toast(t("saved")); render();
 };
 
-/* ------------------------------ ADMIN: IMPORT DATA (customers or leads) ------------------------------ */
-// The same steps as the app: template, upload, match the columns, review, confirm, results. Nothing here leaves the page.
+/* ------------------------------ ADMIN: IMPORT DATA (customers, leads or Apple Notes) ------------------------------ */
+// One page for every kind of import, as in the app: a drop-down picks the type of data, and nothing below it shows until one is picked.
+// Customers and leads: template, upload, match the columns, review, confirm, results. Apple Notes: upload, then the review queue
+// (notesQueue, above). Imports so far lists every file read, of every type. Nothing here leaves the page.
 const IMP_FIELDS = {
   customers: [["name", ["customer", "cliente", "account", "cuenta"]], ["kind", ["type", "tipo", "account type"]], ["language", ["lang"]], ["contact_name", ["contact", "contacto"]],
     ["phone", ["telephone", "mobile", "cell", "telefono", "celular"]], ["email", ["e-mail", "correo", "email address"]], ["street", ["address", "direccion", "calle"]], ["city", []], ["state", []],
@@ -4019,7 +4035,18 @@ const IMP_FIELDS = {
 };
 const impWord = k => t("imp.f." + k);
 const impTidy = s => String(s).toLowerCase().replace(/[\s_]+/g, " ").trim().replace(/[:.]+$/, "");
-const IMP = { kind: "customers", file: "", headings: [], rows: [], map: [], step: "start", result: null, problem: "" };
+const IMP = { kind: "", file: "", headings: [], rows: [], map: [], step: "start", result: null, problem: "", run: null };
+// every file read, newest first. The notes file read on Nov 13 is the one the error log on System status mentions.
+const IMP_RUNS = [{ type: "notes", file: "notes.json", when: new Date(2026, 10, 13, 9, 2), who: "admin", first: true }];
+function impSave() { if (IMP.run) IMP.run.snap = { step: IMP.step, file: IMP.file, headings: IMP.headings, rows: IMP.rows, map: IMP.map, checked: IMP.checked, result: IMP.result }; }
+const notesDone = how => QUEUE.filter(n => n.done === how).length;
+// a notes file's counts. The first one holds the sample queue; a file read again here holds only notes already imported.
+function batchCounts(r) {
+  if (!r.first) return { read: QUEUE.length + 2, aside: 2, empty: 0, dup: QUEUE.length, pending: 0, accepted: 0, unlinked: 0, skipped: 0 };
+  return { read: NOTES_IN.read, aside: NOTES_IN.aside, empty: 0, dup: 0, pending: NOTES_IN.review - QUEUE.filter(n => n.done).length,
+    accepted: NOTES_IN.matched + notesDone("accept"), unlinked: notesDone("keep"), skipped: notesDone("skip") };
+}
+const notesWaiting = () => batchCounts(IMP_RUNS.find(r => r.first)).pending;
 function impExample(kind) {
   const g = ACCOUNTS.find(a => a.id === "A8"), c = g.contacts[0], p = g.props[0];
   return kind === "customers"
@@ -4063,9 +4090,19 @@ function impLoad(rows, name) {
   const names = {}, used = new Set();
   IMP_FIELDS[IMP.kind].forEach(([k, aliases]) => [k, k.replace(/_/g, " "), I18N.en.imp.f[k], I18N.es.imp.f[k], ...aliases].forEach(w => { if (!(impTidy(w) in names)) names[impTidy(w)] = k; }));
   IMP.map = IMP.headings.map(h => { const k = names[impTidy(h)] || ""; if (used.has(k)) return ""; used.add(k); return k; });
-  IMP.step = "map"; render();
+  IMP.step = "map"; IMP.checked = []; IMP.result = null;
+  IMP.run = { type: IMP.kind, file: name, when: new Date(), who: me() }; IMP_RUNS.unshift(IMP.run); impSave(); render();
 }
-ACT.impKind = (d, el) => { IMP.kind = el.value; render(); };
+ACT.impKind = (d, el) => { Object.assign(IMP, { kind: el.value, step: "start", problem: "", run: null }); render(); };
+ACT.impStart = () => { Object.assign(IMP, { step: "start", problem: "", run: null }); render(); };
+ACT.impQueue = () => { Object.assign(IMP, { kind: "notes", step: "queue", problem: "", run: null }); render(); };
+ACT.impOpen = d => { const r = IMP_RUNS[+d.i]; Object.assign(IMP, r.snap, { kind: r.type, run: r, problem: "" }); render(); };
+ACT.impNotes = d => {          // Read the file, or Use the sample file: the sample notes stand in, and the review queue opens
+  const file = $("#impNotesFile").files[0];
+  if (!d.sample && !file) return;
+  IMP_RUNS.unshift({ type: "notes", file: d.sample ? "notes-sample.json" : file.name, when: new Date(), who: me() });
+  IMP.step = "queue"; toast(t("imp.notesRead")); render();
+};
 ACT.impTemplate = d => saveText("import-" + d.kind + ".csv", csvText([impSample(d.kind)[0], impExample(d.kind)[0]]), "text/csv;charset=utf-8");
 ACT.impSample = () => impLoad(impSample(IMP.kind), "sample-" + IMP.kind + ".csv");
 ACT.impRead = () => {
@@ -4113,7 +4150,7 @@ ACT.impMap = () => {
     }
     return row;
   });
-  IMP.step = "review"; render();
+  IMP.step = "review"; impSave(); render();
 };
 ACT.impConfirm = () => {
   const counts = { created: 0, added: 0, skipped: 0, failed: 0 }, kind = IMP.kind;
@@ -4143,24 +4180,51 @@ ACT.impConfirm = () => {
     }
     row.result = "created"; row.message = row.result === "created" ? t("imp.createdMsg") : ""; counts.created++;
   });
-  IMP.result = counts; IMP.step = "done";
+  IMP.result = counts; IMP.step = "done"; impSave();
   addSetupLog("log.dataImported", { detail: t("imp." + kind) + " · " + IMP.file + " · " + t("imp.summary", counts) });
   toast(t("imp.summary", counts)); render();
 };
 ACT.impResultsFile = () => saveText("results-" + IMP.kind + ".csv", csvText([[t("imp.row"), t("imp.result"), t("imp.message"), ...IMP.headings],
   ...IMP.checked.map(r => [r.n, t("imp." + r.result), r.message, ...r.cells])]), "text/csv;charset=utf-8");
-ACT.impAgain = () => { Object.assign(IMP, { file: "", headings: [], rows: [], map: [], step: "start", result: null, problem: "", checked: [] }); render(); };
-ACT.impBack = d => { IMP.step = d.to; IMP.problem = ""; render(); };
+ACT.impAgain = () => { Object.assign(IMP, { file: "", headings: [], rows: [], map: [], step: "start", result: null, problem: "", checked: [], run: null }); render(); };
+ACT.impBack = d => { IMP.step = d.to; IMP.problem = ""; impSave(); render(); };
+// Imports so far: every type, or only the type picked
+function impHistory() {
+  const runs = IMP_RUNS.map((r, i) => ({ r, i })).filter(({ r }) => !IMP.kind || r.type === IMP.kind), waiting = !IMP.kind || IMP.kind === "notes" ? notesWaiting() : 0;
+  const status = r => {
+    if (r.type === "notes") { const c = batchCounts(r);
+      return `${tt("imp.batch1", { read: c.read.toLocaleString("en-US"), aside: c.aside, empty: c.empty, dup: c.dup })}<br><span class="fw-semibold">${tt("imp.batch2", { pending: c.pending.toLocaleString("en-US") })}</span> · ${tt("imp.batch3", { accepted: c.accepted.toLocaleString("en-US"), unlinked: c.unlinked, skipped: c.skipped })}`; }
+    return r.snap && r.snap.step === "done" ? tt("imp.summary", r.snap.result) : tt("imp.notFinished");
+  };
+  const button = ({ r, i }) => r.type === "notes" ? `<button type="button" class="btn btn-outline-secondary btn-sm text-nowrap" data-act="impQueue">${tt("imp.reviewWaiting")}</button>`
+    : `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="impOpen" data-i="${i}">${tt(r.snap && r.snap.step === "done" ? "imp.resultsBtn" : "imp.continueBtn")}</button>`;
+  return `<div class="card shadow-sm mb-3" id="impHistory"><div class="card-body"><div class="d-flex align-items-center gap-2 mb-2"><h2 class="h6 mb-0 flex-grow-1">${tt("imp.history")}</h2>` +
+    (waiting ? `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="impQueue">${tt("imp.reviewAll")}</button>` : "") + `</div>` +
+    (runs.length ? `<div class="table-responsive"><table class="table table-sm small align-middle mb-0"><thead><tr><th>${tt("imp.histFile")}</th><th>${tt("imp.kindPick")}</th><th>${tt("imp.colStatus")}</th><th></th></tr></thead><tbody>` +
+      runs.map(x => `<tr><td>${esc(x.r.file)}<br><span class="text-body-secondary">${esc(fmtStamp(x.r.when))} · ${esc(whoName(x.r.who))}</span></td><td>${tt("imp." + x.r.type)}</td><td>${status(x.r)}</td><td class="text-end">${button(x)}</td></tr>`).join("") +
+      `</tbody></table></div>` : `<div class="small text-body-secondary">${tt("imp.noneYet")}</div>`) + `</div></div>`;
+}
 ADMIN_PAGES.push({
   id: "import", icon: "upload", title: "imp.title", desc: "imp.desc",
+  extra: () => (notesWaiting() ? ` <span class="fw-semibold text-body">${tt("imp.waiting", { n: notesWaiting().toLocaleString("en-US") })}</span>` : ""),
+  back: () => (IMP.step === "start" ? "" : `<a class="small text-decoration-none d-inline-block mb-2" href="#" data-act="impStart">‹ ${tt("imp.title")}</a>`),
   render() {
-    const kinds = ["customers", "leads"], err = IMP.problem ? `<div class="alert alert-danger small">${esc(IMP.problem)}</div>` : "";
-    if (IMP.step === "start") return pageHead(tt("imp.title"), tt("imp.sub")) + err +
-      section("", `<h2 class="h6">${tt("imp.step1")}</h2><div class="d-flex flex-wrap gap-2 mb-3">${kinds.map(k => `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="impTemplate" data-kind="${k}">${ic("download")} ${tt("imp.tmplFor", { kind: t("imp." + k) })}</button>`).join("")}</div>` +
-        `<h2 class="h6">${tt("imp.step2")}</h2>` +
-        field(t("imp.kind"), `<select class="form-select" id="impKind" data-change="impKind">${kinds.map(k => `<option value="${k}"${k === IMP.kind ? " selected" : ""}>${tt("imp." + k)}</option>`).join("")}</select>`) +
-        field(t("imp.file"), `<input type="file" class="form-control" id="impFile" accept=".xlsx,.csv"><div class="form-text">${tt("imp.fileHelp")}</div>`) +
-        `<div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-primary" data-act="impRead">${ic("upload")} ${tt("imp.read")}</button><button type="button" class="btn btn-outline-secondary" data-act="impSample">${tt("imp.sample")}</button></div>`);
+    const err = IMP.problem ? `<div class="alert alert-danger small">${esc(IMP.problem)}</div>` : "";
+    if (IMP.step === "queue") return notesQueue();
+    if (IMP.step === "start") {
+      const kind = IMP.kind, picker = `<div class="row g-2 mb-3"><div class="col-sm-6 col-lg-4">` + field(t("imp.kindPick"), `<select class="form-select" id="impKind" data-change="impKind">` +
+        ["", "customers", "leads", "notes"].map(k => `<option value="${k}"${k === kind ? " selected" : ""}>${tt(k ? "imp." + k : "imp.choose")}</option>`).join("") + `</select>`).replace('class="mb-3"', 'class="mb-0"') + `</div></div>`;
+      const form = !kind ? "" : kind === "notes"
+        ? section("", `<h2 class="h6">${tt("imp.notesUp")}</h2><ul class="small text-body-secondary ps-3">${[1, 2, 3, 4].map(n => `<li>${tt("imp.rule" + n)}</li>`).join("")}</ul>` +
+            field(t("imp.notesFile"), `<input type="file" class="form-control" id="impNotesFile" accept=".json"><div class="form-text">${tt("imp.notesFileHelp")}</div>`) +
+            field(t("imp.skipFolders"), `<input type="text" class="form-control" id="impSkip" value="Passwords and accounts"><div class="form-text">${tt("imp.skipHelp")}</div>`) +
+            `<div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-primary" data-act="impNotes">${ic("upload")} ${tt("imp.read")}</button><button type="button" class="btn btn-outline-secondary" data-act="impNotes" data-sample="1">${tt("imp.sample")}</button></div>`)
+        : section("", `<p class="small text-body-secondary">${tt("imp.sub")}</p><h2 class="h6">${tt("imp.step1")}</h2><div class="d-flex flex-wrap gap-2 mb-3"><button type="button" class="btn btn-outline-secondary btn-sm" data-act="impTemplate" data-kind="${kind}">${ic("download")} ${tt("imp.tmplFor", { kind: t("imp." + kind) })}</button></div>` +
+            `<h2 class="h6">${tt("imp.step2")}</h2>` +
+            field(t("imp.file"), `<input type="file" class="form-control" id="impFile" accept=".xlsx,.csv"><div class="form-text">${tt("imp.fileHelp")}</div>`) +
+            `<div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-primary" data-act="impRead">${ic("upload")} ${tt("imp.read")}</button><button type="button" class="btn btn-outline-secondary" data-act="impSample">${tt("imp.sample")}</button></div>`);
+      return pageHead(tt("imp.title"), tt("imp.pageSub")) + picker + err + form + impHistory();
+    }
     if (IMP.step === "map") {
       const sample = IMP.rows.slice(0, 3), opts = IMP_FIELDS[IMP.kind].map(f => f[0]);
       return pageHead(tt("imp.mapTitle"), esc(t("imp." + IMP.kind) + " · " + IMP.file + " · " + t("imp.rowsN", { n: IMP.rows.length })) + ". " + tt("imp.mapHint")) + err +

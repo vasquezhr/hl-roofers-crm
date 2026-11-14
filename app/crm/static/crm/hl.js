@@ -119,9 +119,11 @@ document.addEventListener("click", function (event) {
   navigator.clipboard.writeText(document.querySelector(button.dataset.copy).value);
 });
 
-/* 9. A list that acts as soon as something is picked: <select data-submit-on-change> */
+/* 9. A list that acts as soon as something is picked: <select data-submit-on-change>.
+      With data-submit-on-change="always", picking the empty choice ("Choose…") acts too. */
 document.addEventListener("change", function (event) {
-  if (event.target.matches("[data-submit-on-change]") && event.target.value !== "") event.target.form.submit();
+  var list = event.target;
+  if (list.matches("[data-submit-on-change]") && (list.value !== "" || list.dataset.submitOnChange === "always")) list.form.submit();
 });
 
 

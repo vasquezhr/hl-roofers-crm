@@ -134,7 +134,7 @@ class Failures(Base):
 
     def test_a_notes_file_that_cannot_be_read(self):
         with self.assertLogs("crm", "WARNING") as seen:
-            page = self.client.post(reverse("imports"), {"file": SimpleUploadedFile("broken.json", b"not json at all"), "skip_folders": ""})
+            page = self.client.post(f"{reverse('data_import')}?kind=notes", {"file": SimpleUploadedFile("broken.json", b"not json at all"), "skip_folders": ""})
         self.assertContains(page, "This file could not be read")
         line = seen.records[0].getMessage()
         self.assertIn("'broken.json'", line)
@@ -166,13 +166,13 @@ class Failures(Base):
     def test_the_view_tells_the_administrator_when_notes_were_left_out(self):
         with mock.patch.object(importer, "read_note", side_effect=ValueError("bad")):
             with self.assertLogs("crm", "WARNING"):
-                page = self.client.post(reverse("imports"), {"file": export(FENWICK), "skip_folders": ""}, follow=True)
+                page = self.client.post(f"{reverse('data_import')}?kind=notes", {"file": export(FENWICK), "skip_folders": ""}, follow=True)
         self.assertContains(page, "1 notes could not be read and were left out")
 
     def test_an_unexpected_failure_of_the_whole_import(self):
         with mock.patch.object(importer, "import_file", side_effect=RuntimeError("the database went away")):
             with self.assertLogs("crm", "ERROR") as seen:
-                page = self.client.post(reverse("imports"), {"file": export(FENWICK), "skip_folders": ""})
+                page = self.client.post(f"{reverse('data_import')}?kind=notes", {"file": export(FENWICK), "skip_folders": ""})
         self.assertContains(page, "The import failed and nothing was added")
         self.assertIn("RuntimeError: the database went away", "\n".join(seen.output))
 

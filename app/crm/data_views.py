@@ -1,7 +1,10 @@
 """
 The administrator's pages for the data import (Admin > Import data). See dataload.py for the steps.
+One page takes every kind of import: a drop-down at the top picks the type of data (customers, leads
+or Apple Notes), and the page shows that type's upload. The Apple Notes upload and its review queue
+are in import_views.py.
 
-  /manage/import/                    pick customers or leads, download the template, upload the file
+  /manage/import/?kind=customers     pick the type of data, download the template, upload the file
   /manage/import/template/<kind>.xlsx the template
   /manage/import/<pk>/map/           match each column to a field
   /manage/import/<pk>/review/        what is new, what is already in the app, and what has a problem; then confirm
@@ -16,39 +19,70 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import get_language
 from django.utils.translation import gettext as _
 
-from . import dataload
+from django.urls import reverse
+
+from . import dataload, import_views
 from .access import admin_only
-from .forms import DataImportForm
-from .models import DataImport, DataImportRow
+from .forms import DataImportForm, ImportKindForm
+from .models import DataImport, DataImportRow, ImportedNote
 
 logger = logging.getLogger(__name__)
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
+NOTES = "notes"                # the Apple Notes export; the other kinds are spreadsheets (dataload.KINDS)
+
+
 @admin_only
 def data_import(request):
-    """Step 1: the kind of records, the template and the file."""
-    form = DataImportForm(request.POST or None, request.FILES or None)
-    if request.method == "POST":
-        if form.is_valid():
-            upload, kind = form.cleaned_data["file"], form.cleaned_data["kind"]
-            try:
-                headings, rows = dataload.read_file(upload)
-            except dataload.FileProblem as problem:
-                logger.warning("Data import: %r (%s) refused, by %s: %s", upload.name, kind, request.user.label, problem)
-                form.add_error("file", str(problem))
-            except Exception:
-                logger.exception("Data import: %r (%s) could not be read, by %s", upload.name, kind, request.user.label)
-                form.add_error("file", _("The file could not be read. The reason is in the error log (Admin, System status)."))
-            else:
-                run = DataImport.objects.create(kind=kind, file_name=upload.name[:200], user=request.user, actor=request.user.label, headings=headings,
-                                                mapping=dataload.suggest(kind, headings))
-                DataImportRow.objects.bulk_create([DataImportRow(data_import=run, number=n, cells=cells) for n, cells in enumerate(rows, 2)], batch_size=500)
-                return redirect("data_import_map", pk=run.pk)
-        elif not request.FILES:
-            form.add_error(None, _("No file arrived. A file larger than 10 MB is refused."))
-    runs = DataImport.objects.select_related("user")[:20]
-    return render(request, "crm/data_import.html", {"form": form, "runs": runs, "kinds": [(key, dataload.TITLES[key]) for key in dataload.KINDS]})
+    """Step 1: the type of data, then that type's file. Nothing below the drop-down shows until a type is picked."""
+    kind = request.POST.get("kind") or request.GET.get("kind", "")
+    kind = kind if kind in dataload.KINDS or kind == NOTES else ""
+    form = None
+    if kind == NOTES:
+        form, done = import_views.notes_upload(request)
+        if done:
+            return done
+    elif kind:
+        form = DataImportForm(request.POST or None, request.FILES or None)
+        if request.method == "POST":
+            if form.is_valid():
+                upload = form.cleaned_data["file"]
+                try:
+                    headings, rows = dataload.read_file(upload)
+                except dataload.FileProblem as problem:
+                    logger.warning("Data import: %r (%s) refused, by %s: %s", upload.name, kind, request.user.label, problem)
+                    form.add_error("file", str(problem))
+                except Exception:
+                    logger.exception("Data import: %r (%s) could not be read, by %s", upload.name, kind, request.user.label)
+                    form.add_error("file", _("The file could not be read. The reason is in the error log (Admin, System status)."))
+                else:
+                    run = DataImport.objects.create(kind=kind, file_name=upload.name[:200], user=request.user, actor=request.user.label, headings=headings,
+                                                    mapping=dataload.suggest(kind, headings))
+                    DataImportRow.objects.bulk_create([DataImportRow(data_import=run, number=n, cells=cells) for n, cells in enumerate(rows, 2)], batch_size=500)
+                    return redirect("data_import_map", pk=run.pk)
+            elif not request.FILES:
+                form.add_error(None, _("No file arrived. A file larger than 10 MB is refused."))
+    waiting = ImportedNote.objects.filter(status=ImportedNote.Status.PENDING).count() if kind in ("", NOTES) else 0
+    return render(request, "crm/data_import.html", {"kind": kind, "picker": ImportKindForm(initial={"kind": kind}), "form": form,
+                                                    "title": dataload.TITLES.get(kind, ""), "history": imports_so_far(kind), "waiting": waiting})
+
+
+def imports_so_far(kind, most=20):
+    """Every import of the type picked (or of every type), newest first: spreadsheets and notes files in one list."""
+    history = []
+    if kind != NOTES:
+        runs = DataImport.objects.select_related("user")
+        for run in (runs.filter(kind=kind) if kind else runs)[:most]:
+            done = run.stage == DataImport.Stage.DONE
+            history.append({"when": run.created_at, "file": run.file_name, "type": run.get_kind_display(), "who": run.actor, "run": run, "done": done,
+                            "link": reverse("data_import_results" if done else "data_import_map", args=[run.pk])})
+    if kind in ("", NOTES):
+        for batch in import_views.batches()[:most]:
+            history.append({"when": batch.uploaded_at, "file": batch.file_name, "type": _("Apple Notes"), "batch": batch,
+                            "who": batch.uploaded_by.label if batch.uploaded_by else "", "link": reverse("import_queue") + f"?batch={batch.pk}"})
+    history.sort(key=lambda item: item["when"], reverse=True)
+    return history[:most]
 
 
 @admin_only

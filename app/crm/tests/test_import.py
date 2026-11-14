@@ -172,7 +172,7 @@ class ImportPages(Base):
         self.sign_in(self.admin)
 
     def upload(self, *notes):
-        return self.client.post(reverse("imports"), {"file": export(*notes), "skip_folders": "Passwords and accounts"})
+        return self.client.post(f"{reverse('data_import')}?kind=notes", {"file": export(*notes), "skip_folders": "Passwords and accounts"})
 
     def queue(self, show):
         """The address of one list of the review queue, for the file just uploaded."""
@@ -181,7 +181,7 @@ class ImportPages(Base):
     def test_upload_then_the_queue(self):
         response = self.upload(*EVERYTHING)
         self.assertRedirects(response, f"{reverse('import_queue')}?batch={ImportBatch.objects.get().pk}")
-        page = self.client.get(reverse("imports"))
+        page = self.client.get(f"{reverse('data_import')}?kind=notes")
         self.assertContains(page, "notes.json")
         queue = self.client.get(self.queue("new"))
         self.assertContains(queue, "3518 Semmes Ave")
@@ -189,7 +189,7 @@ class ImportPages(Base):
             self.assertNotContains(queue, word)
 
     def test_a_bad_file_gives_a_plain_message(self):
-        response = self.client.post(reverse("imports"), {"file": SimpleUploadedFile("x.json", b"nope")})
+        response = self.client.post(f"{reverse('data_import')}?kind=notes", {"file": SimpleUploadedFile("x.json", b"nope")})
         self.assertContains(response, "This file could not be read.")
 
     def test_many_notes_at_once_need_a_confirmation(self):

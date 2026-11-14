@@ -4,7 +4,7 @@
 
 {# Step 4 of the data import: what happened to each row. #}
 {% block content %}
-<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'data_import' %}">‹ {% trans "Import data" %}</a>
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'data_import' %}?kind={{ run.kind }}">‹ {% trans "Import data" %}</a>
 <div class="d-flex align-items-start gap-2 mb-3">
   <div class="flex-grow-1 hl-minw0">
     <h1 class="h4 mb-0">{% trans "Import results" %}</h1>

@@ -188,7 +188,7 @@ class SetupHistory(AsIfMonday):
 
     def test_a_calendar_address_and_the_notes_import(self):
         self.client.post(reverse("calendar_reset"), {"which": self.crew1.pk})
-        self.client.post(reverse("imports"), {"file": export(FENWICK, MATERIAL), "skip_folders": ""})
+        self.client.post(f"{reverse('data_import')}?kind=notes", {"file": export(FENWICK, MATERIAL), "skip_folders": ""})
         self.client.post(reverse("import_queue") + "?show=none", {"do": "skip", "which": "all"})
         self.assertEqual(self.lines(), ["Calendar address replaced: Crew 1", "Notes file uploaded: notes.json", "Imported notes skipped: 1"])
 

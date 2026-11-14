@@ -591,9 +591,15 @@ class WorkTypeForm(Bootstrap, forms.ModelForm):
         return days
 
 
+class ImportKindForm(Bootstrap, forms.Form):
+    """Admin › Import data: the drop-down at the top that picks the type of data. Picking one reloads the page with ?kind=..."""
+    kind = forms.ChoiceField(label=_("Type of data"), required=False,
+                             choices=[("", _("Choose…")), ("customers", _("Customers")), ("leads", _("Leads")), ("notes", _("Apple Notes"))],
+                             widget=forms.Select(attrs={"data-submit-on-change": "always"}))
+
+
 class DataImportForm(Bootstrap, forms.Form):
-    """Admin › Import data: the kind of records and the file."""
-    kind = forms.ChoiceField(label=_("What is in the file"), choices=[("customers", _("Customers")), ("leads", _("Leads"))])
+    """Admin › Import data, with customers or leads picked: the spreadsheet. The type of data comes from the drop-down above it."""
     file = forms.FileField(label=_("The spreadsheet"), widget=forms.FileInput(attrs={"accept": ".xlsx,.csv"}),
                            help_text=_("An Excel file (.xlsx) or a CSV file (.csv), with the field names as the headings."))
 

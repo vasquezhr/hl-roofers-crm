@@ -12,7 +12,7 @@ class SignedOut(Base):
         job = self.job(self.crew1, "scheduled")
         for name, args in [("home", []), ("accounts", []), ("account", [self.account.pk]), ("opps", []), ("jobs", []),
                            ("job", [job.number]), ("my_jobs", []), ("my_day", []), ("schedule", []), ("search", []), ("imports", []),
-                           ("import_queue", [])]:
+                           ("import_queue", []), ("data_import", [])]:
             response = self.client.get(reverse(name, args=args))
             self.assertRedirects(response, f"{reverse('login')}?next={reverse(name, args=args)}", msg_prefix=name)
         self.assertEqual(self.client.post(reverse("touch"), {"kind": "job", "id": job.number, "how": "call"}).status_code, 302)
@@ -47,7 +47,7 @@ class CrewLogin(Base):
             self.assertRedirects(self.client.get(reverse(name, args=args)), reverse("my_day"), msg_prefix=name)
 
     def test_the_admin_pages_are_closed(self):
-        for page in ["imports", "import_queue", "admin_home", "pricebook", "company_details"]:
+        for page in ["data_import", "import_queue", "admin_home", "pricebook", "company_details"]:
             self.assertEqual(self.client.get(reverse(page)).status_code, 403, page)
         self.assertEqual(self.client.get("/admin/").status_code, 302)                # Django's admin site sends it to its own login
 
@@ -121,13 +121,13 @@ class OfficeAndAdmin(Base):
         self.sign_in(self.office)
         self.assertEqual(self.client.get(reverse("job", args=[job.number])).status_code, 200)
         self.assertRedirects(self.client.get(reverse("my_jobs")), reverse("jobs"))
-        for page in ["admin_home", "imports", "pricebook", "price_upload", "company_details"]:
+        for page in ["admin_home", "data_import", "pricebook", "price_upload", "company_details"]:
             self.assertEqual(self.client.get(reverse(page)).status_code, 403, page)
         self.assertNotContains(self.client.get(reverse("home")), reverse("admin_home"))  # no Admin tab
 
     def test_admin_opens_the_admin_pages(self):
         self.sign_in(self.admin)
-        for page in ["admin_home", "imports", "pricebook", "company_details"]:
+        for page in ["admin_home", "data_import", "pricebook", "company_details"]:
             self.assertEqual(self.client.get(reverse(page)).status_code, 200, page)
         self.assertContains(self.client.get(reverse("home")), reverse("admin_home"))  # the Admin tab
         self.assertEqual(self.client.get("/admin/").status_code, 200)

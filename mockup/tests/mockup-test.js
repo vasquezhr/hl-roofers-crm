@@ -25,6 +25,8 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
   const inModal = async (name, extra = "") => { await p.click(`#modal [data-act="${name}"]${extra}`); await p.waitForTimeout(380); };
   const act = async (name, extra = "") => { await p.click(`[data-act="${name}"]${extra}`); await p.waitForTimeout(380); };
   const role = async (r, crew = "") => { await p.click("#roleBtn"); await p.click(`[data-act="setRole"][data-role="${r}"]${crew ? `[data-crew="${crew}"]` : ""}`); await p.waitForTimeout(250); };
+  // how many cards on the Admin page are called `word`
+  const importCards = word => p.$$eval("#view a.card .fw-semibold", (els, w) => els.filter(e => e.textContent.trim() === w).length, word);
   const shot = (name, full = true) => p.screenshot({ path: `${shots}/${name}.png`, fullPage: full });
   p.on("dialog", d => d.accept());                     // "Delete for good?" and "Make a new address?" are answered yes
   await p.goto(file); await p.waitForTimeout(200);
@@ -209,7 +211,8 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await go("#report/priceChanges"); v = await view(); ok(/GAF Timberline HDZ shingles/.test(v) && /ABC Supply/.test(v) && /%/.test(v), "price changes report");
     for (const id of ["leadsBySource", "responseTime", "closeRate", "jobsPerCrew", "lostReasons"]) { await go("#report/" + id); ok((await p.$$("#view tbody tr")).length >= 1, "report has rows: " + id); }
     // admin hub and its pages
-    await go("#admin"); ok((await p.$$('#view a.card[href^="#admin/"]')).length === 12 && !!(await p.$('#view a.card[href="#bin"]')), "admin hub has twelve pages and the Recycle Bin");
+    await go("#admin"); ok((await p.$$('#view a.card[href^="#admin/"]')).length === 11 && !!(await p.$('#view a.card[href="#bin"]')), "admin hub has eleven pages and the Recycle Bin");
+    v = await view(); ok((await importCards("Import data")) === 1 && !(await p.$('#view a.card[href="#admin/imports"]')) && /1,204 waiting for review\./.test(v), "one Import data card, with the notes waiting for review");
     await shot("p4-admin-hub");
     await go("#admin/users"); v = await view(); ok(/shared login/.test(v) && /A crew can share one login/.test(v) && /Only the jobs scheduled to their crew/.test(v), "users page");
     await act("userEdit", '[data-id="office"]'); await p.check("#ps_dataEditor"); await act("userSave");
@@ -218,10 +221,23 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await go("#admin/automations"); ok(await p.isDisabled("#au_convert") && !(await p.isChecked("#au_review")), "automations: always-on and off states");
     await p.check("#au_review"); await p.waitForTimeout(300); ok(await p.isChecked("#au_review"), "automation switched on");
     await shot("p4-automations");
-    await go("#admin/imports"); v = await view(); ok(/2,609/.test(v) && /never imported/.test(v) && /5 of 5 left/.test(v) && /Otis Fenwick/.test(v), "imports page: " + v.slice(0, 300));
+    // Import data: one page, a drop-down for the type of data; Apple Notes shows the notes upload and its review queue
+    await go("#admin/import"); v = await view();
+    ok((await p.inputValue("#impKind")) === "" && !(await p.$("#view input[type=file]")) && !(await p.$('[data-act="impTemplate"]')), "Import data opens on a blank type, with no form below it");
+    ok((await p.$$eval("#impKind option", os => os.map(o => o.textContent).join("|"))) === "Choose…|Customers|Leads|Apple Notes", "the types: Choose…, Customers, Leads, Apple Notes");
+    ok(/Imports so far/.test(v) && /notes\.json/.test(v) && /1,204 to review/.test(v) && /Review waiting notes/.test(v), "Imports so far lists the notes file read before");
+    await p.selectOption("#impKind", "notes"); await p.waitForTimeout(300); v = await view();
+    ok(!!(await p.$("#impNotesFile")) && (await p.inputValue("#impSkip")) === "Passwords and accounts" && /never stored/.test(v) && !(await p.$('[data-act="impTemplate"]')), "Apple Notes shows the notes upload, with the folders to leave out");
+    await shot("p4-import-notes");
+    await act("impNotes", '[data-sample="1"]'); v = await view();
+    ok(/Review the imported notes/.test(v) && /2,609/.test(v) && /never imported/.test(v) && /5 of 5 left/.test(v) && /Otis Fenwick/.test(v), "reading the notes opens the notes waiting for review: " + v.slice(0, 300));
     await shot("p4-imports");
     await act("impDo", '[data-id="n5"][data-how="skip"]'); await act("impDo", '[data-id="n4"][data-how="keep"]'); await act("impAll");
     v = await view(); ok(/0 of 5 left/.test(v) && /Added to the customer's Details/.test(v) && /Skipped/.test(v) && /Kept as an unlinked note/.test(v), "import queue worked through");
+    await act("impStart"); v = await view();
+    ok((await p.inputValue("#impKind")) === "notes" && /notes-sample\.json/.test(v) && /notes\.json/.test(v) && /1,199 to review/.test(v) && /1,273 accepted · 1 unlinked · 1 skipped/.test(v), "the arrow goes back to Import data, Apple Notes still picked: " + v.slice(0, 600));
+    await p.selectOption("#impKind", "customers"); await p.waitForTimeout(300); v = await view();
+    ok(!!(await p.$('[data-act="impTemplate"][data-kind="customers"]')) && !(await p.$('[data-act="impTemplate"][data-kind="leads"]')) && !(await p.$("#impNotesFile")) && !/notes\.json/.test(v), "Customers shows its own template and form, and lists no notes file");
     await go("#account/A2"); v = await view(); ok(/Limpiar gutters y revisar el techo/.test(v) && /Note imported from Apple Notes/.test(v), "imported note is on the matched account");
     await go("#search"); await p.fill("#q", "fenwick"); await p.waitForTimeout(150); v = await view(); ok(/Otis Fenwick/.test(v) && /Accounts 1/.test(v), "imported note created a searchable account");
     await p.fill("#q", "");
@@ -525,7 +541,8 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     ok(!(await p.evaluate(() => [...document.querySelectorAll("#ef_src option")].some(o => o.value === "door-hanger"))), "a switched-off value is no longer offered"); await p.click("#modal .btn-close"); await p.waitForTimeout(400);
     await go("#admin/setupHistory"); v = await view(); ok(/Pick list value added: Where a request came from · Door hanger/.test(v) && /Logo for the documents uploaded/.test(v), "setup history has the logo and the pick lists");
     // Import data: customers and leads
-    await go("#admin/import"); v = await view(); ok(/Import data/.test(v) && /Template for Customers/.test(v), "import: the first step");
+    await go("#admin/import"); await p.evaluate(() => ACT.impStart()); await p.selectOption("#impKind", "customers"); await p.waitForTimeout(300);
+    v = await view(); ok(/Import data/.test(v) && /Template for Customers/.test(v), "import: the first step");
     const [tmpl] = await Promise.all([p.waitForEvent("download"), p.click('[data-act="impTemplate"][data-kind="customers"]')]); ok(tmpl.suggestedFilename() === "import-customers.csv", "the template downloads");
     await p.evaluate(() => { for (const n of ["Otis Fenwick", "Camila Restrepo"]) { const i = ACCOUNTS.findIndex(a => a.name === n); if (i >= 0) ACCOUNTS.splice(i, 1); } });   // the notes import in an earlier part made them
     const accountsBefore = await countOf(() => ACCOUNTS.length);
@@ -539,11 +556,23 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     ok((await countOf(() => LEADS.filter(l => l.src === "imported").length)) >= 2, "imported leads have the source Imported: " + (await view()).slice(0, 500));
     await go("#leads"); v = await view(); ok(/Imported/.test(v), "the Leads list shows Imported");
     await go("#admin/setupHistory"); v = await view(); ok(/Data import: Customers/.test(v) && /Data import: Leads/.test(v), "setup history has the imports");
+    // Imports so far: every type, newest first, or only the type picked
+    await go("#admin/import"); await act("impStart"); await p.selectOption("#impKind", ""); await p.waitForTimeout(300); v = await view();
+    const where = w => v.indexOf(w);
+    ok(!(await p.$("#view input[type=file]")) && where("sample-leads.csv") >= 0 && where("sample-leads.csv") < where("sample-customers.csv") && where("sample-customers.csv") < where("notes-sample.json") && where("notes-sample.json") < where("notes.json") && /FileType of dataStatus/.test(v), "Imports so far lists every type, newest first: " + v.slice(0, 900));
+    ok(/Results/.test(v) && /Review all waiting notes/.test(v), "a spreadsheet has its Results, notes their review");
+    await p.click('#impHistory tr:has-text("sample-customers.csv") [data-act="impOpen"]'); await p.waitForTimeout(380); v = await view(); ok(/Import results/.test(v) && /Customers · sample-customers\.csv/.test(v), "Results opens the results of that file again");
+    await act("impStart"); await p.selectOption("#impKind", "leads"); await p.waitForTimeout(300); v = await view();
+    ok(/sample-leads\.csv/.test(v) && !/sample-customers\.csv/.test(v) && !/notes\.json/.test(v), "with Leads picked, only the leads files");
     await go("#admin/users"); await act("userEdit", '[data-id="office"]'); await p.uncheck("#ps_changeStages"); await inModal("userSave");
     // every new screen in Spanish: a missing word is reported by the page itself
     await p.click('[data-act="setLang"][data-lang="es"]'); await p.waitForTimeout(200);
     for (const h of ["#admin/status", "#admin/picks", "#admin/import", "#admin/company", "#job/26-104", "#opp/" + oid, "#lead/L-311", "#leads"]) { await go(h); ok(!/\{[a-z]+\}/.test(await view()), "Spanish words left unfilled on " + h); }
-    await go("#admin/import"); await act("impAgain"); await act("impSample"); await act("impMap"); v = await view(); ok(/Revise las filas/.test(v) && /Filas con un problema/.test(v), "the import review in Spanish");
+    await go("#admin"); ok((await importCards("Importar datos")) === 1 && (await importCards("Import data")) === 0 && /esperan revisión/.test(await view()), "in Spanish too, one Importar datos card");
+    await go("#admin/import"); await p.evaluate(() => ACT.impStart()); await p.selectOption("#impKind", ""); await p.waitForTimeout(300); v = await view();
+    ok(/Tipo de datos/.test(v) && (await p.$$eval("#impKind option", os => os.map(o => o.textContent).join("|"))) === "Elija…|Clientes|Prospectos|Notas de Apple" && /Importaciones hasta ahora/.test(v), "the drop-down in Spanish");
+    await p.selectOption("#impKind", "notes"); await p.waitForTimeout(300); v = await view(); ok(/Suba el archivo exportado de las notas/.test(v) && !/\{[a-z]+\}/.test(v), "the notes upload in Spanish");
+    await p.selectOption("#impKind", "customers"); await p.waitForTimeout(300); await act("impSample"); await act("impMap"); v = await view(); ok(/Revise las filas/.test(v) && /Filas con un problema/.test(v), "the import review in Spanish");
     await go("#admin/picks"); v = await view(); ok(/Listas de opciones/.test(v) && /De dónde vino una solicitud/.test(v), "pick lists in Spanish");
     await go("#admin/status"); v = await view(); ok(/Espacio en disco y memoria/.test(v) && /Registro de errores/.test(v), "system status in Spanish");
     await shot("p6-status-es"); await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200);
@@ -567,7 +596,7 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
   const pages = { crew: ["#myjobs", "#job/26-121", "#job/26-099", "#search"].concat(upTo >= 3 ? ["#myday"] : []),
     office: ["#today", "#accounts", "#account/A5", "#account/A3", "#opps", "#opp/26-125", "#opp/26-098", "#jobs", "#job/26-112", "#job/26-127", "#job/26-099", "#search"]
       .concat(upTo >= 2 ? ["#leads", "#lead/L-305", "#lead/L-309"] : []).concat(upTo >= 3 ? ["#schedule"] : []),
-    admin: (upTo >= 2 ? ["#admin", "#admin/pricebook", "#admin/company"] : []).concat(upTo >= 4 ? ["#dashboard", "#reports", "#report/revenue", "#report/unpaid", "#report/priceChanges", "#admin/users", "#admin/automations", "#admin/imports", "#admin/editor", "#admin/status"] : [])
+    admin: (upTo >= 2 ? ["#admin", "#admin/pricebook", "#admin/company"] : []).concat(upTo >= 4 ? ["#dashboard", "#reports", "#report/revenue", "#report/unpaid", "#report/priceChanges", "#admin/users", "#admin/automations", "#admin/import", "#admin/editor", "#admin/status"] : [])
       .concat(upTo >= 5 ? ["#admin/types", "#admin/look", "#admin/setupHistory", "#bin", "#account/A1", "#job/26-104"] : []) };
   for (const [r, list] of Object.entries(pages)) {
     if (!list.length) continue;

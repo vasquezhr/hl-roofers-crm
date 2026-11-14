@@ -324,6 +324,28 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await boss.goto(base + '/manage/status/');
   check('system status says what has not been set up yet', (await main(boss)).includes('No backup has reported yet.') && (await main(boss)).includes('Database'));
 
+  console.log('Import data: one page, a drop-down for the type of data');
+  await boss.goto(base + '/manage/');
+  check('Admin has one Import data card', await boss.locator('main a.card:has-text("Import data")').count() === 1 && await boss.locator('main a.card:has-text("Import Apple Notes")').count() === 0);
+  await andWait(boss, () => boss.click('main a.card:has-text("Import data")'));
+  check('the page opens on a blank type, with no form below it', (await boss.inputValue('#id_kind')) === '' && await boss.locator('main input[type=file]').count() === 0);
+  await andWait(boss, () => boss.selectOption('#id_kind', 'customers'));
+  check('picking Customers reloads the page with its own steps', boss.url().includes('kind=customers') && await boss.locator('a[href$="/template/customers.xlsx"]').count() === 1
+        && await boss.locator('a[href$="/template/leads.xlsx"]').count() === 0 && await boss.locator('main input[type=file]').count() === 1);
+  await andWait(boss, () => boss.selectOption('#id_kind', 'notes'));
+  check('picking Apple Notes shows the notes upload', boss.url().includes('kind=notes') && await boss.locator('#id_skip_folders').count() === 1 && (await main(boss)).includes('never stored'));
+  await boss.setInputFiles('main input[type=file]', path.join(__dirname, '..', 'sample', 'notes-sample.json'));
+  await andWait(boss, () => boss.click('main button:has-text("Read the file")'));
+  check('reading the notes goes straight to the notes waiting for review', (await text(boss, 'h1')) === 'Review the imported notes' && boss.url().includes('/imports/queue/'));
+  await andWait(boss, () => boss.click('main a:has-text("Import data")'));
+  check('the arrow goes back to Import data with Apple Notes picked', boss.url().includes('kind=notes') && (await boss.inputValue('#id_kind')) === 'notes');
+  check('Imports so far lists the notes file with its review button', (await main(boss)).includes('notes-sample.json') && await boss.locator('main a:has-text("Review waiting notes")').count() >= 1);
+  await andWait(boss, () => boss.selectOption('#id_kind', 'leads'));
+  check('with Leads picked, the list leaves the notes file out', !(await main(boss)).includes('notes-sample.json'));
+  await andWait(boss, () => boss.selectOption('#id_kind', ''));
+  check('Choose… again hides the form and lists every type', await boss.locator('main input[type=file]').count() === 0 && (await main(boss)).includes('notes-sample.json'));
+  await snap(boss, 'import-data');
+
   console.log('Logins, permission sets and the Recycle Bin');
   await admin.goto(base + '/manage/users/');
   check('the administrator sees every login', (await main(admin)).includes('crew1') && (await main(admin)).includes('Permission sets'));
@@ -468,7 +490,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   check('a folded card is only as tall as its title', folded < 50, String(folded));
   for (const width of [390, 412, 440]) {
     const phone = await signIn(browser, 'office', { viewport: { width, height: 900 } });
-    for (const address of ['/', '/jobs/26-104/', '/jobs/', '/accounts/', '/opportunities/', '/leads/', '/schedule/', '/search/?q=grove', '/manage/', '/manage/lists/', '/manage/import/', '/manage/status/']) {
+    for (const address of ['/', '/jobs/26-104/', '/jobs/', '/accounts/', '/opportunities/', '/leads/', '/schedule/', '/search/?q=grove', '/manage/', '/manage/lists/', '/manage/import/', '/manage/import/?kind=notes', '/manage/status/']) {
       await phone.goto(base + address);
       await phone.waitForLoadState('networkidle');
       const wide = await phone.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

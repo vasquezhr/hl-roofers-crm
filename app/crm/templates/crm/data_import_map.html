@@ -4,7 +4,7 @@
 
 {# Step 2 of the data import: each column of the file goes to a field, or is not imported. #}
 {% block content %}
-<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'data_import' %}">‹ {% trans "Import data" %}</a>
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'data_import' %}?kind={{ run.kind }}">‹ {% trans "Import data" %}</a>
 <h1 class="h4 mb-1">{% trans "Match the columns" %}</h1>
 <div class="text-body-secondary small mb-3">{{ title }} · {{ run.file_name }} · {% trf "%(count)s rows" count=run.rows.count %}. {% trans "The columns whose heading names a field are already matched. Pick “Don't import” for a column you do not need." %}</div>
 {% if problem %}<div class="alert alert-danger small">{{ problem }}</div>{% endif %}

@@ -1,7 +1,8 @@
 """
-The administrator's pages for the Apple Notes import.
+The administrator's pages for the Apple Notes import. The upload itself is on Admin > Import data
+(data_views.data_import, with Apple Notes picked as the type of data), which calls notes_upload here.
 
-  /imports/            upload the export file; see what each upload brought in
+  /imports/            the old address of the upload: goes to Import data with Apple Notes picked
   /imports/queue/      the review queue: accept, keep unlinked or skip, one note or many
   /imports/note/12/    one note: correct what the app read, or pick a different customer
 
@@ -36,7 +37,18 @@ def how_many(status):
 
 @admin_only
 def imports(request):
-    """Upload the notes export. The file is read in memory and is not kept."""
+    """The upload used to have its own page here. It is on Import data now, with Apple Notes picked."""
+    return redirect(notes_view())
+
+
+def notes_view():
+    """Admin > Import data, with Apple Notes picked as the type of data."""
+    return reverse("data_import") + "?kind=notes"
+
+
+def notes_upload(request):
+    """The Apple Notes part of Import data: the form, and where to go once the file is read (None until then).
+    The file is read in memory and is not kept."""
     form = ImportForm(request.POST or None, request.FILES or None, initial={"skip_folders": ", ".join(settings.IMPORT_SKIP_FOLDERS)})
     if request.method == "POST":
         if form.is_valid():
@@ -52,12 +64,16 @@ def imports(request):
                 if batch.unreadable:
                     messages.warning(request, _("%(count)s notes could not be read and were left out. The reason is in the error log (Admin, System status).") % {"count": batch.unreadable})
                 messages.success(request, _("The file was read. Review the notes below."))
-                return redirect(reverse("import_queue") + f"?batch={batch.pk}")
+                return form, redirect(reverse("import_queue") + f"?batch={batch.pk}")
         elif not request.FILES:
             form.add_error(None, _("No file arrived. A file larger than 100 MB is refused."))
-    batches = ImportBatch.objects.select_related("uploaded_by").annotate(
+    return form, None
+
+
+def batches():
+    """Each notes file read so far, newest first, with how many of its notes are in each state."""
+    return ImportBatch.objects.select_related("uploaded_by").annotate(
         pending=how_many(Status.PENDING), accepted=how_many(Status.ACCEPTED), unlinked=how_many(Status.UNLINKED), skipped=how_many(Status.SKIPPED))
-    return render(request, "crm/imports.html", {"form": form, "batches": batches})
 
 
 def query(**parts):
@@ -97,7 +113,7 @@ def import_queue(request):
         "keep": query(show=show, batch=batch, folder=folder), "keep_no_folder": query(show=show, batch=batch),
         "keep_after_pill": "&" + query(batch=batch) if batch else "",
         "pills": filter_pills(show, [(p.value, p.label, count.get(p, 0)) for p in Proposal]),
-        "can_accept": show in (Proposal.EXISTING, Proposal.NEW), "total": in_list.count(),
+        "can_accept": show in (Proposal.EXISTING, Proposal.NEW), "total": in_list.count(), "notes_view": notes_view(),
         "accepted": done.get(Status.ACCEPTED, 0), "unlinked": done.get(Status.UNLINKED, 0), "skipped": done.get(Status.SKIPPED, 0),
     })
 

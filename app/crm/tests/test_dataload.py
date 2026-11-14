@@ -7,9 +7,10 @@ from django.urls import reverse
 from openpyxl import Workbook, load_workbook
 
 from crm import dataload
-from crm.models import Account, Activity, DataImport, DataImportRow, Lead, Note, PickItem
+from crm.models import Account, Activity, DataImport, DataImportRow, ImportBatch, ImportedNote, Lead, Note, PickItem
 
 from .base import Base
+from .test_import import EVERYTHING, FENWICK, export
 
 HEAD = ["name", "kind", "language", "contact_name", "phone", "email", "street", "city", "state", "zip_code", "note"]
 
@@ -32,7 +33,7 @@ class DataImportBase(Base):
         self.sign_in(self.admin)
 
     def upload(self, file, kind="customers"):
-        return self.client.post(reverse("data_import"), {"kind": kind, "file": file})
+        return self.client.post(f"{reverse('data_import')}?kind={kind}", {"kind": kind, "file": file})
 
     def mapped(self, file, kind="customers", **changes):
         """Upload, accept the suggested mapping (with changes: column index -> field), and return the run."""
@@ -50,6 +51,107 @@ class DataImportBase(Base):
     def confirm(self, run, **choices):
         post = {f"choice-{DataImportRow.objects.get(data_import=run, number=int(n)).pk}": v for n, v in choices.items()}
         return self.client.post(reverse("data_import_review", args=[run.pk]), post, follow=True)
+
+
+class OneImportPage(DataImportBase):
+    """Admin › Import data is one page for every type of data: a drop-down picks customers, leads or Apple Notes."""
+
+    def page(self, kind=""):
+        return self.client.get(reverse("data_import"), {"kind": kind} if kind else {})
+
+    def test_the_drop_down_starts_blank_and_shows_no_form(self):
+        page = self.page()
+        self.assertContains(page, '<option value="" selected>Choose…</option>', html=True)
+        for kind in ("customers", "leads", "notes", "Apple Notes"):
+            self.assertContains(page, f'value="{kind}"' if kind != "Apple Notes" else ">Apple Notes<")
+        self.assertNotContains(page, 'type="file"')
+        self.assertNotContains(page, "Read the file")
+        self.assertNotContains(page, reverse("data_template", args=["customers"]))
+        self.assertContains(page, "data-submit-on-change")                                 # picking a type reloads the page
+        self.assertContains(page, "<noscript>")                                            # and without JavaScript, a Show button does
+        self.assertContains(self.page("nothing"), '<option value="" selected>Choose…</option>', html=True)   # an unknown type: as if none was picked
+
+    def test_each_type_shows_its_own_form(self):
+        customers, leads, notes = self.page("customers"), self.page("leads"), self.page("notes")
+        self.assertContains(customers, '<option value="customers" selected>Customers</option>', html=True)
+        self.assertContains(customers, reverse("data_template", args=["customers"]))
+        self.assertNotContains(customers, reverse("data_template", args=["leads"]))
+        self.assertContains(customers, 'accept=".xlsx,.csv"')
+        self.assertContains(leads, reverse("data_template", args=["leads"]))
+        self.assertNotContains(leads, reverse("data_template", args=["customers"]))
+        self.assertContains(leads, "a lead whose source is Imported")
+        self.assertContains(notes, '<option value="notes" selected>Apple Notes</option>', html=True)
+        self.assertContains(notes, 'name="skip_folders"')
+        self.assertContains(notes, "counted and thrown away. They are never stored")
+        self.assertNotContains(notes, 'accept=".xlsx,.csv"')
+        self.assertNotContains(notes, reverse("data_template", args=["customers"]))
+        for page in (customers, leads):
+            self.assertNotContains(page, 'name="skip_folders"')
+
+    def test_reading_a_notes_file_goes_straight_to_its_review_queue(self):
+        answer = self.client.post(f"{reverse('data_import')}?kind=notes", {"kind": "notes", "file": export(*EVERYTHING), "skip_folders": "Passwords and accounts"})
+        batch = ImportBatch.objects.get()
+        self.assertRedirects(answer, f"{reverse('import_queue')}?batch={batch.pk}")
+        self.assertEqual(ImportedNote.objects.filter(status="accepted").count(), 0)          # nothing reaches a customer until it is accepted
+        self.assertEqual(batch.set_aside, 2)
+        queue = self.client.get(answer.url)
+        self.assertContains(queue, f'href="{reverse("data_import")}?kind=notes"')         # the arrow goes back to Import data, notes picked
+        self.assertContains(queue, "‹ Import data")
+        self.assertEqual(DataImport.objects.count(), 0)
+
+    def test_the_old_notes_address_goes_to_import_data(self):
+        self.assertRedirects(self.client.get(reverse("imports")), f"{reverse('data_import')}?kind=notes")
+
+    def test_the_admin_card_is_one_with_the_count_of_notes_waiting(self):
+        page = self.client.get(reverse("admin_home"))
+        self.assertContains(page, f'href="{reverse("data_import")}"', count=1)
+        self.assertContains(page, ">Import data<", count=1)
+        self.assertNotContains(page, reverse("imports"))
+        self.assertNotContains(page, "waiting for review")
+        self.client.post(f"{reverse('data_import')}?kind=notes", {"file": export(*EVERYTHING), "skip_folders": ""})
+        waiting = ImportedNote.objects.filter(status="pending").count()
+        self.assertGreater(waiting, 0)
+        self.assertContains(self.client.get(reverse("admin_home")), f"{waiting} waiting for review.")
+
+    def test_imports_so_far_lists_every_type_and_narrows_to_the_one_picked(self):
+        self.upload(csv_file("name,phone,street\nMarisol Quintero,(804) 555-0190,7812 Three Chopt Rd\n", name="people.csv"))
+        self.upload(csv_file("name,phone\nMina Seo,(804) 555-0150\n", name="requests.csv"), kind="leads")
+        self.client.post(f"{reverse('data_import')}?kind=notes", {"file": export(FENWICK), "skip_folders": ""})
+        everything = self.page()
+        for name in ("people.csv", "requests.csv", "notes.json"):
+            self.assertContains(everything, name)
+        self.assertContains(everything, "Review waiting notes")
+        self.assertContains(everything, "Continue")
+        text = everything.content.decode()
+        self.assertLess(text.index("notes.json"), text.index("requests.csv"))               # newest first
+        self.assertLess(text.index("requests.csv"), text.index("people.csv"))
+        notes = self.page("notes")
+        self.assertContains(notes, "notes.json")
+        self.assertContains(notes, "1 to review")
+        self.assertContains(notes, f"{reverse('import_queue')}?batch={ImportBatch.objects.get().pk}")
+        self.assertNotContains(notes, "people.csv")
+        self.assertNotContains(notes, "requests.csv")
+        leads = self.page("leads")
+        self.assertContains(leads, "requests.csv")
+        self.assertNotContains(leads, "people.csv")
+        self.assertNotContains(leads, "notes.json")
+
+    def test_the_office_and_a_crew_get_no_access(self):
+        for user in (self.office, self.login1):
+            self.sign_in(user)
+            for kind in ("", "customers", "leads", "notes"):
+                self.assertEqual(self.page(kind).status_code, 403)
+            self.assertEqual(self.client.get(reverse("imports")).status_code, 403)
+            self.client.post(f"{reverse('data_import')}?kind=notes", {"kind": "notes", "file": export(FENWICK), "skip_folders": ""})
+        self.assertEqual(ImportBatch.objects.count(), 0)
+
+    def test_the_page_in_spanish(self):
+        self.client.cookies["django_language"] = "es"
+        page = self.page()
+        self.assertContains(page, "Tipo de datos")
+        self.assertContains(page, '<option value="" selected>Elija…</option>', html=True)
+        self.assertContains(page, ">Notas de Apple<")
+        self.assertContains(self.page("notes"), "Suba el archivo exportado de las notas")
 
 
 class Template(DataImportBase):

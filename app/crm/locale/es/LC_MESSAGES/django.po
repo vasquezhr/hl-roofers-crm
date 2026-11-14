@@ -379,12 +379,6 @@ msgstr "Registros eliminados, durante 30 días. Restaure uno, o elimínelo para 
 msgid "Who changed prices, company details, logins and other settings, and when."
 msgstr "Quién cambió precios, datos de la empresa, usuarios y otros ajustes, y cuándo."
 
-msgid "Import Apple Notes"
-msgstr "Importar Notas de Apple"
-
-msgid "Move the business's notes into each customer's Details, with a review step."
-msgstr "Pasar las notas del negocio a los Detalles de cada cliente, con un paso de revisión."
-
 msgid "%(count)s waiting for review."
 msgstr "%(count)s esperan revisión."
 
@@ -745,41 +739,17 @@ msgstr "Subir el mismo archivo dos veces no importa una nota dos veces."
 msgid "Read the file"
 msgstr "Leer el archivo"
 
-msgid "Files read so far"
-msgstr "Archivos leídos hasta ahora"
-
 msgid "Review all waiting notes"
 msgstr "Revisar todas las notas pendientes"
 
 msgid "File"
 msgstr "Archivo"
 
-msgid "Notes read"
-msgstr "Notas leídas"
-
-msgid "Logins and passwords, not stored"
-msgstr "Usuarios y contraseñas, sin guardar"
-
-msgid "Empty"
-msgstr "Vacías"
-
-msgid "Already imported"
-msgstr "Ya importadas"
-
 msgid "To review"
 msgstr "Por revisar"
 
-msgid "Accepted"
-msgstr "Aceptadas"
-
-msgid "Unlinked"
-msgstr "Sin cliente"
-
 msgid "Skipped"
 msgstr "Omitidas"
-
-msgid "Review"
-msgstr "Revisar"
 
 msgid "No file has been read yet."
 msgstr "Todavía no se ha leído ningún archivo."
@@ -3555,12 +3525,6 @@ msgstr "valores de listas de opciones"
 msgid "Import data"
 msgstr "Importar datos"
 
-msgid "Bring customers or leads in from a spreadsheet, with a template, matching and a review before anything is saved."
-msgstr "Traiga clientes o prospectos desde una hoja de cálculo, con una plantilla, asignación de columnas y una revisión antes de guardar nada."
-
-msgid "Bring customers or leads in from a spreadsheet. One row is one record and one column is one field, with the field's name as the heading. You match the columns and review the rows before anything is saved."
-msgstr "Traiga clientes o prospectos desde una hoja de cálculo. Una fila es un registro y una columna es un campo, con el nombre del campo como encabezado. Usted asigna las columnas y revisa las filas antes de guardar nada."
-
 msgid "1. Download the template"
 msgstr "1. Descargue la plantilla"
 
@@ -3768,9 +3732,6 @@ msgstr "Creado."
 msgid "Added to %(name)s: %(what)s"
 msgstr "Agregado a %(name)s: %(what)s"
 
-msgid "What is in the file"
-msgstr "Qué hay en el archivo"
-
 msgid "The spreadsheet"
 msgstr "La hoja de cálculo"
 
@@ -3910,3 +3871,39 @@ msgstr "Haga clic en la fecha de un día (+) para abrir el formulario de la visi
 
 msgid "%(day)s is a day off. To book it, tick “Work on a day off”."
 msgstr "%(day)s es un día libre. Para reservarlo, marque “Trabajar en un día libre”."
+
+msgid "Bring in customers or leads from a spreadsheet, or the business's Apple Notes into each customer's Details. Pick the type of data; nothing is saved until you have reviewed it."
+msgstr "Traiga clientes o prospectos desde una hoja de cálculo, o las Notas de Apple del negocio a los Detalles de cada cliente. Elija el tipo de datos; no se guarda nada hasta que usted lo revise."
+
+msgid "Pick the type of data to import. Nothing is saved until you have reviewed it."
+msgstr "Elija el tipo de datos que va a importar. No se guarda nada hasta que usted lo revise."
+
+msgid "Show"
+msgstr "Mostrar"
+
+msgid "Upload the notes export"
+msgstr "Suba el archivo exportado de las notas"
+
+msgid "One row is one record and one column is one field, with the field's name as the heading. You match the columns and review the rows before anything is saved."
+msgstr "Una fila es un registro y una columna es un campo, con el nombre del campo como encabezado. Usted asigna las columnas y revisa las filas antes de guardar nada."
+
+msgid "Type of data"
+msgstr "Tipo de datos"
+
+msgid "%(read)s notes read: %(aside)s logins and passwords, not stored · %(empty)s empty · %(duplicates)s already imported"
+msgstr "%(read)s notas leídas: %(aside)s usuarios y contraseñas, sin guardar · %(empty)s vacías · %(duplicates)s ya importadas"
+
+msgid "%(pending)s to review"
+msgstr "%(pending)s por revisar"
+
+msgid "%(accepted)s accepted · %(unlinked)s unlinked · %(skipped)s skipped"
+msgstr "%(accepted)s aceptadas · %(unlinked)s sin cliente · %(skipped)s omitidas"
+
+msgid "Review waiting notes"
+msgstr "Revisar las notas pendientes"
+
+msgid "Apple Notes"
+msgstr "Notas de Apple"
+
+msgid "Choose…"
+msgstr "Elija…"

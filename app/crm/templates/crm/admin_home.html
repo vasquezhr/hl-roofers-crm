@@ -78,13 +78,7 @@
   <div class="col">
     <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'data_import' %}">
       <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "upload" %}</span>
-        <div><div class="fw-semibold">{% trans "Import data" %}</div><div class="small text-body-secondary">{% trans "Bring customers or leads in from a spreadsheet, with a template, matching and a review before anything is saved." %}</div></div></div>
-    </a>
-  </div>
-  <div class="col">
-    <a class="card h-100 shadow-sm text-decoration-none" href="{% url 'imports' %}">
-      <div class="card-body d-flex gap-3 align-items-start"><span class="text-primary fs-4 lh-1">{% icon "upload" %}</span>
-        <div><div class="fw-semibold">{% trans "Import Apple Notes" %}</div><div class="small text-body-secondary">{% trans "Move the business's notes into each customer's Details, with a review step." %}{% if waiting %} <span class="fw-semibold text-body">{% trf "%(count)s waiting for review." count=waiting %}</span>{% endif %}</div></div></div>
+        <div><div class="fw-semibold">{% trans "Import data" %}</div><div class="small text-body-secondary">{% trans "Bring in customers or leads from a spreadsheet, or the business's Apple Notes into each customer's Details. Pick the type of data; nothing is saved until you have reviewed it." %}{% if waiting %} <span class="fw-semibold text-body">{% trf "%(count)s waiting for review." count=waiting %}</span>{% endif %}</div></div></div>
     </a>
   </div>
   <div class="col">

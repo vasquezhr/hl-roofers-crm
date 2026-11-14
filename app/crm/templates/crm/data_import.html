@@ -2,52 +2,97 @@
 {% load i18n crm_tags %}
 {% block title %}{% trans "Import data" %}{% endblock %}
 
-{# Step 1 of the data import: the template and the file. #}
+{# Admin › Import data: one page for every kind of import. The drop-down picks the type of data; #}
+{# nothing below it shows until one is picked. Customers and leads come from a spreadsheet (data_views.py), #}
+{# Apple Notes from the notes export, with a review queue (import_views.py). #}
 {% block content %}
 <a class="small text-decoration-none d-inline-block mb-2" href="{% url 'admin_home' %}">‹ {% trans "Admin" %}</a>
 <h1 class="h4 mb-1">{% trans "Import data" %}</h1>
-<div class="text-body-secondary small mb-3">{% trans "Bring customers or leads in from a spreadsheet. One row is one record and one column is one field, with the field's name as the heading. You match the columns and review the rows before anything is saved." %}</div>
+<div class="text-body-secondary small mb-3">{% trans "Pick the type of data to import. Nothing is saved until you have reviewed it." %}</div>
 
-<div class="card shadow-sm mb-3">
+<form method="get" class="row g-2 align-items-end mb-3" data-import-kind>
+  <div class="col-sm-6 col-lg-4">
+    <label class="form-label small fw-semibold mb-1" for="{{ picker.kind.id_for_label }}">{{ picker.kind.label }}</label>
+    {{ picker.kind }}
+  </div>
+  <noscript><div class="col-auto"><button type="submit" class="btn btn-outline-secondary">{% trans "Show" %}</button></div></noscript>
+</form>
+
+{% if kind == "notes" %}
+<div class="card shadow-sm mb-3" data-import-form="notes">
   <div class="card-body">
-    <h2 class="h6">{% trans "1. Download the template" %}</h2>
-    <div class="d-flex flex-wrap gap-2 mb-3">
-      {% for key, label in kinds %}<a class="btn btn-outline-secondary btn-sm" href="{% url 'data_template' key %}">{% icon "download" %} {% trf "Template for %(kind)s" kind=label %}</a>{% endfor %}
-    </div>
-    <h2 class="h6">{% trans "2. Fill it in and upload it" %}</h2>
+    <h2 class="h6">{% trans "Upload the notes export" %}</h2>
     <ul class="small text-body-secondary ps-3">
-      <li>{% trans "An Excel file (.xlsx) or a CSV file (.csv, saved as UTF-8 or by Excel on Windows). Up to 5,000 rows and 10 MB." %}</li>
-      <li>{% trans "Customers: each row makes the customer, its main contact, its property and, if there is one, a note in Details. A row for a customer already in the app asks what to do." %}</li>
-      <li>{% trans "Leads: each row becomes a lead whose source is Imported." %}</li>
-      <li>{% trans "The file itself is not kept: only its rows, so the results can be listed." %}</li>
+      <li>{% trans "Notes that look like logins or passwords are counted and thrown away. They are never stored." %}</li>
+      <li>{% trans "Notes in the folders you list under Folders to leave out are counted and thrown away too." %}</li>
+      <li>{% trans "Nothing is added to a customer until you accept it in the review queue." %}</li>
+      <li>{% trans "Uploading the same file twice does not import a note twice." %}</li>
     </ul>
-    <form method="post" enctype="multipart/form-data" novalidate>
+    <form method="post" action="?kind=notes" enctype="multipart/form-data" novalidate>
       {% csrf_token %}
+      <input type="hidden" name="kind" value="notes">
       {% include "crm/_fields.html" %}
       <button type="submit" class="btn btn-primary">{% icon "upload" %} {% trans "Read the file" %}</button>
     </form>
   </div>
 </div>
-
-{% if runs %}
-<div class="card shadow-sm mb-3">
+{% elif kind %}
+<div class="card shadow-sm mb-3" data-import-form="{{ kind }}">
   <div class="card-body">
-    <h2 class="h6 mb-2">{% trans "Imports so far" %}</h2>
+    <p class="small text-body-secondary">{% trans "One row is one record and one column is one field, with the field's name as the heading. You match the columns and review the rows before anything is saved." %}</p>
+    <h2 class="h6">{% trans "1. Download the template" %}</h2>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <a class="btn btn-outline-secondary btn-sm" href="{% url 'data_template' kind %}">{% icon "download" %} {% trf "Template for %(kind)s" kind=title %}</a>
+    </div>
+    <h2 class="h6">{% trans "2. Fill it in and upload it" %}</h2>
+    <ul class="small text-body-secondary ps-3">
+      <li>{% trans "An Excel file (.xlsx) or a CSV file (.csv, saved as UTF-8 or by Excel on Windows). Up to 5,000 rows and 10 MB." %}</li>
+      {% if kind == "customers" %}<li>{% trans "Customers: each row makes the customer, its main contact, its property and, if there is one, a note in Details. A row for a customer already in the app asks what to do." %}</li>
+      {% else %}<li>{% trans "Leads: each row becomes a lead whose source is Imported." %}</li>{% endif %}
+      <li>{% trans "The file itself is not kept: only its rows, so the results can be listed." %}</li>
+    </ul>
+    <form method="post" action="?kind={{ kind }}" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="kind" value="{{ kind }}">
+      {% include "crm/_fields.html" %}
+      <button type="submit" class="btn btn-primary">{% icon "upload" %} {% trans "Read the file" %}</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if history or waiting or kind %}
+<div class="card shadow-sm mb-3" data-import-history>
+  <div class="card-body">
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <h2 class="h6 mb-0 flex-grow-1">{% trans "Imports so far" %}</h2>
+      {% if waiting %}<a class="btn btn-outline-secondary btn-sm" href="{% url 'import_queue' %}">{% trans "Review all waiting notes" %}</a>{% endif %}
+    </div>
+    {% if history %}
     <div class="table-responsive">
       <table class="table table-sm small align-middle mb-0">
-        <thead><tr><th>{% trans "File" %}</th><th>{% trans "Records" %}</th><th>{% trans "Status" %}</th><th></th></tr></thead>
+        <thead><tr><th>{% trans "File" %}</th><th>{% trans "Type of data" %}</th><th>{% trans "Status" %}</th><th></th></tr></thead>
         <tbody>
-          {% for run in runs %}
+          {% for item in history %}
           <tr>
-            <td>{{ run.file_name }}<br><span class="text-body-secondary">{{ run.created_at|day_time }}{% if run.actor %} · {{ run.actor }}{% endif %}</span></td>
-            <td>{{ run.get_kind_display }}</td>
-            <td>{% if run.stage == "done" %}{% trf "%(created)s new, %(added)s added to a customer, %(skipped)s skipped, %(failed)s failed" created=run.counts.created added=run.counts.added skipped=run.counts.skipped failed=run.counts.failed %}{% else %}{% trans "Not finished" %}{% endif %}</td>
-            <td class="text-end"><a class="btn btn-outline-secondary btn-sm" href="{% if run.stage == 'done' %}{% url 'data_import_results' run.pk %}{% else %}{% url 'data_import_map' run.pk %}{% endif %}">{% if run.stage == "done" %}{% trans "Results" %}{% else %}{% trans "Continue" %}{% endif %}</a></td>
+            <td>{{ item.file }}<br><span class="text-body-secondary">{{ item.when|day_time }}{% if item.who %} · {{ item.who }}{% endif %}</span></td>
+            <td>{{ item.type }}</td>
+            {% if item.batch %}{% with batch=item.batch %}
+            <td>{% trf "%(read)s notes read: %(aside)s logins and passwords, not stored · %(empty)s empty · %(duplicates)s already imported" read=batch.notes_read aside=batch.set_aside empty=batch.empty duplicates=batch.duplicates %}<br>
+              <span class="fw-semibold">{% trf "%(pending)s to review" pending=batch.pending %}</span> · {% trf "%(accepted)s accepted · %(unlinked)s unlinked · %(skipped)s skipped" accepted=batch.accepted unlinked=batch.unlinked skipped=batch.skipped %}</td>
+            <td class="text-end"><a class="btn btn-outline-secondary btn-sm text-nowrap" href="{{ item.link }}">{% trans "Review waiting notes" %}</a></td>
+            {% endwith %}{% else %}{% with run=item.run %}
+            <td>{% if item.done %}{% trf "%(created)s new, %(added)s added to a customer, %(skipped)s skipped, %(failed)s failed" created=run.counts.created added=run.counts.added skipped=run.counts.skipped failed=run.counts.failed %}{% else %}{% trans "Not finished" %}{% endif %}</td>
+            <td class="text-end"><a class="btn btn-outline-secondary btn-sm" href="{{ item.link }}">{% if item.done %}{% trans "Results" %}{% else %}{% trans "Continue" %}{% endif %}</a></td>
+            {% endwith %}{% endif %}
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+    {% else %}
+    <div class="small text-body-secondary">{% trans "No file has been read yet." %}</div>
+    {% endif %}
   </div>
 </div>
 {% endif %}
