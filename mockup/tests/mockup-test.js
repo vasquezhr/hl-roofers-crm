@@ -159,6 +159,21 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     ok((await p.$$("#view .row.g-2 > .col-12")).length === 7, "the week shows all seven days");
     ok(/Sat/.test(await p.textContent("#view .row.g-2")) && /Sun/.test(await p.textContent("#view .row.g-2")), "Saturday and Sunday are in the week, as days off");
     await shot("p3-schedule");
+    // the user's item 6 (Nov 16): each stop is one line (number · customer · crew); a click or a tap opens its details
+    const line1 = p.locator("#view button[data-stop]").first(), lineText = (await line1.textContent()).replace(/\s+/g, " ").trim();
+    ok(/^#\d\d-\d+ · .+ · .+$/.test(lineText) && (await line1.boundingBox()).height < 30, "each stop is one line: " + lineText);
+    const details1 = p.locator("#" + (await line1.getAttribute("aria-controls")));
+    ok(!(await details1.isVisible()), "a stop's details are folded at first");
+    await line1.click(); await p.waitForTimeout(450);
+    ok((await details1.isVisible()) && /Open (job #|the opportunity)/.test(await details1.textContent()) && (await line1.getAttribute("aria-expanded")) === "true", "a click opens the stop's details with a link");
+    await line1.click(); await p.waitForTimeout(450); ok(!(await details1.isVisible()), "a second click folds them");
+    await line1.focus(); await p.keyboard.press("Enter"); await p.waitForTimeout(450); ok(await details1.isVisible(), "the keyboard opens them too");
+    ok((await p.locator('#view button[data-stop]:has-text("Crew 1")').count()) > 0, "job lines name the crew");
+    await p.click('[data-act="setLang"][data-lang="es"]'); await p.waitForTimeout(200); await goRaw("#schedule");
+    ok((await p.locator('#view button[data-stop]:has-text("Equipo 1")').count()) > 0 && /Abrir trabajo #26-/.test(await view()), "the lines and their details in Spanish");
+    await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200);
+    await role("admin"); await goRaw("#schedule"); ok((await p.locator("#view button[data-stop]").count()) > 0, "Admin sees the same one-line stops");
+    await role("office"); await goRaw("#schedule");
     await p.click('[data-act="setFilter"][data-value="c2"]'); await p.waitForTimeout(200);
     ok(!/Denise Wyckoff/.test(await p.textContent("#view .row.g-2")), "crew filter hides other crews");
     await p.click('[data-act="setFilter"][data-value="all"]'); await p.waitForTimeout(200);
@@ -171,6 +186,15 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await shot("p3-book-inspection");
     await act("bookInsp", ":first-of-type"); v = await view();
     ok(/^#opp\/26-13\d$/.test(await hash()) && /Inspection booked/.test(v) && /Change time/.test(v), "inspection booked: " + v.slice(0, 300));
+    // the booked inspection is one line on its week: number · customer · Inspection and its time
+    const bookedOpp = (await hash()).split("/")[1];
+    await go("#schedule"); await p.evaluate(id => { S.week = Math.floor((oppOf(id).insp.day - TODAY) / 864e5 / 7); render(); }, bookedOpp); await p.waitForTimeout(200);
+    const inspLine = p.locator(`#view button[data-stop][aria-controls$="-insp-${bookedOpp}"]`).first();
+    ok(/^#26-13\d · Mina Seo · Inspection \d/.test((await inspLine.textContent()).replace(/\s+/g, " ").trim()), "an inspection is one line with its time: " + (await inspLine.textContent()));
+    await inspLine.click(); await p.waitForTimeout(450); ok(/Open the opportunity/.test(await p.textContent("#view .collapse.show")), "its details link to the opportunity");
+    await p.click('[data-act="setLang"][data-lang="es"]'); await p.waitForTimeout(200);
+    ok(/Inspección/.test(await p.locator(`#view button[data-stop][aria-controls$="-insp-${bookedOpp}"]`).first().textContent()), "and in Spanish it says Inspección");
+    await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200); await p.evaluate(() => { S.week = 0; });
     // change an already scheduled job: the crew gets a Changed notice
     await go("#job/26-126"); await act("jobSchedule"); await p.fill("#jsDay", await p.evaluate(() => iso(wd(3)))); await act("saveSchedule"); v = await view();
     ok(/Changed/.test(v) && /Notify crew/.test(v) && /Crew 2 has not seen it yet/.test(v) && /Dates changed/.test(v), "changed notice for the office: " + v.slice(0, 500));
@@ -453,7 +477,8 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
   if (upTo >= 5) {
     const countOf = async expr => p.evaluate(expr);
     // the back arrow names the screen you came from, and the Schedule keeps its week
-    await role("office"); await goRaw("#schedule"); await p.click('#view a[href^="#job/"]'); await p.waitForTimeout(300);
+    await role("office"); await goRaw("#schedule"); await p.click('#view button[data-stop]:has-text("Crew")'); await p.waitForTimeout(450);
+    await p.click('#view .collapse.show a[href^="#job/"]'); await p.waitForTimeout(300);
     ok((await p.textContent("a.hl-back")).trim() === "Schedule", "a job opened from the Schedule says Schedule at its top left");
     await p.click("a.hl-back"); await p.waitForTimeout(250); ok((await hash()) === "#schedule", "and the arrow goes back to the Schedule");
     await goRaw("#job/26-104"); ok((await p.textContent("a.hl-back")).trim() === "Jobs" || /Schedule|Today|Search|Jobs/.test(await p.textContent("a.hl-back")), "the arrow always has a name");

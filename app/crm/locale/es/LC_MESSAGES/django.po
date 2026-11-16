@@ -3907,3 +3907,6 @@ msgstr "Notas de Apple"
 
 msgid "Choose…"
 msgstr "Elija…"
+
+msgid "Open the opportunity"
+msgstr "Abrir la oportunidad"

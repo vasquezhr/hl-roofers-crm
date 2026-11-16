@@ -310,7 +310,7 @@ const I18N = {
       ph: "Name, address, phone, job number…", none: "No matches." },
     mine: { today: "Today", upcoming: "Coming up", finished: "Finished" },
     myday: { next: "Next work day", changes: "Changes to your jobs" },
-    sched: { inspections: "Inspections", prev: "Earlier", next: "Later", dayOf: "day {i} of {n}", changed: "Changed", map: "Map of that day's stops",
+    sched: { inspections: "Inspections", prev: "Earlier", next: "Later", dayOf: "day {i} of {n}", openJob: "Open job #{n}", openOpp: "Open the opportunity", changed: "Changed", map: "Map of that day's stops",
       book: "Book a visit", nothingToBook: "Nothing is waiting to be booked.", pick: "What are you booking?",
       inspGroup: "Inspections to book", jobGroup: "Jobs to schedule", suggestions: "Suggested times", best: "Best fit",
       near: "{m} mi from {name} ({time})", noNear: "No other stops that day", bookBtn: "Book", booked: "Booked",
@@ -497,7 +497,7 @@ const I18N = {
       ph: "Nombre, dirección, teléfono, número de trabajo…", none: "Sin resultados." },
     mine: { today: "Hoy", upcoming: "Próximos", finished: "Terminados" },
     myday: { next: "Próximo día de trabajo", changes: "Cambios en sus trabajos" },
-    sched: { inspections: "Inspecciones", prev: "Antes", next: "Después", dayOf: "día {i} de {n}", changed: "Cambió", map: "Mapa de las paradas de ese día",
+    sched: { inspections: "Inspecciones", prev: "Antes", next: "Después", dayOf: "día {i} de {n}", openJob: "Abrir trabajo #{n}", openOpp: "Abrir la oportunidad", changed: "Cambió", map: "Mapa de las paradas de ese día",
       book: "Programar una visita", nothingToBook: "No hay nada pendiente de programar.", pick: "¿Qué va a programar?",
       inspGroup: "Inspecciones por agendar", jobGroup: "Trabajos por programar", suggestions: "Horarios sugeridos", best: "Mejor opción",
       near: "a {m} mi de {name} ({time})", noNear: "No hay otras paradas ese día", bookBtn: "Agendar", booked: "Agendado",
@@ -2844,13 +2844,23 @@ jobOf("26-104").changed = { wasDays: [wd(1), wd(2)], seen: false, d: ago(1) };
 seed(jobOf("26-104"), ago(1), "office", "log.changed", () => ({ was: rangeText([wd(1), wd(2)]) }));
 
 /* ---------- the week ---------- */
+// Each stop is one line: number · customer · crew (an inspection, in blue: its time). A click or a tap opens its details below it (a Bootstrap collapse).
 function schedItem(s, day) {
-  const r = s.rec, name = acct(r.acct).name, base = "d-block text-decoration-none text-reset small rounded-end border-start border-3 p-1 ";
-  if (s.kind === "insp") return `<a href="#opp/${r.id}" class="${base}border-info bg-info-subtle"><span class="fw-semibold">${fmtTime(s.time)}</span> · ${tt("stage.inspection")}<br>${esc(name)}</a>`;
-  const tone = CREW_TONE[r.crew] || "secondary", i = r.days.findIndex(x => sameDay(x, day)) + 1;
-  return `<a href="#job/${r.id}" class="${base}border-${tone} bg-${tone}-subtle"><span class="fw-semibold">${esc(crewName(crewOf(r.crew)))}</span> · ` +
-    (r.days.length > 1 ? tt("sched.dayOf", { i, n: r.days.length }) : fmtTime(r.time)) + `<br>${esc(name)} · ${tt("type." + r.type)}` +
-    (r.changed && !r.changed.seen ? `<br>${badge(t("sched.changed"), "warning")}` : "") + `</a>`;
+  const r = s.rec, name = acct(r.acct).name, insp = s.kind === "insp", tone = insp ? "info" : CREW_TONE[r.crew] || "secondary";
+  const id = `stop-${iso(day)}-${s.kind}-${r.id}`, changed = !insp && r.changed && !r.changed.seen;
+  // the number and the crew always show; a long customer name is cut short with "…" (the whole line is in the title)
+  const line = `<span class="fw-semibold text-nowrap">#${esc(r.id)}</span><span>&nbsp;·&nbsp;</span><span class="text-truncate">${esc(name)}</span><span>&nbsp;·&nbsp;</span>` +
+    `<span class="text-nowrap pe-1">${insp ? `<span class="visually-hidden">${tt("stage.inspection")} </span>${fmtTime(s.time)}` : esc(crewName(crewOf(r.crew)))}</span>`;
+  const plain = `#${r.id} · ${name} · ` + (insp ? `${t("stage.inspection")} ${fmtTime(s.time)}` : crewName(crewOf(r.crew)));
+  const i = insp ? 0 : r.days.findIndex(x => sameDay(x, day)) + 1;
+  const details = insp
+    ? `<span class="fw-semibold">${fmtTime(s.time)}</span> · ${tt("stage.inspection")}<br>${esc(name)}<br><a href="#opp/${r.id}">${tt("sched.openOpp")} ›</a>`
+    : `<span class="fw-semibold">${esc(crewName(crewOf(r.crew)))}</span> · ` + (r.days.length > 1 ? tt("sched.dayOf", { i, n: r.days.length }) : fmtTime(r.time)) +
+      `<br>${esc(name)} · ${tt("type." + r.type)}` + (changed ? `<br>${badge(t("sched.changed"), "warning")}` : "") + `<br><a href="#job/${r.id}">${tt("sched.openJob", { n: r.id })} ›</a>`;
+  return `<div class="small rounded-end border-start border-3 border-${tone} bg-${tone}-subtle">` +
+    `<button type="button" class="btn btn-sm w-100 text-start text-reset border-0 rounded-0 px-1 py-0 d-flex align-items-center hl-minw0" data-stop data-bs-toggle="collapse" data-bs-target="#${id}" aria-expanded="false" aria-controls="${id}" title="${esc(plain)}">` +
+    `${line}${changed ? `<span class="badge text-bg-warning ms-auto">!<span class="visually-hidden"> ${tt("sched.changed")}</span></span>` : ""}</button>` +
+    `<div class="collapse" id="${id}"><div class="px-1 pb-1">${details}</div></div></div>`;
 }
 const bookCur = () => { const l = toBook(); return l.find(x => x.key === S.book) || l[0]; };
 function schedDay(d) {

@@ -1,8 +1,8 @@
 """
 The schedule, the crew's My Day, changes to a scheduled job, extra workers and the calendar feed.
 
-  /schedule/                 five work days at a time, a filter for each crew, and "Schedule a visit"
-                             with suggested times
+  /schedule/                 seven days at a time, each stop one line that opens its details, a filter for each crew,
+                             and "Schedule a visit" with suggested times
   /my-day/                   the crew's first page: today's stops, tomorrow's, and anything that changed
   /calendar/<word>.ics       a crew's (or the office's) jobs for the phone's own calendar app
 """

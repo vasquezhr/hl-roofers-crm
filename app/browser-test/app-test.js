@@ -253,6 +253,23 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   check('the schedule shows all seven days', await office.locator('.row.g-2 > .col-12 > .card > .card-header').count() === 7);
   const week = await main(office);
   check('with both crews and the inspections', ['Crew 1', 'Crew 2', 'Inspection', 'Mina Seo'].every(words => week.includes(words)));
+  // the user's item 6: each stop is one line (number · customer · crew); a click or a tap opens its details in place
+  const stopLine = office.locator('button[data-stop]').first();
+  const lineText = (await stopLine.innerText()).replace(/\s+/g, ' ').trim();
+  check('each stop on the calendar is one line: number · customer · crew', /^#\d\d-\d+ · .+ · .+$/.test(lineText) && (await stopLine.boundingBox()).height < 30, lineText);
+  const stopDetails = office.locator('#' + (await stopLine.getAttribute('aria-controls')));
+  check('its details are folded at first', !(await stopDetails.isVisible()) && (await stopLine.getAttribute('aria-expanded')) === 'false');
+  const opened = office.locator('#' + (await stopLine.getAttribute('aria-controls')) + '.collapse.show');   // the fold has finished moving
+  await stopLine.click();
+  await opened.waitFor();
+  check('a click opens its details, with a link to the record', (await stopLine.getAttribute('aria-expanded')) === 'true' && /Open (job #|the opportunity)/.test(await stopDetails.innerText()));
+  await stopLine.click();
+  await stopDetails.waitFor({ state: 'hidden' });
+  check('a second click folds them again', (await stopLine.getAttribute('aria-expanded')) === 'false');
+  await stopLine.focus();
+  await office.keyboard.press('Enter');
+  await opened.waitFor();
+  check('the keyboard opens them too', (await stopLine.getAttribute('aria-expanded')) === 'true');
   await snap(office, 'schedule');
   const feedAddress = (await office.inputValue('#feedLink1')).replace(/^webcal:\/\/[^/]+/, base);
   const feed = await (await browser.newContext()).request.get(feedAddress);          // signed out, as a phone's calendar app is
@@ -478,8 +495,11 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   check('days off are shaded', (await office.locator('.row.g-2 > .col-12 > .card.bg-body-tertiary').count()) === 2);
   // the fourth message: the back link, a folded card, and phone widths (Pixel 9 is 412 px wide, an iPhone 16 Pro Max 440)
   await office.goto(base + '/schedule/');
-  const jobLink = office.locator('a[href^="/jobs/26-"]:not([href*="/schedule/"])').first();
-  if (await jobLink.count()) {
+  const jobLine = office.locator('button[data-stop]:has-text("Crew ")').first();
+  if (await jobLine.count()) {
+    const jobLink = office.locator('#' + (await jobLine.getAttribute('aria-controls')) + ' a[href^="/jobs/"]');
+    await jobLine.click();
+    await jobLink.waitFor({ state: 'visible' });
     await andWait(office, () => jobLink.click());
     check('a job opened from the Schedule says "Schedule" at its top left', (await text(office, 'a.hl-back')) === 'Schedule');
     await andWait(office, () => office.click('a.hl-back'));
@@ -556,6 +576,11 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   const touch = await signIn(browser, 'office', { viewport: { width: 412, height: 900 }, hasTouch: true, isMobile: true });
   await touch.goto(base + '/jobs/26-104/');
   check('on a touch screen the pencil is always showing', (await touch.locator('a.hl-pencil[href*="section=scope"]').evaluate(e => getComputedStyle(e).opacity)) === '1');
+  await touch.goto(base + '/schedule/');
+  const tapLine = touch.locator('button[data-stop]').first();
+  await tapLine.tap();
+  await touch.locator('#' + (await tapLine.getAttribute('aria-controls')) + ' a').waitFor({ state: 'visible' });
+  check('on a touch screen a tap on a Schedule line opens its details', (await tapLine.getAttribute('aria-expanded')) === 'true');
   await touch.context().close();
 
   const problems = [office, crew, other, admin, boss].flatMap(p => p.problems).filter(p => !p.includes('404') && !p.includes('403'));

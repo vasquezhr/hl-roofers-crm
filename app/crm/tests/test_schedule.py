@@ -1,7 +1,10 @@
 """The schedule: work days, suggested times, booking, changes a crew must see, extra workers, My Day and the calendar feed."""
+import html
+import re
 from datetime import date, datetime, time
 from unittest import mock
 
+from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone, translation
 
@@ -87,6 +90,33 @@ class SchedulePage(OnMonday):
         for words in ["Crew 1", "day 1 of 2", "day 2 of 2", "Denise Wyckoff", "10:00 AM", "Anjali Raman", "Crew 2", "Terrence Oakes"]:
             self.assertContains(page, words)
         self.assertTrue(page.context["columns"][0]["is_today"])
+
+    def test_each_stop_is_one_line_that_opens_its_details(self):
+        """The user's item 6 (Nov 16): the same week, slimmer cards. A stop is one line (number · customer · crew); its details open on a click."""
+        page = self.client.get(reverse("schedule")).content.decode()
+        lines = re.findall(r'<button type="button"[^>]*data-stop[^>]*data-bs-target="#(stop-\d+-\d+)"[^>]*>(.*?)</button>', page, re.S)
+        self.assertEqual(len(lines), 4)                                             # Monday's job, Tuesday's inspection and job, Wednesday's job
+        text = [" ".join(html.unescape(re.sub(r"<[^>]+>", "", inner)).split()) for _target, inner in lines]
+        self.assertEqual(text[0], f"#{self.roof.number} · Denise Wyckoff · Crew 1")
+        self.assertEqual(text[1], f"#{self.visit.number} · Anjali Raman · Inspection 10:00 AM")
+        self.assertEqual(text[3], f"#{self.repair.number} · Terrence Oakes · Crew 2")
+        for target, _inner in lines:                                                # each line has its own details, folded until it is clicked
+            self.assertEqual(page.count(f'id="{target}"'), 1)
+            self.assertIn(f'<div class="collapse" id="{target}">', page)
+        details = page.split('id="stop-1-1">')[1].split("</div>\n          </div>")[0]
+        for words in ["Crew 1", "day 1 of 2", "Denise Wyckoff · ", f'href="/jobs/{self.roof.number}/"', f"Open job #{self.roof.number}"]:
+            self.assertIn(words, details)
+        inspection = page.split('id="stop-2-1">')[1].split("</div>\n          </div>")[0]
+        for words in ["10:00 AM", "Inspection", "Anjali Raman", f'href="/opportunities/{self.visit.number}/"', "Open the opportunity"]:
+            self.assertIn(words, inspection)
+        self.assertIn("border-primary bg-primary-subtle", page)                    # each crew keeps its color
+        self.assertIn("border-info bg-info-subtle", page)
+
+    def test_one_line_stops_in_spanish(self):
+        self.client.cookies[settings.LANGUAGE_COOKIE_NAME] = "es"
+        page = self.client.get(reverse("schedule")).content.decode()
+        for words in ["Abrir trabajo #", "Inspección 10:00 AM"]:
+            self.assertIn(words, page)
 
     def test_days_off_are_always_on_the_calendar_shaded_and_clickable(self):
         page = self.client.get(reverse("schedule"), {"book": f"job:{self.waiting.number}", "crew": self.crew2.pk})
