@@ -1552,7 +1552,8 @@ class HealthReading(models.Model):
 
 # ---------------------------------------------------------------- the data import (Admin > Import data)
 class DataImport(models.Model):
-    """One uploaded spreadsheet of customers or leads, from the upload to its results. The file is never kept: only its rows (DataImportRow)."""
+    """One uploaded spreadsheet, from the upload to its results. The file is never kept: only its rows (DataImportRow).
+    `kind` is customers or leads (dataload.py), or a kind of record added or updated by its ID (objectload.OBJECTS), with `action`."""
 
     class Kind(models.TextChoices):
         CUSTOMERS = "customers", _("Customers")
@@ -1563,7 +1564,8 @@ class DataImport(models.Model):
         REVIEW = "review", _("Reviewing the rows")
         DONE = "done", _("Imported")
 
-    kind = models.CharField(max_length=10, choices=Kind.choices)
+    kind = models.CharField(max_length=20)                      # a Kind, or a key of objectload.OBJECTS
+    action = models.CharField(max_length=6, blank=True)          # for a kind of record: insert (add new) or update (by record ID)
     file_name = models.CharField(max_length=200)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     actor = models.CharField(max_length=80, blank=True)
@@ -1583,11 +1585,13 @@ class DataImportRow(models.Model):
 
     class State(models.TextChoices):
         NEW = "new", _("New")
-        EXISTS = "exists", _("Already in the app")
+        EXISTS = "exists", _("Already in the app")             # for an update by record ID: a record that changes
+        SAME = "same", _("Nothing to change")
         ERROR = "error", _("Problem")
 
     class Result(models.TextChoices):
         CREATED = "created", _("Created")
+        UPDATED = "updated", _("Updated")
         ADDED = "added", _("Added to a customer")
         SKIPPED = "skipped", _("Skipped")
         FAILED = "failed", _("Not imported")
@@ -1601,6 +1605,7 @@ class DataImportRow(models.Model):
     account = models.ForeignKey(Account, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     lead = models.ForeignKey("Lead", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     choice = models.CharField(max_length=4, blank=True)         # for a row already in the app: skip or add
+    record_id = models.PositiveIntegerField(null=True, blank=True)   # for a kind of record: the record it added or updates
     result = models.CharField(max_length=8, choices=Result.choices, blank=True)
     message = models.CharField(max_length=300, blank=True)
 

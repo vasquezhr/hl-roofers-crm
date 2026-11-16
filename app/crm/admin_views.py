@@ -27,7 +27,7 @@ from django.utils.text import slugify
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
-from . import automations, health, logo, look, logs, recycle
+from . import automations, health, logo, look, logs, objectload, recycle
 from .access import admin_only, with_permission
 from .forms import LoginDetailsForm, LookForm, PickItemForm, WorkTypeForm
 from .history import changes, field_changes
@@ -306,7 +306,20 @@ def editor(request):
              "problem": problems.get(f"{field}-{account.pk}", "")} for field in EDITOR_FIELDS]})
     sets = [{"set": one, "changes": shown_changes(one.changes)} for one in ChangeSet.objects.all()[:20]]
     return render(request, "crm/editor.html", {"rows": rows, "page": page, "q": q, "keep": urlencode({"q": q}), "problems": problems, "sets": sets,
-                                               "languages": LANGS})
+                                               "languages": LANGS, **templates_box(request)})
+
+
+def templates_box(request):
+    """The administrator's "Templates and export" card on the Data editor page: a drop-down that picks a kind of record and shows its
+    columns, its template and its export; every kind of record with its own Excel and CSV links; and every template in one .zip."""
+    if not request.user.is_admin_profile:
+        return {}
+    picked = request.GET.get("object", "")
+    picked = picked if picked in objectload.OBJECTS else ""
+    choices = [("", _("Choose…"))] + [(key, title) for key, (_model, title) in objectload.OBJECTS.items()]
+    return {"objects": objectload.catalog(), "object_choices": choices, "picked": picked,
+            "picked_title": objectload.title_of(picked) if picked else "",
+            "picked_columns": objectload.described(picked) if picked else [], "picked_left_out": objectload.left_out(picked) if picked else []}
 
 
 def shown_changes(found):

@@ -54,6 +54,66 @@
 </form>
 {% include "crm/_pager.html" %}
 
+{% if objects %}
+{# The administrator's templates and exports, one for each kind of record (objectload.py). Uploads go through Admin › Import data. #}
+<div class="card shadow-sm mb-3" id="templates" data-templates>
+  <div class="card-body">
+    <h2 class="h6 mb-1">{% trans "Templates and export" %}</h2>
+    <div class="small text-body-secondary mb-3">{% trans "A template for every kind of record, with a column for each of its fields, to add records or update them in bulk. The columns are read from the app each time, so a field added later is in the next download. An export has the records there now (not those in the Recycle Bin) with their IDs: change it and upload it as an update. Uploads go through Import data, with a review before anything is saved." %}</div>
+    <form method="get" action="#templates" class="row g-2 align-items-end mb-3">
+      <div class="col-sm-6 col-lg-4">
+        <label class="form-label small fw-semibold mb-1" for="objectPick">{% trans "Kind of record" %}</label>
+        <select class="form-select" name="object" id="objectPick" data-submit-on-change="always">
+          {% for key, title in object_choices %}<option value="{{ key }}"{% if key == picked %} selected{% endif %}>{{ title|capfirst }}</option>{% endfor %}
+        </select>
+      </div>
+      <noscript><div class="col-auto"><button type="submit" class="btn btn-outline-secondary">{% trans "Show" %}</button></div></noscript>
+    </form>
+    {% if picked %}
+    <div class="border rounded p-2 mb-3" data-object="{{ picked }}">
+      <div class="d-flex flex-wrap gap-2 mb-2">
+        <a class="btn btn-outline-secondary btn-sm" href="{% url 'object_template' picked 'xlsx' %}">{% icon "download" %} {% trans "Template (.xlsx)" %}</a>
+        <a class="btn btn-outline-secondary btn-sm" href="{% url 'object_template' picked 'csv' %}">{% icon "download" %} {% trans "Template (.csv)" %}</a>
+        <a class="btn btn-outline-secondary btn-sm" href="{% url 'object_export' picked 'xlsx' %}">{% icon "download" %} {% trans "Export (.xlsx)" %}</a>
+        <a class="btn btn-outline-secondary btn-sm" href="{% url 'object_export' picked 'csv' %}">{% icon "download" %} {% trans "Export (.csv)" %}</a>
+        <a class="btn btn-primary btn-sm ms-sm-auto" href="{% url 'data_import' %}?kind={{ picked }}">{% icon "upload" %} {% trans "Upload: add new or update" %}</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm small align-middle mb-1">
+          <thead><tr><th>{% trans "Column" %}</th><th>{% trans "Field" %}</th><th>{% trans "Required to add" %}</th><th>{% trans "What it takes" %}</th></tr></thead>
+          <tbody>
+            {% for column in picked_columns %}
+            <tr><td class="font-monospace">{{ column.name }}</td><td>{{ column.label }}</td><td>{% if column.required %}{% trans "Required" as req %}{% badge req "danger" %}{% endif %}</td><td>{{ column.about }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if picked_left_out %}<div class="small text-body-secondary">{% trans "Not in the template, because the app fills them in itself or another page changes them:" %} {{ picked_left_out|join:", " }}.</div>{% endif %}
+    </div>
+    {% endif %}
+    <div class="table-responsive">
+      <table class="table table-sm small align-middle mb-2">
+        <thead><tr><th>{% trans "Kind of record" %}</th><th class="text-end">{% trans "Records" %}</th><th>{% trans "Template" %}</th><th>{% trans "Export" %}</th></tr></thead>
+        <tbody>
+          {% for one in objects %}
+          <tr data-object-row="{{ one.key }}">
+            <td><a href="?object={{ one.key }}#templates">{{ one.title }}</a></td>
+            <td class="text-end">{{ one.count }}</td>
+            <td class="text-nowrap"><a href="{% url 'object_template' one.key 'xlsx' %}">Excel</a> · <a href="{% url 'object_template' one.key 'csv' %}">CSV</a></td>
+            <td class="text-nowrap"><a href="{% url 'object_export' one.key 'xlsx' %}">Excel</a> · <a href="{% url 'object_export' one.key 'csv' %}">CSV</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-secondary btn-sm" href="{% url 'object_templates_zip' 'xlsx' %}">{% icon "download" %} {% trans "Download all templates (.zip, Excel)" %}</a>
+      <a class="btn btn-outline-secondary btn-sm" href="{% url 'object_templates_zip' 'csv' %}">{% icon "download" %} {% trans "Download all templates (.zip, CSV)" %}</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <div class="card shadow-sm mb-3">
   <div class="card-body">
     <h2 class="h6 mb-2">{% trans "Change log" %}</h2>

@@ -9,6 +9,13 @@ are in import_views.py.
   /manage/import/<pk>/map/           match each column to a field
   /manage/import/<pk>/review/        what is new, what is already in the app, and what has a problem; then confirm
   /manage/import/<pk>/results/       what happened to each row, and the results file
+
+Each kind of record (objectload.OBJECTS: accounts, contacts ... types of work) is a type of data too: its rows add new records, or update
+records by their ID, with the same steps. Its template and an export of its records download from the Data editor page:
+
+  /manage/editor/template/<key>.<xlsx|csv>    a kind of record's template
+  /manage/editor/export/<key>.<xlsx|csv>      its records as they are now, with their IDs, to change and upload as an update
+  /manage/editor/templates-<xlsx|csv>.zip     every template in one .zip
 """
 import io
 import logging
@@ -21,13 +28,16 @@ from django.utils.translation import gettext as _
 
 from django.urls import reverse
 
-from . import dataload, import_views
+from django.utils import timezone
+
+from . import dataload, import_views, objectload
 from .access import admin_only
-from .forms import DataImportForm, ImportKindForm
+from .forms import DataImportForm, ImportKindForm, ObjectImportForm
 from .models import DataImport, DataImportRow, ImportedNote
 
 logger = logging.getLogger(__name__)
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+TYPES = {"xlsx": XLSX, "csv": "text/csv; charset=utf-8", "zip": "application/zip"}
 
 
 NOTES = "notes"                # the Apple Notes export; the other kinds are spreadsheets (dataload.KINDS)
@@ -37,14 +47,15 @@ NOTES = "notes"                # the Apple Notes export; the other kinds are spr
 def data_import(request):
     """Step 1: the type of data, then that type's file. Nothing below the drop-down shows until a type is picked."""
     kind = request.POST.get("kind") or request.GET.get("kind", "")
-    kind = kind if kind in dataload.KINDS or kind == NOTES else ""
+    kind = kind if kind in dataload.KINDS or kind == NOTES or kind in objectload.OBJECTS else ""
+    records = kind in objectload.OBJECTS                                  # a kind of record: add new, or update by record ID
     form = None
     if kind == NOTES:
         form, done = import_views.notes_upload(request)
         if done:
             return done
     elif kind:
-        form = DataImportForm(request.POST or None, request.FILES or None)
+        form = (ObjectImportForm if records else DataImportForm)(request.POST or None, request.FILES or None)
         if request.method == "POST":
             if form.is_valid():
                 upload = form.cleaned_data["file"]
@@ -58,14 +69,23 @@ def data_import(request):
                     form.add_error("file", _("The file could not be read. The reason is in the error log (Admin, System status)."))
                 else:
                     run = DataImport.objects.create(kind=kind, file_name=upload.name[:200], user=request.user, actor=request.user.label, headings=headings,
-                                                    mapping=dataload.suggest(kind, headings))
+                                                    mapping=objectload.suggest(kind, headings) if records else dataload.suggest(kind, headings),
+                                                    action=form.cleaned_data["action"] if records else "")
                     DataImportRow.objects.bulk_create([DataImportRow(data_import=run, number=n, cells=cells) for n, cells in enumerate(rows, 2)], batch_size=500)
                     return redirect("data_import_map", pk=run.pk)
             elif not request.FILES:
                 form.add_error(None, _("No file arrived. A file larger than 10 MB is refused."))
     waiting = ImportedNote.objects.filter(status=ImportedNote.Status.PENDING).count() if kind in ("", NOTES) else 0
-    return render(request, "crm/data_import.html", {"kind": kind, "picker": ImportKindForm(initial={"kind": kind}), "form": form,
-                                                    "title": dataload.TITLES.get(kind, ""), "history": imports_so_far(kind), "waiting": waiting})
+    return render(request, "crm/data_import.html", {"kind": kind, "picker": ImportKindForm(initial={"kind": kind}), "form": form, "records": records,
+                                                    "title": objectload.title_of(kind) if records else dataload.TITLES.get(kind, ""),
+                                                    "history": imports_so_far(kind), "waiting": waiting})
+
+
+def type_of(run):
+    """What an import was, in words: Customers; Contacts · Update existing."""
+    if run.kind in objectload.OBJECTS:
+        return f"{objectload.title_of(run.kind)} · {objectload.action_name(run.action)}"
+    return str(dataload.TITLES.get(run.kind, run.kind))
 
 
 def imports_so_far(kind, most=20):
@@ -75,7 +95,7 @@ def imports_so_far(kind, most=20):
         runs = DataImport.objects.select_related("user")
         for run in (runs.filter(kind=kind) if kind else runs)[:most]:
             done = run.stage == DataImport.Stage.DONE
-            history.append({"when": run.created_at, "file": run.file_name, "type": run.get_kind_display(), "who": run.actor, "run": run, "done": done,
+            history.append({"when": run.created_at, "file": run.file_name, "type": type_of(run), "who": run.actor, "run": run, "done": done,
                             "link": reverse("data_import_results" if done else "data_import_map", args=[run.pk])})
     if kind in ("", NOTES):
         for batch in import_views.batches()[:most]:
@@ -96,21 +116,58 @@ def data_template(request, kind):
     return response
 
 
+# ---------------------------------------------------------------- templates and exports of each kind of record (from the Data editor page)
+def download(data, kind, name):
+    response = HttpResponse(data, content_type=TYPES[kind])
+    response["Content-Disposition"] = f'attachment; filename="{name}"'
+    return response
+
+
+@admin_only
+def object_template(request, key, kind):
+    """A kind of record's template: its columns, read from the model now, so a field added later is in it by itself."""
+    if key not in objectload.OBJECTS or kind not in ("xlsx", "csv"):
+        raise Http404
+    return download(objectload.file_bytes(key, kind), kind, f"template-{key}.{kind}")
+
+
+@admin_only
+def object_export(request, key, kind):
+    """A kind of record's records as they are now (not those in the Recycle Bin), with their IDs, in the template's layout."""
+    if key not in objectload.OBJECTS or kind not in ("xlsx", "csv"):
+        raise Http404
+    rows = objectload.export_rows(key)
+    logger.info("Export: %s (%s), %s records, by %s", key, kind, rows.count(), request.user.label)
+    return download(objectload.file_bytes(key, kind, rows), kind, f"export-{key}-{timezone.localdate().isoformat()}.{kind}")
+
+
+@admin_only
+def object_templates_zip(request, kind):
+    """Every kind of record's template in one .zip: one file for each."""
+    if kind not in ("xlsx", "csv"):
+        raise Http404
+    return download(objectload.every_template(kind), "zip", f"templates-{kind}.zip")
+
+
 @admin_only
 def data_import_map(request, pk):
     """Step 2: which column is which field. The app fills in the columns whose heading names a field."""
     run = get_object_or_404(DataImport, pk=pk)
     if run.stage == DataImport.Stage.DONE:
         return redirect("data_import_results", pk=run.pk)
-    fields = dataload.fields_of(run.kind)
-    spanish = (get_language() or "").startswith("es")
-    choices = [(key, spanish_name if spanish else english) for key, english, spanish_name, _other in fields]
+    records = run.kind in objectload.OBJECTS
+    if records:                                                           # a kind of record: its template's columns, by code name and name
+        choices = [(column.name, f"{column.name} · {column.label}") for column in objectload.columns(run.kind)]
+    else:
+        fields = dataload.fields_of(run.kind)
+        spanish = (get_language() or "").startswith("es")
+        choices = [(key, spanish_name if spanish else english) for key, english, spanish_name, _other in fields]
     sample = list(run.rows.all()[:3])
     problem = ""
     if request.method == "POST":
         chosen = [request.POST.get(f"column-{index}", "") for index in range(len(run.headings))]
         used = [key for key in chosen if key]
-        required = ["name"] + (["street"] if run.kind == "customers" else [])
+        required = objectload.required_columns(run.kind, run.action) if records else ["name"] + (["street"] if run.kind == "customers" else [])
         if len(used) != len(set(used)):
             problem = _("Two columns are matched to the same field. Match each field to one column only.")
         elif any(key not in dict(choices) for key in used):
@@ -120,13 +177,18 @@ def data_import_map(request, pk):
         else:
             run.mapping, run.stage = chosen, DataImport.Stage.REVIEW
             run.save()
-            run.counts = dataload.prepare(run)
+            run.counts = objectload.prepare(run, request.user) if records else dataload.prepare(run)
             run.save()
             return redirect("data_import_review", pk=run.pk)
         run.mapping = chosen
     columns = [{"index": index, "heading": heading, "chosen": run.mapping[index] if index < len(run.mapping) else "",
                 "examples": [row.cells[index] for row in sample if row.cells[index]]} for index, heading in enumerate(run.headings)]
-    return render(request, "crm/data_import_map.html", {"run": run, "columns": columns, "choices": choices, "problem": problem, "title": dataload.TITLES[run.kind]})
+    return render(request, "crm/data_import_map.html", {"run": run, "columns": columns, "choices": choices, "problem": problem, "title": title_of(run),
+                                                        "records": records})
+
+
+def title_of(run):
+    return type_of(run)
 
 
 @admin_only
@@ -138,6 +200,8 @@ def data_import_review(request, pk):
     if run.stage != DataImport.Stage.REVIEW:
         return redirect("data_import_map", pk=run.pk)
     rows = list(run.rows.select_related("account", "lead"))
+    if run.kind in objectload.OBJECTS:
+        return review_records(request, run, rows)
     if request.method == "POST":
         for row in rows:
             if row.state == DataImportRow.State.EXISTS:
@@ -153,13 +217,31 @@ def data_import_review(request, pk):
                                                            "customers": run.kind == "customers"})
 
 
+def review_records(request, run, rows):
+    """Step 3 for a kind of record: what would be added, what would change (each field, before and after), what already has these values,
+    and the rows with a problem. Nothing is saved until Confirm."""
+    if request.method == "POST":
+        counts = objectload.confirm(run, request.user)
+        messages.success(request, _("%(created)s new, %(updated)s updated, %(skipped)s skipped, %(failed)s failed") % counts)
+        if counts["failed"]:
+            messages.warning(request, _("Some rows were not imported. The results file says why for each one; the error log has them too."))
+        return redirect("data_import_results", pk=run.pk)
+    groups = {state: [row for row in rows if row.state == state] for state in DataImportRow.State.values}
+    return render(request, "crm/data_import_review_records.html", {"run": run, "groups": groups, "title": type_of(run), "total": len(rows),
+                                                                   "update": run.action == "update"})
+
+
 @admin_only
 def data_import_results(request, pk):
     """Step 4: what happened to each row."""
     run = get_object_or_404(DataImport, pk=pk)
     if run.stage != DataImport.Stage.DONE:
         return redirect("data_import_review", pk=run.pk)
-    return render(request, "crm/data_import_results.html", {"run": run, "rows": run.rows.select_related("account", "lead"), "title": dataload.TITLES[run.kind]})
+    rows = list(run.rows.select_related("account", "lead"))
+    records = run.kind in objectload.OBJECTS
+    for row in rows:                                                      # the page that shows each record added or changed
+        row.link = objectload.record_link(run.kind, row.record_id) if records and row.record_id and row.result != "failed" else ""
+    return render(request, "crm/data_import_results.html", {"run": run, "rows": rows, "title": type_of(run), "records": records})
 
 
 @admin_only

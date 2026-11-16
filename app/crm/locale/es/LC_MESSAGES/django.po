@@ -3910,3 +3910,315 @@ msgstr "Elija…"
 
 msgid "Open the opportunity"
 msgstr "Abrir la oportunidad"
+
+msgid "One row is one record and one column is one field, with the field's code name as the heading. A row points to another record by that record's ID (account_id, job_id ...), as the export shows them. You match the columns and review the rows before anything is saved."
+msgstr "Una fila es un registro y una columna es un campo, con el nombre clave del campo como encabezado. Una fila apunta a otro registro con el ID de ese registro (account_id, job_id ...), como los muestra la exportación. Usted empareja las columnas y revisa las filas antes de que se guarde algo."
+
+msgid "1. Download the template, or the records as they are now"
+msgstr "1. Descargue la plantilla, o los registros como están ahora"
+
+msgid "Template (.xlsx)"
+msgstr "Plantilla (.xlsx)"
+
+msgid "Template (.csv)"
+msgstr "Plantilla (.csv)"
+
+msgid "Export (.xlsx)"
+msgstr "Exportar (.xlsx)"
+
+msgid "Export (.csv)"
+msgstr "Exportar (.csv)"
+
+msgid "Every column, on the Data editor page"
+msgstr "Todas las columnas, en la página del Editor de datos"
+
+msgid "Add new: leave the id column empty. The fields marked as required on the template must be filled in."
+msgstr "Agregar nuevos: deje vacía la columna id. Los campos marcados como obligatorios en la plantilla deben llenarse."
+
+msgid "Update existing: the id column says which record each row changes. Only the cells that are filled in change: an empty cell leaves that field as it is (so a field cannot be emptied this way; do that on the record's own page)."
+msgstr "Actualizar existentes: la columna id dice qué registro cambia cada fila. Solo cambian las celdas que tienen algo: una celda vacía deja ese campo como está (así que un campo no se puede vaciar de esta forma; hágalo en la página del registro)."
+
+msgid "Each row is checked as the record's own page checks it. A row with a problem is left out and shown, and nothing of it is saved."
+msgstr "Cada fila se revisa como la revisa la página del registro. Una fila con un problema se deja fuera y se muestra, y no se guarda nada de ella."
+
+msgid "Leads: each new lead's source is Imported."
+msgstr "Prospectos: el origen de cada prospecto nuevo es Importado."
+
+msgid "%(created)s new, %(updated)s updated, %(skipped)s skipped, %(failed)s failed"
+msgstr "%(created)s nuevos, %(updated)s actualizados, %(skipped)s omitidos, %(failed)s fallidos"
+
+msgid "An empty cell leaves that field as it is."
+msgstr "Una celda vacía deja ese campo como está."
+
+msgid "To update"
+msgstr "Para actualizar"
+
+msgid "Nothing to change"
+msgstr "Nada que cambiar"
+
+msgid "To add"
+msgstr "Para agregar"
+
+msgid "These are left out, and nothing of them is saved. Fix them in the file and import it again, or leave them."
+msgstr "Estas se dejan fuera y no se guarda nada de ellas. Corríjalas en el archivo e impórtelo otra vez, o déjelas."
+
+msgid "Record ID"
+msgstr "ID del registro"
+
+msgid "What changes"
+msgstr "Qué cambia"
+
+msgid "The first 100 of %(count)s rows are shown."
+msgstr "Se muestran las primeras 100 de %(count)s filas."
+
+msgid "No record changes."
+msgstr "Ningún registro cambia."
+
+msgid "These records already have the values in the file. They are skipped."
+msgstr "Estos registros ya tienen los valores del archivo. Se omiten."
+
+msgid "Rows"
+msgstr "Filas"
+
+msgid "Templates and export"
+msgstr "Plantillas y exportación"
+
+msgid "A template for every kind of record, with a column for each of its fields, to add records or update them in bulk. The columns are read from the app each time, so a field added later is in the next download. An export has the records there now (not those in the Recycle Bin) with their IDs: change it and upload it as an update. Uploads go through Import data, with a review before anything is saved."
+msgstr "Una plantilla para cada tipo de registro, con una columna para cada uno de sus campos, para agregar registros o actualizarlos en grupo. Las columnas se leen de la aplicación cada vez, así que un campo agregado después aparece en la siguiente descarga. Una exportación tiene los registros que hay ahora (no los de la Papelera) con sus ID: cámbiela y súbala como actualización. Las subidas pasan por Importar datos, con una revisión antes de guardar algo."
+
+msgid "Kind of record"
+msgstr "Tipo de registro"
+
+msgid "Upload: add new or update"
+msgstr "Subir: agregar nuevos o actualizar"
+
+msgid "Column"
+msgstr "Columna"
+
+msgid "Required to add"
+msgstr "Obligatorio para agregar"
+
+msgid "What it takes"
+msgstr "Qué acepta"
+
+msgid "Required"
+msgstr "Obligatorio"
+
+msgid "Not in the template, because the app fills them in itself or another page changes them:"
+msgstr "No están en la plantilla, porque la aplicación los llena sola u otra página los cambia:"
+
+msgid "Template"
+msgstr "Plantilla"
+
+msgid "Download all templates (.zip, Excel)"
+msgstr "Descargar todas las plantillas (.zip, Excel)"
+
+msgid "Download all templates (.zip, CSV)"
+msgstr "Descargar todas las plantillas (.zip, CSV)"
+
+msgid "Records by ID: add new or update"
+msgstr "Registros por ID: agregar nuevos o actualizar"
+
+msgid "What the file does"
+msgstr "Qué hace el archivo"
+
+msgid "Add new: each row adds a record. Leave the id column empty."
+msgstr "Agregar nuevos: cada fila agrega un registro. Deje vacía la columna id."
+
+msgid "Update existing: each row changes the record whose ID is in the id column. An empty cell leaves that field as it is."
+msgstr "Actualizar existentes: cada fila cambia el registro cuyo ID está en la columna id. Una celda vacía deja ese campo como está."
+
+msgid "Updated"
+msgstr "Actualizado"
+
+msgid "Notes (customer Details)"
+msgstr "Notas (Detalles del cliente)"
+
+msgid "Proposal lines"
+msgstr "Líneas de propuesta"
+
+msgid "Crews"
+msgstr "Equipos"
+
+msgid "Price Book items"
+msgstr "Artículos de la lista de precios"
+
+msgid "Pick list values"
+msgstr "Valores de listas de opciones"
+
+msgid "Add new"
+msgstr "Agregar nuevos"
+
+msgid "Update existing"
+msgstr "Actualizar existentes"
+
+msgid "Leave empty to add a new record. To update one, the ID from the export."
+msgstr "Déjelo vacío para agregar un registro nuevo. Para actualizar uno, el ID de la exportación."
+
+msgid "yes or no"
+msgstr "sí o no"
+
+msgid "A date and time, like 2026-11-16 14:30"
+msgstr "Una fecha y hora, como 2026-11-16 14:30"
+
+msgid "A date, like 2026-11-16"
+msgstr "Una fecha, como 2026-11-16"
+
+msgid "A number, like 1250.50"
+msgstr "Un número, como 1250.50"
+
+msgid "A whole number"
+msgstr "Un número entero"
+
+msgid "Text, up to %(count)s characters"
+msgstr "Texto, hasta %(count)s caracteres"
+
+msgid "The record ID is empty. Each row of an update needs the ID of the record it changes."
+msgstr "El ID del registro está vacío. Cada fila de una actualización necesita el ID del registro que cambia."
+
+msgid "Record ID: a record ID is a whole number."
+msgstr "ID del registro: un ID de registro es un número entero."
+
+msgid "Record ID: no record has that ID."
+msgstr "ID del registro: ningún registro tiene ese ID."
+
+msgid "What they asked for: these are the customer's own words and cannot be changed."
+msgstr "Lo que pidieron: son las palabras del cliente y no se pueden cambiar."
+
+msgid "Property: it must be one of the account's own properties."
+msgstr "Propiedad: debe ser una de las propiedades de la cuenta."
+
+msgid "Reason: only a lost opportunity has a reason. Use Change stage to mark it lost."
+msgstr "Motivo: solo una oportunidad perdida tiene motivo. Use Cambiar etapa para marcarla perdida."
+
+msgid "Opportunity: its proposal can only change while the opportunity is at Inspection or Proposal sent."
+msgstr "Oportunidad: su propuesta solo puede cambiar mientras la oportunidad está en Inspección o Propuesta enviada."
+
+msgid "The proposal's total would be below zero."
+msgstr "El total de la propuesta quedaría por debajo de cero."
+
+msgid "Price: a warranty visit has no charge."
+msgstr "Precio: una visita de garantía no tiene cobro."
+
+msgid "Scope of work: these are the customer's own words and cannot be changed."
+msgstr "Alcance del trabajo: son las palabras del cliente y no se pueden cambiar."
+
+msgid "Kind of number: pick the kind of number."
+msgstr "Tipo de número: elija el tipo de número."
+
+msgid "Job: a change order cannot be added to a warranty visit or to a job that is paid."
+msgstr "Trabajo: no se puede agregar una orden de cambio a una visita de garantía ni a un trabajo pagado."
+
+msgid "A value stays in its own list."
+msgstr "Un valor se queda en su propia lista."
+
+msgid "About the columns"
+msgstr "Sobre las columnas"
+
+msgid "%(field)s: not one of the allowed values."
+msgstr "%(field)s: no es uno de los valores permitidos."
+
+msgid "%(field)s: write yes or no."
+msgstr "%(field)s: escriba sí o no."
+
+msgid "Record ID: that worker belongs to a crew; this list is the extra workers only."
+msgstr "ID del registro: ese trabajador pertenece a un equipo; esta lista es solo de trabajadores extra."
+
+msgid "Record ID: that record is in the Recycle Bin, or belongs to one that is."
+msgstr "ID del registro: ese registro está en la Papelera, o pertenece a uno que lo está."
+
+msgid "Record ID: leave it empty to add a new record. To change a record, pick “Update existing”."
+msgstr "ID del registro: déjelo vacío para agregar un registro nuevo. Para cambiar un registro, elija “Actualizar existentes”."
+
+msgid "%(field)s is empty."
+msgstr "%(field)s está vacío."
+
+msgid "What the proposal covers: these are the customer's own words and cannot be changed."
+msgstr "Lo que cubre la propuesta: son las palabras del cliente y no se pueden cambiar."
+
+msgid "What the proposal covers: this proposal has lines; change them as Proposal lines."
+msgstr "Lo que cubre la propuesta: esta propuesta tiene líneas; cámbielas como Líneas de propuesta."
+
+msgid "Amount: it is worked out from the quantity times the price for each; leave it empty."
+msgstr "Importe: se calcula con la cantidad por el precio por unidad; déjelo vacío."
+
+msgid "A job comes from a signed proposal (opportunity_id) or is a warranty visit on a finished job (warranty_for_id): fill in one of them."
+msgstr "Un trabajo viene de una propuesta firmada (opportunity_id) o es una visita de garantía de un trabajo terminado (warranty_for_id): llene uno de los dos."
+
+msgid "Account: it must be the account of the opportunity or of the job it is a warranty for."
+msgstr "Cuenta: debe ser la cuenta de la oportunidad o del trabajo al que da garantía."
+
+msgid "%(field)s: a warranty visit is always the type Warranty visit, and only a warranty visit has it."
+msgstr "%(field)s: una visita de garantía siempre es del tipo Visita de garantía, y solo una visita de garantía lo tiene."
+
+msgid "A finished job's crew and days cannot change."
+msgstr "El equipo y los días de un trabajo terminado no pueden cambiar."
+
+msgid "A job goes on the schedule with both a crew and a first day."
+msgstr "Un trabajo entra al calendario con un equipo y un primer día."
+
+msgid "First day: it is a day off. To use it, write yes under day_off_ok (Work on a day off)."
+msgstr "Primer día: es un día libre. Para usarlo, escriba sí en day_off_ok (Trabajar en un día libre)."
+
+msgid "Job: nothing is owed on this job."
+msgstr "Trabajo: no se debe nada en este trabajo."
+
+msgid "This type is built in and is always offered."
+msgstr "Este tipo viene incluido y siempre se ofrece."
+
+msgid "“Other” always has its own column in the revenue report."
+msgstr "“Otro” siempre tiene su propia columna en el informe de ingresos."
+
+msgid "%(field)s: a record ID is a whole number."
+msgstr "%(field)s: un ID de registro es un número entero."
+
+msgid "%(field)s: no record has that ID."
+msgstr "%(field)s: ningún registro tiene ese ID."
+
+msgid "%(field)s: that crew is switched off."
+msgstr "%(field)s: ese equipo está desactivado."
+
+msgid "%(field)s: not a number."
+msgstr "%(field)s: no es un número."
+
+msgid "%(field)s: not a whole number."
+msgstr "%(field)s: no es un número entero."
+
+msgid "%(field)s: longer than %(count)s characters."
+msgstr "%(field)s: tiene más de %(count)s caracteres."
+
+msgid "Opportunity: a job is made from a won opportunity that has no job yet."
+msgstr "Oportunidad: un trabajo se hace de una oportunidad ganada que aún no tiene trabajo."
+
+msgid "Warranty for: a warranty visit is opened from a finished job that is not a warranty visit itself."
+msgstr "Garantía de: una visita de garantía se abre de un trabajo terminado que no sea a su vez una visita de garantía."
+
+msgid "It could not be checked. The reason is in the error log."
+msgstr "No se pudo revisar. El motivo está en el registro de errores."
+
+msgid "%(field)s: that record is in the Recycle Bin, or belongs to one that is."
+msgstr "%(field)s: ese registro está en la Papelera, o pertenece a uno que lo está."
+
+msgid "%(field)s: not a date and time like 2026-11-16 14:30."
+msgstr "%(field)s: no es una fecha y hora como 2026-11-16 14:30."
+
+msgid "%(field)s: not a date like 2026-11-16."
+msgstr "%(field)s: no es una fecha como 2026-11-16."
+
+msgid "%(field)s: a warranty visit is always the type Warranty visit."
+msgstr "%(field)s: una visita de garantía siempre es del tipo Visita de garantía."
+
+msgid "Row %(row)s has the same record ID. Put each record on one row only."
+msgstr "La fila %(row)s tiene el mismo ID de registro. Ponga cada registro en una sola fila."
+
+msgid "Nothing to change: the record already has these values."
+msgstr "Nada que cambiar: el registro ya tiene estos valores."
+
+msgid "%(field)s cannot change on an update: a record stays with the one it belongs to."
+msgstr "%(field)s no puede cambiar en una actualización: un registro se queda con aquel al que pertenece."
+
+msgid "Updated."
+msgstr "Actualizado."
+
+msgid "A record ID from: %(what)s"
+msgstr "Un ID de registro de: %(what)s"

@@ -591,10 +591,17 @@ class WorkTypeForm(Bootstrap, forms.ModelForm):
         return days
 
 
+def import_kinds():
+    """The types of data Import data takes: the customers and leads spreadsheets, the Apple Notes export, and then each kind of record,
+    added new or updated by its record ID (objectload.OBJECTS), in a group of their own."""
+    from .objectload import OBJECTS
+    return [("", _("Choose…")), ("customers", _("Customers")), ("leads", _("Leads")), ("notes", _("Apple Notes")),
+            (_("Records by ID: add new or update"), [(key, title) for key, (_model, title) in OBJECTS.items()])]
+
+
 class ImportKindForm(Bootstrap, forms.Form):
     """Admin › Import data: the drop-down at the top that picks the type of data. Picking one reloads the page with ?kind=..."""
-    kind = forms.ChoiceField(label=_("Type of data"), required=False,
-                             choices=[("", _("Choose…")), ("customers", _("Customers")), ("leads", _("Leads")), ("notes", _("Apple Notes"))],
+    kind = forms.ChoiceField(label=_("Type of data"), required=False, choices=import_kinds,
                              widget=forms.Select(attrs={"data-submit-on-change": "always"}))
 
 
@@ -602,6 +609,14 @@ class DataImportForm(Bootstrap, forms.Form):
     """Admin › Import data, with customers or leads picked: the spreadsheet. The type of data comes from the drop-down above it."""
     file = forms.FileField(label=_("The spreadsheet"), widget=forms.FileInput(attrs={"accept": ".xlsx,.csv"}),
                            help_text=_("An Excel file (.xlsx) or a CSV file (.csv), with the field names as the headings."))
+
+
+class ObjectImportForm(DataImportForm):
+    """Import data, with a kind of record picked: the file, and whether its rows add new records or update records by their ID."""
+    action = forms.ChoiceField(label=_("What the file does"), widget=forms.RadioSelect, initial="insert",
+                               choices=[("insert", _("Add new: each row adds a record. Leave the id column empty.")),
+                                        ("update", _("Update existing: each row changes the record whose ID is in the id column. An empty cell leaves that field as it is."))])
+    field_order = ["action", "file"]
 
 
 class PickItemForm(Bootstrap, forms.ModelForm):

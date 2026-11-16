@@ -363,6 +363,44 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   check('Choose… again hides the form and lists every type', await boss.locator('main input[type=file]').count() === 0 && (await main(boss)).includes('notes-sample.json'));
   await snap(boss, 'import-data');
 
+  console.log('Data editor: templates, export, and an upload that adds and updates records by ID');
+  await boss.goto(base + '/manage/editor/');
+  check('the Data editor lists every kind of record with its Excel and CSV links', await boss.locator('[data-object-row]').count() === 15
+        && await boss.locator('a[href$="/template/contact.xlsx"]').count() >= 1 && await boss.locator('a[href$="/templates-xlsx.zip"]').count() === 1);
+  await andWait(boss, () => boss.selectOption('#objectPick', 'contact'));
+  check('picking Contacts shows its columns', boss.url().includes('object=contact') && (await boss.locator('[data-object="contact"]').innerText()).includes('account_id'));
+  await snap(boss, 'editor-templates');
+  const zip = await boss.request.get(base + '/manage/editor/templates-csv.zip');
+  check('Download all templates gives one .zip', zip.ok() && zip.headers()['content-type'] === 'application/zip');
+  const crewsNow = await (await boss.request.get(base + '/manage/editor/export/crew.csv')).text();
+  check('the export of crews has their IDs', crewsNow.replace(/^\ufeff/, '').startsWith('id,name,lead_name,phone,active') && crewsNow.includes('Crew 1'));
+  await andWait(boss, () => boss.click('[data-object="contact"] a:has-text("Upload: add new or update")'));
+  check('Upload opens Import data with Contacts picked', boss.url().includes('kind=contact') && (await boss.inputValue('#id_kind')) === 'contact');
+  await andWait(boss, () => boss.selectOption('#id_kind', 'crew'));
+  await boss.check('input[name=action][value=insert]');
+  await boss.setInputFiles('main input[type=file]', { name: 'crews.csv', mimeType: 'text/csv', buffer: Buffer.from('name,lead_name,active\nCrew 3,Wilmer,yes\nCrew 1,Nobody,yes\n') });
+  await andWait(boss, () => boss.click('main button:has-text("Read the file")'));
+  check('the columns are matched by their code names', (await boss.inputValue('select[name="column-0"]')) === 'name' && (await boss.inputValue('select[name="column-2"]')) === 'active');
+  await andWait(boss, () => boss.click('button:has-text("Review the rows")'));
+  check('the review shows one to add and one problem', (await boss.locator('[data-count="new"]').innerText()) === '1' && (await boss.locator('[data-count="error"]').innerText()) === '1');
+  await andWait(boss, () => boss.click('button:has-text("Confirm the import")'));
+  check('the results say 1 new and 1 failed', (await main(boss)).includes('1 new, 0 updated, 0 skipped, 1 failed'));
+  const crewsAfter = (await (await boss.request.get(base + '/manage/editor/export/crew.csv')).text()).replace(/^\ufeff/, '');
+  const crew3 = crewsAfter.split(/\r?\n/).find(line => line.includes('Crew 3'));
+  check('the new crew is in the next export', !!crew3, crewsAfter);
+  if (crew3) {
+    await boss.goto(base + '/manage/import/?kind=crew');
+    await boss.check('input[name=action][value=update]');
+    await boss.setInputFiles('main input[type=file]', { name: 'crews-update.csv', mimeType: 'text/csv', buffer: Buffer.from(`id,lead_name,phone\n${crew3.split(',')[0]},Wilmer Ortiz,\n`) });
+    await andWait(boss, () => boss.click('main button:has-text("Read the file")'));
+    await andWait(boss, () => boss.click('button:has-text("Review the rows")'));
+    check('an update shows each field before and after', (await boss.locator('[data-rows="exists"]').innerText()).includes('Wilmer → Wilmer Ortiz'));
+    await andWait(boss, () => boss.click('button:has-text("Confirm the import")'));
+    check('the results say 1 updated', (await main(boss)).includes('0 new, 1 updated, 0 skipped, 0 failed'));
+    await boss.goto(base + '/manage/history/');
+    check('Setup history has the change, with what was there before', (await main(boss)).includes('Lead: Wilmer → Wilmer Ortiz') || (await main(boss)).includes('Crew lead: Wilmer → Wilmer Ortiz'));
+  }
+
   console.log('Logins, permission sets and the Recycle Bin');
   await admin.goto(base + '/manage/users/');
   check('the administrator sees every login', (await main(admin)).includes('crew1') && (await main(admin)).includes('Permission sets'));

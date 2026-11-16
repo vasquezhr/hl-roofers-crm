@@ -36,6 +36,35 @@
     </form>
   </div>
 </div>
+{% elif records %}
+<div class="card shadow-sm mb-3" data-import-form="{{ kind }}">
+  <div class="card-body">
+    <p class="small text-body-secondary">{% trans "One row is one record and one column is one field, with the field's code name as the heading. A row points to another record by that record's ID (account_id, job_id ...), as the export shows them. You match the columns and review the rows before anything is saved." %}</p>
+    <h2 class="h6">{% trans "1. Download the template, or the records as they are now" %}</h2>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <a class="btn btn-outline-secondary btn-sm" href="{% url 'object_template' kind 'xlsx' %}" data-download="template">{% icon "download" %} {% trans "Template (.xlsx)" %}</a>
+      <a class="btn btn-outline-secondary btn-sm" href="{% url 'object_template' kind 'csv' %}">{% icon "download" %} {% trans "Template (.csv)" %}</a>
+      <a class="btn btn-outline-secondary btn-sm" href="{% url 'object_export' kind 'xlsx' %}" data-download="export">{% icon "download" %} {% trans "Export (.xlsx)" %}</a>
+      <a class="btn btn-outline-secondary btn-sm" href="{% url 'object_export' kind 'csv' %}">{% icon "download" %} {% trans "Export (.csv)" %}</a>
+      <a class="btn btn-link btn-sm" href="{% url 'editor' %}?object={{ kind }}#templates">{% trans "Every column, on the Data editor page" %}</a>
+    </div>
+    <h2 class="h6">{% trans "2. Fill it in and upload it" %}</h2>
+    <ul class="small text-body-secondary ps-3">
+      <li>{% trans "An Excel file (.xlsx) or a CSV file (.csv, saved as UTF-8 or by Excel on Windows). Up to 5,000 rows and 10 MB." %}</li>
+      <li>{% trans "Add new: leave the id column empty. The fields marked as required on the template must be filled in." %}</li>
+      <li>{% trans "Update existing: the id column says which record each row changes. Only the cells that are filled in change: an empty cell leaves that field as it is (so a field cannot be emptied this way; do that on the record's own page)." %}</li>
+      <li>{% trans "Each row is checked as the record's own page checks it. A row with a problem is left out and shown, and nothing of it is saved." %}</li>
+      {% if kind == "lead" %}<li>{% trans "Leads: each new lead's source is Imported." %}</li>{% endif %}
+      <li>{% trans "The file itself is not kept: only its rows, so the results can be listed." %}</li>
+    </ul>
+    <form method="post" action="?kind={{ kind }}" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="kind" value="{{ kind }}">
+      {% include "crm/_fields.html" %}
+      <button type="submit" class="btn btn-primary">{% icon "upload" %} {% trans "Read the file" %}</button>
+    </form>
+  </div>
+</div>
 {% elif kind %}
 <div class="card shadow-sm mb-3" data-import-form="{{ kind }}">
   <div class="card-body">
@@ -82,7 +111,7 @@
               <span class="fw-semibold">{% trf "%(pending)s to review" pending=batch.pending %}</span> · {% trf "%(accepted)s accepted · %(unlinked)s unlinked · %(skipped)s skipped" accepted=batch.accepted unlinked=batch.unlinked skipped=batch.skipped %}</td>
             <td class="text-end"><a class="btn btn-outline-secondary btn-sm text-nowrap" href="{{ item.link }}">{% trans "Review waiting notes" %}</a></td>
             {% endwith %}{% else %}{% with run=item.run %}
-            <td>{% if item.done %}{% trf "%(created)s new, %(added)s added to a customer, %(skipped)s skipped, %(failed)s failed" created=run.counts.created added=run.counts.added skipped=run.counts.skipped failed=run.counts.failed %}{% else %}{% trans "Not finished" %}{% endif %}</td>
+            <td>{% if not item.done %}{% trans "Not finished" %}{% elif run.action %}{% trf "%(created)s new, %(updated)s updated, %(skipped)s skipped, %(failed)s failed" created=run.counts.created updated=run.counts.updated skipped=run.counts.skipped failed=run.counts.failed %}{% else %}{% trf "%(created)s new, %(added)s added to a customer, %(skipped)s skipped, %(failed)s failed" created=run.counts.created added=run.counts.added skipped=run.counts.skipped failed=run.counts.failed %}{% endif %}</td>
             <td class="text-end"><a class="btn btn-outline-secondary btn-sm" href="{{ item.link }}">{% if item.done %}{% trans "Results" %}{% else %}{% trans "Continue" %}{% endif %}</a></td>
             {% endwith %}{% endif %}
           </tr>

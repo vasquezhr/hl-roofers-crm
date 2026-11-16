@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load i18n crm_tags %}
+{% block title %}{% trans "Review the rows" %}{% endblock %}
+
+{# Step 3 of the data import, for a kind of record (objectload.py): what would be added, what would change, what already has these values, #}
+{# and the rows with a problem. Nothing is saved until Confirm. #}
+{% block content %}
+<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'data_import_map' run.pk %}">‹ {% trans "Match the columns" %}</a>
+<h1 class="h4 mb-1">{% trans "Review the rows" %}</h1>
+<div class="text-body-secondary small mb-3">{{ title }} · {{ run.file_name }} · {% trf "%(count)s rows" count=total %}. {% trans "Nothing is saved until you confirm." %}{% if update %} {% trans "An empty cell leaves that field as it is." %}{% endif %}</div>
+
+<div class="row g-2 mb-3">
+  {% if update %}
+  <div class="col-4"><div class="card shadow-sm text-center"><div class="card-body py-2"><div class="fs-4 fw-bold" data-count="exists">{{ groups.exists|length }}</div><div class="small text-body-secondary">{% trans "To update" %}</div></div></div></div>
+  <div class="col-4"><div class="card shadow-sm text-center"><div class="card-body py-2"><div class="fs-4 fw-bold" data-count="same">{{ groups.same|length }}</div><div class="small text-body-secondary">{% trans "Nothing to change" %}</div></div></div></div>
+  {% else %}
+  <div class="col-8"><div class="card shadow-sm text-center"><div class="card-body py-2"><div class="fs-4 fw-bold" data-count="new">{{ groups.new|length }}</div><div class="small text-body-secondary">{% trans "To add" %}</div></div></div></div>
+  {% endif %}
+  <div class="col-4"><div class="card shadow-sm text-center"><div class="card-body py-2"><div class="fs-4 fw-bold{% if groups.error %} text-danger{% endif %}" data-count="error">{{ groups.error|length }}</div><div class="small text-body-secondary">{% trans "Problems" %}</div></div></div></div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  {% if groups.error %}
+  <div class="card shadow-sm mb-3 border-danger" data-rows="error">
+    <div class="card-body">
+      <h2 class="h6 text-danger">{% trans "Rows with a problem" %}</h2>
+      <div class="small text-body-secondary mb-2">{% trans "These are left out, and nothing of them is saved. Fix them in the file and import it again, or leave them." %}</div>
+      <div class="table-responsive">
+        <table class="table table-sm small mb-0">
+          <thead><tr><th>{% trans "Row" %}</th><th>{% trans "Record ID" %}</th><th>{% trans "Why" %}</th></tr></thead>
+          <tbody>{% for row in groups.error %}<tr><td>{{ row.number }}</td><td>{{ row.values.id|default:"—" }}</td><td>{{ row.reason }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if update %}
+  <div class="card shadow-sm mb-3" data-rows="exists">
+    <div class="card-body">
+      <h2 class="h6">{% trans "To update" %}</h2>
+      {% if groups.exists %}
+      <div class="table-responsive">
+        <table class="table table-sm small mb-0">
+          <thead><tr><th>{% trans "Row" %}</th><th>{% trans "Record ID" %}</th><th>{% trans "Name" %}</th><th>{% trans "What changes" %}</th></tr></thead>
+          <tbody>{% for row in groups.exists|slice:":100" %}<tr><td>{{ row.number }}</td><td>{{ row.values.id }}</td><td>{{ row.values.name|default:"—" }}</td>
+            <td>{% for change in row.values.changes %}{{ change.0 }}: {{ change.1 }} → <span class="fw-semibold">{{ change.2 }}</span>{% if not forloop.last %}<br>{% endif %}{% endfor %}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+      {% if groups.exists|length > 100 %}<div class="small text-body-secondary mt-2">{% trf "The first 100 of %(count)s rows are shown." count=groups.exists|length %}</div>{% endif %}
+      {% else %}<div class="small text-body-secondary">{% trans "No record changes." %}</div>{% endif %}
+    </div>
+  </div>
+  {% if groups.same %}
+  <div class="card shadow-sm mb-3" data-rows="same">
+    <div class="card-body">
+      <h2 class="h6">{% trans "Nothing to change" %}</h2>
+      <div class="small text-body-secondary">{% trans "These records already have the values in the file. They are skipped." %} {% trans "Rows" %}: {% for row in groups.same|slice:":100" %}{{ row.number }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+    </div>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="card shadow-sm mb-3" data-rows="new">
+    <div class="card-body">
+      <h2 class="h6">{% trans "To add" %}</h2>
+      {% if groups.new %}
+      <div class="table-responsive">
+        <table class="table table-sm small mb-0">
+          <thead><tr><th>{% trans "Row" %}</th><th>{% trans "Name" %}</th></tr></thead>
+          <tbody>{% for row in groups.new|slice:":100" %}<tr><td>{{ row.number }}</td><td>{{ row.values.name|default:"—" }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+      {% if groups.new|length > 100 %}<div class="small text-body-secondary mt-2">{% trf "The first 100 of %(count)s rows are shown." count=groups.new|length %}</div>{% endif %}
+      {% else %}<div class="small text-body-secondary">{% trans "No new rows." %}</div>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="d-flex gap-2 justify-content-end">
+    <a class="btn btn-outline-secondary" href="{% url 'data_import_map' run.pk %}">{% trans "Back" %}</a>
+    <button type="submit" class="btn btn-primary" data-confirm="{% trans 'Import these rows now?' %}">{% icon "check" %} {% trans "Confirm the import" %}</button>
+  </div>
+</form>
+{% endblock %}
