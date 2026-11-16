@@ -25,7 +25,7 @@ from . import automations, scheduling
 from .documents import document_rows, keep, proposal_document
 from .access import job_or_404, jobs_for, may_edit, office_only, with_permission
 from .dates import day_text, range_code, work_days_text
-from .history import booking_code, changes, field_changes, when_code
+from .history import changes, when_code
 from .forms import (AccountForm, ContactForm, InspectionForm, JobEditForm, LostForm, NewAccountForm, NoteEditForm, NoteForm,
                     OpportunityEditForm, OpportunityForm, PropertyForm,
                     RefForm, ScheduleForm, SignForm, StageForm, WarrantyForm)
@@ -547,24 +547,9 @@ def job_schedule(request, number):
     form = ScheduleForm(request.POST or None, instance=job, initial=start)
     if form.is_valid():
         job = form.save(commit=False)
-        new = job.stage == Job.Stage.SIGNED
-        if new:
-            job.stage = Job.Stage.SCHEDULED
-        job.save()
+        # a job waiting for a date becomes Scheduled; a scheduled job that moved shows Changed to its crew (also used by the data import)
+        scheduling.save_schedule(job, (crew_before, *before[1:], was_first, was_last), request.user)
         form.save_m2m()
-        if new:
-            log(job, "booked", request.user, detail=booking_code(job))
-        elif (job.crew_id, job.first_day, job.days, job.day_off_ok) != before:
-            # the crew sees "Changed" on the job until it taps Got it
-            if Company.load().auto_changed:                             # the "Appointment changed" automation
-                job.mark_changed(was_first, was_last)
-                job.save()
-            if (job.first_day, job.days, job.day_off_ok) != before[1:]:
-                log(job, "changed", request.user, detail=range_code(was_first, was_last))
-            if "day_off_ok" in form.changed_data:                   # Work on a day off: no → yes
-                log(job, "edited", request.user, detail=field_changes("job", "", [("day_off_ok", form.initial.get("day_off_ok"), job.day_off_ok)]))
-            if job.crew_id != before[0]:
-                log(job, "crew_changed", request.user, detail=f"{crew_before.name if crew_before else '—'} → {job.crew.name}")
         workers_now = set(job.workers.all())
         for worker in sorted(workers_now - workers_before, key=lambda w: w.name):
             log(job, "worker_added", request.user, detail=worker.name)
