@@ -763,9 +763,6 @@ msgstr "Programar el trabajo"
 msgid "%(action)s?"
 msgstr "¿%(action)s?"
 
-msgid "Change the schedule"
-msgstr "Cambiar la programación"
-
 msgid "Create the invoice"
 msgstr "Crear la factura"
 

@@ -196,7 +196,7 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     ok(/Inspección/.test(await p.locator(`#view button[data-stop][aria-controls$="-insp-${bookedOpp}"]`).first().textContent()), "and in Spanish it says Inspección");
     await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200); await p.evaluate(() => { S.week = 0; });
     // change an already scheduled job: the crew gets a Changed notice
-    await go("#job/26-126"); await act("jobSchedule"); await p.fill("#jsDay", await p.evaluate(() => iso(wd(3)))); await act("saveSchedule"); v = await view();
+    await go("#job/26-126"); ok(!/Change dates/.test(await view()), "no Change dates button next to Start job"); await act("inlineOpen", '[data-sec="crew"]'); await p.fill("#jsDay", await p.evaluate(() => iso(wd(3)))); await act("saveSchedule"); v = await view();
     ok(/Changed/.test(v) && /Notify crew/.test(v) && /Crew 2 has not seen it yet/.test(v) && /Dates changed/.test(v), "changed notice for the office: " + v.slice(0, 500));
     await go("#today"); v = await view(); ok(/Crew 1 has not seen the change to job #26-104/.test(v), "today lists unseen changes");
     // crew 1: My Day
@@ -375,17 +375,17 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await p.click("#modal .btn-close"); await p.waitForTimeout(400);
     // any day: a Saturday needs "Work on a day off"; the schedule shows it as a day off
     const saturday = await day(6), sunday = await day(0);
-    await go("#job/26-118"); await act("jobSchedule"); await p.fill("#jsDay", saturday); await inModal("saveSchedule");
+    await go("#job/26-118"); await act("inlineOpen", '[data-sec="crew"]'); await p.fill("#jsDay", saturday); await inModal("saveSchedule");
     ok(await p.isVisible("#jsProblem") && /Pick a work day/.test(await p.textContent("#jsProblem")), "a day off needs the tick");
     await p.check("#jsOff"); await inModal("saveSchedule"); v = await view(); ok(/Sat,/.test(v) && /Dates changed/.test(v), "booked on a Saturday: " + v.slice(0, 600));
     await go("#schedule"); v = await view(); ok(/Day off/.test(v) && /Terrence Oakes/.test(v), "the schedule shows the day off with the job on it");
     await shot("p5-schedule-day-off");
     // "Work on a day off" is stored on the job: ticked, its days run straight through, days off included
-    await go("#job/26-118"); await act("jobSchedule"); ok(await p.isChecked("#jsOff"), "the saved tick shows ticked on an edit");
+    await go("#job/26-118"); await act("inlineOpen", '[data-sec="crew"]'); ok(await p.isChecked("#jsOff"), "the saved tick shows ticked on an edit");
     ok((await p.locator("#modal .form-check + .form-text").count()) === 0, "just the tick and its label, no sentence under it");
     await p.fill("#jsDay", await day(4)); await p.fill("#jsDays", "5"); await inModal("saveSchedule");           // Thursday, 5 days, ticked
     ok(await p.evaluate(() => { const j = jobOf("26-118"); return j.throughOff && j.days.length === 5 && j.days.map(x => x.getDay()).join() === "4,5,6,0,1"; }), "ticked: Thu, Fri, Sat, Sun, Mon");
-    await act("jobSchedule"); await p.uncheck("#jsOff"); await inModal("saveSchedule"); v = await view();
+    await act("inlineOpen", '[data-sec="crew"]'); await p.uncheck("#jsOff"); await inModal("saveSchedule"); v = await view();
     ok(await p.evaluate(() => { const j = jobOf("26-118"); return !j.throughOff && j.days.map(x => x.getDay()).join() === "4,5,1,2,3"; }), "not ticked: the days skip days off");
     ok(/Work on a day off: yes → no/.test(v), "the history shows the tick before and after: " + v.slice(0, 400));
     // clicking a day on the Schedule calendar opens the form with that day; it books nothing by itself
@@ -657,6 +657,22 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await go("#admin/status"); v = await view(); ok(/Espacio en disco y memoria/.test(v) && /Registro de errores/.test(v), "system status in Spanish");
     await shot("p6-status-es"); await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200);
     await go("#job/26-104"); await shot("p6-job"); await go("#admin/import"); await shot("p6-import");
+  }
+
+  /* ================= PHASE 7: Nov 16, the user's second message (items 1, 2, 3, 4, 5, 8 and 9) ================= */
+  if (upTo >= 5) {
+    // item 9: the Recycle Bin has the arrow at the top left, naming the screen you came from
+    await role("admin"); await goRaw("#admin"); await goRaw("#bin");
+    ok((await p.textContent("a.hl-back")).trim() === "Admin" && (await p.getAttribute("a.hl-back", "href")) === "#admin", "the Recycle Bin's arrow says Admin");
+    await p.click("a.hl-back"); await p.waitForTimeout(250); ok((await hash()) === "#admin", "and goes back to Admin");
+    await role("office"); await goRaw("#jobs"); await goRaw("#bin"); ok((await p.textContent("a.hl-back")).trim() === "Jobs", "opened from Jobs, it says Jobs");
+    await p.click('[data-act="setLang"][data-lang="es"]'); await p.waitForTimeout(200); await goRaw("#today"); await goRaw("#bin");
+    ok((await p.textContent("a.hl-back")).trim() === "Hoy", "in Spanish: Hoy"); await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200);
+    // item 1: no Change dates button next to Start job; the pencil on Crew and Dates changes the dates
+    const onSchedule = await p.evaluate(() => JOBS.find(j => j.stage === "scheduled" && j.crew).id);
+    await go("#job/" + onSchedule); ok(!/Change dates|Cambiar fechas/.test(await p.textContent("#view .d-flex.flex-wrap.gap-2.mb-3")), "no Change dates button");
+    await act("inlineOpen", '[data-sec="crew"]'); ok(await p.isVisible("#jsDay"), "the Crew and Dates pencil opens the dates"); await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    //@@NOV16@@
   }
 
   /* ================= crew basics, Spanish, phone size ================= */

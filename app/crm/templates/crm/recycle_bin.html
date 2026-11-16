@@ -4,6 +4,8 @@
 
 {# What was deleted, by whom and when. Restore puts it back as it was; the administrator can delete it for good. #}
 {% block content %}
+{# the arrow names the screen the person came from; with none, Admin for the administrator and Today for the office #}
+{% if user.is_admin_profile %}{% trans "Admin" as words %}{% back_link 'admin_home' words %}{% else %}{% trans "Today" as words %}{% back_link 'home' words %}{% endif %}
 <div class="mb-3">
   <h1 class="h4 mb-0">{% trans "Recycle Bin" %}</h1>
   <div class="text-body-secondary small">{% trf "Deleted records stay here for %(days)s days. Restore puts one back exactly as it was. After that, or when the administrator deletes it for good, it is gone." days=keep_days %}</div>

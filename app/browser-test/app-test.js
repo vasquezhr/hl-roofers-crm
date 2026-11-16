@@ -125,11 +125,14 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   check('an extra worker is added to the job', (await office.locator('main').evaluate(e => e.textContent)).includes('Extra worker added: Fermín'));
 
   // moving a job that is already scheduled: the crew must see it
-  await office.click('a:has-text("Change the schedule")');
+  // (Nov 16: no "Change the schedule" button next to Start job; the dates change with the pencil on Crew and Dates)
+  check('there is no Change the schedule button', (await office.locator('main a:has-text("Change the schedule"), main a:has-text("Change dates")').count()) === 0);
+  await office.hover('h2[data-section="crew"]');
+  await office.locator('a.hl-pencil[href*="section=crew"]').click();
+  await office.waitForSelector('[data-inline-form] input[name=first_day]');
   const monday = (() => { const d = new Date(); d.setDate(d.getDate() + 21); do { d.setDate(d.getDate() + 1); } while (d.getDay() !== 1); return iso(d); })();
-  await office.fill('#id_first_day', monday);
-  await office.click('button:has-text("Save")');
-  await office.waitForLoadState('networkidle');
+  await office.fill('[data-inline-form] input[name=first_day]', monday);
+  await andWait(office, () => office.click('[data-inline-form] button:has-text("Save")'));
   check('moving a scheduled job marks it Changed', (await main(office)).includes('Crew 1 has not seen it yet.'));
   check('Notify crew opens a text to the crew lead', ((await office.locator('a:has-text("Notify crew")').getAttribute('href')) || '').startsWith('sms:8045550111&body='));
 

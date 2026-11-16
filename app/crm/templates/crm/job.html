@@ -19,7 +19,7 @@
 {% stage_bar job %}
 {% include "crm/_changed.html" %}
 
-{# the buttons for this stage, for the person looking #}
+{# the buttons for this stage, for the person looking. The dates change with the pencil on Crew and Dates. #}
 <div class="d-flex flex-wrap gap-2 mb-3">
   {% if can_schedule and job.stage == "signed" %}
   <a class="btn btn-primary" href="{% url 'schedule' %}?book=job:{{ job.number }}#book">{% icon "schedule" %} {% trans "Schedule the job" %}</a>
@@ -30,9 +30,6 @@
     <input type="hidden" name="to" value="{{ step.to }}">
     <button type="submit" class="btn btn-primary" data-confirm="{% trf '%(action)s?' action=step.label %}">{% icon "check" %} {{ step.label }}</button>
   </form>
-  {% endif %}
-  {% if can_schedule and job.stage != "signed" %}
-  <a class="btn btn-outline-secondary" href="{% url 'job_schedule' job.number %}">{% icon "edit" %} {% trans "Change the schedule" %}</a>
   {% endif %}
   {% if can_invoice %}
   <a class="btn btn-primary" href="{% url 'invoice' job.number %}">{% icon "mail" %} {% trans "Create the invoice" %}</a>

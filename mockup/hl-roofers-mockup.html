@@ -320,7 +320,7 @@ const I18N = {
       feedText: "Subscribe once and your jobs show up in Apple Calendar on your iPhone or Mac. The calendar refreshes on its own a few times a day, so same-day changes still come by text.",
       feedCopy: "Copy link", feedCopied: "Link copied (demo)", feedNote: "In the real app, tapping the link on an iPhone opens Calendar and asks to subscribe.",
       changedWas: "Before: {was}.", notSeen: "{who} has not seen it yet.", seenBy: "Seen by {who}", notify: "Notify crew",
-      gotIt: "Got it", gotItDone: "The office can see you got it", changeDates: "Change dates", addWorker: "Add worker", removeWorker: "Remove" },
+      gotIt: "Got it", gotItDone: "The office can see you got it", addWorker: "Add worker", removeWorker: "Remove" },
     leads: { sub: "Requests from the website, waiting for someone to review them", returning: "Returning customer",
       convert: "Convert", unfit: "Not a fit", addedToJob: "Added to job #{id}", unfitBecause: "Why it is not a fit",
       isReturning: "This looks like a customer you already have:", hasOpenJob: "They have an open job:",
@@ -507,7 +507,7 @@ const I18N = {
       feedText: "Suscríbase una vez y sus trabajos aparecen en el Calendario de Apple de su iPhone o Mac. El calendario se actualiza solo unas veces al día, así que los cambios del mismo día igual llegan por mensaje.",
       feedCopy: "Copiar enlace", feedCopied: "Enlace copiado (demo)", feedNote: "En la app real, al tocar el enlace en un iPhone se abre Calendario y pregunta si quiere suscribirse.",
       changedWas: "Antes: {was}.", notSeen: "{who} todavía no lo ha visto.", seenBy: "Visto por {who}", notify: "Avisar al equipo",
-      gotIt: "Enterado", gotItDone: "La oficina ya ve que está enterado", changeDates: "Cambiar fechas", addWorker: "Agregar trabajador", removeWorker: "Quitar" },
+      gotIt: "Enterado", gotItDone: "La oficina ya ve que está enterado", addWorker: "Agregar trabajador", removeWorker: "Quitar" },
     leads: { sub: "Pedidos del sitio web, en espera de que alguien los revise", returning: "Cliente que regresa",
       convert: "Convertir", unfit: "No califica", addedToJob: "Agregado al trabajo #{id}", unfitBecause: "Por qué no califica",
       isReturning: "Parece ser un cliente que ya tiene:", hasOpenJob: "Tiene un trabajo abierto:",
@@ -954,13 +954,14 @@ const backLink = (href, label) => `<a class="small text-decoration-none d-inline
 S.foldPref = new Map();
 const OPEN_ON_A_JOB = ["customer", "crew", "scope", "money"];
 const foldClosed = key => (S.foldPref.has(key) ? S.foldPref.get(key) : key.startsWith("job:") && !OPEN_ON_A_JOB.includes(key.slice(4)));
-// pencil = {kind, id, sec}: the small pencil that edits this section in place (needs the Edit permission for that kind of record)
+// pencil = {kind, id, sec}: the small pencil that edits this section in place (needs the Edit permission for that kind of record;
+// the Crew and Dates pencil opens the schedule window, for any office login, as in the app)
 const section = (title, body, right, fold, pencil) => {
   const key = fold ? (location.hash.slice(1).split("/")[0] || "") + ":" + fold : "", closed = !!key && foldClosed(key);
   const word = tt(closed ? "showSection" : "hideSection");
   const arrow = key ? `<button type="button" class="btn btn-link p-0 me-1 hl-fold" data-act="fold" data-key="${key}" aria-expanded="${!closed}" aria-label="${word}: ${esc(String(title).replace(/<[^>]*>/g, ""))}" title="${word}">${ic("chevron")}</button>` : "";
   return `<div class="card shadow-sm mb-3"><div class="card-body${closed ? " hl-folded" : ""}">${title ? `<div class="d-flex align-items-center gap-2 mb-2"><h2 class="h6 mb-0 flex-grow-1">${arrow}${title}</h2>${right || ""}</div>` : ""}` +
-    (key ? `<div${closed ? " hidden" : ""} data-body>${pencil && !closed && mayEdit(pencil.kind) ? `<button type="button" class="btn btn-link hl-pencil" data-act="inlineOpen" data-kind="${pencil.kind}" data-id="${esc(pencil.id)}" data-sec="${pencil.sec}" title="${tt("edit.section")}" aria-label="${tt("edit.section")}">${ic("pencil")}</button>` : ""}${body}</div>` : body) + `</div></div>`;
+    (key ? `<div${closed ? " hidden" : ""} data-body>${pencil && !closed && (pencil.sec === "crew" ? !isCrew() : mayEdit(pencil.kind)) ? `<button type="button" class="btn btn-link hl-pencil" data-act="inlineOpen" data-kind="${pencil.kind}" data-id="${esc(pencil.id)}" data-sec="${pencil.sec}" title="${tt("edit.section")}" aria-label="${tt("edit.section")}">${ic("pencil")}</button>` : ""}${body}</div>` : body) + `</div></div>`;
 };
 const dl = rows => `<dl class="row mb-0 small">` + rows.filter(Boolean).map(([k, v]) =>
   `<dt class="col-4 text-body-secondary fw-normal">${k}</dt><dd class="col-8 mb-1">${v}</dd>`).join("") + `</dl>`;
@@ -1070,11 +1071,11 @@ document.addEventListener("change", e => { const el = e.target.closest("[data-ch
 let LAST = location.hash, PREV = "";
 window.addEventListener("hashchange", () => { PREV = LAST; LAST = location.hash; closeModal(); render(); window.scrollTo(0, 0); });
 const BACK_FROM = { today: "nav.today", dashboard: "nav.dashboard", leads: "nav.leads", opps: "nav.opps", jobs: "nav.jobs", schedule: "nav.schedule", accounts: "nav.accounts",
-  search: "nav.search", reports: "nav.reports", myday: "nav.myday", myjobs: "nav.myjobs", lead: "back.lead", opp: "back.opp", job: "back.job", account: "back.account" };
+  search: "nav.search", reports: "nav.reports", myday: "nav.myday", myjobs: "nav.myjobs", lead: "back.lead", opp: "back.opp", job: "back.job", account: "back.account", admin: "nav.admin" };
 // the arrow at the top left of a lead, account, opportunity or job: back to the screen the person came from, named; else to the list
 function recBack(fallbackHref, fallbackLabel) {
   const name = PREV.slice(1).split("/")[0], here = LAST;
-  const found = PREV && PREV !== here && BACK_FROM[name] && allowed(name === "lead" || name === "opp" || name === "job" || name === "account" ? name : name);
+  const found = PREV && PREV !== here && BACK_FROM[name] && allowed(name) && (name !== "admin" || PREV === "#admin");     // Admin: its own page, not one of its pages
   return `<a class="hl-back small text-decoration-none d-inline-flex align-items-center gap-1 mb-2" href="${found ? esc(PREV) : fallbackHref}">${ic("back")}<span>${esc(found ? t(BACK_FROM[name]) : fallbackLabel)}</span></a>`;
 }
 // every drop-down option starts with a capital letter, in both languages
@@ -1535,13 +1536,12 @@ route("jobs", {
   }
 });
 
-// the buttons at the top of a job, by stage and by who is looking
+// the buttons at the top of a job, by stage and by who is looking. The dates change with the pencil on Crew and Dates (Nov 16).
 function jobActions(j) {
   const b = (act, icon, label, extra, cls) => `<button type="button" class="btn ${cls || "btn-primary"}" data-act="${act}" data-id="${j.id}" ${extra || ""}>${ic(icon)} ${esc(label)}</button>`;
   const out = [];
   if (j.stage === "signed" && !isCrew()) out.push(b("goBook", "schedule", t("job.schedule"), 'data-kind="job"'));
   if (j.stage === "scheduled" && (!isCrew() || isCrewLead())) out.push(b("jobStage", "check", t("job.start"), 'data-to="inprogress"'));
-  if (["scheduled", "inprogress"].includes(j.stage) && !isCrew()) out.push(b("jobSchedule", "edit", t("sched.changeDates"), "", "btn-outline-secondary"));
   if (j.stage === "inprogress" && (!isCrew() || isCrewLead())) out.push(b("jobStage", "check", t("job.markDone"), 'data-to="done"'));
   if (j.type !== "warranty") {
     if (j.stage === "done" && !isCrew()) out.push(b("jobInvoice", "mail", t("job.makeInvoice")));
@@ -2039,9 +2039,11 @@ ACT.binPurge = d => {
 route("bin", {
   roles: ["admin", "office"], tab: () => (S.role === "admin" ? "admin" : "today"),
   render() {
-    if (!can("delete")) return pageHead(tt("bin.title"), "") + empty(t("bin.noRight"));
+    // the arrow names the screen the person came from; with none, Admin for the Admin and Today for the office
+    const back = S.role === "admin" ? recBack("#admin", t("nav.admin")) : recBack("#today", t("nav.today"));
+    if (!can("delete")) return back + pageHead(tt("bin.title"), "") + empty(t("bin.noRight"));
     const kindName = k => t("bin.kind_" + k);
-    return pageHead(tt("bin.title"), tt("bin.sub")) +
+    return back + pageHead(tt("bin.title"), tt("bin.sub")) +
       (BIN.length ? `<div class="list-group shadow-sm mb-3">` + BIN.map(e =>
         `<div class="list-group-item"><div class="d-flex flex-wrap gap-2 align-items-start"><div class="flex-grow-1 hl-minw0">` +
         `<div class="fw-semibold">${esc(e.label)} ${badge(kindName(e.kind), "secondary")}</div>` +

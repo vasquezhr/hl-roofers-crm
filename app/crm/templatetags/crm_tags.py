@@ -139,12 +139,12 @@ def pencil(context, kind, address, section="", inside=""):
 
 
 # ---------- the back link at the top of a record page ----------
-# the pages a person may come from to a record, by the name of their address: the words for the link
+# the pages a person may come from to a record (or to the Recycle Bin), by the name of their address: the words for the link
 BACK_LABELS = {"home": gettext_lazy("Today"), "schedule": gettext_lazy("Schedule"), "search": gettext_lazy("Search"), "jobs": gettext_lazy("Jobs"),
                "my_jobs": gettext_lazy("My Jobs"), "my_day": gettext_lazy("My Day"), "leads": gettext_lazy("Leads"), "lead": gettext_lazy("Lead page"),
                "opps": gettext_lazy("Opportunities"), "opp": gettext_lazy("Opportunity"), "accounts": gettext_lazy("Accounts"),
                "account": gettext_lazy("Account"), "job": gettext_lazy("Job"), "dashboard": gettext_lazy("Dashboard"), "reports": gettext_lazy("Reports"),
-               "report": gettext_lazy("Reports")}
+               "report": gettext_lazy("Reports"), "admin_home": gettext_lazy("Admin")}
 
 
 def came_from(request):
