@@ -2867,8 +2867,8 @@ function schedDay(d) {
   const f = S.f.sched, cur = bookCur();
   const items = stopsOn(d).filter(s => f === "all" || (f === "insp" ? s.kind === "insp" : s.kind === "job" && s.rec.crew === f));
   return `<div class="col-12 col-sm-6 col-lg-3 col-xl"><div class="card h-100${sameDay(d, TODAY) ? " border-primary" : ""}${isOff(d) ? " bg-body-tertiary" : ""}">` +
-    `<div class="card-header d-flex justify-content-between py-1 px-2 small${isOff(d) ? " bg-body-secondary" : ""}"><span class="fw-semibold text-uppercase">${esc(d.toLocaleDateString(loc(), { weekday: "short" }))}</span>` +
-    `${isOff(d) ? badge(t("sched.dayOff"), "warning") : ""}<span>${cur ? `<a href="#" class="text-reset" data-act="clickDay" data-day="${iso(d)}" title="${esc(t("sched.bookDay"))}" aria-label="${esc(t("sched.bookDay"))}">` : ""}${esc(d.toLocaleDateString(loc(), { month: "short", day: "numeric" }))}${cur ? " +</a>" : ""}</span></div>` +
+    `<div class="card-header d-flex flex-wrap justify-content-between column-gap-2 py-1 px-2 small${isOff(d) ? " bg-body-secondary" : ""}"><span class="fw-semibold text-uppercase text-nowrap">${esc(d.toLocaleDateString(loc(), { weekday: "short" }))}${isOff(d) ? ` <span class="fw-normal text-body-secondary">· ${esc(t("sched.dayOff"))}</span>` : ""}</span>` +
+    `<span class="text-nowrap">${cur ? `<a href="#" class="text-reset" data-act="clickDay" data-day="${iso(d)}" title="${esc(t("sched.bookDay"))}" aria-label="${esc(t("sched.bookDay"))}">` : ""}${esc(d.toLocaleDateString(loc(), { month: "short", day: "numeric" }))}${cur ? " +</a>" : ""}</span></div>` +
     `<div class="card-body d-flex flex-column gap-1 p-2">${items.length ? items.map(s => schedItem(s, d)).join("") : `<div class="small text-body-secondary">—</div>`}</div></div></div>`;
 }
 

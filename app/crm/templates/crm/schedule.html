@@ -27,7 +27,7 @@
   {% for column in columns %}
   <div class="col-12 col-sm-6 col-lg-3 col-xl">
     <div class="card h-100{% if column.is_today %} border-primary{% endif %}{% if column.day_off %} bg-body-tertiary{% endif %}">
-      <div class="card-header d-flex justify-content-between py-1 px-2 small{% if column.day_off %} bg-body-secondary{% endif %}"><span class="fw-semibold text-uppercase">{{ column.day|date:"D" }}{% if column.day_off %} · {% trans "Day off" %}{% endif %}</span><span>{% if column.click %}<a class="text-reset" href="{{ column.click }}" title="{% trans 'Book this day' %}" aria-label="{% trans 'Book this day' %}">{{ column.day|month_day }} +</a>{% else %}{{ column.day|month_day }}{% endif %}</span></div>
+      <div class="card-header d-flex flex-wrap justify-content-between column-gap-2 py-1 px-2 small{% if column.day_off %} bg-body-secondary{% endif %}"><span class="fw-semibold text-uppercase text-nowrap">{{ column.day|date:"D" }}{% if column.day_off %} <span class="fw-normal text-body-secondary">· {% trans "Day off" %}</span>{% endif %}</span><span class="text-nowrap">{% if column.click %}<a class="text-reset" href="{{ column.click }}" title="{% trans 'Book this day' %}" aria-label="{% trans 'Book this day' %}">{{ column.day|month_day }} +</a>{% else %}{{ column.day|month_day }}{% endif %}</span></div>
       <div class="card-body d-flex flex-column gap-1 p-2">
         {# each stop is one line: number · customer · crew (an inspection, in blue: its time); a click or a tap opens its details below it #}
         {% for item in column.stops %}
