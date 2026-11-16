@@ -10,9 +10,9 @@
     <h1 class="h4 mb-0">{{ account.name }}</h1>
     <div class="text-body-secondary small">#{{ opp.number }} · {{ opp.get_job_type_display }}{% if opp.labor_only %} · {% trans "Labor only" %}{% endif %}</div>
   </div>
-  {% if user|may_edit:"opportunity" %}{% include "crm/_edit_all.html" %}{% endif %}
   {% if user|can:"change_stages" %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" href="{% url 'change_stage' 'opp' opp.number %}">{% icon "undo" %} {% trans "Change stage" %}</a>{% endif %}
-  {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm" href="{% url 'record_delete' 'opp' opp.number %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">{% icon "trash" %}</a>{% endif %}
+  {% if user|may_edit:"opportunity" %}{% include "crm/_edit_all.html" %}{% endif %}
+  {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm hl-edit text-nowrap" href="{% url 'record_delete' 'opp' opp.number %}">{% icon "trash" %} {% trans "Delete" %}</a>{% endif %}
   {% stage_badge opp %}
 </div>
 
