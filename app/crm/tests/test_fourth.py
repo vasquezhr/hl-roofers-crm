@@ -1,4 +1,6 @@
 """The fourth message of Nov 13: the back link, requests from existing customers, Change stage, and the job page's layout."""
+import re
+
 from django.urls import reverse
 
 from crm.models import Activity, Job, Lead, Opportunity, PickItem, User
@@ -347,6 +349,22 @@ class EditInPlace(Base):
         self.assertContains(page, "?section=crew")                                                # but the office still schedules
         self.sign_in(self.login1)
         self.assertNotContains(self.client.get(reverse("job", args=[self.roof.number])), "hl-pencil")
+
+    def test_the_edit_button_carries_its_cancel_words_hidden_and_still_links_to_the_edit_page(self):
+        self.sign_in(self.office)
+        lead = Lead.objects.create(name="Mina Seo", phone="(804) 555-0178")
+        for address, edit in [(reverse("job", args=[self.roof.number]), reverse("job_edit", args=[self.roof.number])),
+                              (reverse("opp", args=[self.opp.number]), reverse("opp_edit", args=[self.opp.number])),
+                              (reverse("lead", args=[lead.pk]), reverse("lead_edit", args=[lead.pk]))]:
+            html = self.client.get(address).content.decode()
+            button = re.search(r'<a [^>]*data-edit-all[^>]*>(.*?)</a>', html, re.S)
+            self.assertIsNotNone(button, address)
+            self.assertIn(f'href="{edit}"', button.group(0))                                       # without JavaScript: the Edit page
+            self.assertIn('<span data-edit-all-as="edit">', button.group(1))
+            self.assertRegex(button.group(1), r'<span data-edit-all-as="cancel" hidden>.*Cancel</span>')  # shown by hl.js once every section is open
+            es = self.client.get(address, HTTP_ACCEPT_LANGUAGE="es").content.decode()
+            self.assertRegex(es, r'<span data-edit-all-as="cancel" hidden>.*Cancelar</span>')
+        self.assertNotContains(self.client.get(reverse("account", args=[self.account.pk])), "data-edit-all-as")  # an account's Edit is the Edit page
 
     def test_the_edit_page_shows_only_that_sections_fields(self):
         self.sign_in(self.office)

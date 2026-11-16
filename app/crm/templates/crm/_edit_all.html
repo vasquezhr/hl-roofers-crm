@@ -1,0 +1,5 @@
+{% load i18n crm_tags %}
+{% comment %}The Edit button at the top of a lead, an opportunity or a job. Needs: edit_address (the record's Edit page).
+With JavaScript it opens every section in place and turns to Cancel, which closes them all without saving (hl.js, part 14).
+Without JavaScript it is a link to the Edit page, and the Cancel words stay hidden.{% endcomment %}
+<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" data-edit-all href="{{ edit_address }}"><span data-edit-all-as="edit">{% icon "edit" %} {% trans "Edit" %}</span><span data-edit-all-as="cancel" hidden>{% icon "x" %} {% trans "Cancel" %}</span></a>

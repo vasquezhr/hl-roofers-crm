@@ -522,9 +522,37 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await office.fill('[data-inline-form] input[name=price]', String(Number(before) + 10));
   await andWait(office, () => office.click('[data-inline-form] button:has-text("Save")'));
   check('Save changes the price and writes it in the history', (await office.locator('main').evaluate(e => e.textContent)).includes('Price: ' + Number(before).toFixed(2) + ' → ' + (Number(before) + 10).toFixed(2)));
+  // Every section's form is fetched on its own: wait for all of them, not just the first (waiting for the first made this check flaky)
+  // (a section's pencil is inside the section, so it is gone once the form is there: count the pencils before the click)
+  const openAll = async () => {
+    const pencils = await office.locator('a.hl-pencil[data-inline]').count();
+    await office.click('a[data-edit-all]');
+    await office.waitForFunction(n => document.querySelectorAll('[data-inline-form]').length === n, pencils, { timeout: 10000 });
+    return pencils;
+  };
+  const topWords = () => office.locator('a[data-edit-all] span:not([hidden])').innerText();
+  check('the Edit button reads Edit', (await topWords()).trim() === 'Edit', await topWords());
+  check('the Edit button opens every section at once', (await openAll()) >= 3);
+  check('and turns to Cancel', (await topWords()).trim() === 'Cancel', await topWords());
+  const scopeBefore = await office.inputValue('[data-inline-form] textarea[name=scope]');
+  await office.fill('[data-inline-form] textarea[name=scope]', 'Typed and then cancelled');
   await office.click('a[data-edit-all]');
-  await office.waitForSelector('[data-inline-form]');
-  check('the Edit button opens every section at once', (await office.locator('[data-inline-form]').count()) >= 3);
+  check('Cancel at the top closes every section, on the same page', office.url().endsWith('/jobs/26-104/') && (await office.locator('[data-inline-form]').count()) === 0 && (await office.locator('[data-editing]').count()) === 0);
+  check('and the button reads Edit again', (await topWords()).trim() === 'Edit', await topWords());
+  await office.reload();
+  check('what was typed was not saved', !(await office.locator('main').evaluate(e => e.textContent)).includes('Typed and then cancelled'));
+  await openAll();
+  check('Edit opens them all again, with what was there before', (await office.inputValue('[data-inline-form] textarea[name=scope]')) === scopeBefore);
+  const cancels = office.locator('[data-inline-form] a[data-inline-cancel]');
+  while ((await cancels.count()) > 1) await cancels.first().click();
+  check('closing the sections one by one leaves Cancel at the top while one is open', (await topWords()).trim() === 'Cancel', await topWords());
+  await cancels.first().click();
+  check('and the last one turns it back to Edit', (await topWords()).trim() === 'Edit' && (await office.locator('[data-inline-form]').count()) === 0, await topWords());
+  await office.goto(base + '/jobs/26-104/');
+  await office.click('a[data-edit-all]');
+  await office.click('a[data-edit-all]');
+  await office.waitForTimeout(1500);
+  check('Cancel straight after Edit: no form turns up late', (await office.locator('[data-inline-form]').count()) === 0 && (await topWords()).trim() === 'Edit');
   const touch = await signIn(browser, 'office', { viewport: { width: 412, height: 900 }, hasTouch: true, isMobile: true });
   await touch.goto(base + '/jobs/26-104/');
   check('on a touch screen the pencil is always showing', (await touch.locator('a.hl-pencil[href*="section=scope"]').evaluate(e => getComputedStyle(e).opacity)) === '1');

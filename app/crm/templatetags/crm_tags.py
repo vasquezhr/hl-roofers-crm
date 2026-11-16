@@ -55,6 +55,7 @@ ICONS = {
     "sidebar": '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>',
     "back": '<path d="M19 12H5M11 6l-6 6 6 6"/>',
     "list": '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+    "x": '<path d="M6 6l12 12M18 6L6 18"/>',
     "trash": '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
     "palette": '<path d="M12 3a9 9 0 100 18c1.1 0 1.6-.8 1.6-1.6 0-1.1-.9-1.6-.9-2.6s.8-1.8 1.8-1.8H16a5 5 0 005-5c0-3.9-4-7-9-7z"/>'
                '<circle cx="7.5" cy="11.5" r="1"/><circle cx="9.5" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/>',

@@ -924,7 +924,8 @@ const ICONS = {
   back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
   sidebar: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>',
   list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
-  pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>'
+  pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>'
 };
 ICONS.myjobs = ICONS.jobs;
 const ic = name => `<svg class="hl-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
@@ -1886,10 +1887,24 @@ ACT.editPay = d => { const j = jobOf(d.id), p = j.payments.find(x => x.n === +d.
 
 /* small buttons for record pages */
 // all = true on a lead, an opportunity and a job: with pencils on the page, this button opens every section for editing at once
-const editBtn = (act, data, kind, all) => (mayEdit(kind) ? `<button type="button" class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" data-act="${all ? "editAll" : act}" data-fallback="${act}" ${data}>${ic("edit")} ${tt("docs.edit")}</button>` : "");
+// the Edit button at the top of a lead, an opportunity or a job opens every section in place and turns to Cancel;
+// that Cancel closes them all without saving, and so does closing the last open section with its own Cancel
+const editBtn = (act, data, kind, all) => (mayEdit(kind) ? `<button type="button" class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" data-act="${all ? "editAll" : act}" data-fallback="${act}" ${data}>` +
+  (all ? `<span data-as="edit">${ic("edit")} ${tt("docs.edit")}</span><span data-as="cancel" hidden>${ic("x")} ${tt("cancel")}</span>` : `${ic("edit")} ${tt("docs.edit")}`) + `</button>` : "");
+const showEditAll = (btn, open) => {
+  if (!btn) return;
+  btn.dataset.open = open ? "1" : "";
+  btn.querySelectorAll("[data-as]").forEach(s => { s.hidden = s.dataset.as !== (open ? "cancel" : "edit"); });
+};
+const closeInline = body => { if (body._inline) { body.innerHTML = body._inline.html; body._inline = null; } };
+const anyInline = () => [...document.querySelectorAll("[data-body]")].some(b => b._inline);
 ACT.editAll = (d, el) => {
-  const pencils = [...document.querySelectorAll('[data-act="inlineOpen"]')];
-  if (pencils.length) pencils.forEach(b => b.click()); else ACT[d.fallback](d, el);
+  if (d.open) { document.querySelectorAll("[data-body]").forEach(closeInline); showEditAll(el, false); return; }
+  // the crew and dates open the schedule window, not a form in place, so the Edit button leaves them to their own pencil
+  const pencils = [...document.querySelectorAll('[data-act="inlineOpen"]:not([data-sec="crew"])')];
+  if (!pencils.length) { ACT[d.fallback](d, el); return; }
+  pencils.forEach(b => b.click());
+  if (anyInline()) showEditAll(el, true);
 };
 const delBtn = (kind, id) => (can("delete") ? `<button type="button" class="btn btn-outline-danger btn-sm" data-act="askDelete" data-kind="${kind}" data-id="${esc(id)}" title="${tt("bin.delete")}" aria-label="${tt("bin.delete")}">${ic("trash")}</button>` : "");
 // the top right of a record page: Edit, Delete and the stage
@@ -3839,7 +3854,7 @@ ACT.inlineOpen = (d, el) => {
   capitalOptions(body);
   const first = body.querySelector("input:not([type=hidden]), select, textarea"); if (first) first.focus();
 };
-ACT.inlineCancel = (d, el) => { const body = el.closest("[data-body]"); body.innerHTML = body._inline.html; body._inline = null; };
+ACT.inlineCancel = (d, el) => { closeInline(el.closest("[data-body]")); if (!anyInline()) showEditAll(document.querySelector('[data-act="editAll"]'), false); };
 ACT.inlineSave = (d, el) => { const st = el.closest("[data-body]")._inline; EDITING = { kind: st.kind, rec: st.rec, fields: st.fields, owner: st.rec, name: "" }; ACT.editSave(); };
 
 /* ---------- a request from a customer already in the app is not a lead ---------- */

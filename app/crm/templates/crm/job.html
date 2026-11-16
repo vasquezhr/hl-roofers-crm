@@ -10,7 +10,7 @@
     <h1 class="h4 mb-0">{{ account.name }}</h1>
     <div class="text-body-secondary small">#{{ job.number }} · {{ job.get_job_type_display }} {% job_tags job %}</div>
   </div>
-  {% if user|may_edit:"job" %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" data-edit-all href="{% url 'job_edit' job.number %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
+  {% if user|may_edit:"job" %}{% include "crm/_edit_all.html" %}{% endif %}
   {% if user|can:"change_stages" and not crew_view %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" href="{% url 'change_stage' 'job' job.number %}">{% icon "undo" %} {% trans "Change stage" %}</a>{% endif %}
   {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm" href="{% url 'record_delete' 'job' job.number %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">{% icon "trash" %}</a>{% endif %}
   {% stage_badge job %}

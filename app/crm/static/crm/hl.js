@@ -223,15 +223,36 @@ document.addEventListener("DOMContentLoaded", function () {
 /* 14. Editing a section of a record page in place (inline.py).
    The pencil is a link to the Edit page with ?section=...: that page asks for just its form (?partial=1), and the form is
    shown where the section's content was, with Save and Cancel. Save posts to the Edit page itself, so the same rules apply.
-   Without JavaScript the link simply opens the Edit page. The Edit button at the top of a record opens every section at once. */
+   Without JavaScript the link simply opens the Edit page. The Edit button at the top of a record opens every section at once
+   and turns to Cancel (_edit_all.html); that Cancel closes every open section without saving, and the button reads Edit again.
+   It reads Edit again too once the last open section is closed by its own Cancel. */
+var inlineTurn = 0;                                      // each opening gets its own number, so a form that arrives after a Cancel is dropped
+function showEditAll(button, open) {
+  if (!button) return;
+  if (open) button.dataset.allOpen = "1"; else delete button.dataset.allOpen;
+  button.querySelectorAll("[data-edit-all-as]").forEach(function (words) { words.hidden = words.dataset.editAllAs !== (open ? "cancel" : "edit"); });
+}
+function closeInline(place) {                            // puts back what was there before; what was typed is not kept
+  if (place.dataset.original !== undefined) {
+    place.innerHTML = place.dataset.original;
+    delete place.dataset.original;
+  }
+  delete place.dataset.editing;
+}
 document.addEventListener("click", function (event) {
   var all = event.target.closest("[data-edit-all]");
   if (all) {
-    var pencils = document.querySelectorAll("a.hl-pencil[data-inline]");
-    if (pencils.length) {
+    if (all.dataset.allOpen) {                           // Cancel: close every open section, keep nothing that was typed
       event.preventDefault();
-      pencils.forEach(function (pencil) { pencil.click(); });
+      document.querySelectorAll("[data-editing]").forEach(closeInline);
+      showEditAll(all, false);
+      return;
     }
+    var pencils = document.querySelectorAll("a.hl-pencil[data-inline]");   // an open section's pencil is inside it, so it is gone while open
+    if (!pencils.length) return;                         // nothing to open here: the Edit page
+    event.preventDefault();
+    pencils.forEach(function (pencil) { pencil.click(); });
+    showEditAll(all, true);
     return;
   }
   var link = event.target.closest("a[data-inline]");
@@ -239,17 +260,20 @@ document.addEventListener("click", function (event) {
     event.preventDefault();
     var holder = link.dataset.inlineIn ? link.closest(link.dataset.inlineIn) : link.closest(".card-body").querySelector("[id^=section-]");
     if (!holder || holder.dataset.editing) return;
-    holder.dataset.editing = "1";
+    var turn = String(++inlineTurn);
+    holder.dataset.editing = turn;
     var url = link.getAttribute("href") + (link.getAttribute("href").indexOf("?") < 0 ? "?" : "&") + "partial=1";
     fetch(url, { credentials: "same-origin", headers: { "X-Requested-With": "fetch" } }).then(function (answer) {
       if (!answer.ok) throw new Error(answer.status);
       return answer.text();
     }).then(function (html) {
+      if (holder.dataset.editing !== turn) return;       // cancelled while the form was on its way
       holder.dataset.original = holder.innerHTML;
       holder.innerHTML = html;
       var first = holder.querySelector("input:not([type=hidden]), select, textarea");
       if (first) first.focus();
     }).catch(function () {
+      if (holder.dataset.editing !== turn) return;
       delete holder.dataset.editing;
       window.location.href = link.getAttribute("href");                  // the Edit page, as without JavaScript
     });
@@ -259,10 +283,7 @@ document.addEventListener("click", function (event) {
   if (cancel) {
     event.preventDefault();
     var form = cancel.closest("[data-inline-form]"), place = form && form.parentElement;
-    if (place && place.dataset.original !== undefined) {
-      place.innerHTML = place.dataset.original;
-      delete place.dataset.original;
-      delete place.dataset.editing;
-    }
+    if (place && place.dataset.original !== undefined) closeInline(place);
+    if (!document.querySelector("[data-editing]")) showEditAll(document.querySelector("[data-edit-all]"), false);
   }
 });

@@ -497,7 +497,29 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await p.click(pencil); await p.fill("#ef_price", "6540"); await p.click('[data-act="inlineSave"]'); await p.waitForTimeout(350); v = await view();
     ok(/\$6,540/.test(v) && /Price: \$6,480 → \$6,540/.test(v), "Save changes the price and writes the history");
     await act("editAll"); ok((await p.$$("[data-inline-form]")).length >= 3, "the Edit button opens every section for editing at once");
-    await go("#job/26-104"); await unfoldAll();
+    ok(!(await p.$("#modal.show")), "and leaves the crew and dates to their own pencil (no schedule window opens)");
+    // the Edit button turns to Cancel, which closes every section without saving; closing the last section by hand turns it back
+    const topWords = () => p.evaluate(() => document.querySelector('[data-act="editAll"] span:not([hidden])').textContent.trim());
+    const inlineCount = async () => (await p.$$("[data-inline-form]")).length;
+    for (const [lang, edit, cancel] of [["en", "Edit", "Cancel"], ["es", "Editar", "Cancelar"]]) {
+      await p.click(`[data-act="setLang"][data-lang="${lang}"]`); await p.waitForTimeout(200); await goRaw("#jobs"); await go("#job/26-104");
+      ok((await topWords()) === edit && !(await p.$("[data-inline-form]")), `${lang}: the top button reads ${edit}: ${await topWords()}`);
+      await act("editAll"); ok((await topWords()) === cancel && (await inlineCount()) >= 3, `${lang}: after Edit it reads ${cancel}: ${await topWords()}`);
+      await p.fill("#ef_price", "9999"); await act("editAll"); v = await view();
+      ok((await inlineCount()) === 0 && (await topWords()) === edit, `${lang}: ${cancel} at the top closes every section and reads ${edit} again`);
+      ok(!/9,999|9\.999/.test(v) && /6[,.]540/.test(v), `${lang}: what was typed was not saved: ` + v.slice(0, 300));
+      await act("editAll");
+      while ((await inlineCount()) > 1) await act("inlineCancel");
+      ok((await topWords()) === cancel, `${lang}: with one section still open it still reads ${cancel}`);
+      await act("inlineCancel"); ok((await topWords()) === edit && (await inlineCount()) === 0, `${lang}: closing the last one by hand turns it back to ${edit}`);
+    }
+    await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200);
+    const lid = await countOf(() => LEADS.find(l => l.status !== "converted").id);
+    await go("#lead/" + lid); await act("editAll"); ok((await topWords()) === "Cancel" && (await inlineCount()) >= 3, "a lead's Edit button turns to Cancel too");
+    await act("editAll"); ok((await topWords()) === "Edit" && (await inlineCount()) === 0, "and its Cancel closes every section");
+    await role("crew", "c1"); await go("#job/26-121"); ok(!(await p.$('[data-act="editAll"]')), "a crew has no Edit button");
+    await role("office");
+    await goRaw("#jobs"); await go("#job/26-104"); await unfoldAll();
     // every drop-down option starts with a capital letter
     await go("#accounts"); await act("newAccount");
     const lower = await p.evaluate(() => [...document.querySelectorAll("#modal option")].filter(o => /^\p{Ll}/u.test(o.textContent)).map(o => o.textContent));
