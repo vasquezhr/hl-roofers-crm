@@ -381,7 +381,7 @@ class CompanyForm(Bootstrap, forms.ModelForm):
     class Meta:
         model = Company
         fields = ["name", "tagline", "legal_name", "license_number", "address", "phone",
-                  "proposal_terms_en", "proposal_terms_es", "invoice_terms_en", "invoice_terms_es", "lead_owner", "lead_backup",
+                  "proposal_terms_en", "proposal_terms_es", "invoice_terms_en", "invoice_terms_es", "lead_owner",
                   "summary_emails", "review_link"]
         widgets = {field: forms.Textarea(attrs={"rows": 2}) for field in
                    ["proposal_terms_en", "proposal_terms_es", "invoice_terms_en", "invoice_terms_es"]}
@@ -391,9 +391,8 @@ class CompanyForm(Bootstrap, forms.ModelForm):
         self.logo_png = None
         if not self.instance.logo:
             del self.fields["no_logo"]
-        for name in ("lead_owner", "lead_backup"):
-            self.fields[name].queryset = self.fields[name].queryset.exclude(profile="crew").filter(is_active=True)
-            self.fields[name].label_from_instance = lambda user: user.label
+        self.fields["lead_owner"].queryset = self.fields["lead_owner"].queryset.exclude(profile="crew").filter(is_active=True)
+        self.fields["lead_owner"].label_from_instance = lambda user: user.label
 
     def clean_logo_upload(self):
         upload = self.cleaned_data.get("logo_upload")

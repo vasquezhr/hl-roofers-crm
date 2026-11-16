@@ -328,6 +328,10 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
 
   console.log('Automations, the data editor and system status');
   await boss.goto(base + '/manage/automations/');
+  check('the lead reminder reminds the same person again after a day, and nobody else (Nov 16)', (await main(boss)).includes('After a whole day: emails that same person again. Nobody else is told.') && !(await main(boss)).includes('backup person'));
+  await boss.goto(base + '/manage/company/');
+  check('Company details has no backup person to tell', (await boss.locator('[name=lead_backup]').count()) === 0 && (await boss.locator('[name=lead_owner]').count()) === 1);
+  await boss.goto(base + '/manage/automations/');
   check('ten automations, two of them always on', await boss.locator('main .list-group-item').count() === 10 && (await main(boss)).split('Always on').length === 3);
   await boss.locator('form:has(input[value="weekly"]) button').click();
   await boss.waitForLoadState('networkidle');
@@ -425,6 +429,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await admin.waitForLoadState('networkidle');
   check('a deleted lead leaves the list', admin.url().endsWith('/leads/') && !(await admin.goto(base + '/leads/?show=all').then(() => main(admin))).includes('Naomi Iturralde'));
   await admin.goto(base + '/recycle-bin/');
+  check('the Recycle Bin has the arrow at the top left, back to Admin (Nov 16)', (await text(admin, 'main a.hl-back')) === 'Admin' && (await admin.getAttribute('main a.hl-back', 'href')) === '/manage/');
   check('and waits in the Recycle Bin, with who deleted it', (await main(admin)).includes('Naomi Iturralde') && (await main(admin)).includes('Admin'));
   await admin.click('button:has-text("Restore")');
   await admin.waitForLoadState('networkidle');

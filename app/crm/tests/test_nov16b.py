@@ -24,3 +24,47 @@ class RecycleBinBackLink(Base):
         page = self.client.get(reverse("recycle_bin"))                  # the office cannot open Admin: back to Today
         self.assertContains(page, "<span>Today</span>")
         self.assertNotContains(page, f'href="{reverse("admin_home")}"')
+
+
+class LeadReminder(Base):
+    """Item 8: after a whole day, the same assigned person is reminded again. Nobody else is alerted."""
+    def setUp(self):
+        from crm.models import Company
+        self.office.email, self.admin.email = "office@example.com", "admin@example.com"
+        self.office.save()
+        self.admin.save()
+        company = Company.load()
+        company.lead_owner = self.office
+        company.save()
+
+    def test_only_the_assigned_person_is_emailed_twice(self):
+        from datetime import timedelta
+
+        from django.core import mail
+        from django.utils import timezone
+
+        from crm import automations
+        from crm.models import Lead
+        now = timezone.now()
+        lead = Lead.objects.create(name="Mina Seo", phone="(804) 555-0178", owner=self.office, received_at=now - timedelta(days=2))
+        automations.remind_about_leads(None, now)
+        self.assertEqual([message.to for message in mail.outbox], [["office@example.com"], ["office@example.com"]])
+        self.assertEqual(lead.activities.first().text, "Still new after a day: office was reminded again")
+        automations.remind_about_leads(None, now + timedelta(days=1))
+        self.assertEqual(len(mail.outbox), 2)                                # each email once
+        # a request that went to the backup person before Nov 16 is not reminded a second time
+        old = Lead.objects.create(name="Naomi Iturralde", owner=self.office, received_at=now - timedelta(days=2))
+        from crm.models import log
+        log(old, "auto_reminded", detail="office", actor="Automation")
+        log(old, "auto_escalated", detail="admin", actor="Automation")
+        automations.remind_about_leads(None, now)
+        self.assertEqual(len(mail.outbox), 2)
+
+    def test_the_backup_setting_is_gone(self):
+        self.sign_in(self.admin)
+        page = self.client.get(reverse("company_details"))
+        self.assertNotContains(page, "lead_backup")
+        self.assertNotContains(page, "also tell")
+        page = self.client.get(reverse("automations"))
+        self.assertContains(page, "After a whole day: emails that same person again. Nobody else is told.")
+        self.assertNotContains(page, "backup person")

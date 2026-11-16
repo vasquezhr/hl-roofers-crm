@@ -34,7 +34,7 @@ AUTOMATIONS = [
     {"key": "route", "field": "auto_route", "name": gettext_lazy("Route new lead"),
      "about": gettext_lazy("When a request arrives from the website: assigns it to the person named in Company details and emails them.")},
     {"key": "remind", "field": "auto_remind", "name": gettext_lazy("Uncontacted lead reminder"),
-     "about": gettext_lazy("A request still New after 2 hours: shows on Today and emails the person it is assigned to. After a whole day: emails the backup person.")},
+     "about": gettext_lazy("A request still New after 2 hours: shows on Today and emails the person it is assigned to. After a whole day: emails that same person again. Nobody else is told.")},
     {"key": "convert", "field": None, "name": gettext_lazy("Convert lead"),
      "about": gettext_lazy("The Convert button: creates the account, contact, property and opportunity in one step.")},
     {"key": "follow_up", "field": "auto_follow_up", "name": gettext_lazy("Proposal follow-up"),
@@ -144,7 +144,8 @@ def job_done(job):
 
 # ---------------------------------------------------------------- by the clock: python manage.py tick
 def remind_about_leads(company, now):
-    """Uncontacted lead reminder: after 2 hours, an email to the person the request is assigned to; after a day, to the backup person."""
+    """Uncontacted lead reminder: after 2 hours, an email to the person the request is assigned to; after a whole day, a second email
+    to that same person. Nobody else is told (the user, Nov 16: it "should not alert the owner")."""
     count = 0
     waiting = Lead.objects.filter(status=Lead.Status.NEW, received_at__lte=now - timedelta(hours=2)).select_related("owner")
     for lead in waiting:
@@ -154,10 +155,11 @@ def remind_about_leads(company, now):
             if to_staff([lead.owner.email], lambda: _("Still waiting: the request from %(name)s") % {"name": lead.name}, words):
                 log(lead, "auto_reminded", detail=lead.owner.label, actor=ROBOT)
                 count += 1
-        backup = company.lead_backup
-        if backup and lead.received_at <= now - timedelta(days=1) and not did(lead, "auto_escalated"):
-            if to_staff([backup.email], lambda: _("Waiting a whole day: the request from %(name)s") % {"name": lead.name}, words):
-                log(lead, "auto_escalated", detail=backup.label, actor=ROBOT)
+        # a request that went to the backup person before Nov 16 ("auto_escalated") is not reminded a second time
+        if (lead.owner and lead.received_at <= now - timedelta(days=1)
+                and not did(lead, "auto_reminded_again") and not did(lead, "auto_escalated")):
+            if to_staff([lead.owner.email], lambda: _("Waiting a whole day: the request from %(name)s") % {"name": lead.name}, words):
+                log(lead, "auto_reminded_again", detail=lead.owner.label, actor=ROBOT)
                 count += 1
     return count
 

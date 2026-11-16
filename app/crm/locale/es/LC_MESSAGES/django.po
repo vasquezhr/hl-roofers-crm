@@ -412,9 +412,6 @@ msgstr "Lo que necesitan"
 msgid "New website requests go to"
 msgstr "Las solicitudes nuevas del sitio web van a"
 
-msgid "After a whole day, also"
-msgstr "Después de un día entero, también a"
-
 msgid "The weekly summary goes to"
 msgstr "El resumen semanal va a"
 
@@ -1582,9 +1579,6 @@ msgstr "Cuando llega una solicitud del sitio web: la asigna a la persona indicad
 msgid "Uncontacted lead reminder"
 msgstr "Recordatorio de prospecto sin contactar"
 
-msgid "A request still New after 2 hours: shows on Today and emails the person it is assigned to. After a whole day: emails the backup person."
-msgstr "Una solicitud que sigue Nueva después de 2 horas: aparece en Hoy y se le envía un correo a quien la tiene asignada. Después de un día entero: correo a la persona de respaldo."
-
 msgid "Convert lead"
 msgstr "Convertir prospecto"
 
@@ -2642,9 +2636,6 @@ msgstr "La barra de arriba de cada página, y el fondo de un ícono dibujado. Ta
 
 msgid "new website requests go to"
 msgstr "los pedidos nuevos del sitio web van a"
-
-msgid "if a request waits a whole day, also tell"
-msgstr "si una solicitud espera un día entero, avisar también a"
 
 msgid "Email addresses, separated by commas."
 msgstr "Direcciones de correo, separadas por comas."
@@ -4219,3 +4210,12 @@ msgstr "Actualizado."
 
 msgid "A record ID from: %(what)s"
 msgstr "Un ID de registro de: %(what)s"
+
+msgid "A request nobody has answered reminds the person it is assigned to, after 2 hours and again after a whole day. Nobody else is told."
+msgstr "Una solicitud que nadie ha atendido se le recuerda a la persona que la tiene asignada, a las 2 horas y otra vez después de un día entero. No se avisa a nadie más."
+
+msgid "A request still New after 2 hours: shows on Today and emails the person it is assigned to. After a whole day: emails that same person again. Nobody else is told."
+msgstr "Una solicitud que sigue Nueva después de 2 horas: aparece en Hoy y se le envía un correo a quien la tiene asignada. Después de un día entero: otro correo a esa misma persona. No se avisa a nadie más."
+
+msgid "Still new after a day: %(detail)s was reminded again"
+msgstr "Sigue nuevo después de un día: se le recordó otra vez a %(detail)s"

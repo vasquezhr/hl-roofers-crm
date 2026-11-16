@@ -672,6 +672,12 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     const onSchedule = await p.evaluate(() => JOBS.find(j => j.stage === "scheduled" && j.crew).id);
     await go("#job/" + onSchedule); ok(!/Change dates|Cambiar fechas/.test(await p.textContent("#view .d-flex.flex-wrap.gap-2.mb-3")), "no Change dates button");
     await act("inlineOpen", '[data-sec="crew"]'); ok(await p.isVisible("#jsDay"), "the Crew and Dates pencil opens the dates"); await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    // item 8: the uncontacted lead reminder reminds the same person again after a day; nobody else, not the owner
+    await role("admin"); await go("#admin/automations"); v = await view();
+    ok(/After a whole day: emails that same person again\. Nobody else is told\./.test(v) && !/alerts the owner/.test(v), "the reminder no longer alerts the owner");
+    await go("#lead/L-305"); ok(!/Backup: the owner/.test(await view()) && /again after a whole day/.test(await view()), "the lead page says who is reminded");
+    await p.click('[data-act="setLang"][data-lang="es"]'); await p.waitForTimeout(200); await go("#admin/automations"); v = await view();
+    ok(/otro correo a esa misma persona/.test(v) && !/avisa al dueño/.test(v), "and in Spanish"); await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200);
     //@@NOV16@@
   }
 

@@ -32,7 +32,7 @@
   <div class="card-body small">
     <h2 class="h6 mb-2">{% trans "What they need" %}</h2>
     <ul class="mb-2 ps-3">
-      <li>{% trans "New website requests go to" %}: <span class="fw-semibold">{{ company.lead_owner.label|default:"—" }}</span>. {% trans "After a whole day, also" %}: <span class="fw-semibold">{{ company.lead_backup.label|default:"—" }}</span>.</li>
+      <li>{% trans "New website requests go to" %}: <span class="fw-semibold">{{ company.lead_owner.label|default:"—" }}</span>. {% trans "A request nobody has answered reminds the person it is assigned to, after 2 hours and again after a whole day. Nobody else is told." %}</li>
       <li>{% trans "The weekly summary goes to" %}: <span class="fw-semibold">{{ company.summary_emails|default:"—" }}</span></li>
       <li>{% trans "Review link" %}: <span class="fw-semibold">{{ company.review_link|default:"—" }}</span></li>
       <li>{% trans "Emails to a person go to the address on their login (Users and permissions). An automation that has nobody to email does nothing." %}</li>

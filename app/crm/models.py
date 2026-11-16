@@ -365,8 +365,6 @@ class Company(models.Model):
                                    on_delete=models.SET_NULL, related_name="+")
     feed_token = models.CharField(max_length=64, blank=True, db_index=True, editable=False)     # the office's calendar address
     # what the automations need
-    lead_backup = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("if a request waits a whole day, also tell"), null=True, blank=True,
-                                    on_delete=models.SET_NULL, related_name="+")
     summary_emails = models.CharField(_("the weekly summary goes to"), max_length=300, blank=True,
                                       help_text=_("Email addresses, separated by commas."))
     review_link = models.URLField(_("review link"), blank=True, help_text=_("The address of the business's Google review page, for the thank-you email."))
@@ -1462,7 +1460,8 @@ class Activity(models.Model):
         # what the automations did (Admin > Automations, "What ran lately")
         "auto_routed": _("Assigned to %(detail)s by the routing rule"),
         "auto_reminded": _("Still new after 2 hours: %(detail)s was reminded"),
-        "auto_escalated": _("Still new after a day: %(detail)s was told"),
+        "auto_escalated": _("Still new after a day: %(detail)s was told"),             # before Nov 16, 2026: the backup person
+        "auto_reminded_again": _("Still new after a day: %(detail)s was reminded again"),
         "auto_job_done": _("Ready to invoice: %(detail)s was told"),
         "auto_overdue": _("The invoice has been unpaid for %(detail)s days"),
         "auto_review": _("Thank-you email with the review link sent to %(detail)s"),

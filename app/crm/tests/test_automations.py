@@ -29,7 +29,7 @@ class Automations(Base):
         self.admin.email = "admin@example.com"
         self.admin.save()
         self.company = Company.load()
-        self.company.lead_owner, self.company.lead_backup, self.company.summary_emails = self.office, self.admin, "owner@example.com, office@example.com"
+        self.company.lead_owner, self.company.summary_emails = self.office, "owner@example.com, office@example.com"
         self.company.save()
 
     def tick(self, when=NOW):
@@ -55,13 +55,14 @@ class Automations(Base):
         self.assertIsNone(Lead.objects.get(name="Naomi Iturralde").owner)
         self.assertEqual(len(mail.outbox), 1)
 
-    def test_a_request_nobody_answered_is_reminded_once_then_escalated_once(self):
+    def test_a_request_nobody_answered_is_reminded_once_then_reminded_again_once(self):
         lead = Lead.objects.create(name="Mina Seo", phone="(804) 555-0178", owner=self.office, received_at=NOW - timedelta(hours=3))
         self.assertEqual(self.tick()["reminders"], 1)
         self.assertEqual(self.tick()["reminders"], 0)                               # only once
         self.assertEqual((mail.outbox[0].to, lead.activities.first().text), (["office@example.com"], "Still new after 2 hours: office was reminded"))
-        self.assertEqual(self.tick(NOW + timedelta(hours=22))["reminders"], 1)      # a day after it arrived: the backup person
-        self.assertEqual((mail.outbox[1].to, lead.activities.first().text), (["admin@example.com"], "Still new after a day: admin was told"))
+        self.assertEqual(self.tick(NOW + timedelta(hours=22))["reminders"], 1)      # a day after it arrived: the same person again, nobody else
+        self.assertEqual((mail.outbox[1].to, lead.activities.first().text), (["office@example.com"], "Still new after a day: office was reminded again"))
+        self.assertEqual(len(mail.outbox), 2)
         self.assertEqual(self.tick(NOW + timedelta(days=3))["reminders"], 0)
         # a request that was answered is left alone, and so is everything when the switch is off
         Lead.objects.create(name="Naomi Iturralde", status="contacted", owner=self.office, received_at=NOW - timedelta(days=2))
