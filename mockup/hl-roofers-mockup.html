@@ -855,7 +855,7 @@ function miles(a, b) {                 // straight-line miles with a rough road 
 /* ---------- who is using the demo ---------- */
 const isCrew = () => S.role === "crew";
 const me = () => (isCrew() ? S.crew : S.role);                       // "office", "admin", "c1", "c2"
-const crewName = c => t("crew") + " " + c.n;
+const crewName = c => c.label || t("crew") + " " + c.n;          // a crew renamed by the data import keeps its new name
 const whoName = w => { const c = CREWS.find(x => x.id === w); return c ? crewName(c) : t("role." + w); };
 
 /* ---------- history lines on records ---------- */
@@ -1455,7 +1455,7 @@ route("opp", {
       (o.stage === "inspection" ? `<button type="button" class="btn ${o.insp ? "btn-outline-secondary" : "btn-primary"} btn-sm mt-2" data-act="goBook" data-kind="opp" data-id="${o.id}">${ic("schedule")} ${tt(o.insp ? "opps.rebook" : "opps.bookInspection")}</button>` : "");
     return recBack("#opps", t("nav.opps")) +
       pageHead(esc(a.name), `#${o.id} · ${tt("type." + o.type)}` + (o.laborOnly ? " · " + tt("job.laborOnly") : ""),
-        headTools(editBtn("editOpp", `data-id="${o.id}"`, "opp", true), delBtn("deal", o.id), stageBtn("opp", o.id) + stageBadge(o.stage))) +
+        headTools(stageBtn("opp", o.id) + editBtn("editOpp", `data-id="${o.id}"`, "opp", true), delBtn("deal", o.id), stageBadge(o.stage))) +
       stageBar(PATH, cur) +
       (o.stage === "lost" ? `<div class="alert alert-secondary py-2 small">${tt("opps.lostBecause")}: ${tt("lost." + o.lostReason)}</div>` : "") +
       `<div class="d-flex flex-wrap gap-2 mb-3">${actions}</div>` +
@@ -1577,7 +1577,7 @@ route("job", {
     if (j.opp && oppOf(j.opp) && oppOf(j.opp).stage === "won") linked.push(`<a href="#" data-act="oppView" data-id="${j.opp}">${tt("job.signedProposal", { id: j.opp })}</a>`);
     return recBack(isCrew() ? "#myjobs" : "#jobs", t(isCrew() ? "nav.myjobs" : "nav.jobs")) +
       pageHead(esc(a.name), `#${j.id} · ${tt("type." + j.type)}${jobTags(j)}`,
-        headTools(isCrew() ? "" : editBtn("editJob", `data-id="${j.id}"`, "job", true), isCrew() ? "" : delBtn("deal", j.id), stageBtn("job", j.id) + jobBadge(j))) +
+        headTools(stageBtn("job", j.id) + (isCrew() ? "" : editBtn("editJob", `data-id="${j.id}"`, "job", true)), isCrew() ? "" : delBtn("deal", j.id), jobBadge(j))) +
       stageBar(steps, cur) +
       `<div class="d-flex flex-wrap gap-2 mb-3">${jobActions(j)}</div>` +
       `<div class="row g-3"><div class="col-lg-6">` + section(tt("customer"), custBlock(a, p, "job", j.id, j.opp && oppOf(j.opp) ? oppOf(j.opp).src : ""), "", "customer", { kind: "job", id: j.id, sec: "customer" }) +
@@ -1906,8 +1906,8 @@ ACT.editAll = (d, el) => {
   pencils.forEach(b => b.click());
   if (anyInline()) showEditAll(el, true);
 };
-const delBtn = (kind, id) => (can("delete") ? `<button type="button" class="btn btn-outline-danger btn-sm" data-act="askDelete" data-kind="${kind}" data-id="${esc(id)}" title="${tt("bin.delete")}" aria-label="${tt("bin.delete")}">${ic("trash")}</button>` : "");
-// the top right of a record page: Edit, Delete and the stage
+const delBtn = (kind, id) => (can("delete") ? `<button type="button" class="btn btn-outline-danger btn-sm hl-edit text-nowrap" data-act="askDelete" data-kind="${kind}" data-id="${esc(id)}">${ic("trash")} ${tt("bin.delete")}</button>` : "");
+// the top right of a record page: Change stage, Edit, Delete, then the stage badge
 const headTools = (editPart, delPart, extra) => `<div class="d-flex flex-wrap align-items-center justify-content-end gap-2">${editPart}${delPart}${extra || ""}</div>`;
 
 /* =====================================================================
@@ -4112,16 +4112,17 @@ function impLoad(rows, name) {
   if (rows.length - 1 > 5000) { IMP.problem = t("imp.tooMany", { n: rows.length - 1 }); return render(); }
   if (rows.length < 2) { IMP.problem = t("imp.empty"); return render(); }
   IMP.file = name; IMP.headings = rows[0]; IMP.rows = rows.slice(1).map(r => IMP.headings.map((h, i) => r[i] || ""));
-  const names = {}, used = new Set();
-  IMP_FIELDS[IMP.kind].forEach(([k, aliases]) => [k, k.replace(/_/g, " "), I18N.en.imp.f[k], I18N.es.imp.f[k], ...aliases].forEach(w => { if (!(impTidy(w) in names)) names[impTidy(w)] = k; }));
+  let names = {}; const used = new Set();
+  if (OBJ_BY[IMP.kind]) names = objNames(IMP.kind);               // a kind of record: by code name, or the field's English or Spanish name
+  else IMP_FIELDS[IMP.kind].forEach(([k, aliases]) => [k, k.replace(/_/g, " "), I18N.en.imp.f[k], I18N.es.imp.f[k], ...aliases].forEach(w => { if (!(impTidy(w) in names)) names[impTidy(w)] = k; }));
   IMP.map = IMP.headings.map(h => { const k = names[impTidy(h)] || ""; if (used.has(k)) return ""; used.add(k); return k; });
   IMP.step = "map"; IMP.checked = []; IMP.result = null;
-  IMP.run = { type: IMP.kind, file: name, when: new Date(), who: me() }; IMP_RUNS.unshift(IMP.run); impSave(); render();
+  IMP.run = { type: IMP.kind, act: IMP.act, file: name, when: new Date(), who: me() }; IMP_RUNS.unshift(IMP.run); impSave(); render();
 }
 ACT.impKind = (d, el) => { Object.assign(IMP, { kind: el.value, step: "start", problem: "", run: null }); render(); };
 ACT.impStart = () => { Object.assign(IMP, { step: "start", problem: "", run: null }); render(); };
 ACT.impQueue = () => { Object.assign(IMP, { kind: "notes", step: "queue", problem: "", run: null }); render(); };
-ACT.impOpen = d => { const r = IMP_RUNS[+d.i]; Object.assign(IMP, r.snap, { kind: r.type, run: r, problem: "" }); render(); };
+ACT.impOpen = d => { const r = IMP_RUNS[+d.i]; Object.assign(IMP, r.snap, { kind: r.type, act: r.act || IMP.act, run: r, problem: "" }); render(); };
 ACT.impNotes = d => {          // Read the file, or Use the sample file: the sample notes stand in, and the review queue opens
   const file = $("#impNotesFile").files[0];
   if (!d.sample && !file) return;
@@ -4132,7 +4133,7 @@ ACT.impTemplate = d => saveText("import-" + d.kind + ".csv", csvText([impSample(
 ACT.impSample = () => impLoad(impSample(IMP.kind), "sample-" + IMP.kind + ".csv");
 ACT.impRead = () => {
   const file = $("#impFile").files[0]; if (!file) return;
-  if (/\.xlsx$/i.test(file.name)) { impLoad(impSample(IMP.kind), file.name); return; }      // the app reads Excel on the server: here the sample rows stand in
+  if (/\.xlsx$/i.test(file.name)) { impLoad(OBJ_BY[IMP.kind] ? objSample(IMP.kind) : impSample(IMP.kind), file.name); return; }      // the app reads Excel on the server: here the sample rows stand in
   if (!/\.csv$/i.test(file.name)) { IMP.problem = t("imp.fileHelp"); render(); return; }
   const reader = new FileReader();
   reader.onload = () => impLoad(csvParse(reader.result), file.name);
@@ -4213,20 +4214,28 @@ ACT.impResultsFile = () => saveText("results-" + IMP.kind + ".csv", csvText([[t(
   ...IMP.checked.map(r => [r.n, t("imp." + r.result), r.message, ...r.cells])]), "text/csv;charset=utf-8");
 ACT.impAgain = () => { Object.assign(IMP, { file: "", headings: [], rows: [], map: [], step: "start", result: null, problem: "", checked: [], run: null }); render(); };
 ACT.impBack = d => { IMP.step = d.to; IMP.problem = ""; impSave(); render(); };
+// the Type of data drop-down: customers, leads, Apple Notes, then each kind of record (add new or update by record ID) in a group of their own
+function impPicker(kind) {
+  return `<div class="row g-2 mb-3"><div class="col-sm-6 col-lg-4">` + field(t("imp.kindPick"), `<select class="form-select" id="impKind" data-change="impKind">` +
+    ["", "customers", "leads", "notes"].map(k => `<option value="${k}"${k === kind ? " selected" : ""}>${tt(k ? "imp." + k : "imp.choose")}</option>`).join("") +
+    `<optgroup label="${tt("obj.group")}">` + OBJS.map(o => `<option value="${o.key}"${o.key === kind ? " selected" : ""}>${esc(objTitle(o.key))}</option>`).join("") + `</optgroup>` +
+    `</select>`).replace('class="mb-3"', 'class="mb-0"') + `</div></div>`;
+}
+const impTypeName = r => (OBJ_BY[r.type] ? objTitle(r.type) + " · " + t("obj.act_" + r.act + "Short") : t("imp." + r.type));
 // Imports so far: every type, or only the type picked
 function impHistory() {
   const runs = IMP_RUNS.map((r, i) => ({ r, i })).filter(({ r }) => !IMP.kind || r.type === IMP.kind), waiting = !IMP.kind || IMP.kind === "notes" ? notesWaiting() : 0;
   const status = r => {
     if (r.type === "notes") { const c = batchCounts(r);
       return `${tt("imp.batch1", { read: c.read.toLocaleString("en-US"), aside: c.aside, empty: c.empty, dup: c.dup })}<br><span class="fw-semibold">${tt("imp.batch2", { pending: c.pending.toLocaleString("en-US") })}</span> · ${tt("imp.batch3", { accepted: c.accepted.toLocaleString("en-US"), unlinked: c.unlinked, skipped: c.skipped })}`; }
-    return r.snap && r.snap.step === "done" ? tt("imp.summary", r.snap.result) : tt("imp.notFinished");
+    return r.snap && r.snap.step === "done" ? tt(OBJ_BY[r.type] ? "obj.summary" : "imp.summary", r.snap.result) : tt("imp.notFinished");
   };
   const button = ({ r, i }) => r.type === "notes" ? `<button type="button" class="btn btn-outline-secondary btn-sm text-nowrap" data-act="impQueue">${tt("imp.reviewWaiting")}</button>`
     : `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="impOpen" data-i="${i}">${tt(r.snap && r.snap.step === "done" ? "imp.resultsBtn" : "imp.continueBtn")}</button>`;
   return `<div class="card shadow-sm mb-3" id="impHistory"><div class="card-body"><div class="d-flex align-items-center gap-2 mb-2"><h2 class="h6 mb-0 flex-grow-1">${tt("imp.history")}</h2>` +
     (waiting ? `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="impQueue">${tt("imp.reviewAll")}</button>` : "") + `</div>` +
     (runs.length ? `<div class="table-responsive"><table class="table table-sm small align-middle mb-0"><thead><tr><th>${tt("imp.histFile")}</th><th>${tt("imp.kindPick")}</th><th>${tt("imp.colStatus")}</th><th></th></tr></thead><tbody>` +
-      runs.map(x => `<tr><td>${esc(x.r.file)}<br><span class="text-body-secondary">${esc(fmtStamp(x.r.when))} · ${esc(whoName(x.r.who))}</span></td><td>${tt("imp." + x.r.type)}</td><td>${status(x.r)}</td><td class="text-end">${button(x)}</td></tr>`).join("") +
+      runs.map(x => `<tr><td>${esc(x.r.file)}<br><span class="text-body-secondary">${esc(fmtStamp(x.r.when))} · ${esc(whoName(x.r.who))}</span></td><td>${esc(impTypeName(x.r))}</td><td>${status(x.r)}</td><td class="text-end">${button(x)}</td></tr>`).join("") +
       `</tbody></table></div>` : `<div class="small text-body-secondary">${tt("imp.noneYet")}</div>`) + `</div></div>`;
 }
 ADMIN_PAGES.push({
@@ -4237,8 +4246,7 @@ ADMIN_PAGES.push({
     const err = IMP.problem ? `<div class="alert alert-danger small">${esc(IMP.problem)}</div>` : "";
     if (IMP.step === "queue") return notesQueue();
     if (IMP.step === "start") {
-      const kind = IMP.kind, picker = `<div class="row g-2 mb-3"><div class="col-sm-6 col-lg-4">` + field(t("imp.kindPick"), `<select class="form-select" id="impKind" data-change="impKind">` +
-        ["", "customers", "leads", "notes"].map(k => `<option value="${k}"${k === kind ? " selected" : ""}>${tt(k ? "imp." + k : "imp.choose")}</option>`).join("") + `</select>`).replace('class="mb-3"', 'class="mb-0"') + `</div></div>`;
+      const kind = IMP.kind, picker = impPicker(kind);
       const form = !kind ? "" : kind === "notes"
         ? section("", `<h2 class="h6">${tt("imp.notesUp")}</h2><ul class="small text-body-secondary ps-3">${[1, 2, 3, 4].map(n => `<li>${tt("imp.rule" + n)}</li>`).join("")}</ul>` +
             field(t("imp.notesFile"), `<input type="file" class="form-control" id="impNotesFile" accept=".json"><div class="form-text">${tt("imp.notesFileHelp")}</div>`) +
@@ -4281,6 +4289,351 @@ ADMIN_PAGES.push({
       `<button type="button" class="btn btn-outline-secondary" data-act="impAgain">${tt("imp.again")}</button>`;
   }
 });
+
+/* ------------------------------ DATA EDITOR: A TEMPLATE, AN EXPORT AND AN UPLOAD FOR EVERY KIND OF RECORD ------------------------------ */
+// As in the app (objectload.py; the user's item 2, Nov 16): Admin › Data editor has a template (.xlsx and .csv) for each kind of record, an
+// export of its records with their IDs, and every template in one .zip; Admin › Import data takes each kind of record, to add new records or
+// to update records by their ID (an empty cell leaves a field as it is). In the app the columns are read from the database's fields when the
+// file is made; here they are written out below, the same code names. A stand-in, like the rest of this page: the mockup reads .csv only
+// (an .xlsx is not read: the sample rows stand in), saves .csv where the app saves .xlsx, and keeps the changes only for accounts, contacts,
+// properties, leads, crews and extra workers. The other kinds are checked and reviewed, and the results say they were not saved here.
+const PICK_APP = { src: "source", lost: "lost_reason", unfit: "unfit_reason", method: "payment_method", kind: "account_kind", fileKind: "file_kind" };
+const yn = b => (b ? "yes" : "no");
+// each column: [code name, English, Spanish, required to add, what it takes: "id", "ref:<kind>", "yes", "num", "int", "date", "text", or a function giving the allowed values]
+const OBJS = [
+  { key: "account", en: "Accounts", es: "Cuentas", keep: true, cols: [["name", "Name", "Nombre", 1, "text"], ["kind", "Type of account", "Tipo de cuenta", 0, () => pickKeys("kind")],
+      ["language", "Language", "Idioma", 0, () => ["en", "es"]], ["customer_since", "Customer since", "Cliente desde", 0, "int"]],
+    rows: () => ACCOUNTS.map(a => ({ id: a.id, rec: a, v: { name: a.name, kind: a.kind, language: a.lang, customer_since: a.since } })),
+    put: (a, v) => { if (!a) { a = { id: "A" + (ACCOUNTS.length + 1), name: "", type: "person", kind: "homeowner", lang: "en", since: TODAY.getFullYear(), contacts: [], props: [], details: [], files: [] }; ACCOUNTS.push(a); }
+      if (v.name) a.name = v.name; if (v.kind) { a.kind = v.kind; a.type = v.kind === "homeowner" ? "person" : "company"; } if (v.language) a.lang = v.language; if (v.customer_since) a.since = +v.customer_since; return a; },
+    owner: a => a },
+  { key: "contact", en: "Contacts", es: "Contactos", keep: true, parent: "account_id", cols: [["account_id", "Account", "Cuenta", 1, "ref:account"], ["name", "Name", "Nombre", 1, "text"],
+      ["role", "Role", "Papel", 0, () => ["owner", "spouse", "office", "other"]], ["phone", "Phone", "Teléfono", 0, "text"], ["email", "Email", "Correo electrónico", 0, "text"], ["is_primary", "Main contact", "Contacto principal", 0, "yes"]],
+    rows: () => ACCOUNTS.flatMap(a => a.contacts.map((c, i) => ({ id: a.id + "-C" + (i + 1), rec: c, acct: a, v: { account_id: a.id, name: c.name, role: c.role, phone: c.phone, email: c.email, is_primary: yn(i === 0) } }))),
+    put: (c, v) => { const a = acct(v.account_id) || ACCOUNTS.find(x => x.contacts.includes(c)); if (!c) { c = { name: "", role: "owner", phone: "", email: "" }; a.contacts.push(c); }
+      ["name", "role", "phone", "email"].forEach(k => { if (v[k]) c[k] = v[k]; }); if (v.is_primary === "yes") { a.contacts.splice(a.contacts.indexOf(c), 1); a.contacts.unshift(c); } return c; },
+    owner: (c, v) => acct(v.account_id) || ACCOUNTS.find(x => x.contacts.includes(c)) },
+  { key: "property", en: "Properties", es: "Propiedades", keep: true, parent: "account_id", cols: [["account_id", "Account", "Cuenta", 1, "ref:account"], ["street", "Street address", "Dirección", 1, "text"],
+      ["city", "City", "Ciudad", 0, "text"], ["state", "State", "Estado", 0, "text"], ["zip_code", "ZIP", "Código postal", 0, "text"], ["site_name", "Site contact", "Contacto en el sitio", 0, "text"],
+      ["site_phone", "Site contact's phone", "Teléfono del contacto en el sitio", 0, "text"], ["access_notes", "Access notes", "Notas de acceso", 0, "text"]],
+    rows: () => ACCOUNTS.flatMap(a => a.props.map(p => ({ id: p.id, rec: p, acct: a, v: { account_id: a.id, street: p.addr, city: p.city, state: "", zip_code: "", site_name: p.site || "", site_phone: p.sitePhone || "", access_notes: p.access || "" } }))),
+    put: (p, v) => { const a = acct(v.account_id) || ACCOUNTS.find(x => x.props.includes(p)); if (!p) { p = { id: "P" + (100 + OBJ_BY.property.rows().length + 1), addr: "", city: "", lat: 37.5, lng: -77.45 }; a.props.push(p); }
+      if (v.street) p.addr = v.street; if (v.city || v.state || v.zip_code) p.city = [v.city, v.state, v.zip_code].filter(Boolean).join(" ");
+      if (v.site_name) p.site = v.site_name; if (v.site_phone) p.sitePhone = v.site_phone; if (v.access_notes) p.access = v.access_notes; return p; },
+    owner: (p, v) => acct(v.account_id) || ACCOUNTS.find(x => x.props.includes(p)) },
+  { key: "note", en: "Notes (customer Details)", es: "Notas (Detalles del cliente)", parent: "account_id", cols: [["account_id", "Account", "Cuenta", 0, "ref:account"], ["title", "Title", "Título", 0, "text"],
+      ["text", "Text", "Texto", 1, "text"], ["noted_on", "Date", "Fecha", 0, "date"]],
+    rows: () => ACCOUNTS.flatMap(a => (a.details || []).map((n, i) => ({ id: a.id + "-N" + (i + 1), v: { account_id: a.id, title: n.title || "", text: n.text, noted_on: iso(n.d) } }))) },
+  { key: "lead", en: "Leads", es: "Prospectos", keep: true, cols: [["name", "Name", "Nombre", 1, "text"], ["phone", "Phone", "Teléfono", 0, "text"], ["email", "Email", "Correo electrónico", 0, "text"],
+      ["street", "Street address", "Dirección", 0, "text"], ["city", "City", "Ciudad", 0, "text"], ["state", "State", "Estado", 0, "text"], ["zip_code", "ZIP", "Código postal", 0, "text"],
+      ["job_type", "Type of work", "Tipo de trabajo", 0, () => TYPE_LIST.filter(x => x.active && x.key !== "warranty").map(x => x.key)], ["message", "What they asked for", "Lo que pidieron", 0, "text"],
+      ["language", "Language", "Idioma", 0, () => ["en", "es"]], ["owner_id", "Assigned to", "Asignado a", 0, () => ["admin", "office"]]],
+    rows: () => LEADS.map(l => ({ id: l.id, rec: l, v: { name: l.name, phone: l.phone, email: l.email, street: l.addr, city: l.city, state: "", zip_code: "", job_type: l.type, message: l.msg || "", language: l.lang, owner_id: l.owner || "" } })),
+    put: (l, v) => { if (!l) { l = { id: "L-" + (Math.max(...LEADS.map(x => +x.id.slice(2))) + 1), name: "", phone: "", email: "", addr: "", city: "", lat: null, lng: null, type: "inspection", lang: "en",
+        src: "imported", status: "new", owner: me(), got: new Date(), msg: v.message || "", msgLocked: !!v.message }; LEADS.unshift(l); }
+      [["name", "name"], ["phone", "phone"], ["email", "email"], ["street", "addr"], ["job_type", "type"], ["language", "lang"], ["owner_id", "owner"]].forEach(([k, f]) => { if (v[k]) l[f] = v[k]; });
+      if (v.city || v.state || v.zip_code) l.city = [v.city, v.state, v.zip_code].filter(Boolean).join(" "); return l; },
+    owner: l => l, rule: (v, rec) => (!(v.phone || v.email || (rec && (rec.phone || rec.email))) ? "obj.needContact" : rec && rec.msgLocked && v.message && v.message !== rec.msg ? "obj.locked" : "") },
+  { key: "opportunity", en: "Opportunities", es: "Oportunidades", parent: "account_id", cols: [["account_id", "Account", "Cuenta", 1, "ref:account"], ["place_id", "Property", "Propiedad", 1, "ref:property"],
+      ["job_type", "Type of work", "Tipo de trabajo", 0, () => TYPE_LIST.filter(x => x.active && x.key !== "warranty").map(x => x.key)], ["source", "Where it came from", "De dónde vino", 0, () => pickKeys("src")],
+      ["labor_only", "Labor only", "Solo mano de obra", 0, "yes"], ["description", "What the proposal covers", "Lo que cubre la propuesta", 0, "text"], ["lost_reason", "Reason", "Motivo", 0, () => pickKeys("lost")]],
+    rows: () => OPPS.map(o => ({ id: o.id, v: { account_id: o.acct, place_id: o.prop, job_type: o.type, source: o.src, labor_only: yn(o.laborOnly), description: (o.lines || []).map(l => l[0]).join(" / "), lost_reason: o.lostWhy || "" } })) },
+  { key: "proposal_line", en: "Proposal lines", es: "Líneas de propuesta", parent: "opportunity_id", cols: [["opportunity_id", "Opportunity", "Oportunidad", 1, "ref:opportunity"], ["position", "Position", "Posición", 0, "int"],
+      ["text", "What it covers", "Lo que cubre", 1, "text"], ["quantity", "Quantity", "Cantidad", 0, "num"], ["unit", "Unit", "Unidad", 0, "text"], ["each", "Price for each", "Precio por unidad", 0, "num"], ["amount", "Amount", "Importe", 0, "num"]],
+    rows: () => OPPS.flatMap(o => (o.lines || []).map((l, i) => ({ id: o.id + "-L" + (i + 1), v: { opportunity_id: o.id, position: i, text: l[0], quantity: "", unit: "", each: "", amount: l[1] ?? "" } }))) },
+  { key: "job", en: "Jobs", es: "Trabajos", parent: "account_id", cols: [["opportunity_id", "Opportunity", "Oportunidad", 0, "ref:opportunity"], ["warranty_for_id", "Warranty for", "Garantía de", 0, "ref:job"],
+      ["account_id", "Account", "Cuenta", 0, "ref:account"], ["place_id", "Property", "Propiedad", 0, "ref:property"], ["job_type", "Type of work", "Tipo de trabajo", 0, () => TYPE_LIST.filter(x => x.active).map(x => x.key)],
+      ["price", "Price", "Precio", 0, "num"], ["labor_only", "Labor only", "Solo mano de obra", 0, "yes"], ["scope", "Scope of work", "Alcance del trabajo", 0, "text"], ["crew_id", "Crew", "Equipo", 0, "ref:crew"],
+      ["first_day", "First day", "Primer día", 0, "date"], ["days", "Days", "Días", 0, "int"], ["day_off_ok", "Work on a day off", "Trabajar en un día libre", 0, "yes"],
+      ["ref_type", "Kind of number", "Tipo de número", 0, () => ["po", "claim", "wo"]], ["ref_number", "Outside number", "Número externo", 0, "text"]],
+    rows: () => JOBS.map(j => ({ id: j.id, v: { opportunity_id: j.opp || "", warranty_for_id: j.warrantyFor || "", account_id: j.acct, place_id: j.prop, job_type: j.type, price: j.price, labor_only: yn(j.laborOnly),
+      scope: (j.scope || []).join(" / "), crew_id: j.crew || "", first_day: j.days.length ? iso(j.days[0]) : "", days: j.days.length || 1, day_off_ok: yn(j.throughOff), ref_type: j.ref ? j.ref.type : "", ref_number: j.ref ? j.ref.num : "" } })) },
+  { key: "change_order", en: "Change orders", es: "Órdenes de cambio", parent: "job_id", cols: [["job_id", "Job", "Trabajo", 1, "ref:job"], ["description", "What changes", "Qué cambia", 1, "text"], ["amount", "Amount", "Importe", 1, "num"]],
+    rows: () => JOBS.flatMap(j => (j.cos || []).map(c => ({ id: j.id + "-" + c.id, v: { job_id: j.id, description: c.text, amount: c.amount } }))) },
+  { key: "payment", en: "Payments", es: "Pagos", parent: "job_id", cols: [["job_id", "Job", "Trabajo", 1, "ref:job"], ["paid_on", "Date", "Fecha", 0, "date"], ["amount", "Amount", "Importe", 1, "num"],
+      ["method", "How it was paid", "Cómo se pagó", 0, () => pickKeys("method")], ["check_number", "Check number", "Número de cheque", 0, "text"], ["kind", "Kind", "Tipo", 0, () => ["deposit", "payment"]]],
+    rows: () => JOBS.flatMap(j => (j.payments || []).map(p => ({ id: j.id + "-R" + p.n, v: { job_id: j.id, paid_on: iso(p.d), amount: p.amount, method: p.method, check_number: p.num || "", kind: p.kind } }))) },
+  { key: "crew", en: "Crews", es: "Equipos", keep: true, cols: [["name", "Name", "Nombre", 1, "text"], ["lead_name", "Crew lead", "Encargado", 0, "text"], ["phone", "Phone", "Teléfono", 0, "text"], ["active", "Active", "Activo", 0, "yes"]],
+    rows: () => CREWS.map(c => ({ id: c.id, rec: c, v: { name: crewName(c), lead_name: c.lead, phone: c.phone, active: yn(!c.off) } })),
+    put: (c, v) => { if (!c) { const n = Math.max(...CREWS.map(x => x.n)) + 1; c = { id: "c" + n, n, lead: "", members: [], phone: "" }; CREWS.push(c); }
+      if (v.name) c.label = v.name; if (v.lead_name) c.lead = v.lead_name; if (v.phone) c.phone = v.phone; if (v.active) c.off = v.active === "no"; return c; } },
+  { key: "worker", en: "Extra workers", es: "Trabajadores extra", keep: true, cols: [["name", "Name", "Nombre", 1, "text"], ["active", "Active", "Activo", 0, "yes"]],
+    rows: () => HELPERS.map((h, i) => ({ id: "W" + (i + 1), rec: i, v: { name: h, active: "yes" } })),
+    put: (i, v) => { if (i == null) { HELPERS.push(v.name); return HELPERS.length - 1; } if (v.name) HELPERS[i] = v.name; return i; } },
+  { key: "price_item", en: "Price Book items", es: "Artículos de la lista de precios", cols: [["code", "Code", "Código", 1, "text"], ["name", "Item", "Artículo", 1, "text"], ["unit", "Unit", "Unidad", 0, "text"],
+      ["supplier", "Supplier", "Proveedor", 1, "text"], ["line", "Product line", "Línea de productos", 0, "text"], ["cost", "Cost", "Costo", 1, "num"], ["price", "Selling price", "Precio de venta", 1, "num"]],
+    rows: () => PRICE.map((it, i) => ({ id: "PB" + (i + 1), v: { code: it.code, name: it.name, unit: it.unit, supplier: it.supplier, line: it.line, cost: it.cost, price: it.price } })) },
+  { key: "pick_item", en: "Pick list values", es: "Valores de listas de opciones", cols: [["pick_list", "Pick list", "Lista de opciones", 1, () => Object.values(PICK_APP)], ["name_en", "Name in English", "Nombre en inglés", 1, "text"],
+      ["name_es", "Name in Spanish", "Nombre en español", 1, "text"], ["position", "Place in the list", "Lugar en la lista", 0, "int"], ["active", "Offered", "Se ofrece", 0, "yes"]],
+    rows: () => PICK_ORDER.flatMap(g => PICKS[g].map(x => ({ id: g + "-" + x.key, v: { pick_list: PICK_APP[g], name_en: x.en, name_es: x.es, position: x.pos, active: yn(x.active) } }))) },
+  { key: "work_type", en: "Types of work", es: "Tipos de trabajo", cols: [["name_en", "Name in English", "Nombre en inglés", 1, "text"], ["name_es", "Name in Spanish", "Nombre en español", 1, "text"],
+      ["days", "Work days a job usually takes", "Días de trabajo que suele llevar", 0, "int"], ["in_revenue_report", "Its own column in the revenue report", "Su propia columna en el informe de ingresos", 0, "yes"],
+      ["words", "Other words for it", "Otras palabras para él", 0, "text"], ["position", "Place in the list", "Lugar en la lista", 0, "int"], ["active", "Offered", "Se ofrece", 0, "yes"]],
+    rows: () => TYPE_LIST.map(x => ({ id: "T-" + x.key, v: { name_en: I18N.en.type[x.key] || x.key, name_es: I18N.es.type[x.key] || x.key, days: x.days, in_revenue_report: yn(x.report), words: x.words, position: x.pos, active: yn(x.active) } })) }
+];
+const OBJ_BY = Object.fromEntries(OBJS.map(o => [o.key, o]));
+const objTitle = key => OBJ_BY[key][S.lang === "es" ? "es" : "en"];
+const objCols = key => [["id", "Record ID", "ID del registro", 0, "id"], ...OBJ_BY[key].cols];
+const colLabel = c => c[S.lang === "es" ? 2 : 1];
+function colAbout(c) {
+  const how = c[4];
+  if (how === "id") return t("obj.aboutId");
+  if (typeof how === "function") return how().join(", ");
+  if (how.startsWith("ref:")) return t("obj.aboutRef", { what: objTitle(how.slice(4)) });
+  return t("obj.about_" + how);
+}
+const EDITOR_LEFT_OUT = { account: "createdAt", contact: "phoneDigits", property: "streetKey", note: "noteSource", lead: "leadOut", opportunity: "oppOut", proposal_line: "none",
+  job: "jobOut", change_order: "coOut", payment: "payOut", crew: "none", worker: "workerOut", price_item: "priceOut", pick_item: "pickOut", work_type: "typeOut" };
+// a file: the headings (and, for an export, the records); .csv here, where the app also makes .xlsx with an "About the columns" sheet
+const objCsv = (key, rows) => "﻿" + csvText([objCols(key).map(c => c[0]), ...rows.map(r => objCols(key).map(c => String(c[0] === "id" ? r.id : r.v[c[0]] ?? "").replace(/^([=+\-@])/, "'$1")))]);
+ACT.objFile = d => {
+  const rows = d.what === "export" ? OBJ_BY[d.key].rows() : [];
+  saveText((d.what === "export" ? "export-" : "template-") + d.key + ".csv", objCsv(d.key, rows), "text/csv;charset=utf-8");
+  if (d.fmt === "xlsx") toast(t("obj.xlsxHere"));
+};
+// every template in one .zip, made in the browser (stored, not compressed)
+function zipFiles(files) {
+  const crcTable = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
+  const crc = bytes => { let c = 0xFFFFFFFF; bytes.forEach(b => { c = crcTable[(c ^ b) & 0xFF] ^ (c >>> 8); }); return (c ^ 0xFFFFFFFF) >>> 0; };
+  const enc = new TextEncoder(), parts = [], central = []; let offset = 0;
+  const head = (sig, fields) => { const b = new DataView(new ArrayBuffer(fields.reduce((s, f) => s + f[1], 4))); b.setUint32(0, sig, true); let p = 4; fields.forEach(([v, n]) => { n === 2 ? b.setUint16(p, v, true) : b.setUint32(p, v, true); p += n; }); return new Uint8Array(b.buffer); };
+  files.forEach(([name, text]) => {
+    const nb = enc.encode(name), data = enc.encode(text), c = crc(data);
+    const local = head(0x04034b50, [[20, 2], [0x0800, 2], [0, 2], [0, 2], [0, 2], [c, 4], [data.length, 4], [data.length, 4], [nb.length, 2], [0, 2]]);
+    central.push([head(0x02014b50, [[20, 2], [20, 2], [0x0800, 2], [0, 2], [0, 2], [0, 2], [c, 4], [data.length, 4], [data.length, 4], [nb.length, 2], [0, 2], [0, 2], [0, 2], [0, 2], [0, 4], [offset, 4]]), nb]);
+    parts.push(local, nb, data); offset += local.length + nb.length + data.length;
+  });
+  const size = central.reduce((s, [h, n]) => s + h.length + n.length, 0);
+  return new Blob([...parts, ...central.flat(), head(0x06054b50, [[0, 2], [0, 2], [files.length, 2], [files.length, 2], [size, 4], [offset, 4], [0, 2]])], { type: "application/zip" });
+}
+ACT.objZip = d => {
+  const blob = zipFiles(OBJS.map(o => [o.key + ".csv", objCsv(o.key, [])])), a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "templates-" + d.fmt + ".zip"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  if (d.fmt === "xlsx") toast(t("obj.xlsxHere"));
+};
+S.objPick = "";
+ACT.objPick = (d, el) => { S.objPick = el.value; render(); };
+function objCard() {
+  if (S.role !== "admin") return "";
+  const key = S.objPick, links = (k, what) => `<a href="#" data-act="objFile" data-key="${k}" data-what="${what}" data-fmt="xlsx">Excel</a> · <a href="#" data-act="objFile" data-key="${k}" data-what="${what}" data-fmt="csv">CSV</a>`;
+  const btn = (what, fmt) => `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="objFile" data-key="${key}" data-what="${what}" data-fmt="${fmt}">${ic("download")} ${tt("obj." + what + "_" + fmt)}</button>`;
+  return `<div id="templates" data-templates>` + section(tt("obj.cardTitle"), `<div class="small text-body-secondary mb-3">${tt("obj.cardSub")}</div>` +
+    `<div class="row g-2 mb-3"><div class="col-sm-6 col-lg-4">` + field(t("obj.kindOfRecord"), `<select class="form-select" id="objPick" data-change="objPick"><option value="">${tt("imp.choose")}</option>` +
+      OBJS.map(o => `<option value="${o.key}"${o.key === key ? " selected" : ""}>${esc(objTitle(o.key))}</option>`).join("") + `</select>`).replace('class="mb-3"', 'class="mb-0"') + `</div></div>` +
+    (key ? `<div class="border rounded p-2 mb-3" data-object="${key}"><div class="d-flex flex-wrap gap-2 mb-2">${btn("template", "xlsx")}${btn("template", "csv")}${btn("export", "xlsx")}${btn("export", "csv")}` +
+      `<a class="btn btn-primary btn-sm ms-sm-auto" href="#admin/import" data-act="objUpload" data-key="${key}">${ic("upload")} ${tt("obj.upload")}</a></div>` +
+      `<div class="table-responsive"><table class="table table-sm small align-middle mb-1"><thead><tr><th>${tt("obj.column")}</th><th>${tt("obj.field")}</th><th>${tt("obj.required")}</th><th>${tt("obj.takes")}</th></tr></thead><tbody>` +
+      objCols(key).map(c => `<tr><td class="font-monospace">${c[0]}</td><td>${esc(colLabel(c))}</td><td>${c[3] ? badge(t("obj.req"), "danger") : ""}</td><td>${esc(colAbout(c))}</td></tr>`).join("") + `</tbody></table></div>` +
+      (EDITOR_LEFT_OUT[key] !== "none" ? `<div class="small text-body-secondary">${tt("obj.leftOut")} ${tt("obj.out_" + EDITOR_LEFT_OUT[key])}</div>` : "") + `</div>` : "") +
+    `<div class="table-responsive"><table class="table table-sm small align-middle mb-2"><thead><tr><th>${tt("obj.kindOfRecord")}</th><th class="text-end">${tt("obj.records")}</th><th>${tt("obj.template")}</th><th>${tt("obj.export")}</th></tr></thead><tbody>` +
+      OBJS.map(o => `<tr data-object-row="${o.key}"><td>${esc(objTitle(o.key))}</td><td class="text-end">${o.rows().length}</td><td class="text-nowrap">${links(o.key, "template")}</td><td class="text-nowrap">${links(o.key, "export")}</td></tr>`).join("") + `</tbody></table></div>` +
+    `<div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-outline-secondary btn-sm" data-act="objZip" data-fmt="xlsx">${ic("download")} ${tt("obj.zipXlsx")}</button>` +
+      `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="objZip" data-fmt="csv">${ic("download")} ${tt("obj.zipCsv")}</button></div>`) + `</div>`;
+}
+const editorPage = ADMIN_PAGES.find(p => p.id === "editor"), editorBase = editorPage.render;
+editorPage.render = () => editorBase() + objCard();
+ACT.objUpload = d => { Object.assign(IMP, { kind: d.key, step: "start", problem: "", run: null }); go("#admin/import"); };
+
+// ----- Import data with a kind of record picked: add new, or update by record ID
+IMP.act = "insert";
+ACT.objAct = (d, el) => { IMP.act = el.value; };
+function objStart(kind) {
+  return section("", `<p class="small text-body-secondary">${tt("obj.impSub")}</p><h2 class="h6">${tt("obj.step1")}</h2><div class="d-flex flex-wrap gap-2 mb-3">` +
+      ["template", "export"].flatMap(w => ["xlsx", "csv"].map(f => `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="objFile" data-key="${kind}" data-what="${w}" data-fmt="${f}">${ic("download")} ${tt("obj." + w + "_" + f)}</button>`)).join("") + `</div>` +
+    `<h2 class="h6">${tt("imp.step2")}</h2><ul class="small text-body-secondary ps-3"><li>${tt("obj.ruleAdd")}</li><li>${tt("obj.ruleUpdate")}</li><li>${tt("obj.ruleCheck")}</li>` +
+      (kind === "lead" ? `<li>${tt("obj.ruleLead")}</li>` : "") + (OBJ_BY[kind].keep ? "" : `<li>${tt("obj.standIn")}</li>`) + `</ul>` +
+    `<div class="mb-3"><div class="form-label small fw-semibold mb-1">${tt("obj.what")}</div>` + ["insert", "update"].map(a => `<div class="form-check"><input class="form-check-input" type="radio" name="impAct" id="impAct_${a}" value="${a}" data-change="objAct"${IMP.act === a ? " checked" : ""}>` +
+      `<label class="form-check-label" for="impAct_${a}">${tt("obj.act_" + a)}</label></div>`).join("") + `</div>` +
+    field(t("imp.file"), `<input type="file" class="form-control" id="impFile" accept=".xlsx,.csv"><div class="form-text">${tt("imp.fileHelp")}</div>`) +
+    `<div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-primary" data-act="impRead">${ic("upload")} ${tt("imp.read")}</button><button type="button" class="btn btn-outline-secondary" data-act="impSample">${tt("imp.sample")}</button></div>`);
+}
+// a sample file for a kind of record: to add, one good row and one with a problem; to update, a change, the same values again, and an ID that is not there
+function objSample(kind) {
+  const cols = objCols(kind).map(c => c[0]), rows = OBJ_BY[kind].rows(), first = rows[0];
+  if (IMP.act === "update" && first) {
+    const text = cols.find(c => c !== "id" && OBJ_BY[kind].cols.find(x => x[0] === c)[4] === "text" && !/_id$/.test(c)) || cols[1];
+    return [cols, cols.map(c => (c === "id" ? first.id : c === text ? String(first.v[c]) + " (2)" : "")), cols.map(c => (c === "id" ? (rows[1] || first).id : "")), cols.map(c => (c === "id" ? "X-999" : c === text ? "Z" : ""))];
+  }
+  const example = { name: "Otis Fenwick", account_id: "A8", street: "3518 Semmes Ave", text: "Prefers a call after 5 pm.", phone: "(804) 555-0175", opportunity_id: "26-109", job_id: "26-104", description: "Two more vents",
+    amount: "250", code: "GAF-VNT", supplier: "ABC Supply", cost: "12", price: "15", pick_list: "source", name_en: "Door hanger", name_es: "Volante", place_id: "P8" };
+  return [cols, cols.map(c => (c === "id" ? "" : example[c] || "")), cols.map(c => (c === "id" ? "" : c === "phone" ? "(804) 555-0111" : ""))];
+}
+function objNames(kind) {
+  const names = {};
+  objCols(kind).forEach(c => [c[0], c[1], c[2]].forEach(w => { if (!(impTidy(w) in names)) names[impTidy(w)] = c[0]; }));
+  return names;
+}
+const YES = ["yes", "y", "true", "1", "x", "si", "sí"], NO = ["no", "n", "false", "0"];
+function objCheckRow(kind, cells, seen) {
+  const o = OBJ_BY[kind], cols = objCols(kind), v = {}, rows = o.rows();
+  IMP.map.forEach((k, i) => { if (k && cells[i]) v[k] = String(cells[i]).replace(/^'([=+\-@])/, "$1"); });
+  const label = code => colLabel(cols.find(c => c[0] === code));
+  let rec = null;
+  if (IMP.act === "update") {
+    if (!v.id) return { problem: t("obj.needId") };
+    if (seen.has(v.id)) return { problem: t("obj.twice", { row: seen.get(v.id) }) };
+    rec = rows.find(r => r.id === v.id);
+    if (!rec) return { problem: t("obj.noId") };
+  } else {
+    if (v.id) return { problem: t("obj.idOnAdd") };
+    const missing = cols.find(c => c[3] && !v[c[0]]); if (missing) return { problem: t("obj.empty", { field: colLabel(missing) }) };
+  }
+  for (const c of cols) {
+    const x = v[c[0]], how = c[4]; if (!x || c[0] === "id") continue;
+    if (typeof how === "function" && !how().includes(x)) return { problem: t("obj.notAllowed", { field: label(c[0]) }) };
+    if (how === "yes") { if (YES.includes(x.toLowerCase())) v[c[0]] = "yes"; else if (NO.includes(x.toLowerCase())) v[c[0]] = "no"; else return { problem: t("obj.yesNo", { field: label(c[0]) }) }; }
+    if ((how === "num" || how === "int") && isNaN(+x.replace(/[$,]/g, ""))) return { problem: t("obj.notNumber", { field: label(c[0]) }) };
+    if (how === "date" && !/^\d{4}-\d{2}-\d{2}$/.test(x)) return { problem: t("obj.notDate", { field: label(c[0]) }) };
+    if (how.startsWith && how.startsWith("ref:") && !OBJ_BY[how.slice(4)].rows().some(r => r.id === x)) return { problem: t("obj.noRef", { field: label(c[0]) }) };
+    if (rec && c[0] === o.parent && x !== String(rec.v[c[0]])) return { problem: t("obj.parent", { field: label(c[0]) }) };
+  }
+  const rule = o.rule ? o.rule(v, rec && rec.rec) : ""; if (rule) return { problem: t(rule) };
+  if (rec) seen.set(v.id, null);
+  const changes = rec ? cols.filter(c => c[0] !== "id" && v[c[0]] && v[c[0]] !== String(rec.v[c[0]] ?? "")).map(c => [colLabel(c), String(rec.v[c[0]] ?? "") || "—", v[c[0]]]) : [];
+  return { v, rec, changes };
+}
+function objMap() {
+  const map = IMP.headings.map((h, i) => val("impCol" + i)), used = map.filter(Boolean);
+  IMP.map = map; IMP.problem = "";
+  if (used.length !== new Set(used).size) { IMP.problem = t("imp.dup"); return render(); }
+  const required = IMP.act === "update" ? ["id"] : objCols(IMP.kind).filter(c => c[3]).map(c => c[0]), missing = required.filter(k => !used.includes(k));
+  if (missing.length) { IMP.problem = t("imp.needCol", { fields: missing.join(", ") }); return render(); }
+  const seen = new Map();
+  IMP.checked = IMP.rows.map((cells, n) => {
+    const r = objCheckRow(IMP.kind, cells, seen), row = { n: n + 2, cells, v: r.v || {}, rec: r.rec, changes: r.changes || [], problem: r.problem || "" };
+    if (r.rec) seen.set(r.v.id, row.n);
+    row.state = row.problem ? "error" : IMP.act === "insert" ? "new" : row.changes.length ? "exists" : "same";
+    return row;
+  });
+  IMP.step = "review"; impSave(); render();
+}
+function objConfirm() {
+  const o = OBJ_BY[IMP.kind], counts = { created: 0, updated: 0, skipped: 0, failed: 0 };
+  IMP.checked.forEach(row => {
+    if (row.state === "error") { row.result = "failed"; row.message = row.problem; counts.failed++; return; }
+    if (row.state === "same") { row.result = "skipped"; row.message = t("obj.sameMsg"); counts.skipped++; return; }
+    const was = Object.assign({}, row.rec ? row.rec.v : {}, row.v), name = was.name || was.title || was.street || was.name_en || was.description || row.v.id || "";
+    if (o.keep) {
+      const rec = o.put(row.rec ? row.rec.rec : null, row.v), owner = o.owner ? o.owner(rec, row.v) : null;
+      if (owner) addLog(owner, row.rec ? "log.edited" : "log.imported", row.rec ? { detail: row.changes.map(c => c[0] + ": " + c[1] + " → " + c[2]).join("; ") } : { detail: IMP.file + (owner === rec ? "" : " · " + name) });
+      else addSetupLog(row.rec ? "log.objEdited" : "log.objAdded", { detail: objTitle(IMP.kind) + " · " + name + (row.rec ? " · " + row.changes.map(c => c[0] + ": " + c[1] + " → " + c[2]).join("; ") : " · " + IMP.file) });
+      row.message = t(row.rec ? "obj.updatedMsg" : "obj.createdMsg");
+      if (owner && owner.id && /^A/.test(owner.id)) row.recLink = "#account/" + owner.id; else if (owner && owner.id && /^L-/.test(owner.id)) row.recLink = "#lead/" + owner.id;
+    } else row.message = t("obj.notSavedHere");
+    row.result = row.rec ? "updated" : "created"; counts[row.result]++;
+  });
+  IMP.result = counts; IMP.step = "done"; impSave();
+  addSetupLog("log.dataImported", { detail: objTitle(IMP.kind) + " · " + t("obj.act_" + IMP.act + "Short") + " · " + IMP.file + " · " + t("obj.summary", counts) });
+  toast(t("obj.summary", counts)); render();
+}
+function objReview() {
+  const by = s => IMP.checked.filter(r => r.state === s), upd = IMP.act === "update";
+  const tile = (n, label, key, cls) => `<div class="col-4"><div class="card shadow-sm text-center"><div class="card-body py-2"><div class="fs-4 fw-bold ${cls || ""}" data-count="${key}">${n}</div><div class="small text-body-secondary">${label}</div></div></div></div>`;
+  return pageHead(tt("imp.reviewTitle"), esc(objTitle(IMP.kind) + " · " + t("obj.act_" + IMP.act + "Short") + " · " + IMP.file + " · " + t("imp.rowsN", { n: IMP.checked.length })) + ". " + tt("imp.nothingYet") + (upd ? " " + tt("obj.emptyCell") : "")) +
+    `<div class="row g-2 mb-3">${upd ? tile(by("exists").length, tt("obj.toUpdate"), "exists") + tile(by("same").length, tt("obj.nothing"), "same") : `<div class="col-8"><div class="card shadow-sm text-center"><div class="card-body py-2"><div class="fs-4 fw-bold" data-count="new">${by("new").length}</div><div class="small text-body-secondary">${tt("obj.toAdd")}</div></div></div></div>`}` +
+      tile(by("error").length, tt("imp.problems"), "error", by("error").length ? "text-danger" : "") + `</div>` +
+    (by("error").length ? `<div data-rows="error">` + section(tt("imp.problemRows"), `<div class="small text-body-secondary mb-2">${tt("obj.problemHelp")}</div><table class="table table-sm small mb-0"><thead><tr><th>${tt("imp.row")}</th><th>${tt("obj.recordId")}</th><th>${tt("imp.why")}</th></tr></thead><tbody>` +
+      by("error").map(r => `<tr><td>${r.n}</td><td>${esc(r.v.id || "—")}</td><td>${esc(r.problem)}</td></tr>`).join("") + `</tbody></table>`) + `</div>` : "") +
+    (upd ? `<div data-rows="exists">` + section(tt("obj.toUpdate"), by("exists").length ? `<table class="table table-sm small mb-0"><thead><tr><th>${tt("imp.row")}</th><th>${tt("obj.recordId")}</th><th>${tt("obj.whatChanges")}</th></tr></thead><tbody>` +
+        by("exists").map(r => `<tr><td>${r.n}</td><td>${esc(r.v.id)}</td><td>${r.changes.map(c => `${esc(c[0])}: ${esc(c[1])} → <span class="fw-semibold">${esc(c[2])}</span>`).join("<br>")}</td></tr>`).join("") + `</tbody></table>` : `<div class="small text-body-secondary">${tt("obj.noChanges")}</div>`) + `</div>` +
+        (by("same").length ? section(tt("obj.nothing"), `<div class="small text-body-secondary">${tt("obj.sameHelp")} ${by("same").map(r => r.n).join(", ")}</div>`) : "")
+      : `<div data-rows="new">` + section(tt("obj.toAdd"), by("new").length ? `<table class="table table-sm small mb-0"><thead><tr><th>${tt("imp.row")}</th><th>${tt("imp.name")}</th></tr></thead><tbody>` +
+        by("new").map(r => `<tr><td>${r.n}</td><td>${esc(r.v.name || r.v.text || r.v.street || r.v.name_en || r.v.description || "—")}</td></tr>`).join("") + `</tbody></table>` : `<div class="small text-body-secondary">${tt("none")}</div>`) + `</div>`) +
+    `<div class="d-flex gap-2 justify-content-end"><button type="button" class="btn btn-outline-secondary" data-act="impBack" data-to="map">${tt("imp.back")}</button><button type="button" class="btn btn-primary" data-act="impConfirm">${ic("check")} ${tt("imp.confirm")}</button></div>`;
+}
+function objDone() {
+  return pageHead(tt("imp.results"), esc(objTitle(IMP.kind) + " · " + t("obj.act_" + IMP.act + "Short") + " · " + IMP.file), `<button type="button" class="btn btn-outline-secondary btn-sm text-nowrap" data-act="impResultsFile">${ic("download")} ${tt("imp.resultsFile")}</button>`) +
+    `<div class="alert alert-secondary small">${tt("obj.summary", IMP.result)}</div>` +
+    section("", `<div class="table-responsive"><table class="table table-sm small align-middle mb-0"><thead><tr><th>${tt("imp.row")}</th><th>${tt("imp.result")}</th><th>${tt("imp.message")}</th><th></th></tr></thead><tbody>` +
+      IMP.checked.map(r => `<tr><td>${r.n}</td><td>${badge(t("obj.res_" + r.result), r.result === "failed" ? "danger" : r.result === "skipped" ? "secondary" : "success")}</td><td>${esc(r.message)}</td>` +
+        `<td class="text-end">${r.recLink && r.result !== "failed" ? `<a href="${r.recLink}">${tt("imp.open")}</a>` : ""}</td></tr>`).join("") + `</tbody></table></div>`) +
+    `<button type="button" class="btn btn-outline-secondary" data-act="impAgain">${tt("imp.again")}</button>`;
+}
+// the import's steps call these for a kind of record (see impLoad, ACT.impMap, ACT.impConfirm and the Import data page)
+const impMapBase = ACT.impMap, impConfirmBase = ACT.impConfirm, impSampleBase = ACT.impSample, impResultsBase = ACT.impResultsFile;
+ACT.impMap = () => (OBJ_BY[IMP.kind] ? objMap() : impMapBase());
+ACT.impConfirm = () => (OBJ_BY[IMP.kind] ? objConfirm() : impConfirmBase());
+ACT.impSample = () => (OBJ_BY[IMP.kind] ? impLoad(objSample(IMP.kind), "sample-" + IMP.kind + ".csv") : impSampleBase());
+ACT.impResultsFile = () => (OBJ_BY[IMP.kind] ? saveText("results-" + IMP.kind + ".csv", csvText([[t("imp.row"), t("imp.result"), t("imp.message"), ...IMP.headings],
+  ...IMP.checked.map(r => [r.n, t("obj.res_" + r.result), r.message, ...r.cells])]), "text/csv;charset=utf-8") : impResultsBase());
+const importPage = ADMIN_PAGES.find(p => p.id === "import"), importBase = importPage.render;
+importPage.render = () => {
+  if (!OBJ_BY[IMP.kind] || IMP.step === "queue") return importBase();
+  const err = IMP.problem ? `<div class="alert alert-danger small">${esc(IMP.problem)}</div>` : "";
+  if (IMP.step === "start") return pageHead(tt("imp.title"), tt("imp.pageSub")) + impPicker(IMP.kind) + err + objStart(IMP.kind) + impHistory();
+  if (IMP.step === "map") {
+    const sample = IMP.rows.slice(0, 3), cols = objCols(IMP.kind);
+    return pageHead(tt("imp.mapTitle"), esc(objTitle(IMP.kind) + " · " + t("obj.act_" + IMP.act + "Short") + " · " + IMP.file + " · " + t("imp.rowsN", { n: IMP.rows.length })) + ". " + tt("imp.mapHint")) + err +
+      section("", `<div class="table-responsive"><table class="table table-sm small align-middle mb-0"><thead><tr><th>${tt("imp.colFile")}</th><th>${tt("imp.examples")}</th><th>${tt("imp.goesTo")}</th></tr></thead><tbody>` +
+        IMP.headings.map((h, i) => `<tr><td class="fw-semibold">${esc(h || "—")}</td><td class="text-body-secondary">${esc(sample.map(r => r[i]).filter(Boolean).join(" · ").slice(0, 60))}</td>` +
+          `<td><select class="form-select form-select-sm" id="impCol${i}"><option value="">${tt("imp.skipCol")}</option>${cols.map(c => `<option value="${c[0]}"${c[0] === IMP.map[i] ? " selected" : ""}>${esc(c[0] + " · " + colLabel(c))}</option>`).join("")}</select></td></tr>`).join("") +
+        `</tbody></table></div>`) +
+      `<div class="d-flex gap-2 justify-content-end"><button type="button" class="btn btn-outline-secondary" data-act="impAgain">${tt("cancel")}</button><button type="button" class="btn btn-primary" data-act="impMap">${tt("imp.reviewBtn")}</button></div>`;
+  }
+  return IMP.step === "review" ? objReview() : objDone();
+};
+
+/* the words for all of the above, in English and Spanish */
+Object.assign(I18N.en, { obj: {
+  cardTitle: "Templates and export", cardSub: "A template for every kind of record, with a column for each of its fields, to add records or update them in bulk. In the app the columns are read from the database each time, so a field added later is in the next download. An export has the records there now (not those in the Recycle Bin) with their IDs: change it and upload it as an update. Uploads go through Import data, with a review before anything is saved.",
+  kindOfRecord: "Kind of record", records: "Records", template: "Template", export: "Export", template_xlsx: "Template (.xlsx)", template_csv: "Template (.csv)", export_xlsx: "Export (.xlsx)", export_csv: "Export (.csv)",
+  zipXlsx: "Download all templates (.zip, Excel)", zipCsv: "Download all templates (.zip, CSV)", upload: "Upload: add new or update", column: "Column", field: "Field", required: "Required to add", takes: "What it takes", req: "Required",
+  xlsxHere: "In the mockup, files are saved as .csv. The app makes a real .xlsx, with an “About the columns” sheet.",
+  aboutId: "Leave empty to add a new record. To update one, the ID from the export.", aboutRef: "A record ID from: {what}", about_yes: "yes or no", about_num: "A number, like 1250.50", about_int: "A whole number", about_date: "A date, like 2026-11-16", about_text: "Text",
+  leftOut: "Not in the template, because the app fills them in itself or another page changes them:",
+  out_createdAt: "When it was made and changed.", out_phoneDigits: "Phone digits.", out_streetKey: "Site contact's phone digits, the address key.", out_noteSource: "How and by whom it was written.",
+  out_leadOut: "Where it came from (always Imported), status, reason, received, first contact, and the account, opportunity and job it became.", out_oppOut: "Number, stage, price, inspection, inspector, sent, signed, lost and the customer's signature.",
+  out_jobOut: "Number, stage, the days added by hand, the extra workers, Changed and Seen, and the dates for started, done, invoice sent and paid.", out_coOut: "Number, status, sent, signed and signed by.", out_payOut: "Receipt number and who recorded it.",
+  out_workerOut: "Crew: an extra worker belongs to no crew.", out_priceOut: "Changed on and the price file it came from: the Price Book keeps its own history.", out_pickOut: "The value's key.", out_typeOut: "The type's key.",
+  impSub: "One row is one record and one column is one field, with the field's code name as the heading. A row points to another record by that record's ID (account_id, job_id ...), as the export shows them. You match the columns and review the rows before anything is saved.",
+  step1: "1. Download the template, or the records as they are now", what: "What the file does",
+  act_insert: "Add new: each row adds a record. Leave the id column empty.", act_update: "Update existing: each row changes the record whose ID is in the id column. An empty cell leaves that field as it is.",
+  act_insertShort: "Add new", act_updateShort: "Update existing",
+  ruleAdd: "Add new: leave the id column empty. The fields marked as required on the template must be filled in.",
+  ruleUpdate: "Update existing: the id column says which record each row changes. Only the cells that are filled in change: an empty cell leaves that field as it is.",
+  ruleCheck: "Each row is checked as the record's own page checks it. A row with a problem is left out and shown, and nothing of it is saved.", ruleLead: "Leads: each new lead's source is Imported.",
+  standIn: "In the mockup, this kind of record is checked and reviewed but not changed on the page. The app saves it.",
+  needId: "The record ID is empty. Each row of an update needs the ID of the record it changes.", twice: "Row {row} has the same record ID. Put each record on one row only.", noId: "Record ID: no record has that ID.",
+  idOnAdd: "Record ID: leave it empty to add a new record. To change a record, pick “Update existing”.", empty: "{field} is empty.", notAllowed: "{field}: not one of the allowed values.", yesNo: "{field}: write yes or no.",
+  notNumber: "{field}: not a number.", notDate: "{field}: not a date like 2026-11-16.", noRef: "{field}: no record has that ID.", parent: "{field} cannot change on an update: a record stays with the one it belongs to.",
+  needContact: "Enter a phone number or an email address, so someone can answer.", locked: "What they asked for: these are the customer's own words and cannot be changed.",
+  emptyCell: "An empty cell leaves that field as it is.", toUpdate: "To update", toAdd: "To add", nothing: "Nothing to change", recordId: "Record ID", whatChanges: "What changes", noChanges: "No record changes.",
+  sameHelp: "These records already have the values in the file. They are skipped. Rows:", problemHelp: "These are left out, and nothing of them is saved. Fix them in the file and import it again, or leave them.",
+  sameMsg: "Nothing to change: the record already has these values.", createdMsg: "Created.", updatedMsg: "Updated.", notSavedHere: "Checked. In the mockup it is not saved; the app saves it.",
+  summary: "{created} new, {updated} updated, {skipped} skipped, {failed} failed", res_created: "Created", res_updated: "Updated", res_skipped: "Skipped", res_failed: "Not imported",
+  group: "Records by ID: add new or update"
+} });
+Object.assign(I18N.es, { obj: {
+  cardTitle: "Plantillas y exportación", cardSub: "Una plantilla para cada tipo de registro, con una columna para cada uno de sus campos, para agregar registros o actualizarlos en grupo. En la aplicación las columnas se leen de la base de datos cada vez, así que un campo agregado después aparece en la siguiente descarga. Una exportación tiene los registros que hay ahora (no los de la Papelera) con sus ID: cámbiela y súbala como actualización. Las subidas pasan por Importar datos, con una revisión antes de guardar algo.",
+  kindOfRecord: "Tipo de registro", records: "Registros", template: "Plantilla", export: "Exportar", template_xlsx: "Plantilla (.xlsx)", template_csv: "Plantilla (.csv)", export_xlsx: "Exportar (.xlsx)", export_csv: "Exportar (.csv)",
+  zipXlsx: "Descargar todas las plantillas (.zip, Excel)", zipCsv: "Descargar todas las plantillas (.zip, CSV)", upload: "Subir: agregar nuevos o actualizar", column: "Columna", field: "Campo", required: "Obligatorio para agregar", takes: "Qué acepta", req: "Obligatorio",
+  xlsxHere: "En la maqueta, los archivos se guardan como .csv. La aplicación hace un .xlsx de verdad, con una hoja “Sobre las columnas”.",
+  aboutId: "Déjelo vacío para agregar un registro nuevo. Para actualizar uno, el ID de la exportación.", aboutRef: "Un ID de registro de: {what}", about_yes: "sí o no", about_num: "Un número, como 1250.50", about_int: "Un número entero", about_date: "Una fecha, como 2026-11-16", about_text: "Texto",
+  leftOut: "No están en la plantilla, porque la aplicación los llena sola u otra página los cambia:",
+  out_createdAt: "Cuándo se hizo y se cambió.", out_phoneDigits: "Los dígitos del teléfono.", out_streetKey: "Los dígitos del teléfono del contacto en el sitio, la clave de la dirección.", out_noteSource: "Cómo y quién la escribió.",
+  out_leadOut: "De dónde vino (siempre Importado), estado, motivo, recibido, primer contacto, y la cuenta, la oportunidad y el trabajo que resultaron.", out_oppOut: "Número, etapa, precio, inspección, inspector, enviada, firmada, perdida y la firma del cliente.",
+  out_jobOut: "Número, etapa, los días agregados a mano, los trabajadores extra, Cambió y Visto, y las fechas de empezado, terminado, factura enviada y pagado.", out_coOut: "Número, estado, enviada, firmada y firmada por.", out_payOut: "Número de recibo y quién lo registró.",
+  out_workerOut: "Equipo: un trabajador extra no pertenece a ningún equipo.", out_priceOut: "Fecha del cambio y el archivo de precios de donde vino: la lista de precios guarda su propio historial.", out_pickOut: "La clave del valor.", out_typeOut: "La clave del tipo.",
+  impSub: "Una fila es un registro y una columna es un campo, con el nombre clave del campo como encabezado. Una fila apunta a otro registro con el ID de ese registro (account_id, job_id ...), como los muestra la exportación. Usted empareja las columnas y revisa las filas antes de que se guarde algo.",
+  step1: "1. Descargue la plantilla, o los registros como están ahora", what: "Qué hace el archivo",
+  act_insert: "Agregar nuevos: cada fila agrega un registro. Deje vacía la columna id.", act_update: "Actualizar existentes: cada fila cambia el registro cuyo ID está en la columna id. Una celda vacía deja ese campo como está.",
+  act_insertShort: "Agregar nuevos", act_updateShort: "Actualizar existentes",
+  ruleAdd: "Agregar nuevos: deje vacía la columna id. Los campos marcados como obligatorios en la plantilla deben llenarse.",
+  ruleUpdate: "Actualizar existentes: la columna id dice qué registro cambia cada fila. Solo cambian las celdas que tienen algo: una celda vacía deja ese campo como está.",
+  ruleCheck: "Cada fila se revisa como la revisa la página del registro. Una fila con un problema se deja fuera y se muestra, y no se guarda nada de ella.", ruleLead: "Prospectos: el origen de cada prospecto nuevo es Importado.",
+  standIn: "En la maqueta, este tipo de registro se revisa pero no cambia en la página. La aplicación lo guarda.",
+  needId: "El ID del registro está vacío. Cada fila de una actualización necesita el ID del registro que cambia.", twice: "La fila {row} tiene el mismo ID de registro. Ponga cada registro en una sola fila.", noId: "ID del registro: ningún registro tiene ese ID.",
+  idOnAdd: "ID del registro: déjelo vacío para agregar un registro nuevo. Para cambiar un registro, elija “Actualizar existentes”.", empty: "{field} está vacío.", notAllowed: "{field}: no es uno de los valores permitidos.", yesNo: "{field}: escriba sí o no.",
+  notNumber: "{field}: no es un número.", notDate: "{field}: no es una fecha como 2026-11-16.", noRef: "{field}: ningún registro tiene ese ID.", parent: "{field} no puede cambiar en una actualización: un registro se queda con aquel al que pertenece.",
+  needContact: "Escriba un teléfono o un correo electrónico, para que alguien pueda contestar.", locked: "Lo que pidieron: son las palabras del cliente y no se pueden cambiar.",
+  emptyCell: "Una celda vacía deja ese campo como está.", toUpdate: "Para actualizar", toAdd: "Para agregar", nothing: "Nada que cambiar", recordId: "ID del registro", whatChanges: "Qué cambia", noChanges: "Ningún registro cambia.",
+  sameHelp: "Estos registros ya tienen los valores del archivo. Se omiten. Filas:", problemHelp: "Estas se dejan fuera y no se guarda nada de ellas. Corríjalas en el archivo e impórtelo otra vez, o déjelas.",
+  sameMsg: "Nada que cambiar: el registro ya tiene estos valores.", createdMsg: "Creado.", updatedMsg: "Actualizado.", notSavedHere: "Revisado. En la maqueta no se guarda; la aplicación lo guarda.",
+  summary: "{created} nuevos, {updated} actualizados, {skipped} omitidos, {failed} fallidos", res_created: "Creado", res_updated: "Actualizado", res_skipped: "Omitido", res_failed: "No importado",
+  group: "Registros por ID: agregar nuevos o actualizar"
+} });
+Object.assign(I18N.en.log, { objAdded: "Added by the data import: {detail}", objEdited: "Changed by the data import: {detail}" });
+Object.assign(I18N.es.log, { objAdded: "Agregado por la importación de datos: {detail}", objEdited: "Cambiado por la importación de datos: {detail}" });
 
 /* ---------- start ---------- */
 new bootstrap.Tooltip(document.body, { selector: '[data-bs-toggle="tooltip"]' });   // Bootstrap tooltips on chart bars
