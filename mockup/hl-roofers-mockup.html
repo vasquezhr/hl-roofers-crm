@@ -875,12 +875,12 @@ const SETUP_LOG = [];
 function addSetupLog(key, vars) { SETUP_LOG.unshift({ d: new Date(), w: me(), k: key, v: vars }); }
 
 /* ---------- what the login being viewed may do (Admin > Users and permissions) ---------- */
-// The Admin profile has every permission set. An Office login has the sets switched on for it, and
-// an Edit permission for each kind of record. A crew login edits and deletes nothing.
+// The login's profile's ticks, plus the ticks of its permission sets (PROFILES, near the end of this script; as in the app).
+// can("delete"): a permission set's name asks whether the login has everything that set adds; mayEdit("job"): the Edit tick.
 const loginOf = () => (typeof USERS === "undefined" ? null : USERS.find(u => u.id === me()));
-const can = set => S.role === "admin" || (!isCrew() && !!loginOf() && loginOf().sets.includes(set));
-const isCrewLead = () => isCrew() && !!loginOf() && loginOf().sets.includes("crewLead");     // a crew login: start, finish, payments, extra workers
-const mayEdit = kind => S.role === "admin" || (S.role === "office" && !!loginOf() && loginOf().edit.includes(kind));
+const can = set => profCan(set);
+const isCrewLead = () => isCrew() && profCan("crewLead");     // a crew login: start, finish, payments, extra workers
+const mayEdit = kind => sees((KIND_TICK[kind] || kind) + ".edit");
 
 /* ---------- icons (inline drawings, so the file needs no icon font) ---------- */
 const ICONS = {
@@ -1323,7 +1323,7 @@ route("account", {
     const addBtn = act => `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="${act}" data-acct="${a.id}">${ic("plus")} ${tt("add")}</button>`;
     const contacts = `<ul class="list-unstyled mb-0">` + a.contacts.map((c, i) =>
       `<li class="mb-2 d-flex gap-2"><div class="flex-grow-1"><div class="fw-semibold">${esc(c.name)} <span class="text-body-secondary fw-normal small">· ${tt("contactRole." + c.role)}${i === 0 ? " · " + tt("accounts.mainContact") : ""}</span></div>` +
-      `<div class="small">${c.phone ? `<a href="${telHref(c.phone)}">${esc(c.phone)}</a>` : ""}${c.email ? ` · <a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ""}</div></div>${pencil("editContact", i, c.name)}</li>`).join("") + `</ul>`;
+      `<div class="small">${c.phone ? `<a href="${telHref(c.phone)}">${esc(c.phone)}</a>` : ""}${c.email && sees("email.see") ? ` · <a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ""}</div></div>${pencil("editContact", i, c.name)}</li>`).join("") + `</ul>`;
     const props = a.props.map((p, i) =>
       `<div class="d-flex align-items-start gap-2 mb-2"><div class="flex-grow-1"><div class="fw-semibold">${esc(p.addr)}</div><div class="small text-body-secondary">${esc(p.city)}` +
       (p.site ? `<br>${tt("siteContact")}: ${esc(p.site.name)}${p.site.phone ? ` · <a href="${telHref(p.site.phone)}">${esc(p.site.phone)}</a>` : ""}` : "") + `</div></div>` + pencil("editProperty", i, p.addr) +
@@ -1334,15 +1334,15 @@ route("account", {
       (can("delete") ? ` · <a href="#" class="link-danger" data-act="askDelete" data-kind="note" data-id="${a.id}:${i}">${tt("bin.delete")}</a>` : "") + `</div>` +
       `<pre class="hl-pre small bg-body-tertiary border rounded p-2 mb-0">${esc(n.text)}</pre></div>`).join("")
       : `<div class="small text-body-secondary">${tt("accounts.noDetails")}</div>`) +
-      field(t("notes.add"), `<textarea class="form-control" id="detailText" rows="3"></textarea>`) +
-      `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="detailSave" data-acct="${a.id}">${tt("notes.save")}</button>`;
+      (sees("note.create") ? field(t("notes.add"), `<textarea class="form-control" id="detailText" rows="3"></textarea>`) +
+      `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="detailSave" data-acct="${a.id}">${tt("notes.save")}</button>` : "");
     return recBack("#accounts", t("nav.accounts")) +
       pageHead(esc(a.name), kindBadge(a) + ` <span class="ms-1">${tt("accounts.since", { y: a.since })}</span>`,
         headTools(editBtn("editAccount", `data-id="${a.id}"`, "account"), delBtn("account", a.id),
           `<button type="button" class="btn btn-primary btn-sm text-nowrap" data-act="newOpp" data-acct="${a.id}">${ic("plus")} ${tt("opps.new")}</button>`)) +
       `<div class="mb-3">${contactBtns({ phone: a.contacts[0].phone, first: firstName(a), lang: a.lang, place: a.props[0], kind: "acct", id: a.id })}</div>` +
       `<div class="row g-3"><div class="col-lg-6">` + section(tt("accounts.contacts"), contacts, addBtn("contactNew"), "contacts") + section(tt("accounts.properties"), props, addBtn("propertyNew"), "properties") +
-      `</div><div class="col-lg-6">` + section(tt("accounts.details"), details, "", "details") + `</div></div>` +
+      `</div><div class="col-lg-6">` + (sees("note.see") ? section(tt("accounts.details"), details, "", "details") : "") + `</div></div>` +
       section(tt("nav.opps"), opps.length ? `<div class="list-group list-group-flush">${opps.map(oppRow).join("")}</div>` : `<div class="small text-body-secondary">${tt("none")}</div>`, "", "opps") +
       section(tt("nav.jobs"), jobs.length ? `<div class="list-group list-group-flush">${jobs.map(jobRow).join("")}</div>` : `<div class="small text-body-secondary">${tt("none")}</div>`, "", "jobs") +
       filesCard(a, "acct") + documentsCard(opps, jobs) +
@@ -2156,14 +2156,15 @@ jobOf("26-112").notes = [{ d: (() => { const x = new Date(TODAY); x.setHours(9, 
   text: "Found 6 more sheets of rotted plywood at tear-off, on the back slope. Photos sent to the office." }];
 JOBS.forEach(j => { j.notes = j.notes || []; });
 function notesCard(j) {
+  if (!sees("job_notes.see")) return "";                       // Profiles: Notes on a job, Can see
   const list = j.notes.slice().sort((a, b) => b.d - a.d);
   return section(tt("notes.title"), (list.length ? list.map(n =>
       `<div class="border-bottom pb-2 mb-2"><div class="small text-body-secondary">${esc(fmtStamp(n.d))} · ${esc(whoName(n.w))}` +
       (n.forCrew && !isCrew() ? ` <span data-note-read>${n.read ? badge(t("notes.readBy", { who: whoName(n.read.w), when: fmtStamp(n.read.d) }), "success") : badge(t("notes.notRead"), "secondary")}</span>` : "") +
       `</div><div class="hl-pre">${esc(n.text)}</div></div>`).join("")
       : `<div class="small text-body-secondary mb-2">${tt("notes.none")}</div>`) +
-    field(t(isCrew() ? "notes.addCrew" : "notes.add"), `<textarea class="form-control" id="noteText" rows="3"></textarea><div class="form-text">${tt(isCrew() ? "notes.hintCrew" : "notes.hintOffice")}</div>`) +
-    `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="noteSave" data-id="${j.id}">${tt("notes.save")}</button>`, "", "notes");
+    (sees("job_notes.edit") ? field(t(isCrew() ? "notes.addCrew" : "notes.add"), `<textarea class="form-control" id="noteText" rows="3"></textarea><div class="form-text">${tt(isCrew() ? "notes.hintCrew" : "notes.hintOffice")}</div>`) +
+    `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="noteSave" data-id="${j.id}">${tt("notes.save")}</button>` : ""), "", "notes");
 }
 ACT.noteSave = d => {
   const j = jobOf(d.id), text = val("noteText");
@@ -2173,7 +2174,7 @@ ACT.noteSave = d => {
 };
 // Nov 16: a note from the office pops up for the job's crew on My Day, My Jobs and the job, until the crew lead taps Got it.
 // Several unread notes: one pop-up, newest first, one Got it for all. A note the crew wrote never pops up for it.
-const unreadNotes = jobId => myJobs().filter(j => !jobId || j.id === jobId).flatMap(j => j.notes.filter(n => n.forCrew && !n.read).map(n => ({ j, n }))).sort((a, b) => b.n.d - a.n.d);
+const unreadNotes = jobId => !sees("job_notes.see") ? [] : myJobs().filter(j => !jobId || j.id === jobId).flatMap(j => j.notes.filter(n => n.forCrew && !n.read).map(n => ({ j, n }))).sort((a, b) => b.n.d - a.n.d);
 let POPPED = [];
 function notePopup(name, arg) {
   if (!isCrew() || !["myday", "myjobs", "job"].includes(name)) return;
@@ -3331,80 +3332,24 @@ ACT.csv = d => {
    ===================================================================== */
 
 /* ------------------------------ USERS AND PERMISSIONS ------------------------------ */
-// One profile per login sets the baseline. Permission sets add to it: the first six are for an Office login,
-// Crew Lead is for a Crew login. The Admin profile has all of them. An Office login also has an Edit permission
-// for each kind of record (Salesforce calls these object permissions). There is no limit on the number of logins.
+// One profile per login sets what it may do: a list of ticks, the same list on every profile (PROFILES, near the end of this script).
+// Permission sets add ticks to one login: Crew Lead on a crew login, the others on any other. There is no limit on the number of logins.
 const PSETS = ["priceBook", "costs", "billing", "dataEditor", "inspector", "delete", "crewLead"];
 const OFFICE_SETS = PSETS.filter(s => s !== "crewLead");
-const EDIT_KINDS = ["lead", "account", "contact", "property", "note", "opp", "job", "co", "payment"];
 const USERS = [
-  { id: "admin", login: "admin", profile: "admin", sets: [], edit: EDIT_KINDS.slice(), active: true, last: hoursAgo(1) },
-  { id: "office", login: "office", profile: "office", sets: ["billing", "priceBook"], edit: EDIT_KINDS.slice(), active: true, last: hoursAgo(0.3) },
-  { id: "owner", login: "owner", profile: "office", sets: ["billing", "priceBook", "dataEditor", "inspector", "delete"], edit: EDIT_KINDS.slice(), active: true, last: hoursAgo(20) },
-  { id: "c1", login: "crew1", profile: "crew", crew: "c1", sets: ["crewLead"], edit: [], active: true, last: hoursAgo(2) },
-  { id: "c2", login: "crew2", profile: "crew", crew: "c2", sets: ["crewLead"], edit: [], active: true, last: hoursAgo(3) }
+  { id: "admin", login: "admin", profile: "admin", sets: [], active: true, last: hoursAgo(1) },
+  { id: "office", login: "office", profile: "office", sets: ["billing", "priceBook"], active: true, last: hoursAgo(0.3) },
+  { id: "owner", login: "owner", profile: "office", sets: ["billing", "priceBook", "dataEditor", "inspector", "delete"], active: true, last: hoursAgo(20) },
+  { id: "c1", login: "crew1", profile: "crew", crew: "c1", sets: ["crewLead"], active: true, last: hoursAgo(2) },
+  { id: "c2", login: "crew2", profile: "crew", crew: "c2", sets: ["crewLead"], active: true, last: hoursAgo(3) }
 ];
 const userName = u => (u.crew ? crewName(crewOf(u.crew)) + ` <span class="text-body-secondary fw-normal">· ${tt("users.shared")}</span>`
-  : u.name ? esc(u.name) : tt("users.n_" + u.id));
+  : u.name ? esc(u.name) : pick(I18N.en, "users.n_" + u.id) ? tt("users.n_" + u.id) : esc(u.login));     // a login added here with no name: its login
 ADMIN_PAGES.push({
   id: "users", icon: "accounts", title: "users.title", desc: "users.desc",
-  render() {
-    const prof = p => section(tt("role3." + p), dl([[tt("users.sees"), tt("users." + p + "Sees")], [tt("users.does"), tt("users." + p + "Does")], [tt("users.cannot"), tt("users." + p + "Cannot")]]));
-    const editLine = u => (u.profile !== "office" ? "" : `<div class="text-body-secondary mt-1">${tt("users.editLine")}: ${u.edit.length === EDIT_KINDS.length ? tt("users.editAll") : u.edit.length ? u.edit.map(k => tt("editKind." + k)).join(", ") : tt("none")}</div>`);
-    return pageHead(tt("users.title"), tt("users.sub"), `<button type="button" class="btn btn-primary btn-sm text-nowrap" data-act="userEdit" data-id="">${ic("plus")} ${tt("users.add")}</button>`) +
-      `<div class="card shadow-sm mb-3"><div class="table-responsive"><table class="table align-middle small mb-0"><thead><tr><th class="ps-3">${tt("users.user")}</th><th>${tt("users.profile")}</th><th>${tt("users.sets")}</th><th class="text-nowrap">${tt("users.last")}</th><th></th></tr></thead><tbody>` +
-      USERS.map(u => `<tr${u.active ? "" : ' class="text-body-secondary"'}><td class="ps-3"><span class="fw-semibold">${userName(u)}</span><br><span class="text-body-secondary">${esc(u.login)}</span>${u.active ? "" : " " + badge(t("users.off"), "secondary")}</td>` +
-        `<td>${badge(t("role3." + u.profile), u.profile === "admin" ? "primary" : "secondary")}</td>` +
-        `<td>${u.profile === "admin" ? `<span class="text-body-secondary">${tt("users.everything")}</span>` : u.sets.map(s => badge(t("pset." + s), "info")).join(" ") || `<span class="text-body-secondary">${tt("none")}</span>`}${editLine(u)}</td>` +
-        `<td class="text-nowrap">${u.last ? esc(fmtStamp(u.last)) : `<span class="text-body-secondary">${tt("users.never")}</span>`}</td>` +
-        `<td class="text-end pe-3"><button type="button" class="btn btn-outline-secondary btn-sm" data-act="userEdit" data-id="${u.id}">${ic("edit")} ${tt("docs.edit")}</button></td></tr>`).join("") +
-      `</tbody></table></div></div>` +
-      `<h2 class="h6 mt-4 mb-2">${tt("users.profiles")}</h2><div class="row g-3"><div class="col-lg-4">${prof("admin")}</div><div class="col-lg-4">${prof("office")}</div><div class="col-lg-4">${prof("crew")}</div></div>` +
-      section(tt("users.rules"), `<ul class="small mb-0 ps-3"><li>${tt("users.rule1")}</li><li>${tt("users.rule2")}</li><li>${tt("users.rule3")}</li><li>${tt("users.rule4")}</li><li>${tt("users.rule5")}</li></ul>`);
-  }
+  render() { return usersRender(); }          // the logins, then the profiles: see PROFILES WITH ONE TICK LIST, near the end of this script
 });
-// Add a login, or change one: its name, profile, crew, password, permission sets and Edit permissions.
-ACT.userEdit = d => {
-  const u = USERS.find(x => x.id === d.id) || { id: "", login: "", name: "", profile: "office", sets: [], edit: EDIT_KINDS.slice(), active: true };
-  const sw = (id, on, label, help) => `<div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" role="switch" id="${id}"${on ? " checked" : ""}>` +
-    `<label class="form-check-label" for="${id}"><span class="fw-semibold">${label}</span>${help ? `<br><span class="small text-body-secondary">${help}</span>` : ""}</label></div>`;
-  openModal(modalShell(u.id ? userName(u) : tt("users.add"),
-    `<p class="small text-body-secondary">${tt("users.formHint")}</p>` +
-    `<div class="row g-2"><div class="col-sm-6">${field(t("users.login"), `<input class="form-control" id="ueLogin" value="${esc(u.login)}" autocomplete="off">`)}</div>` +
-    `<div class="col-sm-6">${field(t("users.name"), `<input class="form-control" id="ueName" value="${esc(u.name || "")}" autocomplete="off">`)}</div></div>` +
-    field(t("users.password"), `<input type="password" class="form-control" id="uePass" autocomplete="new-password"><div class="form-text">${tt(u.id ? "users.passwordKeep" : "users.passwordNew")}</div>`) +
-    `<div class="row g-2"><div class="col-sm-6">${field(t("users.profile"), `<select class="form-select" id="ueProfile" data-change="userProfile">${["admin", "office", "crew"].map(p => `<option value="${p}"${p === u.profile ? " selected" : ""}>${tt("role3." + p)}</option>`).join("")}</select>`)}</div>` +
-    `<div class="col-sm-6" id="ueCrewBox">${field(t("crew"), `<select class="form-select" id="ueCrew">${CREWS.map(c => `<option value="${c.id}"${c.id === u.crew ? " selected" : ""}>${esc(crewName(c))}</option>`).join("")}</select>`)}</div></div>` +
-    sw("ueActive", u.active, tt("users.active"), tt("users.activeD")) +
-    `<div id="ueOffice"><div class="small fw-semibold mt-3 mb-1">${tt("users.editLine")}</div><div class="row row-cols-2 g-0 mb-1">` +
-    EDIT_KINDS.map(k => `<div class="col"><div class="form-check"><input class="form-check-input" type="checkbox" id="ee_${k}"${u.edit.includes(k) ? " checked" : ""}><label class="form-check-label small" for="ee_${k}">${tt("editKind." + k)}</label></div></div>`).join("") +
-    `</div><div class="form-text mb-3">${tt("users.editHelp")}</div>` +
-    OFFICE_SETS.map(s => sw("ps_" + s, u.sets.includes(s), tt("pset." + s), tt("psetD." + s))).join("") + `</div>` +
-    `<div id="ueCrewSets">${sw("ps_crewLead", u.sets.includes("crewLead") || !u.id, tt("pset.crewLead"), tt("psetD.crewLead"))}</div>`,
-    cancelBtn() + `<button type="button" class="btn btn-primary" data-act="userSave" data-id="${u.id}">${tt("save")}</button>`));
-  ACT.userProfile();
-};
-ACT.userProfile = () => {               // show what fits the profile picked
-  const p = val("ueProfile");
-  $("#ueCrewBox").classList.toggle("d-none", p !== "crew");
-  $("#ueOffice").classList.toggle("d-none", p !== "office");
-  $("#ueCrewSets").classList.toggle("d-none", p !== "crew");
-};
-ACT.userSave = d => {
-  const login = val("ueLogin"), pass = $("#uePass").value, profile = val("ueProfile");
-  const bad = id => { $(id).classList.add("is-invalid"); };
-  if (!/^[\w.@+-]+$/.test(login) || USERS.some(x => x.login === login && x.id !== d.id)) return bad("#ueLogin");
-  if ((!d.id && pass.length < 10) || (pass && pass.length < 10)) return bad("#uePass");
-  let u = USERS.find(x => x.id === d.id);
-  const isNew = !u;
-  if (isNew) { u = { id: "u" + (USERS.length + 1), last: null }; USERS.push(u); }
-  Object.assign(u, { login, name: val("ueName"), profile, active: $("#ueActive").checked, crew: profile === "crew" ? val("ueCrew") : null,
-    sets: profile === "office" ? OFFICE_SETS.filter(s => $("#ps_" + s).checked) : profile === "crew" && $("#ps_crewLead").checked ? ["crewLead"] : [],
-    edit: profile === "admin" ? EDIT_KINDS.slice() : profile === "office" ? EDIT_KINDS.filter(k => $("#ee_" + k).checked) : [] });
-  addSetupLog(isNew ? "log.loginAdded" : "log.loginChanged", { name: u.name || u.login });
-  if (pass && !isNew) addSetupLog("log.passwordChanged", { name: u.name || u.login });    // the password itself is never written down
-  closeModal(); toast(t(isNew ? "users.added" : "saved")); render();
-};
+// Add a login, or change one (ACT.userEdit, ACT.userSave): also near the end, with the profiles.
 
 /* ------------------------------ AUTOMATIONS ------------------------------ */
 // Ready-made automations with an on/off switch. "always" cannot be turned off.
@@ -4742,6 +4687,278 @@ Object.assign(I18N.es, { obj: {
 } });
 Object.assign(I18N.en.log, { objAdded: "Added by the data import: {detail}", objEdited: "Changed by the data import: {detail}" });
 Object.assign(I18N.es.log, { objAdded: "Agregado por la importación de datos: {detail}", objEdited: "Cambiado por la importación de datos: {detail}" });
+
+/* =====================================================================
+   PROFILES WITH ONE TICK LIST (Nov 16, 2026, the user's item 7), as in the app (permissions.py):
+   every profile has the same list of settings, ticked for that profile, and Admin can add a profile as a copy of another.
+     Object access        See / Create / Edit / Delete for each kind of record     Salesforce: object permissions
+     Sections and fields  Can see / Can edit                                       Salesforce: field-level security
+     Pages and actions    the pages a login opens and the buttons it may press    Salesforce: tab and system permissions
+   Permission sets add ticks to one login, on top of its profile. The three profiles start with the ticks that do what
+   Admin, Office and Crew did before. The "View as" switch picks the login; its profile decides what it may do.
+   ===================================================================== */
+const P_OBJECTS = ["lead", "account", "contact", "property", "note", "opportunity", "job", "change_order", "payment", "file"];
+const P_ACTIONS = ["see", "create", "edit", "delete"];
+const P_SECTIONS = [["money", true], ["costs", false], ["email", true], ["job_notes", true], ["history", false]];
+const P_PAGES = ["today", "dashboard", "reports", "schedule", "search", "my_day", "price_book", "data_editor", "export_data", "import_data", "company", "setup", "setup_history", "status", "users", "admin_site"];
+const P_DOS = ["convert_lead", "send_proposal", "close_opps", "send_invoice", "job_steps", "job_workers", "confirm_changes", "change_stages", "inspect", "billing", "purge"];
+const objTicks = k => P_ACTIONS.filter(a => !(a === "edit" && k === "file")).map(a => k + "." + a);
+const EVERY_TICK = [].concat(...P_OBJECTS.map(objTicks), ["own_jobs"], ...P_SECTIONS.map(([k, e]) => e ? [k + ".see", k + ".edit"] : [k + ".see"]), P_PAGES, P_DOS);
+const KIND_TICK = { opp: "opportunity", co: "change_order" };        // the mockup's own short names for two kinds of record
+const SET_TICKS = { priceBook: ["price_book"], costs: ["costs.see"], billing: ["billing"], dataEditor: ["data_editor"], inspector: ["inspect"],
+  delete: P_OBJECTS.map(k => k + ".delete"), changeStages: ["change_stages"], crewLead: ["job_steps", "job_workers", "confirm_changes", "payment.create"] };
+const officeTicks = [].concat(...P_OBJECTS.map(objTicks)).filter(x => !x.endsWith(".delete"))
+  .concat(["money.see", "money.edit", "email.see", "email.edit", "job_notes.see", "job_notes.edit", "history.see", "today", "reports", "schedule", "search",
+    "convert_lead", "send_proposal", "close_opps", "send_invoice", "job_steps", "job_workers"]);
+const PROFILES = [
+  { id: "admin", name: { en: "Administrator", es: "Administrador" }, ticks: EVERY_TICK.filter(x => !["own_jobs", "my_day", "billing"].includes(x)) },
+  { id: "office", name: { en: "Office", es: "Oficina" }, ticks: officeTicks },
+  { id: "crew", name: { en: "Crew", es: "Equipo" }, ticks: ["job.see", "change_order.see", "payment.see", "file.see", "file.create", "own_jobs", "money.see",
+    "job_notes.see", "job_notes.edit", "history.see", "search", "my_day"] }
+];
+const profileOf = id => PROFILES.find(p => p.id === id);
+const profName = p => (p ? p.name[S.lang] || p.name.en : "");
+// a tick counts only with what it needs: Create, Edit and Delete need See; a section's Can edit needs Can see; change orders and payments need money
+function counts(set, x) {
+  if (!set.has(x)) return false;
+  const [first, action] = x.split(".");
+  if (action && action !== "see" && !set.has(first + ".see")) return false;
+  return !(["change_order", "payment"].includes(first) && !set.has("money.see"));
+}
+const crewLogin = u => !!u && counts(new Set((profileOf(u.profile) || { ticks: [] }).ticks), "my_day");
+function ticksOf(u) {
+  const out = new Set(u ? (profileOf(u.profile) || { ticks: [] }).ticks : []);
+  (u ? u.sets : []).filter(s => crewLogin(u) ? s === "crewLead" : s !== "crewLead").forEach(s => SET_TICKS[s].forEach(x => out.add(x)));
+  return out;
+}
+function sees(x) { const u = typeof USERS === "undefined" ? null : loginOf(); return counts(ticksOf(u), x); }
+function profCan(set) {
+  if (set === "delete") return P_OBJECTS.some(k => sees(k + ".delete"));
+  return (SET_TICKS[set] || [set]).every(sees);
+}
+// someone must always be able to fix the logins: an active login whose profile has Manage logins and profiles
+const managersIf = (users, profiles) => users.filter(u => u.active && counts(new Set((profiles.find(p => p.id === u.profile) || { ticks: [] }).ticks), "users"));
+
+/* ---------- words ---------- */
+const PROF = {
+  en: { prof: {
+    title: "What each profile allows", sub: "Every profile has the same list of ticks: what it may see, create, edit and delete, which sections it sees, and which pages and actions it has. Open one to change its ticks.",
+    add: "Add a profile", logins: "{n} logins", oneLogin: "1 login", everything: "Everything", open: "Open", same: "Every profile has this same list. Tick what a login on this profile may do.",
+    nameEn: "Name in English", nameEs: "Name in Spanish", copyOf: "Start as a copy of", copyHint: "The new profile starts with the same ticks. Change them on the next page.",
+    objects: "Object access", objectsHint: "For each kind of record: see it, create it, change it on its Edit page, and delete it. Create, Edit and Delete count only with See. Change orders and payments also need See of Prices and money.",
+    kind: "Kind of record", fields: "Sections and fields", fieldsHint: "A section the profile cannot see is left out of every page, search, report, export and the Data editor. Can edit counts only with Can see.",
+    section: "Section or field", canSee: "Can see", canEdit: "Can edit", pages: "Pages and actions", pagesHead: "Pages", actionsHead: "Actions",
+    a: { see: "See", create: "Create", edit: "Edit", delete: "Delete" },
+    o: { lead: "Leads", account: "Accounts", contact: "Contacts", property: "Properties", note: "Notes in Details", opportunity: "Opportunities", job: "Jobs",
+      change_order: "Change orders", payment: "Payments", file: "Photos and files" },
+    means: { job: "Create: New warranty job", payment: "Create: Record payment", file: "Create: Add photos and files" },
+    own_jobs: "Only jobs scheduled to their crew", own_jobsD: "Jobs, and everything on them, only when the job is on this login's crew. Unticked, the login sees every job.",
+    s: { money: "Prices and money", costs: "Costs and margins", email: "Customer's email", job_notes: "Notes on a job", history: "History" },
+    sD: { money: "Prices, totals, change orders, payments, balances, and the proposals, invoices and receipts. Can edit: the price on the Edit pages.",
+      costs: "Supplier costs and the margin: when writing a proposal, in the Price Book and in the exports.",
+      email: "The email address of a customer, a contact and a lead, on every page, in search, the exports and the Data editor.",
+      job_notes: "The notes the office and the crews write on a job, the crews' notes on Today and the pop-up for the crew. Can edit: add a note.",
+      history: "The History of a lead, an account, an opportunity and a job: who changed what, and when." },
+    p: { today: "Today", dashboard: "Dashboard", reports: "Reports", schedule: "Schedule", search: "Search", my_day: "My Day and My Jobs", price_book: "Manage the Price Book",
+      data_editor: "Data editor", export_data: "Templates and exports", import_data: "Import data", company: "Company details, colors and icon",
+      setup: "Types of work, pick lists and automations", setup_history: "Setup history", status: "System status and logs", users: "Manage logins and profiles", admin_site: "The admin site",
+      convert_lead: "Convert leads, or mark them Not a fit", send_proposal: "Write and send proposals", close_opps: "Mark opportunities signed or lost",
+      send_invoice: "Create and send invoices, and email receipts", job_steps: "Start and finish jobs", job_workers: "Change the extra workers on a job",
+      confirm_changes: "Confirm changes with Got it", change_stages: "Change stage", inspect: "Take inspections", billing: "The email when a job is done", purge: "Delete for good" },
+    pD: { my_day: "The crew's own pages. A login with them belongs to a crew: it needs a crew picked, opens on My Day, and the office's notes pop up for it.",
+      users: "Add and change logins, profiles and permission sets. At least one active login always keeps this.", job_steps: "A crew login: only on its own jobs." },
+    loginsOn: "Logins on this profile", noLogins: "No login uses this profile.", del: "Delete the profile", delAsk: "Delete this profile? This cannot be undone.",
+    inUse: "A login uses this profile. Give each of its logins another profile first.", taken: "Another profile already has this name.",
+    lockout: "No active login would still be able to manage logins and profiles, so nobody could fix the logins. Give that tick to another login's profile first, or keep it here.",
+    lastManager: "This is the only active login that can manage logins and profiles. Give another login that first.",
+    added: "Profile added. Tick what it may do, then save.", deleted: "Profile deleted", copyBtn: "Copy this profile",
+    setsTitle: "Permission sets", setsHint: "Switched on for one login (on its own page), a set adds these ticks to that login, on top of its profile.",
+    formHint: "Each login has one profile, which sets what it may do (What each profile allows, below the logins). Permission sets add ticks to it, for this login only: Crew Lead on a login whose profile has My Day and My Jobs, the others on any other login.",
+    yes: "yes", no: "no", copyOfName: "a copy of {name}" },
+    log: { profileAdded: "Profile added: {detail}", profileTicks: "Profile ticks changed: {detail}", profileRenamed: "Profile renamed: {detail}", profileDeleted: "Profile deleted: {detail}" } },
+  es: { prof: {
+    title: "Qué permite cada perfil", sub: "Cada perfil tiene la misma lista de marcas: lo que puede ver, crear, editar y eliminar, qué secciones ve, y qué páginas y acciones tiene. Abra uno para cambiar sus marcas.",
+    add: "Agregar un perfil", logins: "{n} usuarios", oneLogin: "1 usuario", everything: "Todo", open: "Abrir", same: "Cada perfil tiene esta misma lista. Marque lo que puede hacer un usuario con este perfil.",
+    nameEn: "Nombre en inglés", nameEs: "Nombre en español", copyOf: "Empezar como copia de", copyHint: "El nuevo perfil empieza con las mismas marcas. Cámbielas en la página siguiente.",
+    objects: "Acceso a los registros", objectsHint: "Para cada tipo de registro: verlo, crearlo, cambiarlo en su página de Editar, y eliminarlo. Crear, Editar y Eliminar cuentan solo con Ver. Las órdenes de cambio y los pagos también necesitan Ver de Precios y dinero.",
+    kind: "Tipo de registro", fields: "Secciones y campos", fieldsHint: "Una sección que el perfil no puede ver queda fuera de todas las páginas, búsquedas, reportes, exportaciones y del Editor de datos. Puede editar cuenta solo con Puede ver.",
+    section: "Sección o campo", canSee: "Puede ver", canEdit: "Puede editar", pages: "Páginas y acciones", pagesHead: "Páginas", actionsHead: "Acciones",
+    a: { see: "Ver", create: "Crear", edit: "Editar", delete: "Eliminar" },
+    o: { lead: "Prospectos", account: "Cuentas", contact: "Contactos", property: "Propiedades", note: "Notas en Detalles", opportunity: "Oportunidades", job: "Trabajos",
+      change_order: "Órdenes de cambio", payment: "Pagos", file: "Fotos y archivos" },
+    means: { job: "Crear: Trabajo de garantía nuevo", payment: "Crear: Registrar pago", file: "Crear: Agregar fotos y archivos" },
+    own_jobs: "Solo los trabajos agendados a su equipo", own_jobsD: "Los trabajos, y todo lo que tienen, solo cuando el trabajo es del equipo de este usuario. Sin marcar, el usuario ve todos los trabajos.",
+    s: { money: "Precios y dinero", costs: "Costos y márgenes", email: "Correo del cliente", job_notes: "Notas en un trabajo", history: "Historial" },
+    sD: { money: "Precios, totales, órdenes de cambio, pagos, saldos, y las propuestas, facturas y recibos. Puede editar: el precio en las páginas de Editar.",
+      costs: "Los costos del proveedor y el margen: al escribir una propuesta, en la lista de precios y en las exportaciones.",
+      email: "El correo de un cliente, un contacto y un prospecto, en todas las páginas, en la búsqueda, las exportaciones y el Editor de datos.",
+      job_notes: "Las notas que la oficina y los equipos escriben en un trabajo, las notas de los equipos en Hoy y la ventana para el equipo. Puede editar: agregar una nota.",
+      history: "El Historial de un prospecto, una cuenta, una oportunidad y un trabajo: quién cambió qué, y cuándo." },
+    p: { today: "Hoy", dashboard: "Panel", reports: "Reportes", schedule: "Agenda", search: "Buscar", my_day: "Mi día y Mis trabajos", price_book: "Administrar la lista de precios",
+      data_editor: "Editor de datos", export_data: "Plantillas y exportaciones", import_data: "Importar datos", company: "Datos de la compañía, colores e ícono",
+      setup: "Tipos de trabajo, listas de opciones y automatizaciones", setup_history: "Historial de configuración", status: "Estado del sistema y registros", users: "Administrar usuarios y perfiles", admin_site: "El sitio de administración",
+      convert_lead: "Convertir prospectos, o marcarlos No califica", send_proposal: "Escribir y enviar propuestas", close_opps: "Marcar oportunidades firmadas o perdidas",
+      send_invoice: "Crear y enviar facturas, y enviar recibos por correo", job_steps: "Empezar y terminar trabajos", job_workers: "Cambiar los trabajadores extra de un trabajo",
+      confirm_changes: "Confirmar cambios con Enterado", change_stages: "Cambiar etapa", inspect: "Tomar inspecciones", billing: "El correo cuando un trabajo está terminado", purge: "Eliminar para siempre" },
+    pD: { my_day: "Las páginas propias del equipo. Un usuario con ellas pertenece a un equipo: necesita un equipo elegido, abre en Mi día, y las notas de la oficina le aparecen en una ventana.",
+      users: "Agregar y cambiar usuarios, perfiles y permisos adicionales. Al menos un usuario activo siempre conserva esto.", job_steps: "Un usuario de equipo: solo en sus propios trabajos." },
+    loginsOn: "Usuarios con este perfil", noLogins: "Ningún usuario tiene este perfil.", del: "Eliminar el perfil", delAsk: "¿Eliminar este perfil? No se puede deshacer.",
+    inUse: "Un usuario tiene este perfil. Primero dele otro perfil a cada uno de sus usuarios.", taken: "Otro perfil ya tiene este nombre.",
+    lockout: "Ningún usuario activo podría seguir administrando usuarios y perfiles, así que nadie podría arreglar los usuarios. Primero dele esa marca al perfil de otro usuario, o déjela aquí.",
+    lastManager: "Este es el único usuario activo que puede administrar usuarios y perfiles. Primero déselo a otro usuario.",
+    added: "Perfil agregado. Marque lo que puede hacer, y luego guarde.", deleted: "Perfil eliminado", copyBtn: "Copiar este perfil",
+    setsTitle: "Permisos adicionales", setsHint: "Activado para un usuario (en su propia página), un permiso adicional le agrega estas marcas a ese usuario, además de su perfil.",
+    formHint: "Cada usuario tiene un perfil, que define lo que puede hacer (Qué permite cada perfil, debajo de los usuarios). Los permisos adicionales le agregan marcas, solo para este usuario: Líder de equipo en un usuario cuyo perfil tiene Mi día y Mis trabajos, los demás en cualquier otro usuario.",
+    yes: "sí", no: "no", copyOfName: "una copia de {name}" },
+    log: { profileAdded: "Perfil agregado: {detail}", profileTicks: "Perfil: marcas cambiadas: {detail}", profileRenamed: "Perfil renombrado: {detail}", profileDeleted: "Perfil eliminado: {detail}" } }
+};
+for (const lang of ["en", "es"]) deepAssign(I18N[lang], PROF[lang]);
+// a tick in words, for the Setup history: "Jobs: Edit", "Prices and money: Can see", "Schedule"
+function tickName(x) {
+  const [first, action] = x.split(".");
+  if (P_OBJECTS.includes(first) && action) return t("prof.o." + first) + ": " + t("prof.a." + action);
+  if (P_SECTIONS.some(([k]) => k === first) && action) return t("prof.s." + first) + ": " + t(action === "see" ? "prof.canSee" : "prof.canEdit");
+  return x === "own_jobs" ? t("prof.own_jobs") : t("prof.p." + x);
+}
+
+/* ---------- Admin › Users and permissions: the logins, then the profiles ---------- */
+function usersRender() {
+  const everything = p => EVERY_TICK.filter(x => !["own_jobs", "my_day", "billing"].includes(x)).every(x => p.ticks.includes(x));    // every tick the Administrator starts with
+  const loginCount = p => USERS.filter(u => u.profile === p.id).length;
+  return pageHead(tt("users.title"), tt("users.sub"), `<button type="button" class="btn btn-primary btn-sm text-nowrap" data-act="userEdit" data-id="">${ic("plus")} ${tt("users.add")}</button>`) +
+    `<div class="card shadow-sm mb-3"><div class="table-responsive"><table class="table align-middle small mb-0"><thead><tr><th class="ps-3">${tt("users.user")}</th><th>${tt("users.profile")}</th><th>${tt("users.sets")}</th><th class="text-nowrap">${tt("users.last")}</th><th></th></tr></thead><tbody>` +
+    USERS.map(u => { const p = profileOf(u.profile), sets = u.sets.filter(s => crewLogin(u) ? s === "crewLead" : s !== "crewLead");
+      return `<tr${u.active ? "" : ' class="text-body-secondary"'}><td class="ps-3"><span class="fw-semibold">${userName(u)}</span><br><span class="text-body-secondary">${esc(u.login)}</span>${u.active ? "" : " " + badge(t("users.off"), "secondary")}</td>` +
+        `<td>${badge(profName(p), p && everything(p) ? "primary" : "secondary")}</td>` +
+        `<td>${sets.map(s => badge(t("pset." + s), "info")).join(" ") || `<span class="text-body-secondary">${p && everything(p) ? tt("prof.everything") : tt("none")}</span>`}</td>` +
+        `<td class="text-nowrap">${u.last ? esc(fmtStamp(u.last)) : `<span class="text-body-secondary">${tt("users.never")}</span>`}</td>` +
+        `<td class="text-end pe-3"><button type="button" class="btn btn-outline-secondary btn-sm" data-act="userEdit" data-id="${u.id}">${ic("edit")} ${tt("docs.edit")}</button></td></tr>`; }).join("") +
+    `</tbody></table></div></div>` +
+    `<div class="d-flex align-items-center gap-2 mt-4 mb-2"><h2 class="h6 mb-0 flex-grow-1">${tt("prof.title")}</h2>` +
+    `<button type="button" class="btn btn-outline-primary btn-sm text-nowrap" data-act="profileNew" data-id="office">${ic("plus")} ${tt("prof.add")}</button></div>` +
+    `<p class="small text-body-secondary mb-2">${tt("prof.sub")}</p>` +
+    `<div class="list-group shadow-sm mb-3" id="profileList">` + PROFILES.map(p => { const n = loginCount(p);
+      return `<a href="#" class="list-group-item list-group-item-action d-flex align-items-center gap-2" data-act="profileEdit" data-id="${p.id}">` +
+        `<div class="flex-grow-1"><div class="fw-semibold">${esc(profName(p))}</div><div class="small text-body-secondary">${n === 1 ? tt("prof.oneLogin") : tt("prof.logins", { n })}${everything(p) ? " · " + tt("prof.everything") : ""}</div></div>` +
+        `<span class="text-body-secondary">›</span></a>`; }).join("") + `</div>` +
+    section(tt("users.rules"), `<ul class="small mb-0 ps-3"><li>${tt("users.rule1")}</li><li>${tt("users.rule2")}</li><li>${tt("users.rule3")}</li><li>${tt("users.rule4")}</li><li>${tt("users.rule5")}</li><li>${tt("prof.pD.users")}</li></ul>`);
+};
+
+// One profile: its names and the whole list, ticked for it
+const tickBox = (p, x, label) => `<input class="form-check-input" type="checkbox" id="pt_${x.replace(".", "_")}" data-tick="${x}"${p.ticks.includes(x) ? " checked" : ""} aria-label="${esc(label)}">`;
+ACT.profileEdit = d => profileOpen(d.id);
+function profileOpen(id, problem) {          // problem: why a Save was refused, shown at the top
+  const p = profileOf(id), on = USERS.filter(u => u.profile === p.id);
+  const row = (label, cells, help) => `<tr><td>${esc(label)}${help ? ` <span class="text-body-secondary">· ${esc(help)}</span>` : ""}</td>${cells}</tr>`;
+  const objects = `<div class="table-responsive"><table class="table table-sm align-middle small mb-2"><thead><tr><th>${tt("prof.kind")}</th>${P_ACTIONS.map(a => `<th class="text-center">${tt("prof.a." + a)}</th>`).join("")}</tr></thead><tbody>` +
+    P_OBJECTS.map(k => row(t("prof.o." + k), P_ACTIONS.map(a => `<td class="text-center">${a === "edit" && k === "file" ? `<span class="text-body-secondary">—</span>` : tickBox(p, k + "." + a, t("prof.o." + k) + " · " + t("prof.a." + a))}</td>`).join(""),
+      pick(I18N[S.lang], "prof.means." + k) ? t("prof.means." + k) : "")).join("") + `</tbody></table></div>` +
+    `<div class="form-check">${tickBox(p, "own_jobs", t("prof.own_jobs"))}<label class="form-check-label small" for="pt_own_jobs"><span class="fw-semibold">${tt("prof.own_jobs")}</span><br><span class="text-body-secondary">${tt("prof.own_jobsD")}</span></label></div>`;
+  const fields = `<div class="table-responsive"><table class="table table-sm align-middle small mb-0"><thead><tr><th>${tt("prof.section")}</th><th class="text-center">${tt("prof.canSee")}</th><th class="text-center">${tt("prof.canEdit")}</th></tr></thead><tbody>` +
+    P_SECTIONS.map(([k, e]) => `<tr><td><span class="fw-semibold">${tt("prof.s." + k)}</span><br><span class="text-body-secondary">${tt("prof.sD." + k)}</span></td>` +
+      `<td class="text-center">${tickBox(p, k + ".see", t("prof.s." + k) + " · " + t("prof.canSee"))}</td><td class="text-center">${e ? tickBox(p, k + ".edit", t("prof.s." + k) + " · " + t("prof.canEdit")) : `<span class="text-body-secondary">—</span>`}</td></tr>`).join("") + `</tbody></table></div>`;
+  const list = keys => keys.map(x => `<div class="form-check mb-1">${tickBox(p, x, t("prof.p." + x))}<label class="form-check-label small" for="pt_${x}"><span class="fw-semibold">${tt("prof.p." + x)}</span>` +
+    (pick(I18N[S.lang], "prof.pD." + x) ? `<br><span class="text-body-secondary">${tt("prof.pD." + x)}</span>` : "") + `</label></div>`).join("");
+  const sets = Object.keys(SET_TICKS).map(s => `<dt class="col-sm-4">${tt("pset." + s)}</dt><dd class="col-sm-8 mb-1 text-body-secondary">${esc(SET_TICKS[s].map(tickName).join(", "))}</dd>`).join("");
+  openModal(modalShell(esc(profName(p)),
+    (problem ? `<div class="alert alert-danger small" data-problem>${esc(problem)}</div>` : "") +
+    `<p class="small text-body-secondary">${tt("prof.same")}</p>` +
+    `<div class="row g-2"><div class="col-sm-6">${field(t("prof.nameEn"), `<input class="form-control" id="pfNameEn" value="${esc(p.name.en)}">`)}</div><div class="col-sm-6">${field(t("prof.nameEs"), `<input class="form-control" id="pfNameEs" value="${esc(p.name.es)}">`)}</div></div>` +
+    `<h3 class="h6 mt-2 mb-1">${tt("prof.objects")}</h3><p class="small text-body-secondary mb-2">${tt("prof.objectsHint")}</p>${objects}` +
+    `<h3 class="h6 mt-3 mb-1">${tt("prof.fields")}</h3><p class="small text-body-secondary mb-2">${tt("prof.fieldsHint")}</p>${fields}` +
+    `<h3 class="h6 mt-3 mb-2">${tt("prof.pages")}</h3><div class="row g-3"><div class="col-lg-6"><div class="small text-uppercase text-body-secondary fw-semibold mb-1">${tt("prof.pagesHead")}</div>${list(P_PAGES)}</div>` +
+    `<div class="col-lg-6"><div class="small text-uppercase text-body-secondary fw-semibold mb-1">${tt("prof.actionsHead")}</div>${list(P_DOS)}</div></div>` +
+    `<h3 class="h6 mt-3 mb-1">${tt("prof.loginsOn")}</h3>` + (on.length ? `<div class="small mb-2">${on.map(u => userName(u)).join(", ")}</div>` : `<div class="small text-body-secondary mb-2">${tt("prof.noLogins")}</div>`) +
+    `<h3 class="h6 mt-3 mb-1">${tt("prof.setsTitle")}</h3><p class="small text-body-secondary mb-2">${tt("prof.setsHint")}</p><dl class="row small mb-0">${sets}</dl>`,
+    (on.length ? "" : `<button type="button" class="btn btn-outline-danger me-auto" data-act="profileDelete" data-id="${p.id}">${ic("trash")} ${tt("prof.del")}</button>`) +
+    `<button type="button" class="btn btn-outline-secondary" data-act="profileNew" data-id="${p.id}">${ic("plus")} ${tt("prof.copyBtn")}</button>` +
+    cancelBtn() + `<button type="button" class="btn btn-primary" data-act="profileSave" data-id="${p.id}">${tt("save")}</button>`), "lg");
+}
+ACT.profileSave = d => {
+  const p = profileOf(d.id), before = p.ticks.slice();
+  const after = EVERY_TICK.filter(x => { const box = document.querySelector(`#modal [data-tick="${x}"]`); return box ? box.checked : before.includes(x); });
+  const en = val("pfNameEn"), es = val("pfNameEs");
+  if (!en || !es) { $(!en ? "#pfNameEn" : "#pfNameEs").classList.add("is-invalid"); return; }
+  if (PROFILES.some(o => o !== p && (o.name.en.toLowerCase() === en.toLowerCase() || o.name.es.toLowerCase() === es.toLowerCase()))) { $("#pfNameEn").classList.add("is-invalid"); toast(t("prof.taken")); return; }
+  const trial = PROFILES.map(o => (o === p ? { id: o.id, ticks: after } : o));
+  if (!managersIf(USERS, trial).length) return profileOpen(d.id, t("prof.lockout"));      // nobody could fix the logins: refused, and why
+  const was = { en: p.name.en, es: p.name.es };
+  if (was.en !== en || was.es !== es) {
+    p.name = { en, es };
+    addSetupLog("log.profileRenamed", () => ({ detail: (S.lang === "es" ? was.es : was.en) + " · " + (S.lang === "es" ? t("prof.nameEs") + ": " + was.es + " → " + es : t("prof.nameEn") + ": " + was.en + " → " + en) }));
+  }
+  const changed = EVERY_TICK.filter(x => before.includes(x) !== after.includes(x));
+  p.ticks = after;
+  if (changed.length) addSetupLog("log.profileTicks", () => ({ detail: profName(p) + " · " + changed.map(x => tickName(x) + ": " + t(before.includes(x) ? "prof.yes" : "prof.no") + " → " + t(after.includes(x) ? "prof.yes" : "prof.no")).join("; ") }));
+  closeModal(); toast(t("saved")); render();
+};
+// Add a profile: its names, and the profile it starts as a copy of (Salesforce: Clone)
+ACT.profileNew = d => {
+  openModal(modalShell(tt("prof.add"),
+    `<div class="row g-2"><div class="col-sm-6">${field(t("prof.nameEn"), `<input class="form-control" id="pnNameEn">`)}</div><div class="col-sm-6">${field(t("prof.nameEs"), `<input class="form-control" id="pnNameEs">`)}</div></div>` +
+    field(t("prof.copyOf"), `<select class="form-select" id="pnCopy">${PROFILES.map(p => `<option value="${p.id}"${p.id === d.id ? " selected" : ""}>${esc(profName(p))}</option>`).join("")}</select><div class="form-text">${tt("prof.copyHint")}</div>`),
+    cancelBtn() + `<button type="button" class="btn btn-primary" data-act="profileAdd">${tt("save")}</button>`));
+};
+ACT.profileAdd = () => {
+  const en = val("pnNameEn"), es = val("pnNameEs"), from = profileOf(val("pnCopy"));
+  if (!en || !es) { $(!en ? "#pnNameEn" : "#pnNameEs").classList.add("is-invalid"); return; }
+  if (PROFILES.some(o => o.name.en.toLowerCase() === en.toLowerCase() || o.name.es.toLowerCase() === es.toLowerCase())) { $("#pnNameEn").classList.add("is-invalid"); toast(t("prof.taken")); return; }
+  let id = en.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "profile", n = 1;
+  while (profileOf(id)) id = id.replace(/-\d+$/, "") + "-" + (++n);
+  const p = { id, name: { en, es }, ticks: from.ticks.slice() };
+  PROFILES.push(p);
+  addSetupLog("log.profileAdded", () => ({ detail: profName(p) + " · " + t("prof.copyOfName", { name: profName(from) }) }));
+  closeModal(); toast(t("prof.added")); render();
+  setTimeout(() => profileOpen(id), 450);
+};
+ACT.profileDelete = d => {
+  const p = profileOf(d.id);
+  if (USERS.some(u => u.profile === p.id)) return toast(t("prof.inUse"));
+  if (!confirm(t("prof.delAsk"))) return;
+  PROFILES.splice(PROFILES.indexOf(p), 1);
+  addSetupLog("log.profileDeleted", () => ({ detail: profName(p) }));
+  closeModal(); toast(t("prof.deleted")); render();
+};
+
+/* ---------- a login: its profile is any profile; Edit is now a tick of the profile, so the login has no Edit list ---------- */
+ACT.userEdit = d => {
+  const u = USERS.find(x => x.id === d.id) || { id: "", login: "", name: "", profile: "office", sets: [], active: true };
+  const sw = (id, on, label, help) => `<div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" role="switch" id="${id}"${on ? " checked" : ""}>` +
+    `<label class="form-check-label" for="${id}"><span class="fw-semibold">${label}</span>${help ? `<br><span class="small text-body-secondary">${help}</span>` : ""}</label></div>`;
+  openModal(modalShell(u.id ? userName(u) : tt("users.add"),
+    `<p class="small text-body-secondary">${tt("prof.formHint")}</p>` +
+    `<div class="row g-2"><div class="col-sm-6">${field(t("users.login"), `<input class="form-control" id="ueLogin" value="${esc(u.login)}" autocomplete="off">`)}</div>` +
+    `<div class="col-sm-6">${field(t("users.name"), `<input class="form-control" id="ueName" value="${esc(u.name || "")}" autocomplete="off">`)}</div></div>` +
+    field(t("users.password"), `<input type="password" class="form-control" id="uePass" autocomplete="new-password"><div class="form-text">${tt(u.id ? "users.passwordKeep" : "users.passwordNew")}</div>`) +
+    `<div class="row g-2"><div class="col-sm-6">${field(t("users.profile"), `<select class="form-select" id="ueProfile" data-change="userProfile">${PROFILES.map(p => `<option value="${p.id}"${p.id === u.profile ? " selected" : ""}>${esc(profName(p))}</option>`).join("")}</select>`)}</div>` +
+    `<div class="col-sm-6" id="ueCrewBox">${field(t("crew"), `<select class="form-select" id="ueCrew">${CREWS.map(c => `<option value="${c.id}"${c.id === u.crew ? " selected" : ""}>${esc(crewName(c))}</option>`).join("")}</select>`)}</div></div>` +
+    sw("ueActive", u.active, tt("users.active"), tt("users.activeD")) +
+    `<div id="ueOffice">` + OFFICE_SETS.map(s => sw("ps_" + s, u.sets.includes(s), tt("pset." + s), tt("psetD." + s))).join("") + `</div>` +
+    `<div id="ueCrewSets">${sw("ps_crewLead", u.sets.includes("crewLead") || !u.id, tt("pset.crewLead"), tt("psetD.crewLead"))}</div>`,
+    cancelBtn() + `<button type="button" class="btn btn-primary" data-act="userSave" data-id="${u.id}">${tt("save")}</button>`));
+  ACT.userProfile();
+};
+ACT.userProfile = () => {               // a profile with My Day and My Jobs: a crew login, with its crew and the Crew Lead set
+  const crew = crewLogin({ profile: val("ueProfile") });
+  $("#ueCrewBox").classList.toggle("d-none", !crew);
+  $("#ueOffice").classList.toggle("d-none", crew);
+  $("#ueCrewSets").classList.toggle("d-none", !crew);
+};
+ACT.userSave = d => {
+  const login = val("ueLogin"), pass = $("#uePass").value, profile = val("ueProfile"), active = $("#ueActive").checked;
+  const bad = id => { $(id).classList.add("is-invalid"); };
+  if (!/^[\w.@+-]+$/.test(login) || USERS.some(x => x.login === login && x.id !== d.id)) return bad("#ueLogin");
+  if ((!d.id && pass.length < 10) || (pass && pass.length < 10)) return bad("#uePass");
+  let u = USERS.find(x => x.id === d.id);
+  if (u && !managersIf(USERS.map(x => (x === u ? { ...x, profile, active } : x)), PROFILES).length) { toast(t("prof.lastManager")); return bad("#ueProfile"); }
+  const isNew = !u, crew = crewLogin({ profile });
+  if (isNew) { u = { id: "u" + (USERS.length + 1), last: null }; USERS.push(u); }
+  Object.assign(u, { login, name: val("ueName"), profile, active, crew: crew ? val("ueCrew") : null,
+    sets: crew ? ($("#ps_crewLead").checked ? ["crewLead"] : []) : OFFICE_SETS.filter(s => $("#ps_" + s).checked) });
+  addSetupLog(isNew ? "log.loginAdded" : "log.loginChanged", { name: u.name || u.login });
+  if (pass && !isNew) addSetupLog("log.passwordChanged", { name: u.name || u.login });    // the password itself is never written down
+  closeModal(); toast(t(isNew ? "users.added" : "saved")); render();
+};
 
 /* ---------- start ---------- */
 new bootstrap.Tooltip(document.body, { selector: '[data-bs-toggle="tooltip"]' });   // Bootstrap tooltips on chart bars

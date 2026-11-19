@@ -239,7 +239,7 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await go("#admin"); ok((await p.$$('#view a.card[href^="#admin/"]')).length === 11 && !!(await p.$('#view a.card[href="#bin"]')), "admin hub has eleven pages and the Recycle Bin");
     v = await view(); ok((await importCards("Import data")) === 1 && !(await p.$('#view a.card[href="#admin/imports"]')) && /1,204 waiting for review\./.test(v), "one Import data card, with the notes waiting for review");
     await shot("p4-admin-hub");
-    await go("#admin/users"); v = await view(); ok(/shared login/.test(v) && /A crew can share one login/.test(v) && /Only the jobs scheduled to their crew/.test(v), "users page");
+    await go("#admin/users"); v = await view(); ok(/shared login/.test(v) && /A crew can share one login/.test(v) && /What each profile allows/.test(v) && /Administrator/.test(v), "users page");
     await act("userEdit", '[data-id="office"]'); await p.check("#ps_dataEditor"); await act("userSave");
     ok(/Data Editor/.test(await p.textContent("#view tbody tr:nth-child(2)")), "permission set added to the office login");
     await shot("p4-users");
@@ -302,11 +302,13 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     ok(/Balance due\s*\$4,480/.test(v) && /Payment changed: R1 · Amount: \$1,500 → \$2,000/.test(v), "payment edited, balance follows: " + v.slice(0, 900));
     await shot("p5-job-history");
     // an Edit permission for each kind of record
-    await role("admin"); await go("#admin/users"); await act("userEdit", '[data-id="office"]'); await p.uncheck("#ee_job"); await inModal("userSave");
-    v = await view(); ok(/Edit: Leads, Accounts, Contacts, Properties, Notes in Details, Opportunities, Change orders, Payments/.test(v), "edit permissions listed: " + v.slice(0, 900));
+    // (Nov 16: Edit is a tick of the profile, Admin › Users and permissions › What each profile allows)
+    await role("admin"); await go("#admin/users"); await act("profileEdit", '[data-id="office"]'); await p.uncheck("#pt_job_edit"); await inModal("profileSave");
+    await act("profileEdit", '[data-id="office"]'); ok(!(await p.isChecked("#pt_job_edit")) && await p.isChecked("#pt_account_edit"), "the Office profile's Jobs Edit tick is off");
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400);
     await role("office"); await go("#job/26-104"); ok(!(await p.$('[data-act="editJob"]')), "no Edit on a job without the Jobs edit permission");
     await go("#account/A5"); ok(!!(await p.$('[data-act="editAccount"]')), "Edit on an account is still there");
-    await role("admin"); await go("#admin/users"); await act("userEdit", '[data-id="office"]'); await p.check("#ee_job"); await inModal("userSave");
+    await role("admin"); await go("#admin/users"); await act("profileEdit", '[data-id="office"]'); await p.check("#pt_job_edit"); await inModal("profileSave");
     // Delete needs the permission set; the record waits in the Recycle Bin and comes back as it was
     await role("office"); await go("#lead/L-305"); ok(!(await p.$('[data-act="askDelete"]')), "office without Delete records sees no Delete");
     await role("admin"); await go("#lead/L-305"); await act("askDelete"); v = await modal(); ok(/Delete Desmond Farrow\?/.test(v) && /30 days/.test(v), "delete asks first: " + v);
@@ -728,6 +730,53 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await p.click('[data-act="setLang"][data-lang="es"]'); await p.waitForTimeout(200); await role("crew", "c1"); await goRaw("#job/" + c1job); await p.waitForTimeout(700);
     ok(/Una nota de la oficina/.test(await modal()) && /Enterado/.test(await modal()), "the pop-up in Spanish, on the job");
     await p.click('#modal [data-act="notesRead"]'); await p.waitForTimeout(600); await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200); await role("office");
+    // Nov 16, item 7: profiles with one tick list, the same on every profile; Add a profile; nobody locked out
+    await role("admin"); await go("#admin/users"); v = await view();
+    ok(/What each profile allows/.test(v) && (await p.locator('#profileList [data-act="profileEdit"]').count()) === 3, "three profiles listed: " + v.slice(-600));
+    const boxes = {};
+    for (const id of ["admin", "office", "crew"]) {
+      await act("profileEdit", `[data-id="${id}"]`); boxes[id] = await p.locator("#modal [data-tick]").count();
+      if (id === "crew") ok(await p.isChecked("#pt_own_jobs") && !(await p.isChecked("#pt_costs_see")) && await p.isChecked("#pt_money_see") && !(await p.isChecked("#pt_job_edit")),
+        "Crew starts as before: only its crew's jobs, money but no costs, no Edit");
+      if (id === "admin") ok(await p.isChecked("#pt_users") && !(await p.isChecked("#pt_own_jobs")), "Admin starts with everything");
+      if (id === "office") { ok(!(await p.$("#modal [data-problem]")), "no problem shown when a profile opens"); await shot("p7-profile-office", false); }
+      await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    }
+    ok(boxes.admin === boxes.office && boxes.office === boxes.crew && boxes.admin > 60, "the same list on every profile: " + JSON.stringify(boxes));
+    // untick Notes in Details on Office: the office no longer sees an account's Details; the admin still does
+    await go("#account/A1"); ok(!!(await p.$('[data-key="account:details"]')), "the admin sees Details");
+    await go("#admin/users"); await act("profileEdit", '[data-id="office"]'); await p.uncheck("#pt_note_see"); await inModal("profileSave");
+    await role("office"); await go("#account/A1"); ok(!(await p.$('[data-key="account:details"]')) && !/28x16x2/.test(await view()), "unticked: the office sees no Details");
+    // untick Notes on a job on Crew: the crew no longer sees the job's notes
+    await role("admin"); await go("#admin/users"); await act("profileEdit", '[data-id="crew"]'); await p.uncheck("#pt_job_notes_see"); await inModal("profileSave");
+    await role("crew", "c1"); await go("#job/26-112"); ok(!(await p.$('[data-key="job:notes"]')) && !/on the back slope/.test(await view()), "unticked: the crew sees no notes on its job");
+    await role("admin"); await go("#admin/setupHistory"); v = await view();
+    ok(/Profile ticks changed: Office · Notes in Details: See: yes → no/.test(v) && /Profile ticks changed: Crew · Notes on a job: Can see: yes → no/.test(v), "Setup history says before and after: " + v.slice(0, 700));
+    await go("#admin/users"); await act("profileEdit", '[data-id="office"]'); await p.check("#pt_note_see"); await inModal("profileSave");
+    await act("profileEdit", '[data-id="crew"]'); await p.check("#pt_job_notes_see"); await inModal("profileSave");
+    // nobody can take away the last way to fix the logins
+    await act("profileEdit", '[data-id="admin"]'); await p.uncheck("#pt_users"); await inModal("profileSave");
+    ok(/No active login would still be able to manage logins and profiles/.test(await modal()), "lock-out refused, with the reason");
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    await act("userEdit", '[data-id="admin"]'); await p.selectOption("#ueProfile", "office"); await inModal("userSave");
+    ok(/This is the only active login that can manage logins and profiles/.test(await p.textContent("#toast .toast-body")), "the last manager cannot be moved off it");
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    // Add a profile as a copy; it can be deleted while no login uses it
+    await act("profileNew"); await p.fill("#pnNameEn", "Estimator"); await p.fill("#pnNameEs", "Estimador"); await p.selectOption("#pnCopy", "office"); await inModal("profileAdd");
+    await p.waitForTimeout(700); v = await modal();
+    ok(/Estimator/.test(v) && await p.isChecked("#pt_account_edit") && !(await p.isChecked("#pt_users")), "the new profile starts as a copy of Office");
+    ok(!!(await p.$('#modal [data-act="profileDelete"]')), "a profile no login uses can be deleted");
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    ok((await p.locator('#profileList [data-act="profileEdit"]').count()) === 4, "four profiles now");
+    await act("userEdit", '[data-id=""]'); await p.fill("#ueLogin", "ines"); await p.fill("#uePass", "a-long-enough-one"); await p.selectOption("#ueProfile", "estimator");
+    ok(!(await p.isVisible("#ueCrewBox")), "no crew for a profile without My Day"); await inModal("userSave");
+    await act("profileEdit", '[data-id="estimator"]'); ok(!(await p.$('#modal [data-act="profileDelete"]')) && /ines/.test(await modal()), "a profile a login uses cannot be deleted");
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400);
+    await p.click('[data-act="setLang"][data-lang="es"]'); await p.waitForTimeout(200); v = await view();
+    ok(/Qué permite cada perfil/.test(v) && /Estimador/.test(v) && /Oficina/.test(v), "the profiles in Spanish");
+    await act("profileEdit", '[data-id="crew"]'); v = await modal(); ok(/Solo los trabajos agendados a su equipo/.test(v) && /Precios y dinero/.test(v) && /Acceso a los registros/.test(v), "the tick list in Spanish");
+    await p.click("#modal .btn-close"); await p.waitForTimeout(400); await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200);
+    await role("office"); await go("#account/A1"); ok(!!(await p.$('[data-key="account:details"]')), "ticked again: Details are back for the office");
     //@@NOV16@@
   }
 
