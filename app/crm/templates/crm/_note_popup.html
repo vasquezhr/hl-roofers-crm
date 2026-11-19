@@ -1,5 +1,5 @@
 {% load i18n crm_tags %}
-{% comment %}The office's new notes on this crew's jobs, in a pop-up (a Bootstrap modal) that opens by itself (hl.js, part 15) on My Day, My Jobs
+{% comment %}The office's unread notes on this crew's jobs, in a pop-up (a Bootstrap modal) that opens by itself (hl.js, part 15) on My Day, My Jobs
 and the job, until the crew lead taps Got it. Newest first, one Got it for all of them. Needs: popup, can_confirm.{% endcomment %}
 {% if popup %}
 <div class="modal fade" id="notePopup" tabindex="-1" aria-labelledby="notePopupTitle" aria-modal="true" role="dialog" data-pop{% if can_confirm %} data-bs-backdrop="static" data-bs-keyboard="false"{% endif %}>

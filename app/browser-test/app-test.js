@@ -161,7 +161,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   console.log('Crew 1: its own jobs only');
   const crew = await signIn(browser, 'crew1', { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await crew.waitForSelector('#notePopup.show', { timeout: 5000 }).catch(() => {});
-  check('the office\'s new note pops up for the crew on My Day', await crew.locator('#notePopup.show').isVisible() && (await crew.locator('#notePopup').innerText()).includes('Gate code is 4417.'));
+  check('the office\'s unread note pops up for the crew on My Day', await crew.locator('#notePopup.show').isVisible() && (await crew.locator('#notePopup').innerText()).includes('Gate code is 4417.'));
   await snap(crew, 'note-popup-phone');
   await andWait(crew, () => crew.locator('#notePopup button:has-text("Got it")').tap());
   check('Got it closes it, and it does not pop up again', (await crew.locator('#notePopup').count()) === 0 && (await crew.locator('.toast').innerText()).includes('The office can see that you read it'));

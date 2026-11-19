@@ -496,7 +496,7 @@ def job(request, number):
         "reasons": pick_choices("reschedule_reason") if job.stage in (Job.Stage.SCHEDULED, Job.Stage.IN_PROGRESS) else [],
         # notes typed by the office or the crew are shown apart from the rest of the history
         "notes": [line for line in lines if line.kind == "note"], "history": [line for line in lines if line.kind != "note"],
-        "popup": unread_notes(request.user, job) if not office else [],          # the office's new notes, popped up for the crew
+        "popup": unread_notes(request.user, job) if not office else [],          # the office's unread notes, popped up for the crew
         "note_form": NoteForm(),
     })
 

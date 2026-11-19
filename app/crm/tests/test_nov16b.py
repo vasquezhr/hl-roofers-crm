@@ -237,7 +237,7 @@ class RescheduleImport(test_objectload.Uploads):
 
 
 class NotePopUps(Base):
-    """Item 2: every new note the office writes on a crew's job pops up for that crew until it taps Got it; the office then sees who read it and when."""
+    """Item 2: every note the office now writes on a crew's job pops up for that crew until it taps Got it; the office then sees who read it and when."""
 
     def setUp(self):
         from crm.models import Activity

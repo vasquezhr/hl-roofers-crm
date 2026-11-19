@@ -288,7 +288,7 @@ document.addEventListener("click", function (event) {
   }
 });
 
-/* 15. The office's new notes pop up for the crew (a Bootstrap modal marked data-pop) on My Day, My Jobs and the job,
+/* 15. The office's unread notes pop up for the crew (a Bootstrap modal marked data-pop) on My Day, My Jobs and the job,
    until the crew lead taps Got it. Bootstrap's modal works the same in Safari on the iPhone. */
 document.addEventListener("DOMContentLoaded", function () {
   var pop = document.querySelector(".modal[data-pop]");

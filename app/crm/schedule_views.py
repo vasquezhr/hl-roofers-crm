@@ -171,7 +171,7 @@ def job_seen(request, number):
 @login_required
 @require_POST
 def notes_read(request):
-    """The Got it button on the pop-up of the office's new notes. Each note shown is marked read, with who and when, and the job's
+    """The Got it button on the pop-up of the office's unread notes. Each note shown is marked read, with who and when, and the job's
     history says so; the office then sees it on the note. Like Got it on a moved job, it is the crew lead's button."""
     back = request.POST.get("next", "")
     if not url_has_allowed_host_and_scheme(back, allowed_hosts={request.get_host()}):
@@ -230,7 +230,7 @@ def my_day(request):
         "members": crew.members.filter(active=True) if crew else [],
         "changes": [job for job in jobs_for(request.user).filter(changed_at__isnull=False, seen_at__isnull=True) if job.pk not in on_today],
         "feeds": [{"label": crew.name, "address": feed_address(request, crew.calendar_token())}] if crew else [],
-        "popup": unread_notes(request.user),                            # the office's new notes, popped up until the crew taps Got it
+        "popup": unread_notes(request.user),                            # the office's unread notes, popped up until the crew taps Got it
     })
 
 
