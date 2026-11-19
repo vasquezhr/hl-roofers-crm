@@ -117,12 +117,13 @@ class WhatChanged(AsIfMonday):
         schedule = reverse("job_schedule", args=[job.number])
         self.client.post(schedule, {"crew": self.crew1.pk, "first_day": MONDAY.isoformat(), "days": "2"})
         self.client.post(schedule, {"crew": self.crew2.pk, "first_day": MONDAY.isoformat(), "days": "2", "workers": [self.helper.pk]})
-        self.client.post(schedule, {"crew": self.crew2.pk, "first_day": TUESDAY.isoformat(), "days": "2"})
+        self.client.post(schedule, {"crew": self.crew2.pk, "first_day": TUESDAY.isoformat(), "days": "2", "reason": "weather"})
         self.assertEqual([line.text for line in job.activities.order_by("id")], [
             "Put on the schedule: Crew 1 · Mon, Nov 9 – Tue, Nov 10",
             "Crew changed: Crew 1 → Crew 2",
             "Extra worker added: Rigoberto",
             "Dates changed (before: Mon, Nov 9 – Tue, Nov 10)",
+            "Reason for the new dates: Weather",
             "Extra worker removed: Rigoberto"])
         job.refresh_from_db()
         self.assertTrue(job.change_unseen)                                          # the new crew is told, too

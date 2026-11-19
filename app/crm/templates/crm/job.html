@@ -71,7 +71,7 @@
               {% if can_schedule %}
               <form method="post" action="{% url 'job_day' job.number %}" class="badge text-bg-secondary fw-normal d-inline-flex align-items-center gap-1">
                 {% csrf_token %}<input type="hidden" name="day" value="{{ added.day|date:'Y-m-d' }}"><input type="hidden" name="do" value="remove">
-                {{ added.day|day }}<button type="submit" class="btn btn-link btn-sm p-0 lh-1 text-reset text-decoration-none" data-confirm="{% trans 'Take this day off the job?' %}" aria-label="{% trans 'Take this day off the job' %}">×</button>
+                {{ added.day|day }}<button type="submit" class="btn btn-link btn-sm p-0 lh-1 text-reset text-decoration-none" aria-label="{% trans 'Take this day off the job' %}">×</button>
               </form>
               {% else %}{% badge added.day|day "secondary" %}{% endif %}
               {% endfor %}
@@ -82,7 +82,9 @@
               <summary class="text-primary">{% trans "Add a day" %}</summary>
               <form method="post" action="{% url 'job_day' job.number %}" class="mt-2">
                 {% csrf_token %}<input type="hidden" name="do" value="add">
-                <div class="d-flex gap-2"><input class="form-control form-control-sm w-auto" type="date" name="day" required aria-label="{% trans 'Day' %}">
+                <div class="d-flex flex-wrap gap-2"><input class="form-control form-control-sm w-auto" type="date" name="day" required aria-label="{% trans 'Day' %}">
+                  {% if reasons %}<select class="form-select form-select-sm w-auto" name="reason" required aria-label="{% trans 'Why are the dates changing?' %}">
+                    <option value="">{% trans "Why?" %}</option>{% for key, name in reasons %}<option value="{{ key }}">{{ name|capfirst }}</option>{% endfor %}</select>{% endif %}
                   <button type="submit" class="btn btn-outline-secondary btn-sm">{% icon "plus" %} {% trans "Add" %}</button></div>
                 <div class="form-text">{% trans "Any day of the week, a day off too, for work that does not follow on from the job's other days." %}</div>
               </form>
@@ -123,6 +125,28 @@
         {% endif %}
       </div>
     </div>
+
+    {% if job.stage != "signed" or reschedules %}
+    {# each time the job's dates changed: before and after, why, who and when (Nov 16) #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2" data-section="reschedules">{% trans "Reschedules" %} <span class="text-body-secondary fw-normal">{{ reschedules|length }}</span></h2>
+        {% if reschedules %}
+        <div class="small text-body-secondary mb-1">{% if reschedules|length == 1 %}{% trans "Rescheduled once." %}{% else %}{% trf "Rescheduled %(n)s times." n=reschedules|length %}{% endif %}</div>
+        <ul class="list-unstyled small mb-0">
+          {% for one in reschedules %}
+          <li class="border-top py-1" data-reschedule>
+            <span class="fw-semibold">{{ one.before_text }} → {{ one.now_text }}</span> · {{ one.get_reason_display }}<br>
+            <span class="text-body-secondary">{{ one.at|day_time }} · {{ one.actor|default:"—" }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="small text-body-secondary">{% trans "Not rescheduled." %}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
   </div>
 
   <div class="col-lg-6">

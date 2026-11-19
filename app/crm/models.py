@@ -34,7 +34,7 @@ from django.utils import timezone, translation
 from django.utils.translation import gettext_lazy as _
 
 from . import look
-from .dates import range_from_code
+from .dates import range_from_code, range_text
 from .history import booking_text, changes_text, file_text, stage_text, when_text
 
 changes_log = logging.getLogger("crm.changes")             # changes.log: one line for every history line
@@ -126,6 +126,8 @@ def type_days(key):
 PICK_LISTS = {
     "source": {"title": _("Where a request came from"), "length": 12, "built_in": ["web", "referral", "repeat", "contractor", "warranty", "imported", "existing"],
                "about": _("On a lead and on an opportunity. The website's form is always Website form, a new lead typed in starts as Referral, a lead from the data import is Imported, and a request from an existing customer is Existing customer.")},
+    "reschedule_reason": {"title": _("Why a job was rescheduled"), "length": 12, "built_in": [],
+                          "about": _("Asked when the dates of a scheduled job change. The Rescheduled jobs report counts them.")},
     "lost_reason": {"title": _("Why an opportunity was lost"), "length": 12, "built_in": [],
                     "about": _("Asked when an opportunity is marked lost. The Reports count them.")},
     "unfit_reason": {"title": _("Why a lead is not a fit"), "length": 12, "built_in": [],
@@ -140,7 +142,8 @@ PICK_LISTS = {
 # which field of which record holds a value of which list: (the record, the field) -> the list
 PICK_FIELDS = {("account", "kind"): "account_kind", ("opportunity", "source"): "source", ("lead", "source"): "source",
                ("opportunity", "lost_reason"): "lost_reason", ("lead", "reason"): "unfit_reason", ("payment", "method"): "payment_method",
-               ("attachment", "category"): "file_kind"}
+               ("attachment", "category"): "file_kind", ("job", "reschedule_reason"): "reschedule_reason",
+               ("reschedule", "reason"): "reschedule_reason"}
 _picks = None
 
 
@@ -791,11 +794,15 @@ class Job(models.Model):
     # the outside number a job can carry: a claim, a purchase order or a work order
     ref_type = models.CharField(_("kind of number"), max_length=6, choices=RefType.choices, blank=True)
     ref_number = models.CharField(_("outside number"), max_length=60, blank=True)
-    # when the office moves a job that is already scheduled, the crew sees "Changed" until it taps Got it
+    # when the office moves a job that is already scheduled, the crew sees "Rescheduled" (or "Crew changed") until it taps Got it
     changed_at = models.DateTimeField(null=True, blank=True)
     was_first_day = models.DateField(null=True, blank=True)
     was_last_day = models.DateField(null=True, blank=True)
+    was_crew = models.ForeignKey(Crew, null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
+    dates_moved = models.BooleanField(default=False, editable=False)    # the unseen change moved the dates (not only the crew)
     seen_at = models.DateTimeField(null=True, blank=True)
+    # why its dates last changed (each change is a Reschedule). The data import asks for it when it moves a scheduled job's dates.
+    reschedule_reason = models.CharField(_("reason for the new dates"), max_length=12, blank=True)
     # the day each step happened
     started_on = models.DateField(null=True, blank=True)
     done_on = models.DateField(null=True, blank=True)
@@ -889,11 +896,26 @@ class Job(models.Model):
     def change_unseen(self):
         return self.changed_at is not None and self.seen_at is None
 
-    def mark_changed(self, was_first_day, was_last_day):
-        """The dates or the crew of a scheduled job changed. The first change's "before" is kept until the crew has seen it."""
+    def mark_changed(self, was_first_day, was_last_day, was_crew=None, dates=True):
+        """The dates or the crew of a scheduled job changed. The first change's "before" is kept until the crew has seen it.
+        `dates`: the dates moved (a reschedule), not only the crew. `was_crew`: the crew before (None: the same)."""
         if not self.change_unseen:
             self.was_first_day, self.was_last_day = was_first_day, was_last_day
+            self.was_crew, self.dates_moved = was_crew or self.crew, False
+        self.dates_moved = self.dates_moved or dates
         self.changed_at, self.seen_at = timezone.now(), None
+
+    @property
+    def crew_moved(self):
+        """The unseen change gave the job to another crew."""
+        return self.was_crew_id is not None and self.was_crew_id != self.crew_id
+
+    @property
+    def rescheduled_words(self):
+        """The notice the crew and the office read: "Now on Thu, Nov 19", or "Now Crew 2" when only the crew changed."""
+        if self.dates_moved or not self.crew_moved:
+            return _("Now on %(dates)s") % {"dates": range_text(self.starts_on or self.first_day, self.last_day)} if self.first_day else ""
+        return _("Now %(crew)s") % {"crew": self.crew.name if self.crew else "—"}
 
     # ----- money: what the job costs the customer, what has been paid, what is still owed
     @property
@@ -1249,6 +1271,35 @@ class PickItem(models.Model):
 
 
 # ---------------------------------------------------------------- the Recycle Bin's entries
+class Reschedule(models.Model):
+    """One time a scheduled job's dates changed: the dates before and after, why, who and when. A first booking is not one,
+    and neither is a change of crew alone. Kept for the job's page, the Rescheduled jobs report and the dashboard."""
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="reschedules")
+    was_first = models.DateField(_("first day before"))
+    was_last = models.DateField(_("last day before"))
+    now_first = models.DateField(_("first day now"))
+    now_last = models.DateField(_("last day now"))
+    reason = models.CharField(_("reason"), max_length=12)                # a value of the pick list "reschedule_reason"
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    actor = models.CharField(max_length=80, blank=True)                 # who did it, as shown at the time
+    at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-at", "-id"]
+        verbose_name, verbose_name_plural = _("reschedule"), _("reschedules")
+
+    def get_reason_display(self):
+        return pick_name("reschedule_reason", self.reason)
+
+    @property
+    def before_text(self):
+        return range_text(self.was_first, self.was_last)
+
+    @property
+    def now_text(self):
+        return range_text(self.now_first, self.now_last)
+
+
 class BinEntry(models.Model):
     """One delete: what was deleted, who deleted it and when. The deleted records point at their entry (their `bin` field)
     and are hidden everywhere until the entry is restored. Deleting an entry for good deletes its records."""
@@ -1416,6 +1467,7 @@ class Activity(models.Model):
         "changed": _("Dates changed (before: %(detail)s)"), "notified": _("The crew was told by text"), "got_it": _("The crew saw the change"),
         "worker_added": _("Extra worker added: %(detail)s"), "worker_removed": _("Extra worker removed: %(detail)s"),
         "booked": _("Put on the schedule: %(detail)s"), "crew_changed": _("Crew changed: %(detail)s"),
+        "reschedule_reason": _("Reason for the new dates: %(detail)s"),
         "day_added": _("Day added by hand: %(detail)s"), "day_removed": _("Day taken off: %(detail)s"),
         "inspection_booked": _("Inspection booked: %(detail)s"),
         # changes to a record's own fields, and to an account's contacts, properties and notes
@@ -1470,7 +1522,7 @@ class Activity(models.Model):
         "low_disk": _("Low disk space: %(detail)s"), "low_ram": _("Low memory (RAM): %(detail)s"),
     }
     # how the stored detail of some kinds is put into words when it is read
-    READERS = {"stage_changed": stage_text, "file_added": file_text, "changed": range_from_code, "day_added": range_from_code, "day_removed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
+    READERS = {"reschedule_reason": lambda key: pick_name("reschedule_reason", key), "stage_changed": stage_text, "file_added": file_text, "changed": range_from_code, "day_added": range_from_code, "day_removed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
                "edited": changes_text, "contact_edited": changes_text, "property_edited": changes_text,
                "type_edited": changes_text, "pick_edited": changes_text, "company_edited": changes_text, "look_edited": changes_text, "price_set": changes_text, "login_edited": changes_text, "note_edited": changes_text}
 

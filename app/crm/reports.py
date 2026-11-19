@@ -19,7 +19,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
 from .documents import money
-from .models import Crew, Job, Lead, Opportunity, Payment, PriceItem, pick_items, type_name, work_types
+from .models import Crew, Job, Lead, Opportunity, Payment, PriceItem, Reschedule, pick_items, type_name, work_types
 
 RANGES = [("m", gettext_lazy("This month")), ("q", gettext_lazy("Last 3 months")), ("y", gettext_lazy("This year"))]
 def revenue_types():
@@ -165,6 +165,38 @@ def lost_reasons(start, end):
     return [(_("Reason"), "text"), (_("Opportunities"), "count"), (_("Value"), "money")], rows
 
 
+def reschedules_between(start, end):
+    """The reschedules made from `start` to `end` (by the day the dates were changed), of jobs not in the Recycle Bin."""
+    first, last = as_times(start, end)
+    return Reschedule.objects.filter(at__gte=first, at__lt=last, job__bin__isnull=True).select_related("job__account", "job__crew")
+
+
+def rescheduled(start, end):
+    """Each time a scheduled job got new dates: when, which job, the dates before and after, why and who. Newest first."""
+    names = {key: item.name for key, item in pick_items("reschedule_reason").items()}
+    rows = [[timezone.localtime(one.at).date(), f"#{one.job.number}", one.job.account.name, one.job.crew.name if one.job.crew else "—",
+             one.before_text, one.now_text, str(names.get(one.reason, one.reason or "—")), one.actor or "—"] for one in reschedules_between(start, end)]
+    return [(_("Changed on"), "date"), (_("Job"), "text"), (_("Customer"), "text"), (_("Crew"), "text"), (_("Before"), "text"),
+            (_("Now"), "text"), (_("Reason"), "text"), (_("Who"), "text")], rows
+
+
+def rescheduled_by_reason(start, end):
+    """The totals: how many reschedules, and of how many jobs, for each reason; the most first."""
+    found = reschedules_between(start, end).values("reason").annotate(n=Count("id"), jobs=Count("job", distinct=True))
+    names = {key: item.name for key, item in pick_items("reschedule_reason").items()}
+    rows = [[str(names.get(row["reason"], row["reason"] or "—")), row["n"], row["jobs"]] for row in found]
+    rows.sort(key=lambda row: (-row[1], row[0]))
+    if rows:
+        rows.append([_("Total"), sum(row[1] for row in rows), reschedules_between(start, end).values("job").distinct().count()])
+    return [(_("Reason"), "text"), (_("Reschedules"), "count"), (_("Jobs"), "count")], rows
+
+
+def rescheduled_this_month(day=None):
+    """The dashboard's tile: how many times a job got new dates this month."""
+    day = day or timezone.localdate()
+    return reschedules_between(month_start(day), day).count()
+
+
 def price_changes(start, end):
     """Supplier costs that are different now from what they were when the period began, biggest change first."""
     rows = []
@@ -197,6 +229,8 @@ REPORTS = [
      "rows": jobs_per_crew},
     {"key": "lost-reasons", "name": gettext_lazy("Lost reasons"), "about": gettext_lazy("Why opportunities were lost, and what they were worth"),
      "rows": lost_reasons},
+    {"key": "rescheduled", "name": gettext_lazy("Rescheduled jobs"), "about": gettext_lazy("Each time a scheduled job got new dates, and the totals by reason"),
+     "rows": rescheduled, "totals": rescheduled_by_reason},
     {"key": "price-changes", "name": gettext_lazy("Price changes"), "about": gettext_lazy("Supplier costs that moved, biggest first, from the Price Book history"),
      "rows": price_changes},
 ]

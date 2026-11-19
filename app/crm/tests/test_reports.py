@@ -147,7 +147,7 @@ class Pages(AsIfNovember):
 
     def test_every_report_opens_for_every_period_and_exports(self):
         page = self.client.get(reverse("reports"))
-        self.assertEqual(len(page.context["reports"]), 8)
+        self.assertEqual(len(page.context["reports"]), 9)
         for spec in reports.REPORTS:
             address = reverse("report", args=[spec["key"]])
             self.assertContains(page, address)

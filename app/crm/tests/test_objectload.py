@@ -46,7 +46,7 @@ class Columns(Base):
         self.assertEqual(self.names("opportunity"), ["id", "account_id", "place_id", "job_type", "source", "labor_only", "description", "lost_reason"])
         self.assertEqual(self.names("proposal_line"), ["id", "opportunity_id", "position", "text", "quantity", "unit", "each", "amount"])
         self.assertEqual(self.names("job"), ["id", "opportunity_id", "warranty_for_id", "account_id", "place_id", "job_type", "price", "labor_only", "scope",
-                                             "crew_id", "first_day", "days", "ref_type", "ref_number"])
+                                             "crew_id", "first_day", "days", "ref_type", "ref_number", "reschedule_reason"])
         self.assertEqual(self.names("change_order"), ["id", "job_id", "description", "amount"])
         self.assertEqual(self.names("payment"), ["id", "job_id", "paid_on", "amount", "method", "check_number", "kind"])
         self.assertEqual(self.names("crew"), ["id", "name", "lead_name", "phone", "active"])

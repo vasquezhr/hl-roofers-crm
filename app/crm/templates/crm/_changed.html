@@ -1,10 +1,11 @@
 {% load i18n crm_tags %}
-{# The notice on a job that was moved. Needs: job, crew_view; the office's page also gives notify_href. #}
+{% comment %}The notice on a job that was moved: a "Rescheduled" badge and "Now on Thu, Nov 19" (or "Crew changed" and "Now Crew 2" when only the crew changed).
+   Needs: job, crew_view; the office's page also gives notify_href.{% endcomment %}
 {% if job.changed_at %}
 {% if not crew_view or job.change_unseen %}
-<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 py-2 small mb-2">
-  <div class="flex-grow-1">{% icon "bell" %} <span class="fw-semibold">{% trans "Changed" %}.</span> {% trans "Before" %}: {% was_dates job %}.
-    {% if not crew_view and job.change_unseen %}<span class="text-body-secondary">{% trf "%(crew)s has not seen it yet." crew=job.crew.name %}</span>{% endif %}
+<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 py-2 small mb-2" data-rescheduled>
+  <div class="flex-grow-1">{% rescheduled_badge job %} <span class="fw-semibold">{{ job.rescheduled_words }}</span>
+    {% if not crew_view and job.change_unseen %}<span class="text-body-secondary">· {% trf "%(crew)s has not seen it yet." crew=job.crew.name %}</span>{% endif %}
   </div>
   {% if crew_view and not can_confirm %}
   {# a crew login without Crew Lead reads the notice; the crew lead confirms it #}

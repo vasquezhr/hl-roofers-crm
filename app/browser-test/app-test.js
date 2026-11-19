@@ -133,7 +133,16 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   const monday = (() => { const d = new Date(); d.setDate(d.getDate() + 21); do { d.setDate(d.getDate() + 1); } while (d.getDay() !== 1); return iso(d); })();
   await office.fill('[data-inline-form] input[name=first_day]', monday);
   await andWait(office, () => office.click('[data-inline-form] button:has-text("Save")'));
-  check('moving a scheduled job marks it Changed', (await main(office)).includes('Crew 1 has not seen it yet.'));
+  // (Nov 16: new dates for a scheduled job need a reason, from the pick list)
+  check('new dates without a reason are refused', (await main(office)).includes('Pick why the dates are changing.'));
+  await office.selectOption('select[name=reason]', { label: 'Weather' });
+  await office.fill('input[name=first_day]', monday);
+  await andWait(office, () => office.click('main form button:has-text("Save")'));
+  check('moving a scheduled job marks it Rescheduled, with its new dates', (await main(office)).includes('Crew 1 has not seen it yet.') &&
+    (await text(office, '[data-rescheduled]')).startsWith('Rescheduled Now on'));
+  check('the job page lists the reschedule and its reason', (await office.locator('[data-reschedule]').count()) === 1 &&
+    (await office.locator('[data-reschedule]').first().evaluate(e => e.textContent)).includes('Weather') &&
+    (await office.locator('h2[data-section="reschedules"]').evaluate(e => e.textContent)).includes('Reschedules'));
   check('Notify crew opens a text to the crew lead', ((await office.locator('a:has-text("Notify crew")').getAttribute('href')) || '').startsWith('sms:8045550111&body='));
 
   // Call adds a line to the history (the link itself would open the phone's dialer)
@@ -149,6 +158,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   check('a crew lands on My Day', (await text(crew, 'h1')) === 'My Day');
   check('My Day shows the crew\'s work', (await main(crew)).includes('Denise Wyckoff') && (await main(crew)).includes('Next work day'));
   check('and the changes it has not seen', (await main(crew)).includes('Changes to your jobs') && (await main(crew)).includes(number));
+  check('the crew reads Rescheduled and the new dates (Nov 16)', (await main(crew)).includes('Rescheduled') && (await main(crew)).includes('Now on'));
   await snap(crew, 'my-day-phone');
   await crew.click(`form[action="/jobs/${number}/got-it/"] button`);
   await crew.waitForLoadState('networkidle');
@@ -324,7 +334,14 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   const sheet = await boss.request.get(base + '/reports/revenue/?range=y&export=1');
   check('Export gives a spreadsheet file', (sheet.headers()['content-type'] || '').startsWith('text/csv') && (await sheet.text()).includes('Roof replacement'));
   await office.goto(base + '/reports/');
-  check('the office has the reports, and eight of them', await office.locator('main .list-group a[href^="/reports/"]').count() === 8);
+  check('the office has the reports, and nine of them', await office.locator('main .list-group a[href^="/reports/"]').count() === 9);
+  await office.goto(base + '/reports/rescheduled/?range=m');
+  check('the Rescheduled jobs report: totals by reason, then each reschedule (Nov 16)', (await text(office, 'h1')) === 'Rescheduled jobs' &&
+    (await office.locator('[data-totals] tbody tr').count()) >= 2 && (await main(office)).includes('Weather'));
+  const moved = await office.request.get(base + '/reports/rescheduled/?range=m&export=1');
+  check('and its export has both tables', (await moved.text()).includes('Reason,Reschedules,Jobs'));
+  await boss.goto(base + '/dashboard/');
+  check('the dashboard has a Rescheduled this month tile', /^[1-9]\d* Rescheduled this month$/.test(await text(boss, '[data-tile="rescheduled"]')));
 
   console.log('Automations, the data editor and system status');
   await boss.goto(base + '/manage/automations/');
@@ -467,6 +484,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await office.goto(base + '/jobs/26-118/schedule/');
   check('there is no Work on a day off tick', (await office.locator('#id_day_off_ok').count()) === 0 && !(await main(office)).includes('Work on a day off'));
   await office.fill('#id_first_day', nextDay(6));
+  if (await office.locator('#id_reason').count()) await office.selectOption('#id_reason', { label: 'Customer asked' });
   await office.click('button:has-text("Save")');
   await office.waitForLoadState('networkidle');
   check('the job is on the Saturday', office.url().endsWith('/jobs/26-118/') && (await main(office)).includes('Day off'));
@@ -478,6 +496,7 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await office.click('summary:has-text("Add a day")');
   await office.fill('input[name=day]', nextDay(0));
   check('adding a day off needs no tick', (await office.locator('#dayOffOk').count()) === 0);
+  await office.selectOption('details[open] select[name=reason]', { label: 'Crew not available' });
   await office.click('details[open] button:has-text("Add")');
   await office.waitForLoadState('networkidle');
   check('a Sunday added by hand', (await main(office)).includes('Days added by hand') && (await main(office)).includes('Day added by hand'));

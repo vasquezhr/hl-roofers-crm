@@ -51,6 +51,7 @@ def dashboard(request):
         "change": change, "change_text": f"{abs(change)}%" if change is not None else "",
         "jobs_week": Job.objects.filter(starts_on__lte=week[-1], last_day__gte=week[0], crew__isnull=False, stage__in=scheduling.ON_SCHEDULE).count(),
         "inspections_open": Opportunity.objects.filter(stage=Opportunity.Stage.INSPECTION).count(),
+        "rescheduled_month": reports.rescheduled_this_month(day),
         "last_upload": PriceUpload.objects.filter(rolled_back_at__isnull=True).first(),
         "copies": backup_copies(), "clock": clock_state(Company.load()),
         "health_known": bool(readings), "health_low": any(reading.low for reading in readings),
@@ -72,12 +73,19 @@ def report(request, key):
     chosen = request.GET.get("range") if request.GET.get("range") in dict(reports.RANGES) else "q"
     start_day, end_day = reports.span(chosen, today())
     columns, rows = spec["rows"](start_day, end_day)
+    # a report can also have a table of totals (the Rescheduled jobs report: by reason), shown above it and written after it in the file
+    total_columns, total_rows = spec["totals"](start_day, end_day) if spec.get("totals") else ([], [])
     if request.GET.get("export"):
         out = io.StringIO()
         sheet = csv.writer(out)
         sheet.writerow([label for label, _kind in columns])
         for row in rows:
             sheet.writerow([reports.for_file(value, kind) for value, (_label, kind) in zip(row, columns)])
+        if total_columns:
+            sheet.writerow([])
+            sheet.writerow([label for label, _kind in total_columns])
+            for row in total_rows:
+                sheet.writerow([reports.for_file(value, kind) for value, (_label, kind) in zip(row, total_columns)])
         # the mark at the start tells Excel and Numbers that accents and ñ are written the modern way (UTF-8)
         response = HttpResponse("﻿" + out.getvalue(), content_type="text/csv; charset=utf-8")
         response["Content-Disposition"] = f'attachment; filename="{key}.csv"'
@@ -85,4 +93,6 @@ def report(request, key):
     return render(request, "crm/report.html", {
         "spec": spec, "columns": columns, "chosen": chosen, "ranges": reports.RANGES, "start_day": start_day, "end_day": end_day,
         "table": [[reports.shown(value, kind) for value, (_label, kind) in zip(row, columns)] for row in rows],
+        "total_columns": total_columns,
+        "total_table": [[reports.shown(value, kind) for value, (_label, kind) in zip(row, total_columns)] for row in total_rows],
     })

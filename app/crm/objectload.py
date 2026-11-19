@@ -670,6 +670,12 @@ def rule_job(checked, action, user):
         if not (job.crew_id and job.first_day):
             raise Problem(_("A job goes on the schedule with both a crew and a first day."))
         checked.moved = moved
+    # new dates for a job already on the schedule are a reschedule: they need a reason, as on the job's page (a first booking does not)
+    dates_move = before is not None and before.stage != Job.Stage.SIGNED and bool(before.work_days) and job.work_days != before.work_days
+    if dates_move and not (job.reschedule_reason and "reschedule_reason" in checked.new):
+        raise Problem(_("Reason for the new dates (reschedule_reason): the dates of a scheduled job change, so write why."))
+    if not dates_move and changed(checked, "reschedule_reason") and before is not None:
+        raise Problem(_("Reason for the new dates (reschedule_reason): fill it in only when the job's dates change."))
 
 
 def rule_change_order(checked, action, user):
@@ -793,7 +799,7 @@ def save_row(key, action, checked, user, file_name):
             from .admin_views import new_key
             record.key = new_key(record.name_en)
         if key == "job" and getattr(checked, "moved", None):
-            scheduling.save_schedule(record, (None, None, record.days, None, None), user)       # saved, Scheduled, "Put on the schedule"
+            scheduling.save_schedule(record, (None, None, record.days, None, None, []), user)       # saved, Scheduled, "Put on the schedule"
         else:
             record.save()
         target = history_of(record)
@@ -818,13 +824,14 @@ def save_row(key, action, checked, user, file_name):
         return record
     # an update: only what changed
     schedule_change = key == "job" and getattr(checked, "moved", None)
-    plain = [change for change in checked.changes if not (schedule_change and change[0] in SCHEDULE)]
+    plain = [change for change in checked.changes if not (schedule_change and change[0] in SCHEDULE + ("reschedule_reason",))]
     if key == "price_item" and any(change[0] in ("cost", "price") for change in plain):
         cost, price = record.cost, record.price
         record.cost, record.price = before.cost, before.price
         record.set_price(cost, price, actor=user.label)                  # the old price stays in the Price Book's history
     if schedule_change:
-        scheduling.save_schedule(record, (before.crew, before.first_day, before.days, before.starts_on, before.last_day), user)
+        scheduling.save_schedule(record, (before.crew, before.first_day, before.days, before.starts_on, before.last_day, before.work_days), user,
+                                 record.reschedule_reason)
     else:
         record.save()
     target = history_of(record)

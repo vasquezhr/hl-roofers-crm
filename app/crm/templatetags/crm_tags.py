@@ -293,6 +293,13 @@ def job_tags(job):
 
 
 @register.simple_tag
+def rescheduled_badge(job):
+    """The tag on a job that was moved: Rescheduled, or Crew changed when only the crew changed (the user, Nov 16: "a rescheduled tag")."""
+    words = _("Rescheduled") if job.dates_moved or not job.crew_moved else _("Crew changed")
+    return format_html('<span class="badge text-bg-warning">{}</span>', words)
+
+
+@register.simple_tag
 def job_dates(job):
     return range_text(job.starts_on or job.first_day, job.last_day) if job.first_day else _("Not scheduled yet")
 

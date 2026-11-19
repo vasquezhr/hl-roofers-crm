@@ -21,7 +21,7 @@ from django.utils.translation import gettext as _
 
 from .dates import range_code, range_text
 from .history import booking_code
-from .models import Company, Job, Opportunity, digits, log
+from .models import Company, Job, Opportunity, Reschedule, digits, log
 
 INSPECTION_HOURS = range(9, 17)         # a one-hour inspection can start at 9 am ... 4 pm
 FAR = 40                                # miles assumed when a distance is not known, so known-near days rank first
@@ -202,9 +202,12 @@ def notify_href(job, company):
     """A link that opens Messages with the text for the crew lead, ready to send. Empty when the crew has no phone."""
     if not (job.crew and job.crew.phone):
         return ""
-    text = _("%(company)s: job #%(number)s (%(name)s) changed. Now: %(now)s. Before: %(was)s. Please tap Got it in the app.") % {
-        "company": company.name, "number": job.number, "name": job.account.name,
-        "now": range_text(job.first_day, job.last_day), "was": range_text(job.was_first_day, job.was_last_day)}
+    if job.dates_moved or not job.crew_moved:
+        text = _("%(company)s: job #%(number)s (%(name)s) is rescheduled. Now on %(now)s. Please tap Got it in the app.") % {
+            "company": company.name, "number": job.number, "name": job.account.name, "now": range_text(job.starts_on or job.first_day, job.last_day)}
+    else:
+        text = _("%(company)s: job #%(number)s (%(name)s) is now on your schedule, %(now)s. Please tap Got it in the app.") % {
+            "company": company.name, "number": job.number, "name": job.account.name, "now": range_text(job.starts_on or job.first_day, job.last_day)}
     return "sms:" + digits(job.crew.phone) + "&body=" + quote(text)
 
 
@@ -233,12 +236,29 @@ def mini_map(place, stops, width=320, height=150):
 
 
 # ---------------------------------------------------------------- saving a job's schedule
-def save_schedule(job, before, user):
+def dates_change(job, was_days):
+    """True when a job that is on the schedule would get other dates than `was_days`: a reschedule, which needs a reason.
+    A first booking is not one, and neither is a change of crew alone."""
+    return job.stage not in (Job.Stage.SIGNED,) and bool(was_days) and job.work_days != list(was_days)
+
+
+def record_reschedule(job, was_first, was_last, reason, user):
+    """Keep one reschedule: the dates before and after, why, who and when; and say why in the job's history."""
+    Reschedule.objects.create(job=job, was_first=was_first, was_last=was_last or was_first, now_first=job.starts_on, now_last=job.last_day,
+                              reason=reason, user=user, actor=user.label if user else "")
+    if job.reschedule_reason != reason:
+        job.reschedule_reason = reason
+        job.save(update_fields=["reschedule_reason"])
+    log(job, "reschedule_reason", user, detail=reason)
+
+
+def save_schedule(job, before, user, reason=""):
     """Save a job whose crew, first day or days were just set, by the Schedule form or by the data import,
-    with what goes with it: a job waiting for a date becomes Scheduled; a scheduled job that moved shows Changed to its crew
-    (the "Appointment changed" automation). `before` is the job as it was: (crew, first_day, days, starts_on, last_day).
-    Writes the history lines. Returns True when the job was just put on the schedule."""
-    crew_before, first_before, days_before, was_first, was_last = before
+    with what goes with it: a job waiting for a date becomes Scheduled; a scheduled job that moved shows Rescheduled (or Crew changed)
+    to its crew (the "Appointment changed" automation), and its new dates are kept as a Reschedule with `reason`.
+    `before` is the job as it was: (crew, first_day, days, starts_on, last_day, work days). Writes the history lines.
+    Returns True when the job was just put on the schedule."""
+    crew_before, first_before, days_before, was_first, was_last, was_days = before
     new = job.stage == Job.Stage.SIGNED
     if new:
         job.stage = Job.Stage.SCHEDULED
@@ -246,12 +266,14 @@ def save_schedule(job, before, user):
     if new:
         log(job, "booked", user, detail=booking_code(job))
         return True
-    if (job.crew_id, job.first_day, job.days) != (crew_before.pk if crew_before else None, first_before, days_before):
-        if Company.load().auto_changed:                                 # the crew sees "Changed" on the job until it taps Got it
-            job.mark_changed(was_first, was_last)
+    moved = job.work_days != list(was_days)
+    if moved or job.crew_id != (crew_before.pk if crew_before else None):
+        if Company.load().auto_changed:                                 # the crew sees the notice on the job until it taps Got it
+            job.mark_changed(was_first, was_last, was_crew=crew_before, dates=moved)
             job.save()
-        if (job.first_day, job.days) != (first_before, days_before):
+        if moved:
             log(job, "changed", user, detail=range_code(was_first, was_last))
+            record_reschedule(job, was_first, was_last, reason, user)
         if job.crew_id != (crew_before.pk if crew_before else None):
             log(job, "crew_changed", user, detail=f"{crew_before.name if crew_before else '—'} → {job.crew.name}")
     return False

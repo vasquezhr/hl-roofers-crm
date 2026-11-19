@@ -41,9 +41,9 @@ class OnMonday(Base):
         return self.opportunity(account, place, stage="inspection", inspection_at=when)
 
     def move(self, job, first_day, days=1, crew=None, **more):
-        """The office changes a job's days on the Schedule form."""
+        """The office changes a job's days on the Schedule form. New dates for a scheduled job need a reason: Weather, unless one is given."""
         return self.client.post(reverse("job_schedule", args=[job.number]),
-                                {"crew": (crew or job.crew).pk, "first_day": first_day.isoformat(), "days": str(days), **more})
+                                {"crew": (crew or job.crew).pk, "first_day": first_day.isoformat(), "days": str(days), "reason": "weather", **more})
 
 
 class WorkDays(OnMonday):
@@ -278,15 +278,18 @@ class Changes(OnMonday):
         self.roof.refresh_from_db()
         self.assertTrue(self.roof.change_unseen)
         self.assertEqual((self.roof.was_first_day, self.roof.was_last_day, self.roof.first_day), (TUESDAY, WEDNESDAY, THURSDAY))
-        line = self.roof.activities.first()
+        why, line = self.roof.activities.all()[:2]
+        self.assertEqual(why.text, "Reason for the new dates: Weather")
         self.assertEqual(line.text, "Dates changed (before: Tue, Nov 10 – Wed, Nov 11)")
         with translation.override("es"):                                            # the history reads in the reader's language
             self.assertEqual(line.text, "Fechas cambiadas (antes: mar, 10 Nov – mié, 11 Nov)")
         page = self.client.get(reverse("job", args=[self.roof.number]))
-        for words in ["Changed", "Before", "Tue, Nov 10 – Wed, Nov 11", "Crew 1 has not seen it yet."]:
+        for words in ["Rescheduled", "Now on Thu, Nov 12 – Fri, Nov 13", "Crew 1 has not seen it yet."]:     # the simpler notice (Nov 16)
             self.assertContains(page, words)
-        self.assertContains(self.client.get(reverse("home")), f"Crew 1 has not seen the change to job #{self.roof.number}")
-        self.assertContains(self.client.get(reverse("schedule")), "Changed")
+        notice = re.search(r"<div[^>]*data-rescheduled>.*?</div>", page.content.decode(), re.S).group(0)
+        self.assertNotIn("Before", notice)
+        self.assertContains(self.client.get(reverse("home")), f"Rescheduled: job #{self.roof.number}. Now on Thu, Nov 12 – Fri, Nov 13. Crew 1 has not seen it yet.")
+        self.assertContains(self.client.get(reverse("schedule")), '<span class="badge text-bg-warning">Rescheduled</span>')
 
     def test_the_first_before_is_kept_until_the_crew_has_seen_it(self):
         self.move(self.roof, THURSDAY, 2)
@@ -308,7 +311,7 @@ class Changes(OnMonday):
         self.move(self.roof, THURSDAY, 2)
         self.sign_in(self.login1)
         day = self.client.get(reverse("my_day"))
-        for words in ["Changes to your jobs", "Got it", "Tue, Nov 10 – Wed, Nov 11", self.roof.number]:
+        for words in ["Changes to your jobs", "Got it", "Rescheduled", "Now on Thu, Nov 12 – Fri, Nov 13", self.roof.number]:
             self.assertContains(day, words)
         self.assertContains(self.client.get(reverse("job", args=[self.roof.number])), "Got it")
         answer = self.client.post(reverse("job_seen", args=[self.roof.number]), {"next": reverse("my_day")}, follow=True)
@@ -321,8 +324,8 @@ class Changes(OnMonday):
         self.assertNotContains(self.client.get(reverse("job", args=[self.roof.number])), "Got it")     # the crew's notice is gone
         self.sign_in(self.office)
         self.assertContains(self.client.get(reverse("job", args=[self.roof.number])), "Seen by Crew 1")
-        self.assertNotContains(self.client.get(reverse("home")), "has not seen the change")
-        self.assertNotContains(self.client.get(reverse("schedule")), "Changed")
+        self.assertNotContains(self.client.get(reverse("home")), "has not seen it yet")
+        self.assertNotContains(self.client.get(reverse("schedule")), "Rescheduled")
 
     def test_only_the_jobs_own_crew_can_tap_got_it(self):
         self.move(self.roof, THURSDAY, 2)
@@ -346,7 +349,7 @@ class Changes(OnMonday):
         self.assertContains(page, "Notify crew")
         self.assertContains(page, 'href="sms:8045550111&amp;body=')
         text = scheduling.notify_href(self.roof.__class__.objects.get(pk=self.roof.pk), Company.load())
-        self.assertIn("Now%3A%20Thu%2C%20Nov%2012%20%E2%80%93%20Fri%2C%20Nov%2013.%20Before%3A%20Tue%2C%20Nov%2010", text)
+        self.assertIn("is%20rescheduled.%20Now%20on%20Thu%2C%20Nov%2012%20%E2%80%93%20Fri%2C%20Nov%2013.", text)
         touch = {"kind": "job", "id": self.roof.number, "how": "notified"}
         self.assertEqual(self.client.post(reverse("touch"), touch).status_code, 204)
         self.assertEqual(self.roof.activities.first().text, "The crew was told by text")
@@ -576,12 +579,12 @@ class DaysOff(OnMonday):
         job = self.job(self.crew1, "scheduled", first_day=THURSDAY, days=2)             # Thursday and Friday
         add = reverse("job_day", args=[job.number])
         self.assertNotContains(self.client.get(reverse("job", args=[job.number])), "Work on a day off")
-        self.client.post(add, {"do": "add", "day": SATURDAY.isoformat()})          # no tick needed (Nov 16)
+        self.client.post(add, {"do": "add", "day": SATURDAY.isoformat(), "reason": "weather"})          # no tick needed (Nov 16)
         job.refresh_from_db()
         self.assertEqual((job.work_days, job.last_day, job.day_count), ([THURSDAY, FRIDAY, SATURDAY], SATURDAY, 3))
         self.assertTrue(job.change_unseen)                                           # the crew is told
         self.assertEqual((job.was_first_day, job.was_last_day), (THURSDAY, FRIDAY))
-        self.assertEqual(job.activities.first().text, "Day added by hand: Sat, Nov 14")
+        self.assertEqual([line.text for line in job.activities.all()[:2]], ["Reason for the new dates: Weather", "Day added by hand: Sat, Nov 14"])
         page = self.client.get(reverse("job", args=[job.number]))
         for words in ["Days added by hand", "Day off", "3 work days", "Thu, Nov 12 – Sat, Nov 14"]:
             self.assertContains(page, words)
@@ -594,17 +597,17 @@ class DaysOff(OnMonday):
         self.assertIn("DTSTART;VALUE=DATE:20261114", feed)
         self.assertIn("(3/3)", feed)
         # taking it off again
-        self.client.post(add, {"do": "remove", "day": SATURDAY.isoformat()})
+        self.client.post(add, {"do": "remove", "day": SATURDAY.isoformat(), "reason": "weather"})
         job.refresh_from_db()
         self.assertEqual((job.work_days, job.last_day), ([THURSDAY, FRIDAY], FRIDAY))
-        self.assertEqual(job.activities.first().text, "Day taken off: Sat, Nov 14")
+        self.assertEqual(job.activities.all()[1].text, "Day taken off: Sat, Nov 14")
 
     def test_any_weekday_can_be_added_even_before_the_first_day(self):
         job = self.job(self.crew1, "scheduled", first_day=NEXT_MONDAY, days=1)
         add = reverse("job_day", args=[job.number])
-        self.client.post(add, {"do": "add", "day": NEXT_MONDAY.isoformat()})
+        self.client.post(add, {"do": "add", "day": NEXT_MONDAY.isoformat(), "reason": "weather"})
         self.assertEqual(Job.objects.get(pk=job.pk).added_days, [])                  # already one of its days
-        self.client.post(add, {"do": "add", "day": WEDNESDAY.isoformat()})
+        self.client.post(add, {"do": "add", "day": WEDNESDAY.isoformat(), "reason": "weather"})
         job.refresh_from_db()
         self.assertEqual((job.work_days, job.starts_on, job.last_day), ([WEDNESDAY, NEXT_MONDAY], WEDNESDAY, NEXT_MONDAY))
         self.assertIn(job, [item["stop"].record for column in self.client.get(reverse("schedule")).context["columns"] for item in column["stops"]])
@@ -612,7 +615,7 @@ class DaysOff(OnMonday):
 
     def test_my_day_shows_the_day_off_and_finds_it_next(self):
         job = self.job(self.crew1, "scheduled", first_day=FRIDAY, days=1)
-        self.client.post(reverse("job_day", args=[job.number]), {"do": "add", "day": SATURDAY.isoformat()})
+        self.client.post(reverse("job_day", args=[job.number]), {"do": "add", "day": SATURDAY.isoformat(), "reason": "weather"})
         self.sign_in(self.login1)
         self.today_is(FRIDAY)
         self.assertEqual(self.client.get(reverse("my_day")).context["next_day"], SATURDAY)        # not Monday

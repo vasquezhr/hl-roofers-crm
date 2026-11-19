@@ -796,9 +796,6 @@ msgstr "Día libre"
 msgid "Days added by hand"
 msgstr "Días agregados a mano"
 
-msgid "Take this day off the job?"
-msgstr "¿Quitar este día del trabajo?"
-
 msgid "Take this day off the job"
 msgstr "Quitar este día del trabajo"
 
@@ -3183,9 +3180,6 @@ msgstr "Escoja un día de trabajo (%(days)s)."
 msgid "Everything: every crew and the inspections"
 msgstr "Todo: todos los equipos y las inspecciones"
 
-msgid "%(company)s: job #%(number)s (%(name)s) changed. Now: %(now)s. Before: %(was)s. Please tap Got it in the app."
-msgstr "%(company)s: cambió el trabajo #%(number)s (%(name)s). Ahora: %(now)s. Antes: %(was)s. Por favor toque Enterado en la app."
-
 msgid "Notes not linked to a customer"
 msgstr "Notas sin cliente"
 
@@ -3284,9 +3278,6 @@ msgstr "Enviar la factura del trabajo #%(number)s: %(name)s"
 
 msgid "%(name)s: the invoice has been unpaid for %(days)s days"
 msgstr "%(name)s: la factura lleva %(days)s días sin pagar"
-
-msgid "%(crew)s has not seen the change to job #%(number)s"
-msgstr "%(crew)s no ha visto el cambio del trabajo #%(number)s"
 
 msgid "%(count)s imported notes are waiting for review"
 msgstr "%(count)s notas importadas esperan revisión"
@@ -4204,3 +4195,105 @@ msgstr "Sigue nuevo después de un día: se le recordó otra vez a %(detail)s"
 
 msgid "Any day of the week, a day off too, for work that does not follow on from the job's other days."
 msgstr "Cualquier día de la semana, también un día libre, para trabajo que no sigue a los otros días del trabajo."
+
+msgid "Rescheduled this month"
+msgstr "Reprogramados este mes"
+
+msgid "Why are the dates changing?"
+msgstr "¿Por qué cambian las fechas?"
+
+msgid "Why?"
+msgstr "¿Por qué?"
+
+msgid "Reschedules"
+msgstr "Reprogramaciones"
+
+msgid "Rescheduled once."
+msgstr "Reprogramado una vez."
+
+msgid "Rescheduled %(n)s times."
+msgstr "Reprogramado %(n)s veces."
+
+msgid "Not rescheduled."
+msgstr "Sin reprogramar."
+
+msgid "Needed when the dates of a scheduled job change. Not for a change of crew alone."
+msgstr "Se necesita cuando cambian las fechas de un trabajo programado. No para un cambio de equipo solamente."
+
+msgid "Why a job was rescheduled"
+msgstr "Por qué se reprogramó un trabajo"
+
+msgid "Asked when the dates of a scheduled job change. The Rescheduled jobs report counts them."
+msgstr "Se pregunta cuando cambian las fechas de un trabajo programado. El informe Trabajos reprogramados los cuenta."
+
+msgid "reason for the new dates"
+msgstr "motivo de las fechas nuevas"
+
+msgid "first day before"
+msgstr "primer día antes"
+
+msgid "last day before"
+msgstr "último día antes"
+
+msgid "first day now"
+msgstr "primer día ahora"
+
+msgid "last day now"
+msgstr "último día ahora"
+
+msgid "Reason for the new dates: %(detail)s"
+msgstr "Motivo de las fechas nuevas: %(detail)s"
+
+msgid "Now %(crew)s"
+msgstr "Ahora: %(crew)s"
+
+msgid "reschedule"
+msgstr "reprogramación"
+
+msgid "reschedules"
+msgstr "reprogramaciones"
+
+msgid "Now on %(dates)s"
+msgstr "Ahora: %(dates)s"
+
+msgid "Reason for the new dates (reschedule_reason): the dates of a scheduled job change, so write why."
+msgstr "Motivo de las fechas nuevas (reschedule_reason): cambian las fechas de un trabajo programado, así que escriba por qué."
+
+msgid "Reason for the new dates (reschedule_reason): fill it in only when the job's dates change."
+msgstr "Motivo de las fechas nuevas (reschedule_reason): llénelo solo cuando cambian las fechas del trabajo."
+
+msgid "Rescheduled jobs"
+msgstr "Trabajos reprogramados"
+
+msgid "Each time a scheduled job got new dates, and the totals by reason"
+msgstr "Cada vez que un trabajo programado tuvo fechas nuevas, y los totales por motivo"
+
+msgid "Changed on"
+msgstr "Cambiado el"
+
+msgid "%(company)s: job #%(number)s (%(name)s) is rescheduled. Now on %(now)s. Please tap Got it in the app."
+msgstr "%(company)s: el trabajo #%(number)s (%(name)s) se reprogramó. Ahora: %(now)s. Por favor toque Enterado en la app."
+
+msgid "%(company)s: job #%(number)s (%(name)s) is now on your schedule, %(now)s. Please tap Got it in the app."
+msgstr "%(company)s: el trabajo #%(number)s (%(name)s) ahora está en su agenda, %(now)s. Por favor toque Enterado en la app."
+
+msgid "Rescheduled"
+msgstr "Reprogramado"
+
+msgid "Crew changed"
+msgstr "Cambio de equipo"
+
+msgid "Pick why the dates are changing."
+msgstr "Escoja por qué cambian las fechas."
+
+msgid "Take %(day)s off the job"
+msgstr "Quitar %(day)s del trabajo"
+
+msgid "Add %(day)s to the job"
+msgstr "Agregar %(day)s al trabajo"
+
+msgid "The job's dates change, so this is a reschedule. Say why."
+msgstr "Las fechas del trabajo cambian, así que es una reprogramación. Diga por qué."
+
+msgid "%(what)s: job #%(number)s. %(now)s. %(crew)s has not seen it yet."
+msgstr "%(what)s: trabajo #%(number)s. %(now)s. %(crew)s todavía no lo ha visto."

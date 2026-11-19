@@ -24,6 +24,26 @@
 </div>
 {% endif %}
 
+{% if total_columns %}
+{# the totals first (the Rescheduled jobs report: by reason), then each row #}
+<div class="card shadow-sm mb-3" data-totals>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle small mb-0">
+      <thead><tr>{% for label, kind in total_columns %}<th class="{% if forloop.first %}ps-3{% else %}text-end{% endif %}{% if forloop.last %} pe-3{% endif %}">{{ label }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for row in total_table %}
+        <tr{% if forloop.last %} class="fw-bold"{% endif %}>
+          {% for cell in row %}<td class="{% if forloop.first %}ps-3{% else %}text-end text-nowrap{% endif %}{% if forloop.last %} pe-3{% endif %}">{{ cell }}</td>{% endfor %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="{{ total_columns|length }}" class="text-center text-body-secondary py-3">{% trans "Nothing in this period." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 <div class="card shadow-sm mb-3">
   <div class="table-responsive">
     <table class="table table-sm table-striped align-middle small mb-0">

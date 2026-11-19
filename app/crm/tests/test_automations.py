@@ -91,10 +91,10 @@ class Automations(Base):
         self.switch("follow_up", False)
         self.switch("changed", False)
         self.assertNotContains(self.client.get(reverse("home")), "Follow up with")
-        self.client.post(reverse("job_schedule", args=[job.number]), {"crew": self.crew1.pk, "first_day": "2026-11-13", "days": "1"})
+        self.client.post(reverse("job_schedule", args=[job.number]), {"crew": self.crew1.pk, "first_day": "2026-11-13", "days": "1", "reason": "weather"})
         job.refresh_from_db()
         self.assertEqual((job.first_day, job.changed_at), (date(2026, 11, 13), None))             # moved, but not marked Changed
-        self.assertEqual(job.activities.first().kind, "changed")                                  # the history still says the dates changed
+        self.assertEqual([line.kind for line in job.activities.all()[:2]], ["reschedule_reason", "changed"])   # the history still says the dates changed, and why
 
     def test_an_unpaid_invoice_is_noted_at_15_and_30_days(self):
         job = self.job(self.crew1, "invoiced", price=685, invoiced_on=date(2026, 10, 27))          # 16 days before

@@ -186,7 +186,7 @@ class Jobs(Base):
         self.sign_in(self.office)
 
     def schedule(self, job, first_day, days=1):
-        return self.client.post(reverse("job_schedule", args=[job.number]), {"crew": self.crew1.pk, "first_day": first_day.isoformat(), "days": str(days)})
+        return self.client.post(reverse("job_schedule", args=[job.number]), {"crew": self.crew1.pk, "first_day": first_day.isoformat(), "days": str(days), "reason": "weather"})
 
     def test_a_job_skips_the_weekend(self):
         job = self.job()
@@ -203,7 +203,7 @@ class Jobs(Base):
     def test_changing_the_schedule_is_noted_in_the_history(self):
         job = self.job(self.crew1, "scheduled")
         self.schedule(job, FRIDAY)
-        self.assertEqual(job.activities.first().kind, "changed")
+        self.assertEqual([line.kind for line in job.activities.all()[:2]], ["reschedule_reason", "changed"])
 
     def test_a_step_cannot_be_taken_twice(self):
         job = self.job(self.crew1, "scheduled")

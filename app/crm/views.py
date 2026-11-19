@@ -24,11 +24,11 @@ from django.views.decorators.http import require_POST
 from . import automations, scheduling
 from .documents import document_rows, keep, proposal_document
 from .access import job_or_404, jobs_for, may_edit, office_only, with_permission
-from .dates import range_code, work_days_text
+from .dates import day_text, range_code, work_days_text
 from .history import changes, when_code
 from .forms import (AccountForm, ContactForm, InspectionForm, JobEditForm, LostForm, NewAccountForm, NoteEditForm, NoteForm,
                     OpportunityEditForm, OpportunityForm, PropertyForm,
-                    RefForm, ScheduleForm, SignForm, StageForm, WarrantyForm)
+                    RefForm, RescheduleReasonForm, ScheduleForm, SignForm, StageForm, WarrantyForm)
 from .importer import find_account
 from .models import Account, Activity, Attachment, Company, Contact, Crew, ImportedNote, Job, Lead, Note, Opportunity, Property, Worker, is_day_off, log, pick_choices
 from .search import search as find_records
@@ -118,8 +118,10 @@ def home(request):
         attention.append({"icon": "dollar", "url": reverse("job", args=[job.number]),
                           "text": _("%(name)s: the invoice has been unpaid for %(days)s days") % {"name": job.account.name, "days": (day - job.invoiced_on).days}})
     for job in jobs.filter(changed_at__isnull=False, seen_at__isnull=True, crew__isnull=False):
+        what = _("Rescheduled") if job.dates_moved or not job.crew_moved else _("Crew changed")
         attention.append({"icon": "bell", "url": reverse("job", args=[job.number]),
-                          "text": _("%(crew)s has not seen the change to job #%(number)s") % {"crew": job.crew.name, "number": job.number}})
+                          "text": _("%(what)s: job #%(number)s. %(now)s. %(crew)s has not seen it yet.") % {
+                              "what": what, "number": job.number, "now": job.rescheduled_words, "crew": job.crew.name}})
     # notes the crews wrote on their jobs, since the start of the last work day
     since = timezone.make_aware(datetime.combine(scheduling.work_day(-1, day), datetime.min.time()))
     crew_notes = (Activity.objects.filter(kind="note", job__isnull=False, job__bin__isnull=True, user__profile="crew", at__gte=since)
@@ -489,6 +491,9 @@ def job(request, number):
         "members": job.crew.members.filter(active=True) if job.crew else [],
         "workers": job.workers.all(),
         "warranty_jobs": job.warranty_jobs.all(),
+        "reschedules": list(job.reschedules.all()),                     # each time its dates changed, with why
+        # a day added to a job on the schedule changes its dates: the reason is asked with it
+        "reasons": pick_choices("reschedule_reason") if job.stage in (Job.Stage.SCHEDULED, Job.Stage.IN_PROGRESS) else [],
         # notes typed by the office or the crew are shown apart from the rest of the history
         "notes": [line for line in lines if line.kind == "note"], "history": [line for line in lines if line.kind != "note"],
         "note_form": NoteForm(),
@@ -529,7 +534,7 @@ def job_schedule(request, number):
     if job.is_finished:
         return redirect("job", number=job.number)
     before = (job.crew_id, job.first_day, job.days)                  # to tell afterwards whether the schedule changed
-    was_first, was_last = job.starts_on, job.last_day
+    was_first, was_last, was_days = job.starts_on, job.last_day, list(job.work_days)
     crew_before, workers_before = job.crew, set(job.workers.all())
     start = None
     if request.method != "POST" and job.stage == Job.Stage.SIGNED and (day := clicked_day(request)):
@@ -538,10 +543,12 @@ def job_schedule(request, number):
         crew = Crew.objects.filter(pk=int(wanted), active=True).first() if wanted.isdigit() else None       # a bad or foreign crew is ignored
         start = {"first_day": day, **({"crew": crew} if crew else {})}
     form = ScheduleForm(request.POST or None, instance=job, initial=start)
+    if form.is_valid() and scheduling.dates_change(job, was_days) and not form.cleaned_data.get("reason"):
+        form.add_error("reason", _("Pick why the dates are changing."))          # a reschedule needs its reason; a change of crew alone does not
     if form.is_valid():
         job = form.save(commit=False)
-        # a job waiting for a date becomes Scheduled; a scheduled job that moved shows Changed to its crew (also used by the data import)
-        scheduling.save_schedule(job, (crew_before, *before[1:], was_first, was_last), request.user)
+        # a job waiting for a date becomes Scheduled; a scheduled job that moved shows Rescheduled to its crew (also used by the data import)
+        scheduling.save_schedule(job, (crew_before, *before[1:], was_first, was_last, was_days), request.user, form.cleaned_data.get("reason", ""))
         form.save_m2m()
         workers_now = set(job.workers.all())
         for worker in sorted(workers_now - workers_before, key=lambda w: w.name):
@@ -561,7 +568,8 @@ def job_schedule(request, number):
 @require_POST
 def job_day(request, number):
     """Add a day to a scheduled job by hand, on any day of the week, a day off too, or take an added day off again.
-    The crew sees the job as Changed."""
+    Its dates change, so it is a reschedule: a reason is asked (on a small page, when the button did not send one), and the crew
+    sees the job as Rescheduled until it taps Got it."""
     job = get_object_or_404(Job, number=number)
     if job.is_finished or not job.first_day:
         messages.warning(request, _("Put the job on the schedule first."))
@@ -572,6 +580,7 @@ def job_day(request, number):
         messages.warning(request, _("Pick a day."))
         return redirect("job", number=job.number)
     was_first, was_last = job.starts_on, job.last_day
+    rescheduling = job.stage in (Job.Stage.SCHEDULED, Job.Stage.IN_PROGRESS)
     if request.POST.get("do") == "remove":
         if day not in job.added_days:
             return redirect("job", number=job.number)
@@ -583,10 +592,19 @@ def job_day(request, number):
             return redirect("job", number=job.number)
         job.extra_days = list(job.extra_days) + [day.isoformat()]
         kind = "day_added"
-    if job.stage in (Job.Stage.SCHEDULED, Job.Stage.IN_PROGRESS) and Company.load().auto_changed:
-        job.mark_changed(was_first, was_last)                           # the crew sees "Changed" until it taps Got it
+    reason_form = RescheduleReasonForm(request.POST if request.POST.get("reason") else None,
+                                       initial={"day": day.isoformat(), "do": "remove" if kind == "day_removed" else "add"})
+    if rescheduling and not reason_form.is_valid():
+        # the reason, asked on its own page; it posts back here with the day
+        what = _("Take %(day)s off the job") if kind == "day_removed" else _("Add %(day)s to the job")
+        return form_page(request, reason_form, what % {"day": day_text(day)}, reverse("job", args=[job.number]),
+                         sub=f"#{job.number} · {job.account.name}", intro=_("The job's dates change, so this is a reschedule. Say why."))
+    if rescheduling and Company.load().auto_changed:
+        job.mark_changed(was_first, was_last, was_crew=job.crew)         # the crew sees "Rescheduled" until it taps Got it
     job.save()
     log(job, kind, request.user, detail=range_code(day, day))
+    if rescheduling:
+        scheduling.record_reschedule(job, was_first, was_last, reason_form.cleaned_data["reason"], request.user)
     saved(request)
     return redirect("job", number=job.number)
 

@@ -37,15 +37,16 @@
             title="#{{ record.number }} · {{ record.account.name }} · {% if stop.kind == 'inspection' %}{% trans 'Inspection' %} {{ stop.starts|time:'g:i A' }}{% else %}{{ record.crew.name }}{% endif %}">
             {# the number and the crew always show; a long customer name is cut short with "…" (the whole line is in the title) #}
             <span class="fw-semibold text-nowrap">#{{ record.number }}</span><span>&nbsp;·&nbsp;</span><span class="text-truncate">{{ record.account.name }}</span><span>&nbsp;·&nbsp;</span><span class="text-nowrap pe-1">{% if stop.kind == "inspection" %}<span class="visually-hidden">{% trans "Inspection" %} </span>{{ stop.starts|time:"g:i A" }}{% else %}{{ record.crew.name }}{% endif %}</span>
-            {% if stop.kind != "inspection" and record.change_unseen %}<span class="badge text-bg-warning ms-auto">!<span class="visually-hidden"> {% trans "Changed" %}</span></span>{% endif %}
           </button>
+          {# a moved job the crew has not seen yet: its tag, under the line, so the line itself stays whole #}
+          {% if stop.kind != "inspection" and record.change_unseen %}<div class="px-1 pb-1 lh-1">{% rescheduled_badge record %}</div>{% endif %}
           <div class="collapse" id="stop-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
             <div class="px-1 pb-1">
               {% if stop.kind == "inspection" %}
               <span class="fw-semibold">{{ stop.starts|time:"g:i A" }}</span> · {% trans "Inspection" %}<br>{{ record.account.name }}<br>
               <a href="{% url 'opp' record.number %}">{% trans "Open the opportunity" %} ›</a>
               {% else %}
-              <span class="fw-semibold">{{ record.crew.name }}</span>{% if record.day_count > 1 %} · {% trf "day %(i)s of %(n)s" i=stop.day_number n=record.day_count %}{% endif %}<br>{{ record.account.name }} · {{ record.get_job_type_display }}{% if record.change_unseen %}<br>{% trans "Changed" as changed %}{% badge changed "warning" %}{% endif %}<br>
+              <span class="fw-semibold">{{ record.crew.name }}</span>{% if record.day_count > 1 %} · {% trf "day %(i)s of %(n)s" i=stop.day_number n=record.day_count %}{% endif %}<br>{{ record.account.name }} · {{ record.get_job_type_display }}{% if record.change_unseen %}<br>{% rescheduled_badge record %} {{ record.rescheduled_words }}{% endif %}<br>
               <a href="{% url 'job' record.number %}">{% trf "Open job #%(number)s" number=record.number %} ›</a>
               {% endif %}
             </div>

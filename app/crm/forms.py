@@ -153,6 +153,13 @@ class SignForm(Bootstrap, forms.Form):
         self.fields["signed_how"].choices = [(h.value, h.label) for h in order]
 
 
+class RescheduleReasonForm(Bootstrap, forms.Form):
+    """Why a day is added to or taken off a scheduled job: its dates change, so it is a reschedule."""
+    day = forms.CharField(widget=forms.HiddenInput)
+    do = forms.CharField(widget=forms.HiddenInput)
+    reason = pick_box("reschedule_reason", _("Why are the dates changing?"))
+
+
 class LostForm(Bootstrap, forms.Form):
     lost_reason = pick_box("lost_reason", _("Reason"))
 
@@ -178,7 +185,10 @@ class StageForm(Bootstrap, forms.Form):
 
 # ---------- jobs ----------
 class ScheduleForm(Bootstrap, forms.ModelForm):
-    field_order = ["crew", "first_day", "days", "workers"]
+    # why the dates of a job already on the schedule change (Admin > Pick lists). The view asks for it only when they do.
+    reason = forms.ChoiceField(label=_("Why are the dates changing?"), required=False,
+                               help_text=_("Needed when the dates of a scheduled job change. Not for a change of crew alone."))
+    field_order = ["crew", "first_day", "days", "reason", "workers"]
 
     class Meta:
         model = Job
@@ -194,6 +204,10 @@ class ScheduleForm(Bootstrap, forms.ModelForm):
         self.fields["first_day"].required = True
         self.fields["workers"].queryset = Worker.objects.filter(active=True, crew__isnull=True)
         self.fields["workers"].help_text = _("Workers who help on this job. They have no login; this records who worked.")
+        if self.instance.stage == Job.Stage.SIGNED:
+            del self.fields["reason"]                                   # a first booking is not a reschedule
+        else:
+            self.fields["reason"].choices = pick_choices("reschedule_reason", blank=True)
 
     def clean_days(self):
         days = self.cleaned_data["days"]
