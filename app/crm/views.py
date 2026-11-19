@@ -24,7 +24,7 @@ from django.views.decorators.http import require_POST
 from . import automations, scheduling
 from .documents import document_rows, keep, proposal_document
 from .access import job_or_404, jobs_for, may_edit, office_only, with_permission
-from .dates import day_text, range_code, work_days_text
+from .dates import range_code, work_days_text
 from .history import changes, when_code
 from .forms import (AccountForm, ContactForm, InspectionForm, JobEditForm, LostForm, NewAccountForm, NoteEditForm, NoteForm,
                     OpportunityEditForm, OpportunityForm, PropertyForm,
@@ -338,7 +338,7 @@ def opp_inspection(request, number):
         log(opp, "inspection_booked", request.user, detail=when_code(timezone.localtime(opp.inspection_at)))
         saved(request)
         return redirect("opp", number=opp.number)
-    return form_page(request, form, _("Inspection"), reverse("opp", args=[opp.number]), intro=f"#{opp.number} · {opp.account.name}" + day_off_note(start.get("day")))
+    return form_page(request, form, _("Inspection"), reverse("opp", args=[opp.number]), intro=f"#{opp.number} · {opp.account.name}")
 
 
 @office_only
@@ -522,20 +522,13 @@ def clicked_day(request):
         return None
 
 
-def day_off_note(day):
-    """Said on a form opened from a day off on the calendar."""
-    if day and is_day_off(day):
-        return " " + _("%(day)s is a day off. To book it, tick “Work on a day off”.") % {"day": day_text(day)}
-    return ""
-
-
 @office_only
 def job_schedule(request, number):
     """Put a job on the schedule: the crew, the first day and how many work days."""
     job = get_object_or_404(Job.objects.select_related("account"), number=number)
     if job.is_finished:
         return redirect("job", number=job.number)
-    before = (job.crew_id, job.first_day, job.days, job.day_off_ok)  # to tell afterwards whether the schedule changed
+    before = (job.crew_id, job.first_day, job.days)                  # to tell afterwards whether the schedule changed
     was_first, was_last = job.starts_on, job.last_day
     crew_before, workers_before = job.crew, set(job.workers.all())
     start = None
@@ -560,15 +553,15 @@ def job_schedule(request, number):
     coming = (Job.objects.filter(stage__in=[Job.Stage.SCHEDULED, Job.Stage.IN_PROGRESS], last_day__gte=today())
               .exclude(pk=job.pk).select_related("account", "crew").order_by("first_day")[:40])
     intro = _("The job gets whole work days (%(days)s). A job that needs more than one day continues on the next work day.") % {"days": work_days_text()}
-    return form_page(request, form, _("Schedule the job"), reverse("job", args=[job.number]), intro=intro + day_off_note(start and start["first_day"]),
+    return form_page(request, form, _("Schedule the job"), reverse("job", args=[job.number]), intro=intro,
                      sub=f"#{job.number} · {job.account.name} · {job.get_job_type_display()}", coming=coming)
 
 
 @office_only
 @require_POST
 def job_day(request, number):
-    """Add a day to a scheduled job by hand, on any day of the week, or take an added day off again.
-    A day off (Saturday and Sunday for H & L) needs "Work on a day off" ticked. The crew sees the job as Changed."""
+    """Add a day to a scheduled job by hand, on any day of the week, a day off too, or take an added day off again.
+    The crew sees the job as Changed."""
     job = get_object_or_404(Job, number=number)
     if job.is_finished or not job.first_day:
         messages.warning(request, _("Put the job on the schedule first."))
@@ -587,9 +580,6 @@ def job_day(request, number):
     else:
         if day in job.work_days:
             messages.info(request, _("That day is already one of the job's days."))
-            return redirect("job", number=job.number)
-        if is_day_off(day) and not request.POST.get("day_off_ok"):
-            messages.warning(request, _("%(day)s is a day off. To add it anyway, tick “Work on a day off”.") % {"day": day_text(day)})
             return redirect("job", number=job.number)
         job.extra_days = list(job.extra_days) + [day.isoformat()]
         kind = "day_added"

@@ -194,12 +194,11 @@ class Jobs(Base):
         job.refresh_from_db()
         self.assertEqual([day.isoformat() for day in job.work_days], ["2026-11-13", "2026-11-16"])     # Friday, then Monday
 
-    def test_saturday_is_never_a_first_day(self):
+    def test_a_saturday_can_be_a_first_day_by_hand(self):
         job = self.job()
-        response = self.schedule(job, SATURDAY)
-        self.assertContains(response, "Pick a work day (Monday to Friday).")
+        self.schedule(job, SATURDAY, days=2)                         # Nov 16: a day off is booked by hand, with no tick
         job.refresh_from_db()
-        self.assertEqual(job.stage, "signed")
+        self.assertEqual((job.stage, [day.isoformat() for day in job.work_days]), ("scheduled", ["2026-11-14", "2026-11-16"]))
 
     def test_changing_the_schedule_is_noted_in_the_history(self):
         job = self.job(self.crew1, "scheduled")

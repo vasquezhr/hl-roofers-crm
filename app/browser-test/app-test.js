@@ -463,21 +463,21 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await boss.waitForLoadState('networkidle');
   await boss.goto(base + '/jobs/26-104/');
   check('restored: the payment and the balance are back', (await main(boss)).includes('$4,980') && (await main(boss)).includes('Payment restored: R1 · $1,500'));
-  // any day of the week: a Saturday needs "Work on a day off"
+  // any day of the week: a Saturday is booked by hand with no tick (Nov 16)
   await office.goto(base + '/jobs/26-118/schedule/');
+  check('there is no Work on a day off tick', (await office.locator('#id_day_off_ok').count()) === 0 && !(await main(office)).includes('Work on a day off'));
   await office.fill('#id_first_day', nextDay(6));
   await office.click('button:has-text("Save")');
   await office.waitForLoadState('networkidle');
-  check('a Saturday is refused without the tick', (await main(office)).includes('Pick a work day (Monday to Friday).'));
-  await office.check('#id_day_off_ok');
-  await office.click('button:has-text("Save")');
-  await office.waitForLoadState('networkidle');
-  check('with the tick, the job is on the Saturday', office.url().endsWith('/jobs/26-118/') && (await main(office)).includes('Day off'));
+  check('the job is on the Saturday', office.url().endsWith('/jobs/26-118/') && (await main(office)).includes('Day off'));
+  await office.goto(base + '/schedule/');
+  check('the Schedule shades the day off grey, with no Day off words on it', (await office.locator('main .card-header.bg-body-secondary').count()) >= 1 &&
+    (await office.locator('main .card-header').evaluateAll(hs => hs.filter(h => { const c = h.cloneNode(true); c.querySelectorAll('.visually-hidden').forEach(e => e.remove()); return /Day off/.test(c.textContent); }).length)) === 0);
   // Add a day: a Sunday, by hand
   await office.goto(base + '/jobs/26-104/');
   await office.click('summary:has-text("Add a day")');
   await office.fill('input[name=day]', nextDay(0));
-  await office.check('#dayOffOk');
+  check('adding a day off needs no tick', (await office.locator('#dayOffOk').count()) === 0);
   await office.click('details[open] button:has-text("Add")');
   await office.waitForLoadState('networkidle');
   check('a Sunday added by hand', (await main(office)).includes('Days added by hand') && (await main(office)).includes('Day added by hand'));

@@ -43,7 +43,7 @@ from .dataload import IMPORTED, tidy
 from .history import field_changes, stored
 from .history import shown as history_shown
 from .models import (PICK_FIELDS, PICK_LISTS, Account, ChangeOrder, Company, Contact, Crew, DataImport, DataImportRow, Job, Lead,
-                     Note, Opportunity, Payment, PickItem, PriceEntry, PriceItem, Property, ProposalLine, User, Worker, WorkType, is_day_off,
+                     Note, Opportunity, Payment, PickItem, PriceEntry, PriceItem, Property, ProposalLine, User, Worker, WorkType,
                      log, pick_items, scope_line, type_days, work_types)
 
 logger = logging.getLogger(__name__)
@@ -605,7 +605,7 @@ def rule_proposal_line(checked, action, user):
         line.position = 0 if last is None else last + 1
 
 
-SCHEDULE = ("crew", "first_day", "days", "day_off_ok")
+SCHEDULE = ("crew", "first_day", "days")
 
 
 def rule_job(checked, action, user):
@@ -669,8 +669,6 @@ def rule_job(checked, action, user):
             raise Problem(_("A finished job's crew and days cannot change."))
         if not (job.crew_id and job.first_day):
             raise Problem(_("A job goes on the schedule with both a crew and a first day."))
-        if is_day_off(job.first_day) and not job.day_off_ok:
-            raise Problem(_("First day: it is a day off. To use it, write yes under day_off_ok (Work on a day off)."))
         checked.moved = moved
 
 
@@ -795,7 +793,7 @@ def save_row(key, action, checked, user, file_name):
             from .admin_views import new_key
             record.key = new_key(record.name_en)
         if key == "job" and getattr(checked, "moved", None):
-            scheduling.save_schedule(record, (None, None, record.days, record.day_off_ok, None, None), user)       # saved, Scheduled, "Put on the schedule"
+            scheduling.save_schedule(record, (None, None, record.days, None, None), user)       # saved, Scheduled, "Put on the schedule"
         else:
             record.save()
         target = history_of(record)
@@ -826,7 +824,7 @@ def save_row(key, action, checked, user, file_name):
         record.cost, record.price = before.cost, before.price
         record.set_price(cost, price, actor=user.label)                  # the old price stays in the Price Book's history
     if schedule_change:
-        scheduling.save_schedule(record, (before.crew, before.first_day, before.days, before.day_off_ok, before.starts_on, before.last_day), user)
+        scheduling.save_schedule(record, (before.crew, before.first_day, before.days, before.starts_on, before.last_day), user)
     else:
         record.save()
     target = history_of(record)

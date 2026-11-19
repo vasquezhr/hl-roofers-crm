@@ -46,7 +46,7 @@ class Columns(Base):
         self.assertEqual(self.names("opportunity"), ["id", "account_id", "place_id", "job_type", "source", "labor_only", "description", "lost_reason"])
         self.assertEqual(self.names("proposal_line"), ["id", "opportunity_id", "position", "text", "quantity", "unit", "each", "amount"])
         self.assertEqual(self.names("job"), ["id", "opportunity_id", "warranty_for_id", "account_id", "place_id", "job_type", "price", "labor_only", "scope",
-                                             "crew_id", "first_day", "days", "day_off_ok", "ref_type", "ref_number"])
+                                             "crew_id", "first_day", "days", "ref_type", "ref_number"])
         self.assertEqual(self.names("change_order"), ["id", "job_id", "description", "amount"])
         self.assertEqual(self.names("payment"), ["id", "job_id", "paid_on", "amount", "method", "check_number", "kind"])
         self.assertEqual(self.names("crew"), ["id", "name", "lead_name", "phone", "active"])
@@ -196,7 +196,7 @@ class EditorPage(Base):
     def test_a_kind_picked_shows_its_columns(self):
         page = self.client.get(reverse("editor"), {"object": "job"})
         self.assertContains(page, 'data-object="job"')
-        for words in ["opportunity_id", "warranty_for_id", "crew_id", "day_off_ok", "Not in the template", "Stage", reverse("data_import") + "?kind=job"]:
+        for words in ["opportunity_id", "warranty_for_id", "crew_id", "Not in the template", "Stage", reverse("data_import") + "?kind=job"]:
             self.assertContains(page, words)
 
     def test_in_spanish(self):
@@ -360,7 +360,7 @@ class Uploads(Base):
     def test_a_job_put_on_the_schedule_by_an_update(self):
         job = self.job(account=self.account, place=self.place)
         run, _answer = self.run_file("job", "update", csv_file(f"id,crew_id,first_day,days\n{job.pk},{self.crew2.pk},2026-11-14,2\n"))
-        self.assertIn("is a day off", self.states(run)[2][1])                       # a Saturday needs "Work on a day off"
+        self.assertNotEqual(self.states(run)[2][0], "error")                         # a Saturday can be booked by hand (Nov 16), not confirmed here
         run, _answer = self.run_file("job", "update", csv_file(f"id,crew_id,first_day,days,ref_number\n{job.pk},{self.crew2.pk},{MONDAY.isoformat()},2,PO-7\n"))
         self.assertEqual(self.states(run)[2], ("error", "Kind of number: pick the kind of number."))
         run, _answer = self.run_file("job", "update", csv_file(f"id,crew_id,first_day,days\n{job.pk},{self.crew2.pk},{MONDAY.isoformat()},2\n"))

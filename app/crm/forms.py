@@ -3,16 +3,13 @@ from django import forms
 from django.conf import settings
 from django.contrib.auth import password_validation
 from django.contrib.auth.forms import AuthenticationForm
-from django.utils.functional import lazy
 from django.utils.text import capfirst
 from django.utils.translation import gettext_lazy as _
 from PIL import Image
 
 from . import inline, logo, look
-from .dates import days_off_text, work_days_text
 from .models import (EDIT_OBJECTS, LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment,
-                     PickItem, PriceItem, Property, User, Worker, WorkType, home_state, is_day_off, pick_choices, pick_items, type_choices, work_types)
-
+                     PickItem, PriceItem, Property, User, Worker, WorkType, home_state, pick_choices, pick_items, type_choices, work_types)
 
 
 def type_box():
@@ -66,21 +63,6 @@ class Bootstrap:
 
 def date_box():
     return forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")
-
-
-def days_off_help():
-    return str(_("Days off: %(days)s. Tick this only when the work really has to be on one of them.")) % {"days": days_off_text()}
-
-
-def day_off_box():
-    return forms.BooleanField(label=_("Work on a day off"), required=False, help_text=lazy(days_off_help, str)())
-
-
-def check_day(form, field):
-    """Jobs and inspections go on work days, unless "Work on a day off" is ticked."""
-    day = form.cleaned_data.get(field)
-    if day and is_day_off(day) and not form.cleaned_data.get("day_off_ok"):
-        form.add_error(field, _("Pick a work day (%(days)s). To use a day off, tick “Work on a day off”.") % {"days": work_days_text()})
 
 
 class LoginForm(Bootstrap, AuthenticationForm):
@@ -158,13 +140,7 @@ class OpportunityForm(Bootstrap, forms.ModelForm):
 
 class InspectionForm(Bootstrap, forms.Form):
     day = forms.DateField(label=_("Day"), widget=date_box())
-    time = forms.TimeField(label=_("Time"), widget=forms.TimeInput(attrs={"type": "time"}, format="%H:%M"))
-    day_off_ok = day_off_box()
-
-    def clean(self):
-        data = super().clean()
-        check_day(self, "day")
-        return data
+    time = forms.TimeField(label=_("Time"), widget=forms.TimeInput(attrs={"type": "time"}, format="%H:%M"))     # any day: a day off too
 
 
 class SignForm(Bootstrap, forms.Form):
@@ -202,29 +178,22 @@ class StageForm(Bootstrap, forms.Form):
 
 # ---------- jobs ----------
 class ScheduleForm(Bootstrap, forms.ModelForm):
-    day_off_ok = day_off_box()
-    field_order = ["crew", "first_day", "day_off_ok", "days", "workers"]
+    field_order = ["crew", "first_day", "days", "workers"]
 
     class Meta:
         model = Job
-        fields = ["crew", "first_day", "day_off_ok", "days", "workers"]
+        fields = ["crew", "first_day", "days", "workers"]
         labels = {"days": _("How many work days")}
         widgets = {"first_day": date_box(), "workers": forms.CheckboxSelectMultiple}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["day_off_ok"].help_text = ""                         # just the tick and its label
         self.fields["crew"].queryset = Crew.objects.filter(active=True)
         self.fields["crew"].required = True
         self.fields["crew"].empty_label = None
         self.fields["first_day"].required = True
         self.fields["workers"].queryset = Worker.objects.filter(active=True, crew__isnull=True)
         self.fields["workers"].help_text = _("Workers who help on this job. They have no login; this records who worked.")
-
-    def clean(self):
-        data = super().clean()
-        check_day(self, "first_day")
-        return data
 
     def clean_days(self):
         days = self.cleaned_data["days"]

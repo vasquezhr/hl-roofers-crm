@@ -23,11 +23,23 @@ from django.db import models
 from django.utils import formats
 from django.utils.text import capfirst
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 
 from .dates import day_text, range_code, range_from_code
 
 LONG = 80                   # a longer value, such as the terms on a proposal, is cut short in the history
 NEVER = {"password", "new_password", "logo_upload", "no_logo"}    # a password is never written in the history, not even scrambled; a logo has its own line
+
+
+def gone_field(name, label):
+    field = models.BooleanField(label)
+    field.set_attributes_from_name(name)
+    return field
+
+
+# fields that were removed, so the history lines written while they existed still read in words.
+# "Work on a day off" was dropped on Nov 16, 2026 (migration 0026): a day off is now booked by hand with no tick.
+GONE = {"day_off_ok": gone_field("day_off_ok", gettext_lazy("Work on a day off"))}
 
 
 # ---------------------------------------------------------------- writing: what a form changed
@@ -123,7 +135,8 @@ def changes_text(detail):
                 field = model._meta.get_field(name)
                 label = capfirst(str(field.verbose_name))
             except FieldDoesNotExist:
-                field, label = None, name
+                field = GONE.get(name)
+                label = capfirst(str(field.verbose_name)) if field else name
             parts.append(f"{label}: {shown(field, old)} → {shown(field, new)}")
     except (ValueError, LookupError, KeyError, TypeError):
         return detail                                               # not a stored change: show it as it is

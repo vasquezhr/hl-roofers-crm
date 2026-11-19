@@ -811,9 +811,6 @@ msgstr "Día"
 msgid "Work on a day off"
 msgstr "Trabajar en un día libre"
 
-msgid "Any day of the week, for work that does not follow on from the job's other days. A day off (%(days)s) needs “Work on a day off”."
-msgstr "Cualquier día de la semana, para trabajo que no sigue a los otros días del trabajo. Un día libre (%(days)s) necesita “Trabajar en un día libre”."
-
 msgid "Not scheduled yet"
 msgstr "Sin programar"
 
@@ -1824,9 +1821,6 @@ msgstr "Trabajadores que ayudan en este trabajo. No tienen usuario; aquí se ano
 msgid "For the Crew profile: the crew whose jobs this login sees."
 msgstr "Para el perfil Equipo: el equipo cuyos trabajos ve este usuario."
 
-msgid "Days off: %(days)s. Tick this only when the work really has to be on one of them."
-msgstr "Días libres: %(days)s. Marque esto solo cuando el trabajo de verdad tenga que ser uno de esos días."
-
 msgid "Type of account"
 msgstr "Tipo de cuenta"
 
@@ -1925,9 +1919,6 @@ msgstr "Lo mejor es una imagen cuadrada, de al menos 180 × 180 píxeles: PNG, J
 
 msgid "Stop using the uploaded icon"
 msgstr "Dejar de usar el ícono que se subió"
-
-msgid "Pick a work day (%(days)s). To use a day off, tick “Work on a day off”."
-msgstr "Escoja un día de trabajo (%(days)s). Para usar un día libre, marque “Trabajar en un día libre”."
 
 msgid "Enter a number of days from 1 to 60."
 msgstr "Escriba un número de días del 1 al 60."
@@ -3300,9 +3291,6 @@ msgstr "%(crew)s no ha visto el cambio del trabajo #%(number)s"
 msgid "%(count)s imported notes are waiting for review"
 msgstr "%(count)s notas importadas esperan revisión"
 
-msgid "%(day)s is a day off. To add it anyway, tick “Work on a day off”."
-msgstr "%(day)s es un día libre. Para agregarlo de todas formas, marque “Trabajar en un día libre”."
-
 msgid "People"
 msgstr "Personas"
 
@@ -3857,9 +3845,6 @@ msgstr "Reservar este día"
 msgid "Click a day's date (+) to open the form for the visit below with that day."
 msgstr "Haga clic en la fecha de un día (+) para abrir el formulario de la visita de abajo con ese día."
 
-msgid "%(day)s is a day off. To book it, tick “Work on a day off”."
-msgstr "%(day)s es un día libre. Para reservarlo, marque “Trabajar en un día libre”."
-
 msgid "Bring in customers or leads from a spreadsheet, or the business's Apple Notes into each customer's Details. Pick the type of data; nothing is saved until you have reviewed it."
 msgstr "Traiga clientes o prospectos desde una hoja de cálculo, o las Notas de Apple del negocio a los Detalles de cada cliente. Elija el tipo de datos; no se guarda nada hasta que usted lo revise."
 
@@ -4145,9 +4130,6 @@ msgstr "El equipo y los días de un trabajo terminado no pueden cambiar."
 msgid "A job goes on the schedule with both a crew and a first day."
 msgstr "Un trabajo entra al calendario con un equipo y un primer día."
 
-msgid "First day: it is a day off. To use it, write yes under day_off_ok (Work on a day off)."
-msgstr "Primer día: es un día libre. Para usarlo, escriba sí en day_off_ok (Trabajar en un día libre)."
-
 msgid "Job: nothing is owed on this job."
 msgstr "Trabajo: no se debe nada en este trabajo."
 
@@ -4219,3 +4201,6 @@ msgstr "Una solicitud que sigue Nueva después de 2 horas: aparece en Hoy y se l
 
 msgid "Still new after a day: %(detail)s was reminded again"
 msgstr "Sigue nuevo después de un día: se le recordó otra vez a %(detail)s"
+
+msgid "Any day of the week, a day off too, for work that does not follow on from the job's other days."
+msgstr "Cualquier día de la semana, también un día libre, para trabajo que no sigue a los otros días del trabajo."

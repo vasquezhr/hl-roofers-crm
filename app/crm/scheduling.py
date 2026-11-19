@@ -2,7 +2,7 @@
 The schedule: who is where on which day, and suggested times.
 
 Work days are WORK_WEEKDAYS in the settings (WORK_DAYS in .env). For H & L: Monday to Friday.
-Saturdays are never offered, and Sunday is not decided yet.
+Suggested times never offer a day off; the office can still book one by hand. Sunday is not decided yet.
 
 Distances are rough on purpose. Each address is placed at the middle of its ZIP code, using the
 "zipcodes" library, which needs no internet and sends nothing anywhere. That is enough to tell
@@ -20,7 +20,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from .dates import range_code, range_text
-from .history import booking_code, field_changes
+from .history import booking_code
 from .models import Company, Job, Opportunity, digits, log
 
 INSPECTION_HOURS = range(9, 17)         # a one-hour inspection can start at 9 am ... 4 pm
@@ -234,11 +234,11 @@ def mini_map(place, stops, width=320, height=150):
 
 # ---------------------------------------------------------------- saving a job's schedule
 def save_schedule(job, before, user):
-    """Save a job whose crew, first day, days or "Work on a day off" were just set, by the Schedule form or by the data import,
+    """Save a job whose crew, first day or days were just set, by the Schedule form or by the data import,
     with what goes with it: a job waiting for a date becomes Scheduled; a scheduled job that moved shows Changed to its crew
-    (the "Appointment changed" automation). `before` is the job as it was: (crew, first_day, days, day_off_ok, starts_on, last_day).
+    (the "Appointment changed" automation). `before` is the job as it was: (crew, first_day, days, starts_on, last_day).
     Writes the history lines. Returns True when the job was just put on the schedule."""
-    crew_before, first_before, days_before, off_before, was_first, was_last = before
+    crew_before, first_before, days_before, was_first, was_last = before
     new = job.stage == Job.Stage.SIGNED
     if new:
         job.stage = Job.Stage.SCHEDULED
@@ -246,14 +246,12 @@ def save_schedule(job, before, user):
     if new:
         log(job, "booked", user, detail=booking_code(job))
         return True
-    if (job.crew_id, job.first_day, job.days, job.day_off_ok) != (crew_before.pk if crew_before else None, first_before, days_before, off_before):
+    if (job.crew_id, job.first_day, job.days) != (crew_before.pk if crew_before else None, first_before, days_before):
         if Company.load().auto_changed:                                 # the crew sees "Changed" on the job until it taps Got it
             job.mark_changed(was_first, was_last)
             job.save()
-        if (job.first_day, job.days, job.day_off_ok) != (first_before, days_before, off_before):
+        if (job.first_day, job.days) != (first_before, days_before):
             log(job, "changed", user, detail=range_code(was_first, was_last))
-        if job.day_off_ok != off_before:                                # Work on a day off: no → yes
-            log(job, "edited", user, detail=field_changes("job", "", [("day_off_ok", off_before, job.day_off_ok)]))
         if job.crew_id != (crew_before.pk if crew_before else None):
             log(job, "crew_changed", user, detail=f"{crew_before.name if crew_before else '—'} → {job.crew.name}")
     return False

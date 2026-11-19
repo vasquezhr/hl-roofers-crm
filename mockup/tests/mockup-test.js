@@ -373,21 +373,16 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await inModal("draftDel", '[data-i="2"]'); await inModal("draftPreview"); v = await modal();
     ok(/GAF Timberline HDZ shingles — 50 × \$46 per bundle/.test(v) && /\$3,175/.test(v), "the proposal prints the quantity: " + v.slice(0, 500));
     await p.click("#modal .btn-close"); await p.waitForTimeout(400);
-    // any day: a Saturday needs "Work on a day off"; the schedule shows it as a day off
+    // any day: a Saturday is booked by hand with no tick (Nov 16); the schedule shades it grey, with no words on it
     const saturday = await day(6), sunday = await day(0);
-    await go("#job/26-118"); await act("inlineOpen", '[data-sec="crew"]'); await p.fill("#jsDay", saturday); await inModal("saveSchedule");
-    ok(await p.isVisible("#jsProblem") && /Pick a work day/.test(await p.textContent("#jsProblem")), "a day off needs the tick");
-    await p.check("#jsOff"); await inModal("saveSchedule"); v = await view(); ok(/Sat,/.test(v) && /Dates changed/.test(v), "booked on a Saturday: " + v.slice(0, 600));
-    await go("#schedule"); v = await view(); ok(/Day off/.test(v) && /Terrence Oakes/.test(v), "the schedule shows the day off with the job on it");
+    await go("#job/26-118"); await act("inlineOpen", '[data-sec="crew"]'); ok(!(await p.$("#jsOff")) && !/Work on a day off/.test(await modal()), "no Work on a day off tick");
+    await p.fill("#jsDay", saturday); await inModal("saveSchedule"); v = await view(); ok(/Sat,/.test(v) && /Dates changed/.test(v), "booked on a Saturday: " + v.slice(0, 600));
+    await go("#schedule"); v = await view(); ok(/Terrence Oakes/.test(v), "the schedule shows the job on the day off");
+    ok((await p.$$eval("#view .card-header", hs => hs.filter(h => { const c = h.cloneNode(true); c.querySelectorAll(".visually-hidden").forEach(e => e.remove()); return /Día libre|Day off/.test(c.textContent); }).length)) === 0 && (await p.locator("#view .card-header.bg-body-secondary").count()) >= 1, "no Day off words on the calendar, but the shading stays");
     await shot("p5-schedule-day-off");
-    // "Work on a day off" is stored on the job: ticked, its days run straight through, days off included
-    await go("#job/26-118"); await act("inlineOpen", '[data-sec="crew"]'); ok(await p.isChecked("#jsOff"), "the saved tick shows ticked on an edit");
-    ok((await p.locator("#modal .form-check + .form-text").count()) === 0, "just the tick and its label, no sentence under it");
-    await p.fill("#jsDay", await day(4)); await p.fill("#jsDays", "5"); await inModal("saveSchedule");           // Thursday, 5 days, ticked
-    ok(await p.evaluate(() => { const j = jobOf("26-118"); return j.throughOff && j.days.length === 5 && j.days.map(x => x.getDay()).join() === "4,5,6,0,1"; }), "ticked: Thu, Fri, Sat, Sun, Mon");
-    await act("inlineOpen", '[data-sec="crew"]'); await p.uncheck("#jsOff"); await inModal("saveSchedule"); v = await view();
-    ok(await p.evaluate(() => { const j = jobOf("26-118"); return !j.throughOff && j.days.map(x => x.getDay()).join() === "4,5,1,2,3"; }), "not ticked: the days skip days off");
-    ok(/Work on a day off: yes → no/.test(v), "the history shows the tick before and after: " + v.slice(0, 400));
+    // a job of several days skips days off after its first day
+    await go("#job/26-118"); await act("inlineOpen", '[data-sec="crew"]'); await p.fill("#jsDay", await day(4)); await p.fill("#jsDays", "5"); await inModal("saveSchedule");           // Thursday, 5 days
+    ok(await p.evaluate(() => jobOf("26-118").days.map(x => x.getDay()).join() === "4,5,1,2,3"), "the days skip days off: Thu, Fri, Mon, Tue, Wed");
     // clicking a day on the Schedule calendar opens the form with that day; it books nothing by itself
     await p.setViewportSize({ width: 390, height: 844 }); await go("#schedule"); await p.waitForTimeout(300);
     ok(await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) <= 0, "the seven-day calendar fits a 390 px phone with no sideways scroll");
@@ -404,12 +399,11 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     ok((await p.locator('#view [data-act="clickDay"]').count()) === 7, "all seven days are on the calendar, each clickable");
     ok(await p.isVisible(`[data-act="clickDay"][data-day="${saturday}"]`) && await p.isVisible(`[data-act="clickDay"][data-day="${sunday}"]`), "Saturday and Sunday are there with nothing booked");
     await p.click(`[data-act="clickDay"][data-day="${saturday}"]`); await p.waitForTimeout(380);
-    ok((await p.inputValue("#jsDay")) === saturday && /is a day off/.test(await p.textContent("#modal")), "a clicked day off says so");
+    ok((await p.inputValue("#jsDay")) === saturday && !/is a day off/.test(await p.textContent("#modal")) && !(await p.$("#jsOff")), "a clicked day off opens the form with that day, and no tick");
     ok(await p.evaluate(id => jobOf(id).stage === "signed" && !jobOf(id).days.length, waitingId), "the click booked nothing");
     await p.click("#modal .btn-close"); await p.waitForTimeout(400);
     await go("#job/26-104"); await p.click('summary:has-text("Add a day")'); await p.fill("#adDay", sunday); await act("dayAdd");
-    ok(/is a day off/.test(await toastText()), "adding a day off needs the tick");
-    await p.check("#adOff"); await act("dayAdd"); v = await view();
+    v = await view(); ok(!(await p.$("#adOff")), "adding a day off needs no tick");
     ok(/Days added by hand/.test(v) && /Day added by hand: Sun/.test(v) && /Changed/.test(v), "a Sunday added by hand marks the job Changed: " + v.slice(0, 900));
     await act("dayRemove"); v = await view(); ok(/Day taken off: Sun/.test(v) && !/Days added by hand/.test(v), "the added day taken off again");
     // photos and files: a real photo shows while the page is open; anything else is refused
@@ -678,6 +672,17 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await go("#lead/L-305"); ok(!/Backup: the owner/.test(await view()) && /again after a whole day/.test(await view()), "the lead page says who is reminded");
     await p.click('[data-act="setLang"][data-lang="es"]'); await p.waitForTimeout(200); await go("#admin/automations"); v = await view();
     ok(/otro correo a esa misma persona/.test(v) && !/avisa al dueño/.test(v), "and in Spanish"); await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200);
+    // item 5: days off: no Day off words on the calendar, the grey stays; a day off is booked by hand with no tick; suggestions skip it
+    await role("office"); await p.click('[data-act="setLang"][data-lang="es"]'); await p.waitForTimeout(200); await go("#schedule");
+    ok((await p.$$eval("#view .card-header", hs => hs.filter(h => { const c = h.cloneNode(true); c.querySelectorAll(".visually-hidden").forEach(e => e.remove()); return /Día libre|Day off/.test(c.textContent); }).length)) === 0 && (await p.locator("#view .card-header.bg-body-secondary").count()) >= 1, "in Spanish: no Día libre words, the grey stays");
+    await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200);
+    const toBookJob = await p.evaluate(() => { const x = toBook().find(b => b.kind === "job"); if (!x) return ""; S.book = x.key; render(); return x.key.split(":")[1]; });
+    if (toBookJob) {
+      ok(await p.evaluate(() => jobSuggestions(bookCur().rec, S.bookCrew || "c1", 3).every(s => s.days.every(d => !isOff(d)))), "suggested times never offer a day off");
+      const sun = await p.evaluate(() => { const d = new Date(TODAY); while (!isOff(d) || d.getDay() !== 0) d.setDate(d.getDate() + 1); return iso(d); });
+      await p.click(`[data-act="clickDay"][data-day="${sun}"]`); await p.waitForTimeout(380); await p.fill("#jsDays", "2"); await inModal("saveSchedule");
+      ok(await p.evaluate(id => { const j = jobOf(id); return j.stage === "scheduled" && j.days.map(x => x.getDay()).join() === "0,1"; }, toBookJob), "a Sunday clicked on the calendar is booked by hand, then Monday");
+    } else ok(false, "a job waiting to be booked for the day-off step");
     //@@NOV16@@
   }
 
