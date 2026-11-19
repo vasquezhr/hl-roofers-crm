@@ -45,7 +45,7 @@ SECTIONS = [
     ("money", _("Prices and money"),
      _("Prices, totals, change orders, payments, balances, and the proposals, invoices and receipts. Can edit: the price on the Edit pages."), True),
     ("costs", _("Costs and margins"),
-     _("Supplier costs and the margin: when writing a proposal, in the Price changes report and in the exports."), False),
+     _("Supplier costs and the margin: when writing a proposal, in the Price Book and in the exports."), False),
     ("email", _("Customer's email"),
      _("The email address of a customer, a contact and a lead, on every page, in search, the exports and the Data editor."), True),
     ("job_notes", _("Notes on a job"),
@@ -103,6 +103,7 @@ EVERY_TICK = ([tick for key, _label in OBJECTS for tick in object_ticks(key)] + 
               + [tick for key, _n, _h, edit in SECTIONS for tick in section_ticks(key, edit)]
               + [key for key, _n, _h in PAGES] + [key for key, _n, _h in ACTIONS])
 MONEY_RECORDS = {"change_order", "payment"}
+DELETE_TICKS = [f"{key}.delete" for key, _label in OBJECTS]          # any one of them opens the Recycle Bin
 
 
 def name_of(tick):

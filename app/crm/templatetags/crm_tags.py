@@ -15,7 +15,7 @@ from django.utils.translation import gettext_lazy
 
 from crm import documents, logo
 from crm.dates import day_text, month_day_text, range_text, stamp_text
-from crm.models import Company, Job, Lead, Opportunity, digits, quantity_text
+from crm.models import Company, Job, Lead, Opportunity, digits, quantity_text, scope_line
 
 register = template.Library()
 
@@ -77,8 +77,15 @@ def may_edit(user, what):
 
 @register.filter
 def can(user, what):
-    """{% if user|can:"delete" %}: true when this login has the permission set. The Admin profile has every one."""
+    """{% if user|can:"job.delete" %}: true when this login has the tick, with every tick it needs (permissions.py)."""
     return bool(getattr(user, "is_authenticated", False)) and user.can(what)
+
+
+@register.filter
+def opens_admin(user):
+    """{% if user|opens_admin %}: true when this login may open the Admin hub."""
+    from crm.context import opens_admin as hub
+    return bool(getattr(user, "is_authenticated", False)) and hub(user)
 
 
 # ---------- words with a value inside: {% trf "Customer since %(year)s" year=2021 %} ----------
@@ -131,7 +138,7 @@ def pencil(context, kind, address, section="", inside=""):
     """The small pencil that edits a section in place. Shown only to a login that may edit this kind of record. Without JavaScript it is a link to
     the Edit page, which then shows only that section's fields. `inside`: a tag (li, div) whose content the form replaces, instead of the whole section."""
     user = context["request"].user
-    if not (not user.is_crew_profile if kind == "schedule" else user.may_edit(kind)):      # "schedule": the office puts a job on the schedule
+    if not (user.can("schedule") if kind == "schedule" else user.may_edit(kind)):      # "schedule": a login with the Schedule puts a job on it
         return ""
     link = f"{address}?section={section}" if section else address
     words = escape(_("Edit this section") if not inside else _("Edit"))
@@ -196,6 +203,12 @@ def qty(value):
 def line_words(row):
     """A proposal line as it prints: GAF Timberline HDZ shingles — 50 × $22 per bundle"""
     return documents.line_words(row)
+
+
+@register.filter
+def scope_words(row):
+    """A proposal line without its price, for a login that may not see prices: GAF Timberline HDZ shingles × 50 bundle"""
+    return scope_line(row)
 
 
 @register.filter

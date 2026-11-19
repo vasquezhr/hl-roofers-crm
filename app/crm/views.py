@@ -13,6 +13,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Case, Count, IntegerField, Q, Value, When
+from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -23,7 +24,7 @@ from django.views.decorators.http import require_POST
 
 from . import automations, scheduling
 from .documents import document_rows, keep, proposal_document
-from .access import job_or_404, jobs_for, may_edit, office_only, unread_notes, with_permission
+from .access import job_or_404, jobs_for, may_edit, needs, refuse, unread_notes, with_permission
 from .dates import day_text, range_code, work_days_text
 from .history import changes, when_code
 from .forms import (AccountForm, ContactForm, InspectionForm, JobEditForm, LostForm, NewAccountForm, NoteEditForm, NoteForm,
@@ -60,7 +61,8 @@ def filter_pills(current, options):
 
 
 def form_page(request, form, title, back, intro="", save_label="", **more):
-    """The page used by every small form: a title, the fields, Save and Cancel."""
+    """The page used by every small form: a title, the fields, Save and Cancel. A field the login may only read is shown as words (locked)."""
+    more.setdefault("locked", getattr(form, "locked", []))
     if request.GET.get("partial"):                                  # just the form, for the section being edited in place (inline.py)
         return render(request, "crm/_inline_form.html", {"form": form, "locked": more.get("locked", []), "cancel": back})
     return render(request, "crm/form.html", {"form": form, "title": title, "back": back, "intro": intro,
@@ -84,7 +86,13 @@ def today_counts():
     }
 
 
-@office_only
+def tiles_for(user):
+    """Which of the numbers at the top of Today and the dashboard this login may see."""
+    return {"leads": user.can("lead.see"), "opps": user.can("opportunity.see"), "jobs": user.can("job.see"),
+            "money": user.can("job.see") and user.can("money.see")}
+
+
+@needs("today")
 def home(request):
     day, week_ago = today(), today() - timedelta(days=7)
     opps = Opportunity.objects.select_related("account", "place")
@@ -97,7 +105,14 @@ def home(request):
     working = [job for job in jobs.filter(starts_on__lte=day, last_day__gte=day).exclude(stage=Job.Stage.PAID) if job.on_day(day)]
 
     # what needs someone's attention. Three of these lists are automations that can be switched off.
-    company = Company.load()
+    company, user = Company.load(), request.user
+    leads_ok, opps_ok, jobs_ok, money_ok = user.can("lead.see"), user.can("opportunity.see"), user.can("job.see"), user.can("money.see")
+    if not jobs_ok:
+        working, jobs = [], jobs.none()
+    if not opps_ok:
+        inspections, opps = inspections.none(), opps.none()
+    if not leads_ok:
+        new_leads = new_leads.none()
     attention = []
     for lead in (new_leads.filter(received_at__lte=timezone.now() - timedelta(hours=2)).order_by("received_at") if company.auto_remind else []):
         attention.append({"icon": "phone", "url": reverse("lead", args=[lead.pk]),
@@ -111,10 +126,10 @@ def home(request):
     for job in jobs.filter(stage=Job.Stage.SIGNED):
         attention.append({"icon": "schedule", "url": reverse("job", args=[job.number]),
                           "text": _("Schedule job #%(number)s for %(name)s") % {"number": job.number, "name": job.account.name}})
-    for job in (jobs.filter(stage=Job.Stage.DONE).exclude(job_type="warranty").order_by("done_on") if company.auto_job_done else []):
+    for job in (jobs.filter(stage=Job.Stage.DONE).exclude(job_type="warranty").order_by("done_on") if company.auto_job_done and money_ok else []):
         attention.append({"icon": "mail", "url": reverse("job", args=[job.number]),
                           "text": _("Send the invoice for job #%(number)s: %(name)s") % {"number": job.number, "name": job.account.name}})
-    for job in unpaid.filter(invoiced_on__lte=week_ago).order_by("invoiced_on"):
+    for job in (unpaid.filter(invoiced_on__lte=week_ago).order_by("invoiced_on") if jobs_ok and money_ok else []):
         attention.append({"icon": "dollar", "url": reverse("job", args=[job.number]),
                           "text": _("%(name)s: the invoice has been unpaid for %(days)s days") % {"name": job.account.name, "days": (day - job.invoiced_on).days}})
     for job in jobs.filter(changed_at__isnull=False, seen_at__isnull=True, crew__isnull=False):
@@ -124,24 +139,24 @@ def home(request):
                               "what": what, "number": job.number, "now": job.rescheduled_words, "crew": job.crew.name}})
     # notes the crews wrote on their jobs, since the start of the last work day
     since = timezone.make_aware(datetime.combine(scheduling.work_day(-1, day), datetime.min.time()))
-    crew_notes = (Activity.objects.filter(kind="note", job__isnull=False, job__bin__isnull=True, user__profile__in=Profile.keys_with("my_day"), at__gte=since)
-                  .select_related("job__account")[:12])
+    crew_notes = (Activity.objects.filter(kind="note", job__isnull=False, job__bin__isnull=True, user__profile__in=Profile.keys_with("my_day"), at__gte=since,
+                                          job__in=jobs.values("pk")).select_related("job__account")[:12]) if user.can("job_notes.see") else []
     # for a login with the Inspector permission: the inspections nobody has taken yet
     open_inspections = (list(opps.filter(stage=Opportunity.Stage.INSPECTION, inspector__isnull=True).order_by("created_at"))
-                        if request.user.can("inspect") else [])
-    waiting = ImportedNote.objects.filter(status=ImportedNote.Status.PENDING).count() if request.user.is_admin_profile else 0
+                        if user.can("inspect") else [])
+    waiting = ImportedNote.objects.filter(status=ImportedNote.Status.PENDING).count() if user.can("import_data") else 0
     if waiting:
         attention.append({"icon": "upload", "url": reverse("import_queue"),
                           "text": _("%(count)s imported notes are waiting for review") % {"count": waiting}})
 
     return render(request, "crm/home.html", {
         "day": day, "inspections": inspections, "working": working, "attention": attention, "crew_notes": crew_notes, "open_inspections": open_inspections,
-        **today_counts(),
+        **today_counts(), "tiles": tiles_for(user),
     })
 
 
 # ---------------------------------------------------------------- accounts
-@office_only
+@needs("account.see")
 def accounts(request):
     show = request.GET.get("show", "all")
     everyone = Account.objects.all()
@@ -157,25 +172,28 @@ def accounts(request):
     })
 
 
-@office_only
+@needs("account.see")
 def account(request, pk):
     account = get_object_or_404(Account.objects.prefetch_related("contacts", "properties", "notes"), pk=pk)
-    opps = account.opportunities.select_related("account", "place")
-    jobs = account.jobs.select_related("account", "place", "crew").prefetch_related("change_orders", "payments").order_by("-created_at")
+    user = request.user
+    opps = account.opportunities.select_related("account", "place") if user.can("opportunity.see") else Opportunity.objects.none()
+    jobs = jobs_for(user).filter(account=account).order_by("-created_at")
+    files = Attachment.objects.filter(account=account).exclude(job__bin__isnull=False).filter(Q(job__isnull=True) | Q(job__in=jobs.values("pk")))
     return render(request, "crm/account.html", {
         "account": account, "note_form": NoteForm(), "opps": opps, "jobs": jobs,
-        "documents": document_rows(opps, jobs),                       # every proposal, change order and invoice of this customer
+        # every proposal, change order and invoice of this customer
+        "documents": document_rows(opps, jobs) if user.can("money.see") else None,
         # photos and files: the account's own, and its jobs' (not those of a job in the Recycle Bin)
-        "files": Attachment.objects.filter(account=account).exclude(job__bin__isnull=False).select_related("job", "change_order"),
-        "add_url": reverse("account_files", args=[account.pk]), "show_job": True,
+        "files": files.select_related("job", "change_order") if user.can("file.see") else None,
+        "add_url": reverse("account_files", args=[account.pk]) if user.can("file.create") else "", "show_job": True,
         "categories": [choice for choice in pick_choices("file_kind") if choice[0] != Attachment.Category.SIGNED_CHANGE],
-        "history": account.activities.all()[:60],
+        "history": account.activities.all()[:60] if user.can("history.see") else None,
     })
 
 
-@office_only
+@needs("account.create")
 def account_new(request):
-    form = NewAccountForm(request.POST or None)
+    form = NewAccountForm(request.POST or None).for_login(request.user)
     same = None
     if form.is_valid():
         # the same phone, email or address as a customer already in the app? Ask before making a second account.
@@ -202,10 +220,10 @@ def account_edit(request, pk):
     return form_page(request, form, _("Edit the account"), reverse("account", args=[account.pk]))
 
 
-@office_only
+@needs("contact.create")
 def contact_new(request, pk):
     account = get_object_or_404(Account, pk=pk)
-    form = ContactForm(request.POST or None)
+    form = ContactForm(request.POST or None).for_login(request.user)
     if form.is_valid():
         contact = form.save(commit=False)
         contact.account = account
@@ -219,7 +237,7 @@ def contact_new(request, pk):
 @may_edit("contact")
 def contact_edit(request, pk):
     contact = get_object_or_404(Contact, pk=pk)
-    form = ContactForm(request.POST or None, instance=contact)
+    form = ContactForm(request.POST or None, instance=contact).for_login(request.user)
     if form.is_valid():
         form.save()
         what = changes(form, name=contact.name)
@@ -228,10 +246,10 @@ def contact_edit(request, pk):
         saved(request)
         return redirect("account", pk=contact.account_id)
     return form_page(request, form, _("Edit the contact"), reverse("account", args=[contact.account_id]),
-                     delete_url=reverse("record_delete", args=["contact", contact.pk]))
+                     delete_url=reverse("record_delete", args=["contact", contact.pk]) if request.user.can("contact.delete") else "")
 
 
-@office_only
+@needs("property.create")
 def property_new(request, pk):
     account = get_object_or_404(Account, pk=pk)
     form = PropertyForm(request.POST or None)
@@ -257,10 +275,10 @@ def property_edit(request, pk):
         saved(request)
         return redirect("account", pk=place.account_id)
     return form_page(request, form, _("Edit the property"), reverse("account", args=[place.account_id]),
-                     delete_url=reverse("record_delete", args=["property", place.pk]))
+                     delete_url=reverse("record_delete", args=["property", place.pk]) if request.user.can("property.delete") else "")
 
 
-@office_only
+@needs("note.create")
 @require_POST
 def note_new(request, pk):
     """The "Add a note" box in a customer's Details."""
@@ -275,7 +293,7 @@ def note_new(request, pk):
 
 
 # ---------------------------------------------------------------- opportunities
-@office_only
+@needs("opportunity.see")
 def opps(request):
     show = request.GET.get("show", "open")
     everything = Opportunity.objects.select_related("account", "place")
@@ -295,14 +313,15 @@ def opp_or_404(number):
     return get_object_or_404(Opportunity.objects.select_related("account", "place"), number=number)
 
 
-@office_only
+@needs("opportunity.see")
 def opp(request, number):
     opp = opp_or_404(number)
-    return render(request, "crm/opp.html", {"opp": opp, "account": opp.account, "job": getattr(opp, "job", None),
-                                            "history": opp.activities.all()})
+    job = getattr(opp, "job", None)
+    return render(request, "crm/opp.html", {"opp": opp, "account": opp.account, "job": job if job and request.user.can("job.see") else None,
+                                            "history": opp.activities.all() if request.user.can("history.see") else None})
 
 
-@office_only
+@needs("opportunity.create")
 def opp_new(request, pk):
     """A new opportunity for a customer. A returning customer always gets a new one."""
     account = get_object_or_404(Account, pk=pk)
@@ -323,7 +342,7 @@ def opp_new(request, pk):
     return form_page(request, form, _("New opportunity"), reverse("account", args=[account.pk]), intro=account.name)
 
 
-@office_only
+@needs("opportunity.see", "schedule")
 def opp_inspection(request, number):
     """The day and time of the inspection."""
     opp = opp_or_404(number)
@@ -343,7 +362,7 @@ def opp_inspection(request, number):
     return form_page(request, form, _("Inspection"), reverse("opp", args=[opp.number]), intro=f"#{opp.number} · {opp.account.name}")
 
 
-@office_only
+@needs("opportunity.see", "close_opps")
 def opp_sign(request, number):
     """A signed proposal turns into a Job right away. The Job keeps the same number."""
     opp = opp_or_404(number)
@@ -363,7 +382,7 @@ def opp_sign(request, number):
     return form_page(request, form, _("Mark signed"), reverse("opp", args=[opp.number]), intro=intro, save_label=_("Signed: create the job"))
 
 
-@office_only
+@needs("opportunity.see", "close_opps")
 def opp_lost(request, number):
     opp = opp_or_404(number)
     if not opp.is_open:
@@ -387,7 +406,9 @@ def change_stage(request, kind, number):
     stage it reaches is filled in when it has none."""
     if kind not in ("opp", "job"):
         raise Http404
-    record = opp_or_404(number) if kind == "opp" else get_object_or_404(Job.objects.select_related("account"), number=number)
+    if not request.user.can("opportunity.see" if kind == "opp" else "job.see"):
+        raise PermissionDenied
+    record = opp_or_404(number) if kind == "opp" else job_or_404(request.user, number)
     back = reverse(kind, args=[record.number])
     form = StageForm(request.POST or None, record=record)
     if form.is_valid():
@@ -423,10 +444,12 @@ def change_stage(request, kind, number):
 
 
 # ---------------------------------------------------------------- jobs
-@office_only
+@needs("job.see")
 def jobs(request):
+    if request.user.is_crew_login:
+        return redirect("my_day")                                       # a crew login lists its jobs on My Jobs
     show = request.GET.get("show", "open")
-    everything = Job.objects.select_related("account", "place", "crew").prefetch_related("change_orders", "payments")
+    everything = jobs_for(request.user)
     Stage = Job.Stage
     count = dict(everything.values_list("stage").annotate(n=Count("id")))                  # how many in each stage
     # open: not paid yet. A warranty job has no invoice, so it is closed once it is done.
@@ -453,7 +476,7 @@ CREW_STEPS = [Job.Stage.SCHEDULED, Job.Stage.IN_PROGRESS]        # a crew may st
 
 def next_step(job, user):
     """The next step this person may take on the job, or None."""
-    if job.stage not in NEXT_STEP or (user.is_crew_profile and (job.stage not in CREW_STEPS or not user.can("crew_lead"))):
+    if job.stage not in NEXT_STEP or not user.can("job_steps") or (user.is_crew_login and job.stage not in CREW_STEPS):
         return None                                                 # a crew login without Crew Lead only reads and adds notes
     to, label, kind, date_field = NEXT_STEP[job.stage]
     return {"to": to, "label": label, "kind": kind, "date_field": date_field}
@@ -461,42 +484,51 @@ def next_step(job, user):
 
 @login_required
 def job(request, number):
-    """A job. The office sees every job; a crew sees a job only when it is scheduled to that crew."""
-    job = job_or_404(request.user, number)
-    office = not request.user.is_crew_profile
-    orders = list(job.change_orders.all())
+    """A job. A login sees it when its profile may see jobs; with "Only jobs scheduled to their crew", only its crew's jobs.
+    Each section and button is there only for a login whose ticks allow it."""
+    user = request.user
+    job = job_or_404(user, number)
+    crew_view = user.is_crew_login                                     # the crew's layout: back to My Jobs, a note for the office, the pop-up
+    can = user.can
+    orders = list(job.change_orders.all()) if can("change_order.see") else []
     lines = list(job.activities.all())
-    may_change_workers = job.crew_id is not None and not job.is_finished and (office or request.user.can("crew_lead"))
+    may_change_workers = job.crew_id is not None and not job.is_finished and can("job_workers")
     return render(request, "crm/job.html", {
-        "job": job, "account": job.account, "crew_view": not office, "step": next_step(job, request.user),
-        "can_schedule": office and not job.is_finished,
+        "job": job, "account": job.account, "crew_view": crew_view, "step": next_step(job, user),
+        "can_schedule": can("schedule") and not job.is_finished,
         "added_days": [{"day": day, "off": is_day_off(day)} for day in job.added_days],
         # photos and files: the office and the job's own crew can add them
-        "files": Attachment.objects.filter(job=job).select_related("change_order"), "add_url": reverse("job_files", args=[job.number]),
+        "files": Attachment.objects.filter(job=job).select_related("change_order") if can("file.see") else None,
+        "add_url": reverse("job_files", args=[job.number]) if can("file.create") else "",
         "categories": pick_choices("file_kind"),
-        "can_open_warranty": office and job.is_finished and not job.is_warranty,
+        "can_open_warranty": can("job.create") and job.is_finished and not job.is_warranty,
         # money: the office adds change orders and sends the invoice; the office or the crew records a payment
-        "orders": orders, "orders_waiting": any(not order.is_signed for order in orders), "payments": list(job.payments.all()),
-        "can_add_order": office and not job.is_warranty and job.stage != Job.Stage.PAID,
-        "can_pay": job.can_take_payment(request.user),
-        "can_invoice": office and job.stage == Job.Stage.DONE and not job.is_warranty,
-        "has_invoice": job.invoiced_on is not None,
+        "money": can("money.see"), "perms_opp": can("opportunity.see"),
+        "orders": orders, "orders_waiting": any(not order.is_signed for order in orders),
+        "payments": list(job.payments.all()) if can("payment.see") else [],
+        "can_add_order": can("change_order.create") and not job.is_warranty and job.stage != Job.Stage.PAID,
+        "can_pay": job.can_take_payment(user),
+        "can_invoice": can("send_invoice") and can("money.see") and job.stage == Job.Stage.DONE and not job.is_warranty,
+        "has_invoice": job.invoiced_on is not None and can("money.see"),
         # the job's paperwork: its signed proposal, its change orders and its invoice. The crew can open them too.
-        "documents": document_rows([job.opportunity] if job.opportunity_id else [], [job]),
+        "documents": document_rows([job.opportunity] if job.opportunity_id else [], [job]) if can("money.see") else None,
         # extra workers can be added or taken off, by the office or the crew, until the job is done
         "can_change_workers": may_change_workers,
         "free_workers": Worker.objects.filter(active=True, crew__isnull=True).exclude(jobs=job) if may_change_workers else [],
-        "can_confirm": not office and request.user.can("crew_lead"),             # the Got it button on a moved job
-        "notify_href": scheduling.notify_href(job, Company.load()) if job.change_unseen and office else "",
+        "can_confirm": crew_view and can("confirm_changes"),               # the Got it button on a moved job
+        "notify_href": scheduling.notify_href(job, Company.load()) if job.change_unseen and can("schedule") else "",
         "members": job.crew.members.filter(active=True) if job.crew else [],
         "workers": job.workers.all(),
-        "warranty_jobs": job.warranty_jobs.all(),
+        "warranty_jobs": jobs_for(user).filter(warranty_for=job),
+        "warranty_for": job.warranty_for if job.warranty_for_id and jobs_for(user).filter(pk=job.warranty_for_id).exists() else None,
         "reschedules": list(job.reschedules.all()),                     # each time its dates changed, with why
         # a day added to a job on the schedule changes its dates: the reason is asked with it
         "reasons": pick_choices("reschedule_reason") if job.stage in (Job.Stage.SCHEDULED, Job.Stage.IN_PROGRESS) else [],
         # notes typed by the office or the crew are shown apart from the rest of the history
-        "notes": [line for line in lines if line.kind == "note"], "history": [line for line in lines if line.kind != "note"],
-        "popup": unread_notes(request.user, job) if not office else [],          # the office's unread notes, popped up for the crew
+        "notes": [line for line in lines if line.kind == "note"] if can("job_notes.see") else None,
+        "add_note": can("job_notes.edit"),
+        "history": [line for line in lines if line.kind != "note"] if can("history.see") else None,
+        "popup": unread_notes(user, job),                               # the office's unread notes, popped up for the crew
         "note_form": NoteForm(),
     })
 
@@ -528,10 +560,10 @@ def clicked_day(request):
         return None
 
 
-@office_only
+@needs("job.see", "schedule")
 def job_schedule(request, number):
     """Put a job on the schedule: the crew, the first day and how many work days."""
-    job = get_object_or_404(Job.objects.select_related("account"), number=number)
+    job = job_or_404(request.user, number)
     if job.is_finished:
         return redirect("job", number=job.number)
     before = (job.crew_id, job.first_day, job.days)                  # to tell afterwards whether the schedule changed
@@ -565,13 +597,13 @@ def job_schedule(request, number):
                      sub=f"#{job.number} · {job.account.name} · {job.get_job_type_display()}", coming=coming)
 
 
-@office_only
+@needs("job.see", "schedule")
 @require_POST
 def job_day(request, number):
     """Add a day to a scheduled job by hand, on any day of the week, a day off too, or take an added day off again.
     Its dates change, so it is a reschedule: a reason is asked (on a small page, when the button did not send one), and the crew
     sees the job as Rescheduled until it taps Got it."""
-    job = get_object_or_404(Job, number=number)
+    job = job_or_404(request.user, number)
     if job.is_finished or not job.first_day:
         messages.warning(request, _("Put the job on the schedule first."))
         return redirect("job", number=job.number)
@@ -613,7 +645,7 @@ def job_day(request, number):
 @may_edit("job")
 def job_ref(request, number):
     """The outside number a job can carry: a claim, a purchase order or a work order."""
-    job = get_object_or_404(Job, number=number)
+    job = job_or_404(request.user, number)
     form = RefForm(request.POST or None, instance=job)
     if form.is_valid():
         form.save()
@@ -626,10 +658,10 @@ def job_ref(request, number):
                      intro=_("The other company's number for this job: an insurance or warranty claim, a purchase order or a work order."))
 
 
-@office_only
+@needs("job.create")
 def job_warranty(request, number):
     """A problem on a finished job becomes a new warranty job linked to it. It has no opportunity of its own."""
-    job = get_object_or_404(Job, number=number)
+    job = job_or_404(request.user, number)
     if not job.is_finished or job.is_warranty:
         return redirect("job", number=job.number)
     form = WarrantyForm(request.POST or None)
@@ -650,10 +682,12 @@ def job_note(request, number):
     """A note on a job, from the office or the crew. It shows in the job's history. A note from the office pops up for the
     job's crew until the crew taps Got it; a note the crew wrote never pops up for it."""
     job = job_or_404(request.user, number)
+    if not request.user.can("job_notes.edit"):
+        raise PermissionDenied
     form = NoteForm(request.POST)
     if form.is_valid():
         line = log(job, "note", request.user, detail=form.cleaned_data["text"].strip()[:1000])
-        if not request.user.is_crew_profile:
+        if not request.user.is_crew_login:
             line.for_crew = True
             line.save(update_fields=["for_crew"])
         saved(request)
@@ -664,7 +698,7 @@ def job_note(request, number):
 @login_required
 def my_jobs(request):
     """The jobs scheduled to this crew: today's, the ones coming up, and the latest finished ones."""
-    if not request.user.is_crew_profile:
+    if not request.user.can("my_day"):
         return redirect("jobs")
     day, mine = today(), jobs_for(request.user)
     waiting = list(mine.exclude(stage__in=FINISHED_JOBS))
@@ -673,16 +707,16 @@ def my_jobs(request):
         "now": [job for job in waiting if job.on_day(day)],
         "upcoming": [job for job in waiting if not job.on_day(day)],
         "finished": mine.filter(stage__in=FINISHED_JOBS).order_by("-last_day")[:30],
-        "popup": unread_notes(request.user), "can_confirm": request.user.can("crew_lead"),
+        "popup": unread_notes(request.user), "can_confirm": request.user.can("confirm_changes"),
     })
 
 
 # ---------------------------------------------------------------- search
-@login_required
+@needs("search")
 def search(request):
     q = " ".join(request.GET.get("q", "").split())[:100]
     return render(request, "crm/search.html", {"q": q, "groups": find_records(request.user, q) if len(q) >= 2 else [],
-                                               "crew_view": request.user.is_crew_profile})
+                                               "crew_view": request.user.is_crew_login})
 
 
 # ---------------------------------------------------------------- Call, Text and Directions
@@ -693,12 +727,13 @@ def touch(request):
     kind, ident, how = request.POST.get("kind"), request.POST.get("id", ""), request.POST.get("how")
     if how not in ("call", "text", "nav", "notified"):
         raise Http404
-    if how == "notified" and (kind != "job" or request.user.is_crew_profile):
+    can = request.user.can
+    if how == "notified" and (kind != "job" or not can("schedule")):
         raise Http404                                            # "Notify crew" is the office's button, on a job
     if kind == "job":
         record = job_or_404(request.user, ident)
-    elif request.user.is_crew_profile:
-        raise Http404                                            # a crew only has its jobs
+    elif not can({"lead": "lead.see", "opp": "opportunity.see", "account": "account.see"}.get(kind, "")):
+        raise Http404                                            # a kind of record this login may not see: a crew only has its jobs
     elif kind == "lead" and ident.isdigit():
         record = get_object_or_404(Lead, pk=ident)
         if record.status == Lead.Status.NEW and how != "nav":
@@ -740,8 +775,8 @@ def opp_edit(request, number):
 @may_edit("job")
 def job_edit(request, number):
     """Every field of a job a person can change. A change to the price is checked against what has been paid."""
-    job = get_object_or_404(Job.objects.select_related("account"), number=number)
-    form = JobEditForm(request.POST or None, instance=job)
+    job = job_or_404(request.user, number)
+    form = JobEditForm(request.POST or None, instance=job).for_login(request.user)
     response = edit_page(request, form, job, _("Edit the job"), reverse("job", args=[job.number]))
     if request.method == "POST" and form.is_valid() and "price" in form.changed_data:
         fresh = Job.objects.prefetch_related("change_orders", "payments").get(pk=job.pk)

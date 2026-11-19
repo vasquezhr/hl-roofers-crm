@@ -15,7 +15,7 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import translation
@@ -23,7 +23,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from . import documents
-from .access import job_or_404, may_edit, office_only
+from .access import job_or_404, may_edit, needs
 from .forms import ChangeOrderForm, PaymentEditForm, PaymentForm
 from .history import changes
 from .mail import send
@@ -32,6 +32,16 @@ from .views import form_page, opp_or_404, saved, today
 
 
 # ---------------------------------------------------------------- shared pieces
+def shown(request, document):
+    """A document as this login may see it: without the customer's email when its profile may not see emails. The customer's own copy,
+    and the copy the app keeps, are not changed."""
+    if request.user.can("email.see"):
+        return document
+    def plain(line):
+        return " · ".join(part for part in line.split(" · ") if "@" not in part)
+    return {**document, "blocks": [(title, [plain(line) for line in lines if plain(line)]) for title, lines in document.get("blocks", [])]}
+
+
 def pdf_response(document, company, file_name):
     response = HttpResponse(documents.pdf(document, company), content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="{file_name}"'
@@ -121,7 +131,7 @@ def read_lines(post):
     return items, ""
 
 
-@office_only
+@needs("opportunity.see", "send_proposal", "money.see")
 def opp_proposal(request, number):
     """The proposal builder: one row for each line. A line with no amount is included in the price."""
     opp = opp_or_404(number)
@@ -145,17 +155,17 @@ def opp_proposal(request, number):
     empty = {"text": "", "quantity": None, "unit": "", "each": None, "amount": None}
     rows = list(rows) + [dict(empty) for _n in range(max(2, 4 - len(rows)))]       # always a few empty rows to type in
     return render(request, "crm/proposal_builder.html", {"opp": opp, "account": opp.account, "rows": rows, "problem": problem,
-                                                         "price_items": PriceItem.objects.all(), "show_costs": request.user.can("costs")})
+                                                         "price_items": PriceItem.objects.all(), "show_costs": request.user.can("costs.see")})
 
 
-@office_only
+@needs("opportunity.see", "send_proposal", "money.see")
 def opp_document(request, number):
     """The proposal as the customer gets it. ?pdf=1 gives the PDF."""
     opp, company = opp_or_404(number), Company.load()
     if not opp.line_items:
         return redirect("opp_proposal", number=opp.number)
     if request.GET.get("pdf"):
-        return pdf_response(documents.proposal_document(opp, company, translation.get_language()), company, f"proposal-{opp.number}.pdf")
+        return pdf_response(shown(request, documents.proposal_document(opp, company, translation.get_language())), company, f"proposal-{opp.number}.pdf")
     Stage = Opportunity.Stage
     here, actions = reverse("opp_document", args=[opp.number]), []
     if opp.is_open:
@@ -167,14 +177,14 @@ def opp_document(request, number):
     if opp.stage == Stage.PROPOSAL:
         actions.append(action(_("Mark signed"), reverse("opp_sign", args=[opp.number]), icon="check"))
     return render(request, "crm/document.html", {
-        "document": documents.proposal_document(opp, company, translation.get_language()), "actions": actions,
+        "document": shown(request, documents.proposal_document(opp, company, translation.get_language())), "actions": actions,
         "title": f"{_('Proposal')} #{opp.number}", "back": reverse("opp", args=[opp.number]), "send_to": reverse("opp_send", args=[opp.number]),
         "accept_link": settings.SITE_URL + reverse("accept_proposal", args=[opp.accept_token]) if opp.stage == Stage.PROPOSAL and opp.accept_token else "",
-        "email": email_of(opp.account),
+        "email": email_of(opp.account) if request.user.can("email.see") else "",
     })
 
 
-@office_only
+@needs("opportunity.see", "send_proposal", "money.see")
 @require_POST
 def opp_send(request, number):
     """Email the proposal with its PDF and the link to the customer's Accept page, or mark it sent by hand."""
@@ -217,18 +227,20 @@ def opp_send(request, number):
 def job_proposal(request, number):
     """The signed proposal, kept with its job. The office can open it, and so can the job's own crew. ?pdf=1 gives the PDF."""
     job, company = job_or_404(request.user, number), Company.load()
+    if not request.user.can("money.see"):
+        raise Http404                                                 # a document is money: it needs See of Prices and money
     opp = job.opportunity
     if opp is None:                                                   # a warranty job has no proposal
         return redirect("job", number=job.number)
     copy = documents.kept("proposal", opportunity=opp)                  # the proposal exactly as it was signed
     document, firm = (copy.data, documents.firm_of(copy)) if copy else (documents.proposal_document(opp, company, translation.get_language()), company)
     if request.GET.get("pdf"):
-        return pdf_response(document, firm, f"proposal-{opp.number}.pdf")
+        return pdf_response(shown(request, document), firm, f"proposal-{opp.number}.pdf")
     signed = _("Signed %(day)s") % {"day": documents.date_text(opp.signed_on)} + f" · {opp.get_signed_how_display()}"
     if opp.signed_by:
         signed += f" · {opp.signed_by}"
     return render(request, "crm/document.html", {
-        "document": document, "firm": firm, "title": f"{_('Proposal')} #{opp.number}", "note": signed, "kept": copy, "not_kept": copy is None,
+        "document": shown(request, document), "firm": firm, "title": f"{_('Proposal')} #{opp.number}", "note": signed, "kept": copy, "not_kept": copy is None,
         "papers": Attachment.objects.filter(job=job, category=Attachment.Category.SIGNED_PROPOSAL),
         "back": reverse("job", args=[job.number]),
         "actions": [action(_("Download the PDF"), reverse("job_proposal", args=[job.number]) + "?pdf=1", icon="doc")],
@@ -259,9 +271,9 @@ def accept_proposal(request, token):
 
 
 # ---------------------------------------------------------------- change orders
-@office_only
+@needs("change_order.create")
 def change_order_new(request, number):
-    job = get_object_or_404(Job.objects.select_related("account"), number=number)
+    job = job_or_404(request.user, number)
     if job.is_warranty or job.stage == Job.Stage.PAID:
         return redirect("job", number=job.number)
     form = ChangeOrderForm(request.POST or None)
@@ -277,7 +289,10 @@ def change_order_new(request, number):
                      sub=f"#{job.number} · {job.account.name}")
 
 
-def order_or_404(number, n):
+def order_or_404(number, n, user=None):
+    """A change order of a job. With a login: only on a job that login may see."""
+    if user is not None:
+        job_or_404(user, number)
     return get_object_or_404(ChangeOrder.objects.select_related("job__account", "job__place"), job__number=number, number=n)
 
 
@@ -285,38 +300,41 @@ def order_or_404(number, n):
 def change_order(request, number, n):
     """A change order as the customer gets it. The office sends it; the job's own crew can read it. ?pdf=1 gives the PDF."""
     job_or_404(request.user, number)                                  # a crew only reaches its own jobs
-    order, company = order_or_404(number, n), Company.load()
-    job, office = order.job, not request.user.is_crew_profile
+    if not request.user.can("change_order.see"):
+        raise Http404
+    order, company = order_or_404(number, n, request.user), Company.load()
+    job, can = order.job, request.user.can
+    office = can("change_order.create")                                 # who sends it and marks it signed
     copy = documents.kept("change", change_order=order) if order.is_signed else None
     document, firm = (copy.data, documents.firm_of(copy)) if copy else (documents.change_order_document(order, company, translation.get_language()), company)
     if request.GET.get("pdf"):
-        return pdf_response(document, firm, f"change-order-{job.number}-{order.label}.pdf")
+        return pdf_response(shown(request, document), firm, f"change-order-{job.number}-{order.label}.pdf")
     here, actions = reverse("change_order", args=[job.number, order.number]), []
     if office and not order.is_signed:
         actions += [action(_("Email to the customer"), post="email", style="primary", icon="mail"), action(_("Mark signed"), post="signed", icon="check")]
         if request.user.may_edit("change_order"):
             actions.append(action(_("Edit"), reverse("change_order_edit", args=[job.number, order.number]), icon="edit"))
     actions.append(action(_("Download the PDF"), here + "?pdf=1", icon="doc"))
-    if office and request.user.can("delete"):
+    if can("change_order.delete"):
         actions.append(action(_("Delete"), reverse("record_delete", args=["change_order", order.pk]), style="outline-danger", icon="trash"))
     if order.is_signed:
         note = _("Signed %(day)s") % {"day": documents.date_text(order.signed_on)} + (f" · {order.signed_by}" if order.signed_by else "")
     else:
         note = order.get_status_display()
     return render(request, "crm/document.html", {
-        "document": document, "firm": firm, "kept": copy, "not_kept": order.is_signed and copy is None, "actions": actions, "note": note,
+        "document": shown(request, document), "firm": firm, "kept": copy, "not_kept": order.is_signed and copy is None, "actions": actions, "note": note,
         "papers": Attachment.objects.filter(change_order=order, category=Attachment.Category.SIGNED_CHANGE),
         "title": f"{_('Change order')} {order.label} · #{job.number}", "back": reverse("job", args=[job.number]),
         "send_to": reverse("change_order_send", args=[job.number, order.number]),
         "accept_link": settings.SITE_URL + reverse("accept_change", args=[order.accept_token]) if office and order.accept_token and not order.is_signed else "",
-        "email": email_of(job.account) if office and not order.is_signed else "",
+        "email": email_of(job.account) if office and not order.is_signed and can("email.see") else "",
     })
 
 
-@office_only
+@needs("change_order.create")
 @require_POST
 def change_order_send(request, number, n):
-    order, company = order_or_404(number, n), Company.load()
+    order, company = order_or_404(number, n, request.user), Company.load()
     job, account, how = order.job, order.job.account, request.POST.get("do")
     if order.is_signed:
         return redirect("job", number=job.number)
@@ -408,20 +426,22 @@ def payment_new(request, number):
 def invoice(request, number):
     """The invoice, built from the job. The office sends it; a crew can read it on its own job. ?pdf=1 gives the PDF."""
     job, company = job_or_404(request.user, number), Company.load()
-    office = not request.user.is_crew_profile
+    if not request.user.can("money.see"):
+        raise Http404                                                 # a document is money: it needs See of Prices and money
+    office = request.user.can("send_invoice")
     if job.is_warranty or not job.is_finished:
         return redirect("job", number=job.number)
     copy = documents.kept("invoice", job=job)
     if request.GET.get("sent") and copy:                                # the invoice exactly as it was sent
         if request.GET.get("pdf"):
-            return pdf_response(copy.data, documents.firm_of(copy), f"invoice-{job.number}-as-sent.pdf")
+            return pdf_response(shown(request, copy.data), documents.firm_of(copy), f"invoice-{job.number}-as-sent.pdf")
         return render(request, "crm/document.html", {
-            "document": copy.data, "firm": documents.firm_of(copy), "kept": copy, "title": f"{_('Invoice')} #{job.number}",
+            "document": shown(request, copy.data), "firm": documents.firm_of(copy), "kept": copy, "title": f"{_('Invoice')} #{job.number}",
             "note": _("As it was sent on %(day)s") % {"day": documents.date_text(job.invoiced_on)}, "back": reverse("invoice", args=[job.number]),
             "actions": [action(_("Download the PDF"), reverse("invoice", args=[job.number]) + "?sent=1&pdf=1", icon="doc")],
         })
     if request.GET.get("pdf"):
-        return pdf_response(documents.invoice_document(job, company, translation.get_language()), company, f"invoice-{job.number}.pdf")
+        return pdf_response(shown(request, documents.invoice_document(job, company, translation.get_language())), company, f"invoice-{job.number}.pdf")
     here, actions = reverse("invoice", args=[job.number]), []
     if office and job.stage == Job.Stage.DONE:
         actions += [action(_("Email the invoice"), post="email", style="primary", icon="mail"), action(_("Mark invoice sent"), post="sent", icon="check")]
@@ -431,18 +451,18 @@ def invoice(request, number):
     if copy:
         actions.append(action(_("The copy that was sent"), here + "?sent=1", icon="doc"))
     return render(request, "crm/document.html", {
-        "document": documents.invoice_document(job, company, translation.get_language()), "actions": actions,
+        "document": shown(request, documents.invoice_document(job, company, translation.get_language())), "actions": actions,
         "note": _("With the payments received so far.") if copy else "",
         "title": f"{_('Invoice')} #{job.number}", "back": reverse("job", args=[job.number]), "send_to": reverse("invoice_send", args=[job.number]),
-        "email": email_of(job.account) if office else "",
+        "email": email_of(job.account) if office and request.user.can("email.see") else "",
     })
 
 
-@office_only
+@needs("send_invoice", "money.see")
 @require_POST
 def invoice_send(request, number):
     """Email the invoice as a PDF, or mark it sent by hand. Either way the job moves to "Invoice sent"."""
-    job, company = get_object_or_404(Job.objects.select_related("account", "place"), number=number), Company.load()
+    job, company = job_or_404(request.user, number), Company.load()
     account, how = job.account, request.POST.get("do")
     if job.stage != Job.Stage.DONE or job.is_warranty or how not in ("email", "sent"):
         return redirect("job", number=job.number)
@@ -476,6 +496,8 @@ def invoice_send(request, number):
 # ---------------------------------------------------------------- the receipt for a payment
 def payment_or_404(user, number, pk):
     job = job_or_404(user, number)                                      # a crew only reaches the payments of its own jobs
+    if not user.can("payment.see"):
+        raise Http404
     payment = get_object_or_404(Payment, pk=pk, job=job)
     payment.job = job
     return payment
@@ -493,22 +515,22 @@ def receipt_parts(payment, company, language):
 def receipt(request, number, pk):
     """The receipt for one payment. The office can email it; the job's own crew can open it and hand it over. ?pdf=1 gives the PDF."""
     payment, company = payment_or_404(request.user, number, pk), Company.load()
-    job, office = payment.job, not request.user.is_crew_profile
+    job, office = payment.job, request.user.can("send_invoice")         # emailing a receipt goes with sending the invoices
     document, firm, copy = receipt_parts(payment, company, translation.get_language())
     if request.GET.get("pdf"):
-        return pdf_response(document, firm, f"receipt-{job.number}-{payment.pk}.pdf")
+        return pdf_response(shown(request, document), firm, f"receipt-{job.number}-{payment.pk}.pdf")
     here, actions = reverse("receipt", args=[job.number, payment.pk]), []
     if office:
         actions.append(action(_("Email to the customer"), post="email", style="primary", icon="mail"))
     actions.append(action(_("Download the PDF"), here + "?pdf=1", icon="doc"))
     return render(request, "crm/document.html", {
-        "document": document, "firm": firm, "kept": copy, "actions": actions, "title": f"{_('Receipt')} #{document['number']}",
+        "document": shown(request, document), "firm": firm, "kept": copy, "actions": actions, "title": f"{_('Receipt')} #{document['number']}",
         "back": reverse("job", args=[job.number]), "send_to": reverse("receipt_send", args=[job.number, payment.pk]),
-        "email": email_of(job.account) if office else "",
+        "email": email_of(job.account) if office and request.user.can("email.see") else "",
     })
 
 
-@office_only
+@needs("send_invoice", "payment.see")
 @require_POST
 def receipt_send(request, number, pk):
     """Email the receipt to the customer as a PDF, in the customer's language."""
@@ -536,7 +558,7 @@ def receipt_send(request, number, pk):
 def change_order_edit(request, number, n):
     """A change order can be changed while it waits for the customer's signature. Once signed, it is part of the contract:
     a further change is a new change order."""
-    order = order_or_404(number, n)
+    order = order_or_404(number, n, request.user)
     back = reverse("change_order", args=[number, order.number])
     if order.is_signed:
         messages.warning(request, _("A signed change order is part of the contract. Add a new change order instead."))
@@ -550,13 +572,14 @@ def change_order_edit(request, number, n):
             saved(request)
         return redirect(back)
     return form_page(request, form, _("Edit the change order"), back, sub=f"#{order.job.number} · {order.label}",
-                     delete_url=reverse("record_delete", args=["change_order", order.pk]))
+                     delete_url=reverse("record_delete", args=["change_order", order.pk]) if request.user.can("change_order.delete") else "")
 
 
 @may_edit("payment")
 def payment_edit(request, number, pk):
     """Correct a payment: its amount, how it was paid, the check number, the date, deposit or payment.
     The job's balance and stage follow, and the receipt is made again from the corrected payment."""
+    job_or_404(request.user, number)                                    # only on a job this login may see
     payment = get_object_or_404(Payment.objects.select_related("job__account", "job__place"), pk=pk, job__number=number)
     job = Job.objects.prefetch_related("change_orders", "payments").get(pk=payment.job_id)
     back = reverse("job", args=[job.number])
@@ -576,4 +599,4 @@ def payment_edit(request, number, pk):
             saved(request)
         return redirect(back)
     return form_page(request, form, _("Edit the payment"), back, sub=f"#{job.number} · {job.account.name}",
-                     delete_url=reverse("record_delete", args=["payment", payment.pk]))
+                     delete_url=reverse("record_delete", args=["payment", payment.pk]) if request.user.can("payment.delete") else "")

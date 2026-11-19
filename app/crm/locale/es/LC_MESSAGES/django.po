@@ -1378,12 +1378,6 @@ msgstr "no puede entrar"
 msgid "Everything"
 msgstr "Todo"
 
-msgid "every kind of record"
-msgstr "todo tipo de registro"
-
-msgid "nothing"
-msgstr "nada"
-
 msgid "Never"
 msgstr "Nunca"
 
@@ -4349,9 +4343,6 @@ msgstr "Precios, totales, órdenes de cambio, pagos, saldos, y las propuestas, f
 msgid "Costs and margins"
 msgstr "Costos y márgenes"
 
-msgid "Supplier costs and the margin: when writing a proposal, in the Price changes report and in the exports."
-msgstr "Los costos del proveedor y el margen: al escribir una propuesta, en el reporte de Cambios de precio y en las exportaciones."
-
 msgid "Customer's email"
 msgstr "Correo del cliente"
 
@@ -4486,3 +4477,6 @@ msgstr "Sacar registros de la Papelera para siempre."
 
 msgid "Can edit"
 msgstr "Puede editar"
+
+msgid "Supplier costs and the margin: when writing a proposal, in the Price Book and in the exports."
+msgstr "Los costos del proveedor y el margen: al escribir una propuesta, en la lista de precios y en las exportaciones."

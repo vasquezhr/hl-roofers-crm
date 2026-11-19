@@ -319,7 +319,7 @@ class StartBusiness(StartInEnglish, TestCase):
                          ("Bluebird Gutters", "Gutters · Durham", "#2e7d32", "#173b2b"))
         owner = User.objects.get()
         self.assertEqual(owner.username, "owner")
-        self.assertTrue(owner.is_admin_profile and owner.is_superuser and owner.check_password(self.GOOD))
+        self.assertTrue(owner.profile == "admin" and owner.is_superuser and owner.check_password(self.GOOD))
         self.assertEqual(sorted(WorkType.objects.values_list("key", flat=True)), ["inspection", "other", "warranty"])
         self.assertEqual([key for key, _name in type_choices()], ["inspection", "other"])
         self.assertEqual(Activity.objects.get(kind="set_up").text, "App set up for Bluebird Gutters")

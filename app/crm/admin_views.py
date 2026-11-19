@@ -13,7 +13,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib import messages
 from django.core import signing
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.validators import validate_email
@@ -28,7 +28,8 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from . import automations, health, logo, look, logs, objectload, recycle
-from .access import admin_only, with_permission
+from .access import jobs_for, with_permission
+from .permissions import DELETE_TICKS
 from .forms import LoginDetailsForm, LookForm, PickItemForm, WorkTypeForm
 from .history import changes, field_changes
 from .models import (LANGS, Account, Activity, Attachment, BackupRun, BinEntry, ChangeOrder, ChangeSet, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, Payment, PriceUpload,
@@ -40,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------- users and permission sets
-@admin_only
+@with_permission("users")
 def users(request):
     logins = User.objects.select_related("crew").order_by("-is_active", "profile", "username")
     return render(request, "crm/users.html", {"logins": logins})
@@ -52,7 +53,7 @@ def login_page(request, form, title):
     return form_page(request, form, title, reverse("users"), intro=intro)
 
 
-@admin_only
+@with_permission("users")
 def user_new(request):
     form = LoginDetailsForm(request.POST or None)
     if form.is_valid():
@@ -63,7 +64,7 @@ def user_new(request):
     return login_page(request, form, _("Add a login"))
 
 
-@admin_only
+@with_permission("users")
 def user_edit(request, pk):
     user = get_object_or_404(User, pk=pk)
     form = LoginDetailsForm(request.POST or None, instance=user)
@@ -85,6 +86,14 @@ def user_edit(request, pk):
 CAN_DELETE = {"lead": (Lead, "pk"), "account": (Account, "pk"), "opp": (Opportunity, "number"), "job": (Job, "number"),
               "contact": (Contact, "pk"), "property": (Property, "pk"), "note": (Note, "pk"), "file": (Attachment, "pk"),
               "change_order": (ChangeOrder, "pk"), "payment": (Payment, "pk")}
+# the word in the address -> the Delete tick it needs (permissions.py)
+DELETE_TICK = {"opp": "opportunity.delete"}
+# a Recycle Bin entry's kind -> the Delete ticks that may restore it: an opportunity and its job are one entry, a "deal"
+RESTORE_TICKS = {"deal": ["opportunity.delete", "job.delete"]}
+
+
+def may_restore(user, entry):
+    return any(user.can(tick) for tick in RESTORE_TICKS.get(entry.kind, [f"{entry.kind}.delete"]))
 
 
 def pages_of(kind, record):
@@ -108,13 +117,18 @@ def pages_of(kind, record):
     return account, account
 
 
-@with_permission("delete")
+@with_permission(*DELETE_TICKS)
 def record_delete(request, kind, ident):
     """Asks first, and says what goes along. Then the record goes to the Recycle Bin."""
     if kind not in CAN_DELETE or (CAN_DELETE[kind][1] == "pk" and not ident.isdigit()):
         raise Http404
+    if not request.user.can(DELETE_TICK.get(kind, f"{kind}.delete")):
+        raise PermissionDenied
     model, field = CAN_DELETE[kind]
     record = get_object_or_404(model, **{field: ident})
+    job = record if kind == "job" else getattr(record, "job", None)
+    if job is not None and not jobs_for(request.user).filter(pk=job.pk).exists():
+        raise Http404                                                   # a job this login may not see, or what is on it
     back, after = pages_of(kind, record)
     problem = recycle.blocked(record)
     if request.method == "POST" and not problem:
@@ -127,16 +141,19 @@ def record_delete(request, kind, ident):
     })
 
 
-@with_permission("delete")
+@with_permission(*DELETE_TICKS)
 def recycle_bin(request):
-    entries = [{"entry": entry, "also": recycle.also_words(entry.also), "days_left": recycle.days_left(entry)} for entry in BinEntry.objects.all()]
+    entries = [{"entry": entry, "also": recycle.also_words(entry.also), "days_left": recycle.days_left(entry), "restore": may_restore(request.user, entry)}
+               for entry in BinEntry.objects.all()]
     return render(request, "crm/recycle_bin.html", {"entries": entries, "keep_days": recycle.KEEP_DAYS})
 
 
-@with_permission("delete")
+@with_permission(*DELETE_TICKS)
 @require_POST
 def bin_restore(request, pk):
     entry = get_object_or_404(BinEntry, pk=pk)
+    if not may_restore(request.user, entry):
+        raise PermissionDenied
     try:
         recycle.restore(entry, request.user)
     except recycle.Blocked as problem:
@@ -146,7 +163,7 @@ def bin_restore(request, pk):
     return redirect("recycle_bin")
 
 
-@admin_only
+@with_permission("purge")
 @require_POST
 def bin_purge(request, pk):
     """Delete for good. Only the administrator, and the page asks first."""
@@ -171,7 +188,7 @@ def take_inspection(request, number):
 
 
 # ---------------------------------------------------------------- automations
-@admin_only
+@with_permission("setup")
 def automation_list(request):
     """Every automation with its switch, and what the automations did lately."""
     company = Company.load()
@@ -180,7 +197,7 @@ def automation_list(request):
     return render(request, "crm/automations.html", {"rows": rows, "lately": automations.ran_lately(), "company": company})
 
 
-@admin_only
+@with_permission("setup")
 @require_POST
 def automation_switch(request):
     name = automations.switch(request.POST.get("key", ""), request.POST.get("on") == "1", request.user)
@@ -194,6 +211,11 @@ def automation_switch(request):
 # Change a few fields of many customers on one page. Nothing is saved until the changes are reviewed and confirmed;
 # every confirmed set is kept in a change log and can be undone.
 EDITOR_FIELDS = ["name", "phone", "email", "language"]
+
+
+def editor_fields(user):
+    """The editor's columns for this login: the email only when its profile may edit the customer's email."""
+    return [field for field in EDITOR_FIELDS if field != "email" or user.can("email.edit")]
 
 
 def editor_values(account):
@@ -218,12 +240,13 @@ def problem_with(field, value):
     return ""
 
 
-def read_changes(post, accounts):
-    """Compare what was typed with what is saved: (the changes, the problems as {"field-id": words}, what was typed)."""
+def read_changes(post, accounts, fields=EDITOR_FIELDS):
+    """Compare what was typed with what is saved: (the changes, the problems as {"field-id": words}, what was typed).
+    Only `fields` are read: a column the login may not edit is ignored, whatever the browser sends."""
     found, problems, typed = [], {}, {}
     for account in accounts:
         now = editor_values(account)
-        for field in EDITOR_FIELDS:
+        for field in fields:
             key = f"{field}-{account.pk}"
             if key not in post:
                 continue
@@ -246,6 +269,8 @@ def write_changes(found, user, back=False):
     A change that is left out is written to errors.log, with the account and the field (never the values)."""
     written = []
     for change in found:
+        if change["field"] not in editor_fields(user):
+            continue                                                    # a column this login may not edit (an undo of someone else's email change)
         account = Account.objects.filter(pk=change["account"]).first()
         before, after = (change["new"], change["old"]) if back else (change["old"], change["new"])
         if account is None or editor_values(account)[change["field"]] != before:
@@ -293,7 +318,7 @@ def editor(request):
         saved(request, _("%(count)s changes saved") % {"count": len(written)})
         return redirect("editor")
     if request.method == "POST":                                        # step 1: review. Nothing is saved yet.
-        found, problems, typed = read_changes(request.POST, page.object_list)
+        found, problems, typed = read_changes(request.POST, page.object_list, editor_fields(request.user))
         if not problems and found:
             return render(request, "crm/editor_review.html", {"changes": shown_changes(found), "packed": signing.dumps(found), "count": len(found)})
         if not problems:
@@ -303,23 +328,27 @@ def editor(request):
         now = editor_values(account)
         rows.append({"account": account, "cells": [
             {"field": field, "key": f"{field}-{account.pk}", "was": now[field], "value": typed.get(f"{field}-{account.pk}", now[field]),
-             "problem": problems.get(f"{field}-{account.pk}", "")} for field in EDITOR_FIELDS]})
-    sets = [{"set": one, "changes": shown_changes(one.changes)} for one in ChangeSet.objects.all()[:20]]
+             "problem": problems.get(f"{field}-{account.pk}", "")} for field in editor_fields(request.user)]})
+    sees_email = request.user.can("email.see")
+    sets = [{"set": one, "changes": shown_changes([change for change in one.changes if sees_email or change["field"] != "email"])}
+            for one in ChangeSet.objects.all()[:20]]
     return render(request, "crm/editor.html", {"rows": rows, "page": page, "q": q, "keep": urlencode({"q": q}), "problems": problems, "sets": sets,
-                                               "languages": LANGS, **templates_box(request)})
+                                               "languages": LANGS, "email_column": "email" in editor_fields(request.user), **templates_box(request)})
 
 
 def templates_box(request):
     """The administrator's "Templates and export" card on the Data editor page: a drop-down that picks a kind of record and shows its
     columns, its template and its export; every kind of record with its own Excel and CSV links; and every template in one .zip."""
-    if not request.user.is_admin_profile:
+    if not request.user.can("export_data"):
         return {}
-    picked = request.GET.get("object", "")
-    picked = picked if picked in objectload.OBJECTS else ""
-    choices = [("", _("Choose…"))] + [(key, title) for key, (_model, title) in objectload.OBJECTS.items()]
-    return {"objects": objectload.catalog(), "object_choices": choices, "picked": picked,
-            "picked_title": objectload.title_of(picked) if picked else "",
-            "picked_columns": objectload.described(picked) if picked else [], "picked_left_out": objectload.left_out(picked) if picked else []}
+    with objectload.as_login(request.user, "see"):                       # only the kinds and the columns this login may see
+        picked = request.GET.get("object", "")
+        picked = picked if picked in objectload.OBJECTS and objectload.may_use(request.user, picked, "see") else ""
+        choices = [("", _("Choose…"))] + [(key, title) for key, (_model, title) in objectload.OBJECTS.items()
+                                          if objectload.may_use(request.user, key, "see")]
+        return {"objects": objectload.catalog(), "object_choices": choices, "picked": picked,
+                "picked_title": objectload.title_of(picked) if picked else "",
+                "picked_columns": objectload.described(picked) if picked else [], "picked_left_out": objectload.left_out(picked) if picked else []}
 
 
 def shown_changes(found):
@@ -369,7 +398,7 @@ def clock_state(company, now=None):
     return "never" if company.last_tick_at is None else "late" if now - company.last_tick_at > timedelta(hours=1) else "ok"
 
 
-@admin_only
+@with_permission("status")
 def system_status(request):
     """A quick check that the app, its scheduled command and its backups are healthy."""
     company = Company.load()
@@ -387,7 +416,7 @@ def system_status(request):
     })
 
 
-@admin_only
+@with_permission("status")
 def log_download(request, name):
     """errors.log or changes.log, as a download. Only the administrator."""
     path = logs.path_of(name)
@@ -400,7 +429,7 @@ def log_download(request, name):
 
 
 # ---------------------------------------------------------------- types of work
-@admin_only
+@with_permission("setup")
 def work_type_list(request):
     return render(request, "crm/work_types.html", {"kinds": WorkType.objects.all()})
 
@@ -414,7 +443,7 @@ def new_key(name):
     return key
 
 
-@admin_only
+@with_permission("setup")
 def work_type_edit(request, pk=None):
     kind = get_object_or_404(WorkType, pk=pk) if pk else None
     form = WorkTypeForm(request.POST or None, instance=kind)
@@ -437,7 +466,7 @@ def work_type_edit(request, pk=None):
 
 
 # ---------------------------------------------------------------- pick lists
-@admin_only
+@with_permission("setup")
 def pick_lists(request):
     """Admin › Pick lists: every list the business keeps for itself, with its values."""
     return render(request, "crm/pick_lists.html", {"lists": [
@@ -454,7 +483,7 @@ def new_pick_key(which, name):
     return key
 
 
-@admin_only
+@with_permission("setup")
 def pick_item_edit(request, which, pk=None):
     """A new value in a list, or a change to one. Every change is a line on Setup history."""
     if which not in PICK_LISTS:
@@ -486,7 +515,7 @@ def pick_item_edit(request, which, pk=None):
 
 
 # ---------------------------------------------------------------- the business's look
-@admin_only
+@with_permission("company")
 def look_settings(request):
     """Admin › Colors and icon: the two colors every page uses, and the app's icon."""
     company = Company.load()

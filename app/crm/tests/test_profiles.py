@@ -3,6 +3,7 @@ and the three a business starts with doing exactly what Admin, Office and Crew d
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
+from django.urls import reverse
 
 from crm import permissions
 from crm.models import Profile, User
@@ -95,3 +96,144 @@ class TheDefaults(Base):
     def test_a_profile_that_was_deleted_allows_nothing(self):
         lost = User.objects.create_user("lost", password="x", profile="gone")
         self.assertFalse(any(lost.can(tick) for tick in permissions.EVERY_TICK))
+
+
+class TheChecksReadTheTicks(Base):
+    """Every page, list, search, report, export and upload asks the login's ticks, and refuses on the server what a profile may not do."""
+
+    def setUp(self):
+        from crm.models import Activity, Note
+        self.Note, self.Activity = Note, Activity
+        self.job_one = self.job(self.crew1, "scheduled", price=9050)
+        self.note = Note.objects.create(account=self.account, text="Gate code is behind the mailbox")
+        Note.objects.create(text="Bluebird shingles left over")                         # a note not linked to a customer
+
+    def test_unticking_notes_in_details_hides_them_everywhere(self):
+        self.ticks("office", off=["note.see"])
+        self.sign_in(self.office)
+        page = self.client.get(reverse("account", args=[self.account.pk]))
+        self.assertEqual(page.status_code, 200)
+        self.assertNotContains(page, "Gate code is behind the mailbox")
+        self.assertNotContains(page, 'data-section="details"')
+        found = self.client.get(reverse("search"), {"q": "mailbox"})
+        self.assertNotContains(found, "Denise Wyckoff")                                   # not found by the words of a note
+        self.assertNotContains(self.client.get(reverse("search"), {"q": "bluebird"}), "Bluebird")
+        self.assertEqual(self.client.get(reverse("note_edit", args=[self.note.pk])).status_code, 403)
+        self.assertEqual(self.client.post(reverse("note_new", args=[self.account.pk]), {"text": "x"}).status_code, 403)
+        self.assertEqual(self.Note.objects.count(), 2)
+        # the administrator without it: no export, no template, no upload of notes
+        self.ticks("admin", off=["note.see"])
+        self.sign_in(self.admin)
+        self.assertEqual(self.client.get(reverse("object_export", args=["note", "csv"])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("object_template", args=["note", "csv"])).status_code, 404)
+        self.assertNotIn(b"note.csv", self.client.get(reverse("object_templates_zip", args=["csv"])).content)
+        page = self.client.get(reverse("data_import"))
+        self.assertNotIn(("note", "Notes (customer Details)"), page.context["picker"].fields["kind"].choices[-1][1])
+        self.assertNotIn("notes", dict(page.context["picker"].fields["kind"].choices))
+        self.assertEqual(self.client.get(reverse("data_import") + "?kind=note").context["kind"], "")
+
+    def test_unticking_notes_on_a_job_hides_them_everywhere(self):
+        self.sign_in(self.office)
+        self.client.post(reverse("job_note", args=[self.job_one.number]), {"text": "Bring the long ladder"})
+        self.sign_in(self.login1)
+        self.client.post(reverse("job_note", args=[self.job_one.number]), {"text": "Two sheets of plywood were rotten"})
+        self.assertTrue(self.client.get(reverse("my_day")).context["popup"])
+        self.ticks("crew", off=["job_notes.see"])
+        page = self.client.get(reverse("job", args=[self.job_one.number]))
+        self.assertNotContains(page, "Bring the long ladder")
+        self.assertNotContains(page, 'data-section="notes"')
+        self.assertEqual(self.client.get(reverse("my_day")).context["popup"], [])           # no pop-up
+        self.assertEqual(self.client.post(reverse("job_note", args=[self.job_one.number]), {"text": "x"}).status_code, 403)
+        self.ticks("office", off=["job_notes.see"])
+        self.sign_in(self.office)
+        self.assertNotContains(self.client.get(reverse("home")), "plywood")                 # not on Today either
+        self.assertNotContains(self.client.get(reverse("job", args=[self.job_one.number])), "plywood")
+
+    def test_the_customers_email(self):
+        self.ticks("office", off=["email.see"])
+        self.sign_in(self.office)
+        for page in (reverse("account", args=[self.account.pk]), reverse("job", args=[self.job_one.number]), reverse("opp", args=[self.job_one.number])):
+            self.assertNotContains(self.client.get(page), "dwyckoff@example.com", msg_prefix=page)
+        self.assertNotContains(self.client.get(reverse("search"), {"q": "dwyckoff@"}), "Denise Wyckoff")
+        contact = self.account.contacts.get()
+        address = reverse("contact_edit", args=[contact.pk])
+        self.assertNotContains(self.client.get(address), 'name="email"')
+        self.client.post(address, {"name": contact.name, "role": contact.role, "phone": contact.phone, "email": "someone@example.com"})
+        self.assertEqual(self.account.contacts.get().email, "dwyckoff@example.com")          # refused on the server, not only hidden
+        # Can see, not Can edit: shown as words, not a box
+        self.ticks("office", on=["email.see"], off=["email.edit"])
+        page = self.client.get(address)
+        self.assertNotContains(page, 'name="email"')
+        self.assertContains(page, "dwyckoff@example.com")
+        # the Data editor and the exports
+        self.ticks("admin", off=["email.see"])
+        self.sign_in(self.admin)
+        self.assertNotIn("email", self.client.get(reverse("object_export", args=["contact", "csv"])).content.decode().splitlines()[0])
+        self.assertNotIn("email", self.client.get(reverse("object_template", args=["lead", "csv"])).content.decode().splitlines()[0])
+        self.assertNotContains(self.client.get(reverse("editor")), "dwyckoff@example.com")
+        self.client.post(reverse("editor"), {"step": "review", f"email-{self.account.pk}": "x@example.com"})
+        self.assertEqual(self.account.contacts.get().email, "dwyckoff@example.com")
+
+    def test_prices_and_money(self):
+        self.ticks("office", off=["money.see"])
+        self.sign_in(self.office)
+        page = self.client.get(reverse("job", args=[self.job_one.number]))
+        self.assertNotContains(page, "$9,050")
+        self.assertNotContains(page, 'data-section="money"')
+        self.assertNotContains(page, 'data-section="documents"')
+        self.assertNotContains(self.client.get(reverse("jobs")), "$9,050")
+        self.assertNotContains(self.client.get(reverse("account", args=[self.account.pk])), "$9,050")
+        self.assertEqual(self.client.get(reverse("job_proposal", args=[self.job_one.number])).status_code, 404)
+        self.assertRedirects(self.client.get(reverse("payment_new", args=[self.job_one.number])), reverse("job", args=[self.job_one.number]))
+        self.assertNotContains(self.client.get(reverse("reports")), reverse("report", args=["revenue"]))
+        lost = self.client.get(reverse("report", args=["lost-reasons"]))
+        self.assertEqual([label for label, _kind in lost.context["columns"]], ["Reason", "Opportunities"])
+        self.assertNotContains(self.client.get(reverse("home")), "Unpaid invoices")
+        # Can see but not Can edit: the price is not a box on the Edit page, and a price sent anyway is not saved
+        self.ticks("office", on=["money.see"], off=["money.edit"])
+        self.assertNotContains(self.client.get(reverse("job_edit", args=[self.job_one.number])), 'name="price"')
+        self.client.post(reverse("job_edit", args=[self.job_one.number]), {"section": "money", "price": "1"})
+        self.job_one.refresh_from_db()
+        self.assertEqual(self.job_one.price, 9050)
+
+    def test_history(self):
+        self.ticks("crew", off=["history.see"])
+        self.sign_in(self.login1)
+        self.assertNotContains(self.client.get(reverse("job", args=[self.job_one.number])), 'data-section="history"')
+        self.sign_in(self.office)
+        self.assertContains(self.client.get(reverse("job", args=[self.job_one.number])), 'data-section="history"')
+
+    def test_the_price_changes_report_stays_where_it_was(self):
+        """The Office profile could read it before, without Costs and margins, so it still can (the starting ticks change nothing)."""
+        self.sign_in(self.office)
+        self.assertEqual(self.client.get(reverse("report", args=["price-changes"])).status_code, 200)
+
+    def test_only_jobs_scheduled_to_their_crew(self):
+        theirs = self.job(self.crew2, "scheduled")
+        self.sign_in(self.login1)
+        for address in (reverse("job", args=[theirs.number]), reverse("invoice", args=[theirs.number]), reverse("job_proposal", args=[theirs.number])):
+            self.assertEqual(self.client.get(address).status_code, 404, address)
+        self.ticks("crew", on=["job.delete", "schedule"])                     # even with more ticks, never another crew's job
+        self.assertEqual(self.client.post(reverse("record_delete", args=["job", theirs.number])).status_code, 404)
+        self.assertNotIn(theirs.number, str(self.client.get(reverse("schedule")).context["columns"]))
+        self.ticks("crew", off=["own_jobs"])                                                # unticked: every job
+        self.assertEqual(self.client.get(reverse("job", args=[theirs.number])).status_code, 200)
+        self.assertContains(self.client.get(reverse("my_jobs")), theirs.number)
+
+    def test_a_new_profile_works(self):
+        estimator = Profile.objects.create(key="estimator", name_en="Estimator", name_es="Estimador",
+                                           ticks=["today", "search", "account.see", "opportunity.see", "opportunity.create", "send_proposal",
+                                                  "money.see", "costs.see", "history.see", "contact.see", "property.see"])
+        user = User.objects.create_user("ines", password="x", profile=estimator.key)
+        self.assertFalse(user.is_staff or user.is_crew_login)
+        self.sign_in(user)
+        self.assertRedirects(self.client.get(reverse("start")), reverse("home"))
+        page = self.client.get(reverse("home"))
+        tabs = [tab["key"] for tab in page.context["nav_tabs"]]
+        self.assertEqual(tabs, ["today", "opps", "accounts", "search", "prices"])          # Costs and margins opens the Price Book
+        visit = self.opportunity()
+        self.assertTrue(self.client.get(reverse("opp_proposal", args=[visit.number])).context["show_costs"])
+        for address in (reverse("jobs"), reverse("job", args=[self.job_one.number]), reverse("leads"), reverse("schedule")):
+            self.assertIn(self.client.get(address).status_code, (403, 404), address)
+        self.assertEqual(self.client.post(reverse("opp_sign", args=[self.job_one.number])).status_code, 403)
+        self.assertNotContains(self.client.get(reverse("search"), {"q": "wyckoff"}), self.job_one.number + "<")

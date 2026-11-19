@@ -17,7 +17,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from . import files
-from .access import job_or_404, office_only
+from .access import job_or_404, needs
 from .models import Account, Attachment, log, pick_choices
 
 
@@ -58,11 +58,13 @@ def add_all(request, *, account, job=None):
 @require_POST
 def job_files(request, number):
     job = job_or_404(request.user, number)                              # a crew only adds to its own jobs
+    if not request.user.can("file.create"):
+        raise PermissionDenied
     add_all(request, account=job.account, job=job)
     return redirect(reverse("job", args=[job.number]) + "#files")
 
 
-@office_only
+@needs("account.see", "file.create")
 @require_POST
 def account_files(request, pk):
     account = get_object_or_404(Account, pk=pk)
@@ -72,11 +74,13 @@ def account_files(request, pk):
 
 @login_required
 def attachment_file(request, pk, small=False):
-    """The file itself, for a login that may see it: a crew only for its own jobs, the office for everything."""
+    """The file itself, for a login that may see photos and files: on a job it may see, or on an account it may see."""
     attachment = get_object_or_404(Attachment.objects.select_related("job", "account"), pk=pk)
+    if not request.user.can("file.see"):
+        raise PermissionDenied
     if attachment.job_id:
         job_or_404(request.user, attachment.job.number)                 # 404 for another crew's job, or a job in the Recycle Bin
-    elif request.user.is_crew_profile:
+    elif not request.user.can("account.see"):
         raise PermissionDenied
     elif not Account.objects.filter(pk=attachment.account_id).exists():
         raise Http404                                                   # its customer is in the Recycle Bin

@@ -12,7 +12,7 @@
   </div>
   {% if user|can:"change_stages" %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" href="{% url 'change_stage' 'opp' opp.number %}">{% icon "undo" %} {% trans "Change stage" %}</a>{% endif %}
   {% if user|may_edit:"opportunity" %}{% include "crm/_edit_all.html" %}{% endif %}
-  {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm hl-edit text-nowrap" href="{% url 'record_delete' 'opp' opp.number %}">{% icon "trash" %} {% trans "Delete" %}</a>{% endif %}
+  {% if user|can:"opportunity.delete" %}<a class="btn btn-outline-danger btn-sm hl-edit text-nowrap" href="{% url 'record_delete' 'opp' opp.number %}">{% icon "trash" %} {% trans "Delete" %}</a>{% endif %}
   {% stage_badge opp %}
 </div>
 
@@ -22,26 +22,28 @@
 <div class="alert alert-secondary py-2 small">{% trans "Lost because" %}: {{ opp.get_lost_reason_display }}{% if opp.lost_on %} · {{ opp.lost_on|date }}{% endif %}</div>
 {% endif %}
 
-{# the buttons for this stage #}
+{# the buttons for this stage, for a login whose ticks allow them #}
+{% with proposals=user|can:"send_proposal" money=user|can:"money.see" close=user|can:"close_opps" %}
 <div class="d-flex flex-wrap gap-2 mb-3">
   {% if opp.stage == "inspection" %}
-  {% if opp.total %}
+  {% if proposals and money %}{% if opp.total %}
   <a class="btn btn-primary" href="{% url 'opp_document' opp.number %}">{% icon "doc" %} {% trans "View and send the proposal" %}</a>
   {% else %}
   <a class="btn btn-primary" href="{% url 'opp_proposal' opp.number %}">{% icon "doc" %} {% trans "Write the proposal" %}</a>
-  {% endif %}
-  <a class="btn btn-outline-secondary" href="{% url 'opp_lost' opp.number %}">{% trans "Mark lost" %}</a>
+  {% endif %}{% endif %}
+  {% if close %}<a class="btn btn-outline-secondary" href="{% url 'opp_lost' opp.number %}">{% trans "Mark lost" %}</a>{% endif %}
   {% elif opp.stage == "proposal" %}
-  <a class="btn btn-primary" href="{% url 'opp_sign' opp.number %}">{% icon "check" %} {% trans "Mark signed" %}</a>
-  <a class="btn btn-outline-secondary" href="{% url 'opp_document' opp.number %}">{% icon "doc" %} {% trans "View the proposal" %}</a>
-  <a class="btn btn-outline-secondary" href="{% url 'opp_lost' opp.number %}">{% trans "Mark lost" %}</a>
+  {% if close %}<a class="btn btn-primary" href="{% url 'opp_sign' opp.number %}">{% icon "check" %} {% trans "Mark signed" %}</a>{% endif %}
+  {% if proposals and money %}<a class="btn btn-outline-secondary" href="{% url 'opp_document' opp.number %}">{% icon "doc" %} {% trans "View the proposal" %}</a>{% endif %}
+  {% if close %}<a class="btn btn-outline-secondary" href="{% url 'opp_lost' opp.number %}">{% trans "Mark lost" %}</a>{% endif %}
   {% elif opp.stage == "won" %}
   {% if job %}<a class="btn btn-primary" href="{% url 'job' job.number %}">{% icon "jobs" %} {% trf "Open job #%(number)s" number=job.number %}</a>{% endif %}
-  <a class="btn btn-outline-secondary" href="{% url 'opp_document' opp.number %}">{% icon "doc" %} {% trans "View the proposal" %}</a>
+  {% if proposals and money %}<a class="btn btn-outline-secondary" href="{% url 'opp_document' opp.number %}">{% icon "doc" %} {% trans "View the proposal" %}</a>{% endif %}
   {% elif opp.stage == "lost" %}
-  <a class="btn btn-outline-primary" href="{% url 'opp_new' account.pk %}">{% icon "plus" %} {% trans "New opportunity for this customer" %}</a>
+  {% if user|can:"opportunity.create" %}<a class="btn btn-outline-primary" href="{% url 'opp_new' account.pk %}">{% icon "plus" %} {% trans "New opportunity for this customer" %}</a>{% endif %}
   {% endif %}
 </div>
+{% endwith %}
 
 <div class="row g-3">
   <div class="col-lg-6">
@@ -68,7 +70,7 @@
           <button type="submit" class="btn btn-outline-primary btn-sm">{% icon "user" %} {% trans "I'll take it" %}</button>
           <span class="small text-body-secondary ms-1">{% trans "Nobody has taken this inspection yet." %}</span></form>
         {% endif %}
-        {% if opp.stage == "inspection" %}
+        {% if opp.stage == "inspection" and user|can:"schedule" %}
         <a class="btn {% if opp.inspection_at %}btn-outline-secondary{% else %}btn-primary{% endif %} btn-sm mt-2" href="{% url 'schedule' %}?book=opp:{{ opp.number }}#book">{% icon "schedule" %} {% if opp.inspection_at %}{% trans "Change the time" %}{% else %}{% trans "Book the inspection" %}{% endif %}</a>
         {% endif %}
       </div>
@@ -80,18 +82,20 @@
       <div class="card-body">
         <h2 class="h6 mb-2" data-section="proposal">{% trans "Proposal" %}</h2>
         {% pencil "opportunity" edit_address "proposal" %}
+        {% with money=user|can:"money.see" %}
         {% if opp.line_items %}
         <table class="table table-sm small mb-0">
           <tbody>
             {% for row in opp.line_rows %}
-            <tr><td>{{ row|line_words }}</td><td class="text-end text-nowrap">{% if row.amount is None %}{% trans "included" %}{% else %}{{ row.amount|money }}{% endif %}</td></tr>
+            <tr><td>{% if money %}{{ row|line_words }}{% else %}{{ row|scope_words }}{% endif %}</td>{% if money %}<td class="text-end text-nowrap">{% if row.amount is None %}{% trans "included" %}{% else %}{{ row.amount|money }}{% endif %}</td>{% endif %}</tr>
             {% endfor %}
-            {% if opp.total %}<tr class="fw-bold"><td>{% trans "Total" %}</td><td class="text-end">{{ opp.total|money }}</td></tr>{% endif %}
+            {% if opp.total and money %}<tr class="fw-bold"><td>{% trans "Total" %}</td><td class="text-end">{{ opp.total|money }}</td></tr>{% endif %}
           </tbody>
         </table>
         {% else %}
         <div class="small text-body-secondary mb-2">{% trans "Nothing written yet." %}</div>
         {% endif %}
+        {% endwith %}
         {% if not opp.total %}
         <div class="small text-body-secondary mt-2">{% trans "No price yet. Write the proposal after the inspection." %}</div>
         {% endif %}
@@ -103,6 +107,7 @@
   </div>
 </div>
 
+{% if history is not None %}
 <div class="card shadow-sm mb-3">
   <div class="card-body">
     <h2 class="h6 mb-2" data-section="history">{% trans "History" %}</h2>
@@ -110,4 +115,5 @@
     {% include "crm/_history.html" %}
   </div>
 </div>
+{% endif %}
 {% endblock %}

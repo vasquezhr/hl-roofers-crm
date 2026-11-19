@@ -10,9 +10,9 @@
     <h1 class="h4 mb-0">{{ account.name }}</h1>
     <div class="text-body-secondary small">#{{ job.number }} · {{ job.get_job_type_display }} {% job_tags job %}</div>
   </div>
-  {% if user|can:"change_stages" and not crew_view %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" href="{% url 'change_stage' 'job' job.number %}">{% icon "undo" %} {% trans "Change stage" %}</a>{% endif %}
+  {% if user|can:"change_stages" %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" href="{% url 'change_stage' 'job' job.number %}">{% icon "undo" %} {% trans "Change stage" %}</a>{% endif %}
   {% if user|may_edit:"job" %}{% include "crm/_edit_all.html" %}{% endif %}
-  {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm hl-edit text-nowrap" href="{% url 'record_delete' 'job' job.number %}">{% icon "trash" %} {% trans "Delete" %}</a>{% endif %}
+  {% if user|can:"job.delete" %}<a class="btn btn-outline-danger btn-sm hl-edit text-nowrap" href="{% url 'record_delete' 'job' job.number %}">{% icon "trash" %} {% trans "Delete" %}</a>{% endif %}
   {% stage_badge job %}
 </div>
 
@@ -162,10 +162,11 @@
       </div>
     </div>
 
+    {% if money %}
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h2 class="h6 mb-2" data-section="money">{% trans "Price and Payments" %}</h2>
-        {% pencil "job" edit_address "money" %}
+        {% if user|can:"money.edit" %}{% pencil "job" edit_address "money" %}{% endif %}
         {% if job.is_warranty %}
         <div class="small">{% trans "Warranty job: no charge." %}</div>
         {% else %}
@@ -199,7 +200,7 @@
           {% for payment in payments %}
           <div class="d-flex justify-content-between gap-3">
             <span>{{ payment.paid_on|date }} · {{ payment.get_kind_display }} · {{ payment.get_method_display }}{% if payment.check_number %} #{{ payment.check_number }}{% endif %} <span class="text-body-secondary">· {{ payment.actor }}</span> · <a href="{% url 'receipt' job.number payment.pk %}">{% trans "Receipt" %}</a>{% if user|may_edit:"payment" %} · <a href="{% url 'payment_edit' job.number payment.pk %}">{% trans "Edit" %}</a>{% endif %}</span>
-            <span class="text-nowrap">−{{ payment.amount|money }}{% if user|can:"delete" %} <a class="link-danger ms-1" href="{% url 'record_delete' 'payment' payment.pk %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete this payment' %}">{% icon "trash" %}</a>{% endif %}</span>
+            <span class="text-nowrap">−{{ payment.amount|money }}{% if user|can:"payment.delete" %} <a class="link-danger ms-1" href="{% url 'record_delete' 'payment' payment.pk %}" title="{% trans 'Delete' %}" aria-label="{% trans 'Delete this payment' %}">{% icon "trash" %}</a>{% endif %}</span>
           </div>
           {% endfor %}
           {% endif %}
@@ -210,22 +211,23 @@
         {% endif %}
       </div>
     </div>
+    {% endif %}
 
-    {% if not job.is_warranty %}{% include "crm/_documents.html" %}{% endif %}
+    {% if not job.is_warranty and documents is not None %}{% include "crm/_documents.html" %}{% endif %}
 
-    {% if job.opportunity_id or job.warranty_for or warranty_jobs %}
+    {% if job.opportunity_id and money or job.opportunity_id and perms_opp or warranty_for or warranty_jobs %}
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h2 class="h6 mb-2" data-section="linked">{% trans "Linked Records" %}</h2>
         <ul class="list-unstyled small mb-0">
-          {% if job.opportunity_id and not crew_view %}
+          {% if job.opportunity_id and perms_opp %}
           <li class="mb-1">{% icon "link" %} <a href="{% url 'opp' job.number %}">{% trf "Opportunity #%(number)s" number=job.number %}</a></li>
           {% endif %}
-          {% if job.opportunity_id %}
+          {% if job.opportunity_id and money %}
           <li class="mb-1">{% icon "doc" %} <a href="{% url 'job_proposal' job.number %}">{% trf "Signed proposal #%(number)s" number=job.number %}</a></li>
           {% endif %}
-          {% if job.warranty_for %}
-          <li class="mb-1">{% icon "link" %} <a href="{% url 'job' job.warranty_for.number %}">{% trf "Warranty for job #%(number)s" number=job.warranty_for.number %}</a></li>
+          {% if warranty_for %}
+          <li class="mb-1">{% icon "link" %} <a href="{% url 'job' warranty_for.number %}">{% trf "Warranty for job #%(number)s" number=warranty_for.number %}</a></li>
           {% endif %}
           {% for warranty in warranty_jobs %}
           <li class="mb-1">{% icon "link" %} <a href="{% url 'job' warranty.number %}">{% trf "Warranty job #%(number)s" number=warranty.number %}</a> {% stage_badge warranty %}</li>
@@ -237,9 +239,10 @@
   </div>
 </div>
 
-{% include "crm/_files.html" with orders=orders %}
+{% if files is not None %}{% include "crm/_files.html" with orders=orders %}{% endif %}
 
 {# notes typed by the office or the crew: each with who wrote it, the date and the time #}
+{% if notes is not None %}
 <div class="card shadow-sm mb-3" id="notes">
   <div class="card-body">
     <h2 class="h6 mb-2" data-section="notes">{% trans "Notes" %}</h2>
@@ -254,6 +257,7 @@
     {% empty %}
     <div class="small text-body-secondary">{% trans "No notes yet." %}</div>
     {% endfor %}
+    {% if add_note %}
     <form method="post" action="{% url 'job_note' job.number %}" class="mt-3">
       {% csrf_token %}
       <label class="form-label small fw-semibold mb-1" for="{{ note_form.text.id_for_label }}">{% if crew_view %}{% trans "Add a note for the office" %}{% else %}{% trans "Add a note" %}{% endif %}</label>
@@ -261,9 +265,12 @@
       <div class="form-text">{% if crew_view %}{% trans "The office sees it here and on its Today page." %}{% else %}{% trans "It pops up for the crew on this job until they tap Got it. You then see here that they read it." %}{% endif %}</div>
       <button type="submit" class="btn btn-outline-secondary btn-sm mt-2">{% trans "Save the note" %}</button>
     </form>
+    {% endif %}
   </div>
 </div>
+{% endif %}
 
+{% if history is not None %}
 <div class="card shadow-sm mb-3">
   <div class="card-body">
     <h2 class="h6 mb-2" data-section="history">{% trans "History" %}</h2>
@@ -271,5 +278,6 @@
     {% include "crm/_history.html" %}
   </div>
 </div>
+{% endif %}
 {% if crew_view %}{% include "crm/_note_popup.html" %}{% endif %}
 {% endblock %}

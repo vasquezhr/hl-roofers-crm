@@ -40,7 +40,7 @@
     <div class="small mb-2">#{{ job.number }} · {{ job.get_job_type_display }} {% job_tags job %}</div>
     {% include "crm/_changed.html" with crew_view=True %}
     <div class="small mb-1">{% icon "accounts" %} {% for worker in members %}{{ worker.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% for worker in job.workers.all %}, {{ worker.name }}{% endfor %}</div>
-    {% if not job.is_warranty and job.balance > 0 %}<div class="small mb-1">{% icon "dollar" %} {% trans "Balance due" %}: <span class="fw-semibold">{{ job.balance|money }}</span></div>{% endif %}
+    {% if not job.is_warranty and job.balance > 0 and user|can:"money.see" %}<div class="small mb-1">{% icon "dollar" %} {% trans "Balance due" %}: <span class="fw-semibold">{{ job.balance|money }}</span></div>{% endif %}
     <div class="mt-2">{% contact_buttons job.account job.place "job" job.number small=True %}</div>
     <div class="d-flex flex-wrap gap-2 mt-2">
       {% if item.step %}

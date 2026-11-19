@@ -7,7 +7,7 @@ from django.utils.text import capfirst
 from django.utils.translation import gettext_lazy as _
 from PIL import Image
 
-from . import inline, logo, look
+from . import documents, inline, logo, look
 from .models import (LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment,
                      PickItem, PriceItem, Profile, Property, User, Worker, WorkType, home_state, pick_choices, pick_items, type_choices, work_types)
 
@@ -50,6 +50,21 @@ class Bootstrap:
             widget.attrs["class"] = (widget.attrs.get("class", "") + " " + css).strip()
         self.section = ""
 
+    # a customer's field that belongs to a section of the tick list (permissions.py): the field's name -> the section
+    GUARDED = {"email": "email", "price": "money"}
+
+    def for_login(self, user):
+        """Leave out a field this login may not edit (Customer's email, Prices and money). A field it may see is shown, not typed in;
+        a field left out is never saved, whatever the browser sends."""
+        for name, section in self.GUARDED.items():
+            if name in self.fields and not user.can(f"{section}.edit"):
+                field = self.fields.pop(name)
+                value = getattr(getattr(self, "instance", None), name, None)
+                if user.can(f"{section}.see") and value not in (None, ""):
+                    shown = documents.money(value) if section == "money" else value
+                    self.locked = [*getattr(self, "locked", []), (name, field.label, shown)]
+        return self
+
     def prune(self):
         """For editing one section of a record in place: keep only that section's fields (SECTIONS, inline.py). Called at the end of an edit form's __init__."""
         names = getattr(self, "SECTIONS", {}).get(inline.current.get())
@@ -86,7 +101,7 @@ class NewAccountForm(Bootstrap, forms.Form):
         d = self.cleaned_data
         account = Account.objects.create(name=d["name"], kind=d["kind"], language=d["language"])
         role = Contact.Role.OWNER if d["kind"] == Account.Kind.HOMEOWNER else Contact.Role.OFFICE
-        Contact.objects.create(account=account, name=d["name"], role=role, phone=d["phone"], email=d["email"], is_primary=True)
+        Contact.objects.create(account=account, name=d["name"], role=role, phone=d["phone"], email=d.get("email", ""), is_primary=True)
         Property.objects.create(account=account, street=d["street"], city=d["city"], state=d["state"], zip_code=d["zip_code"])
         return account
 

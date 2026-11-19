@@ -24,7 +24,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 
 from . import automations
-from .access import may_edit, office_only
+from .access import may_edit, needs
 from .forms import ConvertForm, LeadEditForm, LeadForm, UnfitForm
 from .history import changes
 from .importer import find_account
@@ -47,7 +47,7 @@ def open_job_of(account):
 
 
 # ---------------------------------------------------------------- the office's pages
-@office_only
+@needs("lead.see")
 def leads(request):
     show = request.GET.get("show", "open")
     everything = Lead.objects.select_related("owner")
@@ -64,18 +64,18 @@ def leads(request):
     })
 
 
-@office_only
+@needs("lead.see")
 def lead(request, pk):
     lead = get_object_or_404(Lead.objects.select_related("owner", "opportunity", "job", "account"), pk=pk)
     customer = customer_of(lead) if lead.is_open else None
     return render(request, "crm/lead.html", {"lead": lead, "customer": customer, "open_job": open_job_of(customer) if customer else None,
-                                             "history": lead.activities.all()})
+                                             "history": lead.activities.all() if request.user.can("history.see") else None})
 
 
-@office_only
+@needs("lead.create")
 def lead_new(request):
     """A request the office types in itself: a phone call, or someone at the door."""
-    form = LeadForm(request.POST or None, initial={"source": Opportunity.Source.REFERRAL})
+    form = LeadForm(request.POST or None, initial={"source": Opportunity.Source.REFERRAL}).for_login(request.user)
     if form.is_valid():
         lead = form.save(commit=False)
         customer = customer_of(lead)
@@ -92,7 +92,7 @@ def lead_new(request):
                      intro=_("For someone who is not a customer yet. For a customer already in the app, open their account and choose New opportunity."))
 
 
-@office_only
+@needs("lead.see", "convert_lead")
 def lead_convert(request, pk):
     lead = get_object_or_404(Lead, pk=pk)
     if not lead.is_open:
@@ -169,7 +169,7 @@ def add_to_job(lead, job, user):
     log(lead, "converted", user)
 
 
-@office_only
+@needs("lead.see", "convert_lead")
 def lead_unfit(request, pk):
     lead = get_object_or_404(Lead, pk=pk)
     if not lead.is_open:
@@ -278,7 +278,7 @@ def lead_in(request):
 def lead_edit(request, pk):
     """Every field of a request a person can change, and who it is assigned to."""
     lead = get_object_or_404(Lead, pk=pk)
-    form = LeadEditForm(request.POST or None, instance=lead)
+    form = LeadEditForm(request.POST or None, instance=lead).for_login(request.user)
     if form.is_valid():
         form.save()
         what = changes(form)

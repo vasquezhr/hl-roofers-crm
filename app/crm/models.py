@@ -345,10 +345,15 @@ class User(AbstractUser):
         return found
 
     def can(self, what):
-        """True when this login has the tick, with every tick it needs: user.can("job.see"), user.can("schedule")."""
-        if what in permissions.SETS:                    # the name of a permission set: true when the login has everything the set adds
-            return all(permissions.counts(self.ticks, tick) for tick in permissions.SETS[what]) if what != "delete" else self.deletes_anything
+        """True when this login has the tick, with every tick it needs: user.can("job.see"), user.can("schedule").
+        The name of a permission set asks whether the login has what that set adds: user.can("crew_lead"); user.can("delete") is any Delete."""
+        if what in permissions.SETS and what not in permissions.EVERY_TICK:
+            return self.deletes_anything if what == "delete" else all(permissions.counts(self.ticks, tick) for tick in permissions.SETS[what])
         return permissions.counts(self.ticks, what)
+
+    def has_set(self, name):
+        """True when this permission set is switched on for the login and counts for it: user.has_set("crew_lead")."""
+        return name in self.sets_that_count
 
     def may_edit(self, what):
         """True when this login may change this kind of record on its Edit page: user.may_edit("job")."""
@@ -377,19 +382,6 @@ class User(AbstractUser):
         if not self.is_crew_login:
             self.crew = None
         super().save(*args, **kwargs)
-
-    @property
-    def is_admin_profile(self):
-        return self.profile == "admin"
-
-    @property
-    def is_crew_profile(self):
-        return self.is_crew_login
-
-    @property
-    def is_office_profile(self):
-        """Office and Admin: everyone who is not a crew login."""
-        return not self.is_crew_login
 
     @property
     def label(self):
@@ -999,11 +991,11 @@ class Job(models.Model):
         return self.total - self.paid_so_far
 
     def can_take_payment(self, user):
-        """The office can record a payment at any point (a deposit before the work). A crew can once the work has started."""
-        if self.is_warranty or self.balance <= 0:
+        """A login that may record payments: the office at any point (a deposit before the work), a crew login once the work has started."""
+        if self.is_warranty or self.balance <= 0 or not user.can("payment.create"):
             return False
-        if user.is_crew_profile:
-            return user.can("crew_lead") and self.stage in (self.Stage.IN_PROGRESS, self.Stage.DONE, self.Stage.INVOICED)
+        if user.is_crew_login:
+            return self.stage in (self.Stage.IN_PROGRESS, self.Stage.DONE, self.Stage.INVOICED)
         return self.stage != self.Stage.PAID
 
     def recheck_paid(self):

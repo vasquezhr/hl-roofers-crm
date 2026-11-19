@@ -15,7 +15,7 @@
         <p class="small mb-2">{% trans "Convert creates all of this in one step:" %}</p>
         <ul class="small">
           <li>{% trans "Account" %}: <span class="fw-semibold">{{ lead.name }}</span></li>
-          <li>{% trans "Contact" %}: {{ lead.phone }}{% if lead.phone and lead.email %} · {% endif %}{{ lead.email }}</li>
+          <li>{% trans "Contact" %}: {{ lead.phone }}{% if lead.email and user|can:"email.see" %}{% if lead.phone %} · {% endif %}{{ lead.email }}{% endif %}</li>
           {% if lead.street %}<li>{% trans "Property" %}: {{ lead.full_address }}</li>{% endif %}
           <li>{% trans "An opportunity at the Inspection stage" %}</li>
         </ul>

@@ -21,7 +21,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from . import scheduling
-from .access import job_or_404, jobs_for, office_only, unread_notes
+from .access import job_or_404, jobs_for, needs, unread_notes
 from .dates import work_days_text
 from .history import booking_code, when_code
 from .models import Company, Crew, Job, Opportunity, Worker, is_day_off, log
@@ -41,16 +41,20 @@ def feed_address(request, token):
 
 
 # ---------------------------------------------------------------- the week
-@office_only
+@needs("schedule")
 def schedule(request):
     offset = max(0, int(request.GET["week"])) if request.GET.get("week", "").isdigit() else 0
     show = request.GET.get("show", "all")
     days = scheduling.calendar_days(offset)                         # all seven days, days off included
-    booked = scheduling.stops_between(days[0], days[-1])
-    crews = list(Crew.objects.filter(active=True))
+    user = request.user
+    own = user.can("own_jobs")                                          # "Only jobs scheduled to their crew": the other crews are left out
+    booked = scheduling.stops_between(days[0], days[-1], user.crew if own else None) if not own or user.crew_id else {}
+    crews = [crew for crew in Crew.objects.filter(active=True) if not own or crew.pk == user.crew_id]
     tones = crew_tones()
 
     def wanted(stop):
+        if not user.can("job.see" if stop.kind == "job" else "opportunity.see"):
+            return False
         if show == "all":
             return True
         if show == "inspections":
@@ -77,8 +81,8 @@ def schedule(request):
         "pills": filter_pills(show, [("all", _("All"), "")] + [(str(crew.pk), crew.name, "") for crew in crews] + [("inspections", _("Inspections"), "")]),
         "legend": [(tones[crew.pk], crew.name) for crew in crews],
         # the office's calendar address, and each crew's own, which the office can send to that crew
-        "feeds": [{"label": _("Everything: every crew and the inspections"), "which": "office",
-                   "address": feed_address(request, Company.load().calendar_token())}]
+        "feeds": ([{"label": _("Everything: every crew and the inspections"), "which": "office",
+                    "address": feed_address(request, Company.load().calendar_token())}] if not own else [])
                  + [{"label": crew.name, "which": crew.pk, "address": feed_address(request, crew.calendar_token())} for crew in crews],
         **box,
     })
@@ -86,8 +90,10 @@ def schedule(request):
 
 def booking(request, crews):
     """What the "Schedule a visit" box needs: everything waiting to be booked, the one chosen, and its suggested times."""
-    waiting_opps = list(Opportunity.objects.filter(stage=Opportunity.Stage.INSPECTION).select_related("account", "place").order_by("created_at"))
-    waiting_jobs = list(Job.objects.filter(stage=Job.Stage.SIGNED).select_related("account", "place").order_by("created_at"))
+    user = request.user
+    waiting_opps = (list(Opportunity.objects.filter(stage=Opportunity.Stage.INSPECTION).select_related("account", "place").order_by("created_at"))
+                    if user.can("opportunity.see") else [])
+    waiting_jobs = list(jobs_for(user).filter(stage=Job.Stage.SIGNED).order_by("created_at"))
     chosen = request.GET.get("book", "")
     kind, _colon, number = chosen.partition(":")
     # an inspection that already has a time is only listed while its time is being changed
@@ -116,7 +122,7 @@ def job_length(typed, default):
     return min(60, max(1, int(typed))) if str(typed or "").isdigit() else default
 
 
-@office_only
+@needs("schedule")
 @require_POST
 def book(request):
     """Book a suggested time: an inspection gets its day and hour, a job gets its crew and days."""
@@ -129,6 +135,8 @@ def book(request):
         messages.warning(request, _("Pick a work day (%(days)s).") % {"days": work_days_text()})
         return redirect("schedule")
     if kind == "opp":
+        if not request.user.can("opportunity.see"):
+            raise Http404
         opp = get_object_or_404(Opportunity, number=number, stage=Opportunity.Stage.INSPECTION)
         hour = int(request.POST.get("hour", "9")) if request.POST.get("hour", "").isdigit() else 9
         if hour not in scheduling.INSPECTION_HOURS:
@@ -139,7 +147,9 @@ def book(request):
         saved(request, _("Booked"))
         return redirect("opp", number=opp.number)
     if kind == "job":
-        job = get_object_or_404(Job, number=number, stage=Job.Stage.SIGNED)
+        job = job_or_404(request.user, number)
+        if job.stage != Job.Stage.SIGNED:
+            raise Http404
         job.crew = get_object_or_404(Crew, pk=request.POST.get("crew") or 0, active=True)
         job.first_day, job.stage = day, Job.Stage.SCHEDULED
         job.days = job_length(request.POST.get("days"), job.days)
@@ -156,7 +166,7 @@ def book(request):
 def job_seen(request, number):
     """The crew's "Got it" button on a job that was moved. The office then sees that the change was seen."""
     job = job_or_404(request.user, number)
-    if request.user.is_crew_profile and request.user.can("crew_lead") and job.change_unseen:
+    if request.user.is_crew_login and request.user.can("confirm_changes") and job.change_unseen:
         job.seen_at = timezone.now()
         job.save()
         log(job, "got_it", request.user)
@@ -176,7 +186,7 @@ def notes_read(request):
     back = request.POST.get("next", "")
     if not url_has_allowed_host_and_scheme(back, allowed_hosts={request.get_host()}):
         back = reverse("my_day")
-    if not (request.user.is_crew_profile and request.user.can("crew_lead")):
+    if not (request.user.is_crew_login and request.user.can("confirm_changes") and request.user.can("job_notes.see")):
         raise PermissionDenied
     wanted = {int(pk) for pk in request.POST.getlist("note") if pk.isdigit()}
     now = timezone.now()
@@ -195,7 +205,7 @@ def notes_read(request):
 def job_worker(request, number):
     """Add or take off an extra worker. The office or the job's crew can, until the job is done."""
     job = job_or_404(request.user, number)
-    if request.user.is_crew_profile and not request.user.can("crew_lead"):
+    if not request.user.can("job_workers"):
         raise PermissionDenied                                          # a crew login without Crew Lead only reads and adds notes
     if not job.is_finished and job.crew_id:
         worker = get_object_or_404(Worker, pk=request.POST.get("worker") or 0, crew__isnull=True)
@@ -212,8 +222,8 @@ def job_worker(request, number):
 @login_required
 def my_day(request):
     """Today's stops for this crew, with everything needed on site; then the next work day, and any job that was moved."""
-    if not request.user.is_crew_profile:
-        return redirect("home")
+    if not request.user.can("my_day"):
+        return redirect("home" if request.user.can("today") else "start")
     crew, day = request.user.crew, today()
     next_day = scheduling.work_day(1, day) if scheduling.is_work_day(day) else scheduling.work_day(0, day)
     if crew:                                                            # a day off with work booked on it comes first
@@ -225,7 +235,7 @@ def my_day(request):
               "can_pay": stop.record.can_take_payment(request.user)} for stop in booked.get(day, [])]
     on_today = {item["job"].pk for item in stops}
     return render(request, "crm/my_day.html", {
-        "crew": crew, "day": day, "next_day": next_day, "stops": stops, "can_confirm": request.user.can("crew_lead"),
+        "crew": crew, "day": day, "next_day": next_day, "stops": stops, "can_confirm": request.user.can("confirm_changes"),
         "next_jobs": [stop.record for stop in booked.get(next_day, [])],
         "members": crew.members.filter(active=True) if crew else [],
         "changes": [job for job in jobs_for(request.user).filter(changed_at__isnull=False, seen_at__isnull=True) if job.pk not in on_today],
@@ -235,7 +245,7 @@ def my_day(request):
 
 
 # ---------------------------------------------------------------- the calendar feed
-@office_only
+@needs("schedule")
 @require_POST
 def calendar_reset(request):
     """Give a calendar a new address, for when the old one reached someone it should not have.

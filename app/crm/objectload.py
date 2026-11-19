@@ -19,11 +19,13 @@ Each row is checked the way the app's own pages check it. A row with a problem i
 updates a record writes only the cells that are filled in: an empty cell leaves that field as it is, as the customers import does when it
 adds to a customer. Every record added or changed writes a history line.
 """
+import contextvars
 import csv
 import io
 import logging
 import re
 import zipfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
@@ -88,6 +90,52 @@ PARENT = {"contact": "account", "property": "account", "note": "account", "oppor
 NOT_NEEDED = {"job": {"account", "place"}}
 ACTIONS = [("insert", gettext_lazy("Add new")), ("update", gettext_lazy("Update existing"))]
 
+# ---------------------------------------------------------------- what the login may see and change (permissions.py)
+# a kind of record -> the kind of the tick list it follows: its See, Create and Edit; or the page that keeps it
+TICK_OF = {"account": "account", "contact": "contact", "property": "property", "note": "note", "lead": "lead", "opportunity": "opportunity",
+           "proposal_line": "opportunity", "job": "job", "change_order": "change_order", "payment": "payment",
+           "crew": "setup", "worker": "setup", "price_item": "price_book", "pick_item": "setup", "work_type": "setup"}
+ON_JOBS = {"opportunity", "proposal_line", "job", "change_order", "payment"}           # what "Only jobs scheduled to their crew" leaves out
+# a column that belongs to a section of the tick list: (the kind of record, the field) -> the section
+GUARDED = {("contact", "email"): "email", ("lead", "email"): "email", ("job", "price"): "money", ("change_order", "amount"): "money",
+           ("payment", "amount"): "money", ("proposal_line", "each"): "money", ("proposal_line", "amount"): "money", ("price_item", "cost"): "costs"}
+viewer = contextvars.ContextVar("objectload_viewer", default=None)    # (the login, "see" or "edit") while one of its pages is made
+
+
+@contextmanager
+def as_login(user, how):
+    """The columns, templates and exports made inside this are the ones this login may see ("see": an export) or change ("edit": a
+    template, and an upload: a column it may not change is not offered, and a cell in it is never read)."""
+    token = viewer.set((user, how))
+    try:
+        yield
+    finally:
+        viewer.reset(token)
+
+
+def may_use(user, key, how):
+    """True when this login may export ("see"), add ("insert") or update ("update") this kind of record."""
+    tick = TICK_OF[key]
+    if tick in ("setup", "price_book"):
+        allowed = user.can(tick)
+    else:
+        allowed = user.can(f"{tick}.{ {'see': 'see', 'insert': 'create', 'update': 'edit'}[how] }")
+    if key == "proposal_line" or key in ("change_order", "payment"):
+        allowed = allowed and user.can("money.see")
+    return allowed and not (key in ON_JOBS and user.can("own_jobs"))
+
+
+def column_allowed(key, field):
+    """True when the login making this page may see (or change) the field. Costs: Costs and margins, or Manage the Price Book."""
+    held = viewer.get()
+    section = GUARDED.get((key, getattr(field, "name", "")))
+    if held is None or section is None:
+        return True
+    user, how = held
+    if section == "costs":
+        return user.can("costs.see") or user.can("price_book")
+    return user.can(f"{section}.{how}")
+
 
 class Problem(Exception):
     """Why a row cannot be used. The words name the column, never what was typed in it."""
@@ -126,7 +174,7 @@ def columns(key):
     model = model_of(key)
     out = [Column("id", None, _("Record ID"), False)]
     for field in model._meta.get_fields():
-        if not wanted(key, field):
+        if not wanted(key, field) or not column_allowed(key, field):
             continue
         name = field.attname if field.is_relation else field.name      # account_id, place_id ...
         needed = not field.blank and not field.has_default() and not (field.null and field.is_relation)
@@ -138,7 +186,9 @@ def columns(key):
 
 def catalog():
     """Every kind of record, for the Data editor page: its key, its name and how many records it has now."""
-    return [{"key": key, "title": title, "count": visible(model).count()} for key, (model, title) in OBJECTS.items()]
+    held = viewer.get()
+    return [{"key": key, "title": title, "count": visible(model).count()} for key, (model, title) in OBJECTS.items()
+            if held is None or may_use(held[0], key, "see")]
 
 
 def described(key):
@@ -302,8 +352,10 @@ def every_template(kind):
     """A .zip with one template for each kind of record."""
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as box:
+        held = viewer.get()
         for key in OBJECTS:
-            box.writestr(f"{key}.{kind}", file_bytes(key, kind))
+            if held is None or may_use(held[0], key, "see"):
+                box.writestr(f"{key}.{kind}", file_bytes(key, kind))
     return out.getvalue()
 
 

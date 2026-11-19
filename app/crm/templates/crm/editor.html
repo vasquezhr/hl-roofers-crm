@@ -4,7 +4,7 @@
 
 {# Change a few fields of many customers on one page. Nothing is saved until the changes are reviewed and confirmed. #}
 {% block content %}
-{% if user.is_admin_profile %}<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'admin_home' %}">‹ {% trans "Admin" %}</a>{% endif %}
+{% if user|opens_admin %}<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'admin_home' %}">‹ {% trans "Admin" %}</a>{% endif %}
 <div class="mb-3">
   <h1 class="h4 mb-0">{% trans "Data editor" %}</h1>
   <div class="text-body-secondary small">{% trans "Changes are held, not saved, until you review and confirm them. Every change is logged and can be undone." %}</div>
@@ -23,7 +23,7 @@
   <div class="card shadow-sm mb-3">
     <div class="table-responsive">
       <table class="table table-sm align-middle small mb-0">
-        <thead><tr><th class="ps-3">{% trans "Name" %}</th><th>{% trans "Phone" %}</th><th>{% trans "Email" %}</th><th class="pe-3">{% trans "Language" %}</th></tr></thead>
+        <thead><tr><th class="ps-3">{% trans "Name" %}</th><th>{% trans "Phone" %}</th>{% if email_column %}<th>{% trans "Email" %}</th>{% endif %}<th class="pe-3">{% trans "Language" %}</th></tr></thead>
         <tbody>
           {% for row in rows %}
           <tr>

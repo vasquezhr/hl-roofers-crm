@@ -6,7 +6,8 @@ the customer's Details (the imported notes) and the scope of work. Every word ty
 found somewhere on the record. On PostgreSQL a word may also be a close spelling of a name
 or a street ("Witcomb" finds Whitcomb); those results are listed after the exact ones.
 
-A crew login only searches the jobs scheduled to that crew.
+A login searches only what its profile may see (permissions.py): a crew login only the jobs scheduled to that crew, and a login that
+may not see the customer's email or the notes in Details is never found a record by them.
 """
 import re
 
@@ -45,16 +46,26 @@ def on_account(model, fits, account="pk"):
 
 
 # ---------- where each kind of record is searched, for one word ----------
-def account_has(word):
+EVERYTHING = {"email": True, "notes": True, "contacts": True, "properties": True}      # what a search may look at
+
+
+def account_has(word, see=EVERYTHING):
     phone, street = phone_part(word), street_key(word)
-    contact = Q(name__icontains=word) | Q(email__icontains=word)
+    contact = Q(name__icontains=word) | (Q(email__icontains=word) if see["email"] else Q(pk__in=[]))
     place = Q(street__icontains=word) | Q(city__icontains=word) | Q(zip_code__startswith=word) | Q(site_name__icontains=word)
     if street:
         place |= Q(street_key__icontains=street)                     # "avenue" also finds "Ave"
     if phone:
         contact |= Q(phone_digits__contains=phone)
         place |= Q(site_phone_digits__contains=phone)
-    return Q(name__icontains=word) | on_account(Contact, contact) | on_account(Property, place) | on_account(Note, Q(text__icontains=word))
+    found = Q(name__icontains=word)
+    if see["contacts"]:
+        found |= on_account(Contact, contact)
+    if see["properties"]:
+        found |= on_account(Property, place)
+    if see["notes"]:
+        found |= on_account(Note, Q(text__icontains=word))
+    return found
 
 
 def opportunity_has(word):
@@ -76,9 +87,10 @@ def note_has(word):
     return Q(title__icontains=word) | Q(text__icontains=word)
 
 
-def lead_has(word):
-    found = (Q(name__icontains=word) | Q(email__icontains=word) | Q(street__icontains=word) | Q(city__icontains=word)
-             | Q(message__icontains=word))
+def lead_has(word, see=EVERYTHING):
+    found = (Q(name__icontains=word) | Q(street__icontains=word) | Q(city__icontains=word) | Q(message__icontains=word))
+    if see["email"]:
+        found |= Q(email__icontains=word)
     phone = phone_part(word)
     return found | Q(phone_digits__contains=phone) if phone else found
 
@@ -100,11 +112,15 @@ def spelled_like(word, field):
     return Q(GreaterThanOrEqual(TrigramWordSimilarity(word, field), CLOSE))
 
 
-def account_has_or_nearly(word):
+def account_has_or_nearly(word, see=EVERYTHING):
     if not can_be_misspelled(word):
-        return account_has(word)
-    return (account_has(word) | spelled_like(word, "name") | on_account(Contact, spelled_like(word, "name"))
-            | on_account(Property, spelled_like(word, "street")))
+        return account_has(word, see)
+    found = account_has(word, see) | spelled_like(word, "name")
+    if see["contacts"]:
+        found |= on_account(Contact, spelled_like(word, "name"))
+    if see["properties"]:
+        found |= on_account(Property, spelled_like(word, "street"))
+    return found
 
 
 def job_has_or_nearly(word):
@@ -132,7 +148,8 @@ def group(kind, title, records):
 
 
 def note_line(account, words):
-    """The line of the customer's notes that holds a searched word, when the name, address and phone do not."""
+    """The line of the customer's notes that holds a searched word, when the name, address and phone do not.
+    Only for a login that may see the notes in Details."""
     place, contact = account.main_property, account.main_contact
     shown = " ".join([account.name, place.full_address if place else "", contact.phone if contact else ""]).lower()
     wanted = [w for w in words if w not in shown]
@@ -148,18 +165,23 @@ def search(user, q):
     words = words_of(q)
     if not words:
         return []
-    jobs = with_close(jobs_for(user), words, job_has, job_has_or_nearly)
-
-    if user.is_crew_profile:                                         # a crew: only its own jobs
-        groups = [group("jobs", _("My Jobs"), jobs)]
-    else:
-        accounts = group("accounts", _("Accounts"), with_close(Account.objects.prefetch_related("contacts", "properties", "notes"),
-                                                               words, account_has, account_has_or_nearly))
+    jobs = with_close(jobs_for(user), words, job_has, job_has_or_nearly) if user.can("job.see") else []
+    if user.is_crew_login:                                           # a crew: only its own jobs
+        return [g for g in [group("jobs", _("My Jobs"), jobs)] if g["rows"]]
+    see = {"email": user.can("email.see"), "notes": user.can("note.see"), "contacts": user.can("contact.see"),
+           "properties": user.can("property.see")}
+    groups = []
+    if user.can("account.see"):
+        accounts = group("accounts", _("Accounts"), with_close(Account.objects.prefetch_related("contacts", "properties", "notes"), words,
+                                                               lambda word: account_has(word, see), lambda word: account_has_or_nearly(word, see)))
         for account in accounts["rows"]:
-            account.note_line = note_line(account, words)
-        leads = every_word(Lead.objects.all(), words, lead_has)
-        opportunities = every_word(Opportunity.objects.select_related("account", "place"), words, opportunity_has)
-        notes = every_word(Note.objects.filter(account__isnull=True), words, note_has)
-        groups = [accounts, group("leads", _("Leads"), leads), group("opps", _("Opportunities"), opportunities),
-                  group("jobs", _("Jobs"), jobs), group("notes", _("Notes not linked to a customer"), notes)]
+            account.note_line = note_line(account, words) if see["notes"] else ""
+        groups.append(accounts)
+    if user.can("lead.see"):
+        groups.append(group("leads", _("Leads"), every_word(Lead.objects.all(), words, lambda word: lead_has(word, see))))
+    if user.can("opportunity.see"):
+        groups.append(group("opps", _("Opportunities"), every_word(Opportunity.objects.select_related("account", "place"), words, opportunity_has)))
+    groups.append(group("jobs", _("Jobs"), jobs))
+    if see["notes"]:
+        groups.append(group("notes", _("Notes not linked to a customer"), every_word(Note.objects.filter(account__isnull=True), words, note_has)))
     return [g for g in groups if g["rows"]]

@@ -9,20 +9,21 @@
     <h1 class="h4 mb-0">{{ account.name }}</h1>
     <div class="text-body-secondary small">{% kind_badge account %} <span class="ms-1">{% trf "Customer since %(year)s" year=account.customer_since %}</span></div>
   </div>
-  {% if user|can:"delete" %}<a class="btn btn-outline-danger btn-sm hl-edit text-nowrap" href="{% url 'record_delete' 'account' account.pk %}">{% icon "trash" %} {% trans "Delete" %}</a>{% endif %}
+  {% if user|can:"account.delete" %}<a class="btn btn-outline-danger btn-sm hl-edit text-nowrap" href="{% url 'record_delete' 'account' account.pk %}">{% icon "trash" %} {% trans "Delete" %}</a>{% endif %}
   {% if user|may_edit:"account" %}<a class="btn btn-outline-secondary btn-sm hl-edit text-nowrap" href="{% url 'account_edit' account.pk %}">{% icon "edit" %} {% trans "Edit" %}</a>{% endif %}
-  <a class="btn btn-primary btn-sm text-nowrap" href="{% url 'opp_new' account.pk %}">{% icon "plus" %} {% trans "New opportunity" %}</a>
+  {% if user|can:"opportunity.create" %}<a class="btn btn-primary btn-sm text-nowrap" href="{% url 'opp_new' account.pk %}">{% icon "plus" %} {% trans "New opportunity" %}</a>{% endif %}
 </div>
 
 <div class="mb-3">{% contact_buttons account account.main_property "account" account.pk %}</div>
 
 <div class="row g-3">
   <div class="col-lg-6">
+    {% if user|can:"contact.see" %}
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <div class="d-flex align-items-center gap-2 mb-2">
           <h2 class="h6 mb-0 flex-grow-1" data-section="contacts">{% trans "Contacts" %}</h2>
-          <a class="btn btn-outline-secondary btn-sm" href="{% url 'contact_new' account.pk %}">{% icon "plus" %} {% trans "Add" %}</a>
+          {% if user|can:"contact.create" %}<a class="btn btn-outline-secondary btn-sm" href="{% url 'contact_new' account.pk %}">{% icon "plus" %} {% trans "Add" %}</a>{% endif %}
         </div>
         {% if account.source_name %}<dl class="row mb-2 small"><dt class="col-4 text-body-secondary fw-normal">{% trans "Source" %}</dt><dd class="col-8 mb-0">{{ account.source_name }}</dd></dl>{% endif %}
         <ul class="list-unstyled mb-0">
@@ -30,7 +31,7 @@
           <li class="d-flex align-items-start gap-2 mb-2">
             <div class="flex-grow-1 hl-minw0">
               <div class="fw-semibold">{{ contact.name }} <span class="text-body-secondary fw-normal small">· {{ contact.get_role_display }}{% if contact.is_primary %} · {% trans "main contact" %}{% endif %}</span></div>
-              <div class="small">{% if contact.phone %}<a href="{{ contact.phone|tel }}">{{ contact.phone }}</a>{% endif %}{% if contact.phone and contact.email %} · {% endif %}{% if contact.email %}<a href="mailto:{{ contact.email }}">{{ contact.email }}</a>{% endif %}</div>
+              <div class="small">{% if contact.phone %}<a href="{{ contact.phone|tel }}">{{ contact.phone }}</a>{% endif %}{% if contact.email and user|can:"email.see" %}{% if contact.phone %} · {% endif %}<a href="mailto:{{ contact.email }}">{{ contact.email }}</a>{% endif %}</div>
             </div>
             {% if user|may_edit:"contact" %}<a class="btn btn-link btn-sm p-0" href="{% url 'contact_edit' contact.pk %}" data-inline data-inline-in="li" aria-label="{% trans 'Edit' %}">{% icon "edit" %}</a>{% endif %}
           </li>
@@ -40,12 +41,14 @@
         </ul>
       </div>
     </div>
+    {% endif %}
 
+    {% if user|can:"property.see" %}
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <div class="d-flex align-items-center gap-2 mb-2">
           <h2 class="h6 mb-0 flex-grow-1" data-section="properties">{% trans "Properties" %}</h2>
-          <a class="btn btn-outline-secondary btn-sm" href="{% url 'property_new' account.pk %}">{% icon "plus" %} {% trans "Add" %}</a>
+          {% if user|can:"property.create" %}<a class="btn btn-outline-secondary btn-sm" href="{% url 'property_new' account.pk %}">{% icon "plus" %} {% trans "Add" %}</a>{% endif %}
         </div>
         {% for place in account.properties.all %}
         <div class="d-flex align-items-start gap-2 mb-2">
@@ -64,31 +67,37 @@
         {% endfor %}
       </div>
     </div>
+    {% endif %}
   </div>
 
   <div class="col-lg-6">
+    {% if user|can:"note.see" %}
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h2 class="h6 mb-2" data-section="details">{% trans "Details" %}</h2>
         {% for note in account.notes.all %}
         <div class="mb-2">
-          <div class="small text-body-secondary mb-1">{{ note.get_source_display }}{% if note.source == "app" %} · {{ note.created_at|day_time }}{% if note.actor %} · {{ note.actor }}{% endif %}{% elif note.noted_on %} · {{ note.noted_on|date }}{% endif %}{% if user|may_edit:"note" %} · <a href="{% url 'note_edit' note.pk %}" data-inline data-inline-in=".mb-2">{% trans "Edit" %}</a>{% endif %}{% if user|can:"delete" %} · <a class="link-danger" href="{% url 'record_delete' 'note' note.pk %}">{% trans "Delete" %}</a>{% endif %}</div>
+          <div class="small text-body-secondary mb-1">{{ note.get_source_display }}{% if note.source == "app" %} · {{ note.created_at|day_time }}{% if note.actor %} · {{ note.actor }}{% endif %}{% elif note.noted_on %} · {{ note.noted_on|date }}{% endif %}{% if user|may_edit:"note" %} · <a href="{% url 'note_edit' note.pk %}" data-inline data-inline-in=".mb-2">{% trans "Edit" %}</a>{% endif %}{% if user|can:"note.delete" %} · <a class="link-danger" href="{% url 'record_delete' 'note' note.pk %}">{% trans "Delete" %}</a>{% endif %}</div>
           <pre class="hl-pre small bg-body-tertiary border rounded p-2 mb-0">{{ note.text }}</pre>
         </div>
         {% empty %}
         <div class="small text-body-secondary mb-2">{% trans "No notes yet." %}</div>
         {% endfor %}
+        {% if user|can:"note.create" %}
         <form method="post" action="{% url 'note_new' account.pk %}" class="mt-3">
           {% csrf_token %}
           <label class="form-label small fw-semibold mb-1" for="{{ note_form.text.id_for_label }}">{% trans "Add a note" %}</label>
           {{ note_form.text }}
           <button type="submit" class="btn btn-outline-secondary btn-sm mt-2">{% trans "Save the note" %}</button>
         </form>
+        {% endif %}
       </div>
     </div>
+    {% endif %}
   </div>
 </div>
 
+{% if user|can:"opportunity.see" %}
 <div class="card shadow-sm mb-3">
   <div class="card-body">
     <h2 class="h6 mb-2" data-section="opps">{% trans "Opportunities" %}</h2>
@@ -96,7 +105,9 @@
     {% else %}<div class="small text-body-secondary">{% trans "None" %}</div>{% endif %}
   </div>
 </div>
+{% endif %}
 
+{% if user|can:"job.see" %}
 <div class="card shadow-sm mb-3">
   <div class="card-body">
     <h2 class="h6 mb-2" data-section="jobs">{% trans "Jobs" %}</h2>
@@ -104,11 +115,13 @@
     {% else %}<div class="small text-body-secondary">{% trans "None" %}</div>{% endif %}
   </div>
 </div>
+{% endif %}
 
-{% include "crm/_files.html" %}
+{% if files is not None %}{% include "crm/_files.html" %}{% endif %}
 
-{% include "crm/_documents.html" %}
+{% if documents is not None %}{% include "crm/_documents.html" %}{% endif %}
 
+{% if history is not None %}
 <div class="card shadow-sm mb-3">
   <div class="card-body">
     <h2 class="h6 mb-2" data-section="history">{% trans "History" %}</h2>
@@ -116,4 +129,5 @@
     {% include "crm/_history.html" %}
   </div>
 </div>
+{% endif %}
 {% endblock %}

@@ -1,6 +1,8 @@
 {% load i18n crm_tags %}
-{# The two charts. Needs: revenue_chart (see column_chart in reports.py) and lead_bars. Each chart has its table: "See the numbers". #}
+{# The two charts. Needs: revenue_chart (see column_chart in reports.py) and lead_bars. Each chart has its table: "See the numbers".
+   Each chart shows only to a login that may see what it counts (show_revenue, show_leads): money, and leads. #}
 <div class="row g-3 mb-3">
+  {% if show_revenue %}
   <div class="col-lg-6">
     <div class="card shadow-sm h-100">
       <div class="card-body">
@@ -27,6 +29,8 @@
       </div>
     </div>
   </div>
+  {% endif %}
+  {% if show_leads %}
   <div class="col-lg-6">
     <div class="card shadow-sm h-100">
       <div class="card-body">
@@ -50,4 +54,5 @@
       </div>
     </div>
   </div>
+  {% endif %}
 </div>

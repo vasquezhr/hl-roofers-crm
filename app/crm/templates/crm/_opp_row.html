@@ -7,6 +7,6 @@
       <div class="fw-semibold text-truncate">{{ opp.account.name }}</div>
       <div class="small text-body-secondary text-truncate">{{ opp.place.full_address }}</div>
     </div>
-    <div class="text-end flex-shrink-0">{% stage_badge opp %}{% if opp.total %}<div class="fw-semibold mt-1">{{ opp.total|money }}</div>{% endif %}</div>
+    <div class="text-end flex-shrink-0">{% stage_badge opp %}{% if opp.total and user|can:"money.see" %}<div class="fw-semibold mt-1">{{ opp.total|money }}</div>{% endif %}</div>
   </div>
 </a>

@@ -214,26 +214,45 @@ def price_changes(start, end):
 
 # every report: its word in the address, its name, what it answers, the function that counts it,
 # whether its last row is a total, and whether it is "as of today" (no period to pick)
+# "needs": the ticks a login must have to open it (permissions.py). A money column is left out for a login that may not see money.
 REPORTS = [
     {"key": "leads-by-source", "name": gettext_lazy("Leads by source"), "about": gettext_lazy("Which sources actually bring work"),
-     "rows": leads_by_source},
+     "rows": leads_by_source, "needs": ["lead.see"]},
     {"key": "response-time", "name": gettext_lazy("Lead response time"), "about": gettext_lazy("From the request arriving to the first call or text"),
-     "rows": response_time},
+     "rows": response_time, "needs": ["lead.see"]},
     {"key": "close-rate", "name": gettext_lazy("Close rate"), "about": gettext_lazy("Proposals signed against proposals sent, by type of work"),
-     "rows": close_rate},
+     "rows": close_rate, "needs": ["opportunity.see"]},
     {"key": "revenue", "name": gettext_lazy("Revenue by month"), "about": gettext_lazy("Payments received, by month and type of work"),
-     "rows": revenue, "total": True},
+     "rows": revenue, "total": True, "needs": ["job.see", "payment.see"]},
     {"key": "unpaid", "name": gettext_lazy("Unpaid invoices"), "about": gettext_lazy("Open balances by how old the invoice is"),
-     "rows": unpaid, "total": True, "live": True},
+     "rows": unpaid, "total": True, "live": True, "needs": ["job.see", "money.see"]},
     {"key": "jobs-per-crew", "name": gettext_lazy("Jobs finished per crew"), "about": gettext_lazy("Finished jobs and work days for each crew"),
-     "rows": jobs_per_crew},
+     "rows": jobs_per_crew, "needs": ["job.see"]},
     {"key": "lost-reasons", "name": gettext_lazy("Lost reasons"), "about": gettext_lazy("Why opportunities were lost, and what they were worth"),
-     "rows": lost_reasons},
+     "rows": lost_reasons, "needs": ["opportunity.see"]},
     {"key": "rescheduled", "name": gettext_lazy("Rescheduled jobs"), "about": gettext_lazy("Each time a scheduled job got new dates, and the totals by reason"),
-     "rows": rescheduled, "totals": rescheduled_by_reason},
+     "rows": rescheduled, "totals": rescheduled_by_reason, "needs": ["job.see"]},
     {"key": "price-changes", "name": gettext_lazy("Price changes"), "about": gettext_lazy("Supplier costs that moved, biggest first, from the Price Book history"),
-     "rows": price_changes},
+     "rows": price_changes, "needs": []},          # only the Reports page, as before: the Office profile read it without Costs and margins
 ]
+
+
+def spec_of(key):
+    return next((one for one in REPORTS if one["key"] == key), None)
+
+
+def may_open(user, spec):
+    """True when this login may open the report (the Reports page itself is checked by the view).
+    A login with "Only jobs scheduled to their crew" gets no report that counts jobs: those count every crew's."""
+    if not all(user.can(tick) for tick in spec["needs"]):
+        return False
+    return not (user.can("own_jobs") and "job.see" in spec["needs"])
+
+
+def columns_for(user, columns, rows):
+    """The columns this login may see, and the rows with only those values: a money column is left out without See of Prices and money."""
+    keep = [i for i, (_label, kind) in enumerate(columns) if kind != "money" or user.can("money.see")]
+    return [columns[i] for i in keep], [[row[i] for i in keep] for row in rows]
 
 
 def shown(value, kind):

@@ -20,7 +20,7 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from . import importer
-from .access import admin_only
+from .access import with_permission
 from .forms import ImportedNoteForm, ImportForm
 from .models import Account, ImportBatch, ImportedNote, log
 from .search import account_has, every_word, words_of
@@ -35,7 +35,7 @@ def how_many(status):
     return Count("notes", filter=Q(notes__status=status))
 
 
-@admin_only
+@with_permission("import_data")
 def imports(request):
     """The upload used to have its own page here. It is on Import data now, with Apple Notes picked."""
     return redirect(notes_view())
@@ -85,7 +85,7 @@ def queue_address(batch, show, folder=""):
     return reverse("import_queue") + "?" + query(show=show, batch=batch, folder=folder)
 
 
-@admin_only
+@with_permission("import_data")
 def import_queue(request):
     """The notes waiting for a decision, in four lists: existing customer, new account, no customer found, looks personal.
     A list can be narrowed to one Apple Notes folder."""
@@ -182,7 +182,7 @@ def queue_action(request, waiting, in_list, show, here):
     return redirect(here)
 
 
-@admin_only
+@with_permission("import_data")
 def import_note(request, pk):
     """One note from the queue, with every choice: a new account, an existing customer, unlinked, or skip."""
     note = get_object_or_404(ImportedNote.objects.select_related("account"), pk=pk)

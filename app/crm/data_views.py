@@ -19,8 +19,10 @@ records by their ID, with the same steps. Its template and an export of its reco
 """
 import io
 import logging
+from functools import wraps
 
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import get_language
@@ -31,8 +33,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from . import dataload, import_views, objectload
-from .access import admin_only
-from .forms import DataImportForm, ImportKindForm, ObjectImportForm
+from .access import with_permission
+from .forms import DataImportForm, ImportKindForm, ObjectImportForm, import_kinds
 from .models import DataImport, DataImportRow, ImportedNote
 
 logger = logging.getLogger(__name__)
@@ -43,11 +45,24 @@ TYPES = {"xlsx": XLSX, "csv": "text/csv; charset=utf-8", "zip": "application/zip
 NOTES = "notes"                # the Apple Notes export; the other kinds are spreadsheets (dataload.KINDS)
 
 
-@admin_only
+def as_login(how):
+    """The page is made for this login: only the kinds of record and the columns its profile may see ("see") or change ("edit")."""
+    def decorate(view):
+        @wraps(view)
+        def wrapper(request, *args, **kwargs):
+            with objectload.as_login(request.user, how):
+                return view(request, *args, **kwargs)
+        return wrapper
+    return decorate
+
+
+
+@with_permission("import_data")
+@as_login("edit")
 def data_import(request):
     """Step 1: the type of data, then that type's file. Nothing below the drop-down shows until a type is picked."""
     kind = request.POST.get("kind") or request.GET.get("kind", "")
-    kind = kind if kind in dataload.KINDS or kind == NOTES or kind in objectload.OBJECTS else ""
+    kind = kind if kind in allowed_kinds(request.user) else ""
     records = kind in objectload.OBJECTS                                  # a kind of record: add new, or update by record ID
     form = None
     if kind == NOTES:
@@ -68,6 +83,8 @@ def data_import(request):
                     logger.exception("Data import: %r (%s) could not be read, by %s", upload.name, kind, request.user.label)
                     form.add_error("file", _("The file could not be read. The reason is in the error log (Admin, System status)."))
                 else:
+                    if records and not objectload.may_use(request.user, kind, form.cleaned_data["action"]):
+                        raise PermissionDenied                                  # add new needs Create, update needs Edit
                     run = DataImport.objects.create(kind=kind, file_name=upload.name[:200], user=request.user, actor=request.user.label, headings=headings,
                                                     mapping=objectload.suggest(kind, headings) if records else dataload.suggest(kind, headings),
                                                     action=form.cleaned_data["action"] if records else "")
@@ -76,9 +93,37 @@ def data_import(request):
             elif not request.FILES:
                 form.add_error(None, _("No file arrived. A file larger than 10 MB is refused."))
     waiting = ImportedNote.objects.filter(status=ImportedNote.Status.PENDING).count() if kind in ("", NOTES) else 0
-    return render(request, "crm/data_import.html", {"kind": kind, "picker": ImportKindForm(initial={"kind": kind}), "form": form, "records": records,
+    picker = ImportKindForm(initial={"kind": kind})
+    picker.fields["kind"].choices = kinds_for_picker(request.user)
+    return render(request, "crm/data_import.html", {"kind": kind, "picker": picker, "form": form, "records": records,
                                                     "title": objectload.title_of(kind) if records else dataload.TITLES.get(kind, ""),
                                                     "history": imports_so_far(kind), "waiting": waiting})
+
+
+def allowed_kinds(user):
+    """The types of data this login may import: customers need Create for accounts, leads Create for leads, the notes Create for
+    notes in Details, and a kind of record Create or Edit for it (permissions.py)."""
+    kinds = [kind for kind, tick in [("customers", "account.create"), ("leads", "lead.create"), (NOTES, "note.create")] if user.can(tick)]
+    return kinds + [key for key in objectload.OBJECTS if objectload.may_use(user, key, "insert") or objectload.may_use(user, key, "update")]
+
+
+def kinds_for_picker(user):
+    allowed = set(allowed_kinds(user))
+    out = []
+    for value, label in import_kinds():
+        if isinstance(label, list):
+            out.append((value, [(key, title) for key, title in label if key in allowed]))
+        elif value == "" or value in allowed:
+            out.append((value, label))
+    return out
+
+
+def open_run(user, pk):
+    """An import this login may go on with: one of a type of data it may import."""
+    run = get_object_or_404(DataImport, pk=pk)
+    if run.kind not in allowed_kinds(user) or (run.kind in objectload.OBJECTS and not objectload.may_use(user, run.kind, run.action)):
+        raise PermissionDenied
+    return run
 
 
 def type_of(run):
@@ -105,7 +150,7 @@ def imports_so_far(kind, most=20):
     return history[:most]
 
 
-@admin_only
+@with_permission("import_data")
 def data_template(request, kind):
     if kind not in dataload.KINDS:
         raise Http404
@@ -123,43 +168,47 @@ def download(data, kind, name):
     return response
 
 
-@admin_only
+@with_permission("export_data")
+@as_login("see")
 def object_template(request, key, kind):
     """A kind of record's template: its columns, read from the model now, so a field added later is in it by itself."""
-    if key not in objectload.OBJECTS or kind not in ("xlsx", "csv"):
+    if key not in objectload.OBJECTS or kind not in ("xlsx", "csv") or not objectload.may_use(request.user, key, "see"):
         raise Http404
     return download(objectload.file_bytes(key, kind), kind, f"template-{key}.{kind}")
 
 
-@admin_only
+@with_permission("export_data")
+@as_login("see")
 def object_export(request, key, kind):
     """A kind of record's records as they are now (not those in the Recycle Bin), with their IDs, in the template's layout."""
-    if key not in objectload.OBJECTS or kind not in ("xlsx", "csv"):
+    if key not in objectload.OBJECTS or kind not in ("xlsx", "csv") or not objectload.may_use(request.user, key, "see"):
         raise Http404
     rows = objectload.export_rows(key)
     logger.info("Export: %s (%s), %s records, by %s", key, kind, rows.count(), request.user.label)
     return download(objectload.file_bytes(key, kind, rows), kind, f"export-{key}-{timezone.localdate().isoformat()}.{kind}")
 
 
-@admin_only
+@with_permission("export_data")
+@as_login("see")
 def object_templates_zip(request, kind):
-    """Every kind of record's template in one .zip: one file for each."""
+    """Every kind of record's template in one .zip: one file for each kind this login may see."""
     if kind not in ("xlsx", "csv"):
         raise Http404
     return download(objectload.every_template(kind), "zip", f"templates-{kind}.zip")
 
 
-@admin_only
+@with_permission("import_data")
+@as_login("edit")
 def data_import_map(request, pk):
     """Step 2: which column is which field. The app fills in the columns whose heading names a field."""
-    run = get_object_or_404(DataImport, pk=pk)
+    run = open_run(request.user, pk)
     if run.stage == DataImport.Stage.DONE:
         return redirect("data_import_results", pk=run.pk)
     records = run.kind in objectload.OBJECTS
     if records:                                                           # a kind of record: its template's columns, by code name and name
         choices = [(column.name, f"{column.name} · {column.label}") for column in objectload.columns(run.kind)]
     else:
-        fields = dataload.fields_of(run.kind)
+        fields = [one for one in dataload.fields_of(run.kind) if one[0] != "email" or request.user.can("email.edit")]
         spanish = (get_language() or "").startswith("es")
         choices = [(key, spanish_name if spanish else english) for key, english, spanish_name, _other in fields]
     sample = list(run.rows.all()[:3])
@@ -191,10 +240,11 @@ def title_of(run):
     return type_of(run)
 
 
-@admin_only
+@with_permission("import_data")
+@as_login("edit")
 def data_import_review(request, pk):
     """Step 3: the rows that are new, the rows already in the app, and the rows with a problem. Nothing is saved until Confirm."""
-    run = get_object_or_404(DataImport, pk=pk)
+    run = open_run(request.user, pk)
     if run.stage == DataImport.Stage.DONE:
         return redirect("data_import_results", pk=run.pk)
     if run.stage != DataImport.Stage.REVIEW:
@@ -231,7 +281,7 @@ def review_records(request, run, rows):
                                                                    "update": run.action == "update"})
 
 
-@admin_only
+@with_permission("import_data")
 def data_import_results(request, pk):
     """Step 4: what happened to each row."""
     run = get_object_or_404(DataImport, pk=pk)
@@ -244,7 +294,7 @@ def data_import_results(request, pk):
     return render(request, "crm/data_import_results.html", {"run": run, "rows": rows, "title": type_of(run), "records": records})
 
 
-@admin_only
+@with_permission("import_data")
 def data_import_results_file(request, pk):
     run = get_object_or_404(DataImport, pk=pk, stage=DataImport.Stage.DONE)
     out = io.BytesIO()

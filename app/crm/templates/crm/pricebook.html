@@ -3,7 +3,7 @@
 {% block title %}{% trans "Price Book" %}{% endblock %}
 
 {% block content %}
-{% if user.is_admin_profile %}<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'admin_home' %}">‹ {% trans "Admin" %}</a>{% endif %}
+{% if user|opens_admin %}<a class="small text-decoration-none d-inline-block mb-2" href="{% url 'admin_home' %}">‹ {% trans "Admin" %}</a>{% endif %}
 <div class="d-flex flex-wrap align-items-start gap-2 mb-3">
   <div class="flex-grow-1 hl-minw0">
     <h1 class="h4 mb-0">{% trans "Price Book" %}</h1>

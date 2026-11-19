@@ -18,7 +18,7 @@
           {% badge item.get_category_display "secondary" %}{% if item.change_order %} {{ item.change_order.label }}{% endif %}
           {% if item.caption %}<div>{{ item.caption }}</div>{% endif %}
           <div class="text-body-secondary">{{ item.uploaded_at|day_time }} · {{ item.actor|default:"—" }}{% if show_job and item.job %} · <a href="{% url 'job' item.job.number %}">#{{ item.job.number }}</a>{% endif %}</div>
-          {% if user|can:"delete" %}<a class="link-danger" href="{% url 'record_delete' 'file' item.pk %}">{% trans "Delete" %}</a>{% endif %}
+          {% if user|can:"file.delete" %}<a class="link-danger" href="{% url 'record_delete' 'file' item.pk %}">{% trans "Delete" %}</a>{% endif %}
         </div>
       </div>
       {% endfor %}

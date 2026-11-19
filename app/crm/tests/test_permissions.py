@@ -80,7 +80,7 @@ class UsersPage(Base):
             page = self.client.post(edit, self.details(**{"username": "admin", "new_password": "", "first_name": "", "profile": "admin", **change}))
             self.assertContains(page, "This is the only active login that can manage logins and profiles.")
         self.admin.refresh_from_db()
-        self.assertTrue(self.admin.is_admin_profile and self.admin.is_active)
+        self.assertTrue(self.admin.profile == "admin" and self.admin.is_active)
 
     def test_a_set_only_counts_for_the_profile_it_is_for(self):
         self.login1.can_delete = self.login1.can_price_book = True                  # switched on by mistake on a crew login

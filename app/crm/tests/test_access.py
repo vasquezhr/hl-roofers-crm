@@ -140,10 +140,10 @@ class Profiles(Base):
         self.assertFalse(self.office.is_staff or self.office.is_superuser)
         self.office.profile = "admin"
         self.office.save()
-        self.assertTrue(self.office.is_staff and self.office.is_superuser and self.office.is_admin_profile)
+        self.assertTrue(self.office.is_staff and self.office.is_superuser and self.office.can("users"))
         self.office.profile = "office"
         self.office.save()
-        self.assertFalse(self.office.is_staff or self.office.is_superuser or self.office.is_admin_profile)
+        self.assertFalse(self.office.is_staff or self.office.is_superuser or self.office.can("users"))
 
     def test_createsuperuser_makes_an_administrator(self):
         boss = User.objects.create_superuser("boss", password="x")

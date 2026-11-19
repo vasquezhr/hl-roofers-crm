@@ -21,7 +21,8 @@ from django.views.decorators.http import require_POST
 from . import logo, pricebook
 from django.core.exceptions import PermissionDenied
 
-from .access import admin_only, with_permission
+from .access import with_permission
+from .context import ADMIN_TICKS
 from .forms import CompanyForm, NewPriceForm, PriceItemForm, PriceUploadForm
 from .history import changes, field_changes
 from .models import Activity, Company, ImportedNote, PriceEntry, PriceItem, PriceUpload, log
@@ -32,14 +33,14 @@ logger = logging.getLogger(__name__)
 HELD = "price_upload"          # where a file that was read waits (in the session) until it is confirmed
 
 
-@admin_only
+@with_permission(*ADMIN_TICKS)
 def admin_home(request):
     """The Admin hub: one card for each admin page."""
     waiting = ImportedNote.objects.filter(status=ImportedNote.Status.PENDING).count()
     return render(request, "crm/admin_home.html", {"waiting": waiting})
 
 
-@admin_only
+@with_permission("company")
 def company_details(request):
     company = Company.load()
     form = CompanyForm(request.POST or None, request.FILES or None, instance=company)
@@ -70,7 +71,7 @@ def company_details(request):
                      logo_now=logo.url_of(company))
 
 
-@admin_only
+@with_permission("setup_history")
 def admin_history(request):
     """Setup history: who changed the app's own setup, and when. Prices, the company's details, calendar addresses and
     the notes import are logged by the app; logins, crews and anything corrected in the admin site are logged there.
@@ -91,7 +92,7 @@ def admin_history(request):
 # ---------------------------------------------------------------- the Price Book
 # The administrator, and an office login with "Manage Price Book", can change it.
 # An office login with "View Costs and Margins" can read it.
-@with_permission("price_book", "costs")
+@with_permission("price_book", "costs.see")
 def pricebook_list(request):
     show = request.GET.get("show", "all")
     items = PriceItem.objects.all()
@@ -106,7 +107,7 @@ def pricebook_list(request):
     })
 
 
-@with_permission("price_book", "costs")
+@with_permission("price_book", "costs.see")
 def price_item(request, pk):
     """One item: every price it has had, and a box to type a new one."""
     item = get_object_or_404(PriceItem, pk=pk)
