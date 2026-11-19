@@ -1026,6 +1026,7 @@ function render() {
   document.documentElement.lang = S.lang;
   capitalOptions(document); showSide();
   if (r.after) r.after(arg);
+  notePopup(name, arg);
 }
 
 // top bar, side navigation and phone tab bar
@@ -2157,7 +2158,9 @@ JOBS.forEach(j => { j.notes = j.notes || []; });
 function notesCard(j) {
   const list = j.notes.slice().sort((a, b) => b.d - a.d);
   return section(tt("notes.title"), (list.length ? list.map(n =>
-      `<div class="border-bottom pb-2 mb-2"><div class="small text-body-secondary">${esc(fmtStamp(n.d))} · ${esc(whoName(n.w))}</div><div class="hl-pre">${esc(n.text)}</div></div>`).join("")
+      `<div class="border-bottom pb-2 mb-2"><div class="small text-body-secondary">${esc(fmtStamp(n.d))} · ${esc(whoName(n.w))}` +
+      (n.forCrew && !isCrew() ? ` <span data-note-read>${n.read ? badge(t("notes.readBy", { who: whoName(n.read.w), when: fmtStamp(n.read.d) }), "success") : badge(t("notes.notRead"), "secondary")}</span>` : "") +
+      `</div><div class="hl-pre">${esc(n.text)}</div></div>`).join("")
       : `<div class="small text-body-secondary mb-2">${tt("notes.none")}</div>`) +
     field(t(isCrew() ? "notes.addCrew" : "notes.add"), `<textarea class="form-control" id="noteText" rows="3"></textarea><div class="form-text">${tt(isCrew() ? "notes.hintCrew" : "notes.hintOffice")}</div>`) +
     `<button type="button" class="btn btn-outline-secondary btn-sm" data-act="noteSave" data-id="${j.id}">${tt("notes.save")}</button>`, "", "notes");
@@ -2165,8 +2168,28 @@ function notesCard(j) {
 ACT.noteSave = d => {
   const j = jobOf(d.id), text = val("noteText");
   if (!text) { $("#noteText").classList.add("is-invalid"); return; }
-  j.notes.push({ d: new Date(), w: me(), text }); addLog(j, "log.noteOnJob");
+  j.notes.push({ d: new Date(), w: me(), text, forCrew: !isCrew() }); addLog(j, "log.noteOnJob");      // the office's note pops up for the crew
   toast(t(isCrew() ? "notes.sentCrew" : "notes.saved")); render();
+};
+// Nov 16: a note from the office pops up for the job's crew on My Day, My Jobs and the job, until the crew lead taps Got it.
+// Several unread notes: one pop-up, newest first, one Got it for all. A note the crew wrote never pops up for it.
+const unreadNotes = jobId => myJobs().filter(j => !jobId || j.id === jobId).flatMap(j => j.notes.filter(n => n.forCrew && !n.read).map(n => ({ j, n }))).sort((a, b) => b.n.d - a.n.d);
+let POPPED = [];
+function notePopup(name, arg) {
+  if (!isCrew() || !["myday", "myjobs", "job"].includes(name)) return;
+  const list = unreadNotes(name === "job" ? arg : "");
+  if (!list.length) return;
+  POPPED = list;
+  setTimeout(() => openModal(`<div class="modal-header"><h2 class="modal-title h5">${ic("msg")} ${list.length === 1 ? tt("notes.popOne") : tt("notes.popMany", { n: list.length })}</h2>` +
+    (isCrewLead() ? "" : `<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="${esc(t("close"))}"></button>`) + `</div>` +
+    `<div class="modal-body" data-popup>` + list.map(({ j, n }, i) => `<div class="${i ? "border-top pt-2 mt-2" : ""}" data-popup-note><a class="small fw-semibold text-decoration-none" href="#job/${j.id}">#${j.id} · ${esc(acct(j.acct).name)}</a>` +
+      `<div class="small text-body-secondary">${esc(fmtStamp(n.d))} · ${esc(whoName(n.w))}</div><div class="hl-pre">${esc(n.text)}</div></div>`).join("") + `</div>` +
+    `<div class="modal-footer">` + (isCrewLead() ? `<button type="button" class="btn btn-primary w-100" data-act="notesRead">${ic("check")} ${tt("sched.gotIt")}</button>`
+      : `<div class="small text-body-secondary me-auto">${tt("notes.leadTaps")}</div><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${tt("close")}</button>`) + `</div>`), 400);   // after a window that is closing
+}
+ACT.notesRead = () => {
+  POPPED.forEach(({ j, n }) => { n.read = { w: me(), d: new Date() }; addLog(j, "log.noteRead", { when: fmtStamp(n.d) }); });
+  POPPED = []; closeModal(); toast(t("notes.readDone")); render();
 };
 // Today: notes the crews wrote since the last work day began
 const crewNotes = () => JOBS.flatMap(j => j.notes.filter(n => CREWS.some(c => c.id === n.w) && n.d >= wd(-1)).map(n => ({ j, n }))).sort((a, b) => b.n.d - a.n.d);
@@ -3873,7 +3896,9 @@ const NOV16B = {
       takeOffTitle: "Take {day} off the job", takeOffHelp: "The job's dates change, so this is a reschedule. Say why." },
     sms: { changed: "H & L: job #{id} ({name}) is rescheduled. Now on {now}. Please tap Got it in the app.", crewNow: "H & L: job #{id} ({name}) is now on your schedule, {now}. Please tap Got it in the app." },
     today: { changeNotSeen: "{what}: job #{id}. {now}. {crew} has not seen it yet." },
-    log: { reason: "Reason for the new dates: {reason}" },
+    log: { reason: "Reason for the new dates: {reason}", noteRead: "The crew read the note of {when}" },
+    notes: { hintOffice: "It pops up for the crew on this job until they tap Got it. You then see here that they read it.", popOne: "A note from the office", popMany: "{n} notes from the office",
+      leadTaps: "The crew lead's login taps Got it.", readBy: "Read by {who} · {when}", notRead: "Not read yet by the crew", readDone: "The office can see that you read it" },
     job: { reschedules: "Reschedules", reschedOnce: "Rescheduled once.", reschedTimes: "Rescheduled {n} times.", notResched: "Not rescheduled." },
     reports: { rescheduled: "Rescheduled jobs", rescheduledD: "Each time a scheduled job got new dates, and the totals by reason", cChangedOn: "Changed on", cJob: "Job",
       cReason: "Reason", cWho: "Who", cReschedules: "Reschedules", cJobs: "Jobs" },
@@ -3886,7 +3911,9 @@ const NOV16B = {
       takeOffTitle: "Quitar {day} del trabajo", takeOffHelp: "Las fechas del trabajo cambian, así que es una reprogramación. Diga por qué." },
     sms: { changed: "H & L: el trabajo #{id} ({name}) se reprogramó. Ahora: {now}. Por favor toque Enterado en la app.", crewNow: "H & L: el trabajo #{id} ({name}) ahora está en su agenda, {now}. Por favor toque Enterado en la app." },
     today: { changeNotSeen: "{what}: trabajo #{id}. {now}. {crew} todavía no lo ha visto." },
-    log: { reason: "Motivo de las fechas nuevas: {reason}" },
+    log: { reason: "Motivo de las fechas nuevas: {reason}", noteRead: "El equipo leyó la nota del {when}" },
+    notes: { hintOffice: "Le aparece al equipo de este trabajo hasta que toque Enterado. Después usted ve aquí que la leyó.", popOne: "Una nota de la oficina", popMany: "{n} notas de la oficina",
+      leadTaps: "El usuario del encargado toca Enterado.", readBy: "Leída por {who} · {when}", notRead: "El equipo todavía no la ha leído", readDone: "La oficina ya ve que la leyó" },
     job: { reschedules: "Reprogramaciones", reschedOnce: "Reprogramado una vez.", reschedTimes: "Reprogramado {n} veces.", notResched: "Sin reprogramar." },
     reports: { rescheduled: "Trabajos reprogramados", rescheduledD: "Cada vez que un trabajo programado tuvo fechas nuevas, y los totales por motivo", cChangedOn: "Cambiado el", cJob: "Trabajo",
       cReason: "Motivo", cWho: "Quién", cReschedules: "Reprogramaciones", cJobs: "Trabajos" },

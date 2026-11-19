@@ -706,6 +706,28 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     await role("office"); await go("#report/rescheduled"); v = await view(); ok(/Trabajos reprogramados/.test(v) && /Motivo/.test(v) && !/\{[a-z]+\}/.test(v), "the report in Spanish");
     await go("#job/" + sched2); v = await view(); ok(/Reprogramaciones/.test(v) && /Reprogramado una vez/.test(v) && /Materiales atrasados/.test(v), "the job's reschedules in Spanish");
     await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200);
+    // item 2: a note from the office pops up for the job's crew until the crew lead taps Got it; the office then sees who read it and when
+    await role("office");
+    const c1job = await p.evaluate(() => JOBS.find(j => j.crew === "c1" && ["scheduled", "inprogress"].includes(j.stage)).id);
+    await go("#job/" + c1job); await p.fill("#noteText", "Gate code is 4417. Park on the street."); await act("noteSave");
+    await p.fill("#noteText", "The customer asks to start after 9."); await act("noteSave"); v = await view();
+    ok(/pops up for the crew/.test(v) && /Not read yet by the crew/.test(v), "the office's note says it pops up, not read yet");
+    await role("crew", "c2"); await goRaw("#myday"); await p.waitForTimeout(700); ok(!(await p.isVisible("#modal [data-popup]")), "another crew gets no pop-up");
+    await role("crew", "c1"); await goRaw("#myday"); await p.waitForTimeout(700);
+    ok(await p.isVisible("#modal [data-popup]") && /2 notes from the office/.test(await modal()) && (await p.locator("#modal [data-popup-note]").count()) === 2, "one pop-up for both notes on My Day");
+    ok((await p.locator("#modal [data-popup-note] .hl-pre").first().textContent()) === "The customer asks to start after 9.", "newest first");
+    await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(200); await shot("p7-note-popup-phone", false); await p.setViewportSize({ width: 1280, height: 900 });
+    await p.click('#modal [data-act="notesRead"]'); await p.waitForTimeout(700);
+    ok(!(await p.isVisible("#modal [data-popup]")) && /The office can see that you read it/.test(await p.textContent("#toast .toast-body")), "Got it closes it");
+    await goRaw("#myjobs"); await p.waitForTimeout(700); ok(!(await p.isVisible("#modal [data-popup]")), "and it does not pop up again");
+    await go("#job/" + c1job); await p.fill("#noteText", "Ladder left on site."); await act("noteSave"); await p.waitForTimeout(700); ok(!(await p.isVisible("#modal [data-popup]")), "a note the crew wrote never pops up for it");
+    await role("office"); await go("#job/" + c1job); v = await view();
+    ok((await p.locator("[data-note-read]").count()) === 2 && /Read by Crew 1 · /.test(v), "the office sees who read it, and when: " + v.slice(-900));
+    ok(/The crew read the note of/.test(v), "the history says the crew read it");
+    await p.fill("#noteText", "Bring the long ladder."); await act("noteSave");
+    await p.click('[data-act="setLang"][data-lang="es"]'); await p.waitForTimeout(200); await role("crew", "c1"); await goRaw("#job/" + c1job); await p.waitForTimeout(700);
+    ok(/Una nota de la oficina/.test(await modal()) && /Enterado/.test(await modal()), "the pop-up in Spanish, on the job");
+    await p.click('#modal [data-act="notesRead"]'); await p.waitForTimeout(600); await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200); await role("office");
     //@@NOV16@@
   }
 
