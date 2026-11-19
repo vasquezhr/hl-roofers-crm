@@ -3,7 +3,7 @@ from django import forms
 from django.conf import settings
 from django.contrib.auth import password_validation
 from django.contrib.auth.forms import AuthenticationForm
-from django.utils.text import capfirst
+from django.utils.text import capfirst, slugify
 from django.utils.translation import gettext_lazy as _
 from PIL import Image
 
@@ -62,7 +62,7 @@ class Bootstrap:
                 value = getattr(getattr(self, "instance", None), name, None)
                 if user.can(f"{section}.see") and value not in (None, ""):
                     shown = documents.money(value) if section == "money" else value
-                    self.locked = [*getattr(self, "locked", []), (name, field.label, shown)]
+                    self.read_only = [*getattr(self, "read_only", []), (field.label, shown)]
         return self
 
     def prune(self):
@@ -460,6 +460,45 @@ class LoginDetailsForm(Bootstrap, forms.ModelForm):
             user.set_password(self.cleaned_data["new_password"])
         user.save()
         return user
+
+
+class ProfileForm(Bootstrap, forms.ModelForm):
+    """A profile's name, in English and in Spanish. A new profile also says which profile it starts as a copy of (Salesforce: Clone)."""
+    copy_of = forms.ChoiceField(label=_("Start as a copy of"), required=False,
+                                help_text=_("The new profile starts with the same ticks. Change them on the next page."))
+
+    class Meta:
+        model = Profile
+        fields = ["name_en", "name_es"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            del self.fields["copy_of"]
+        else:
+            self.fields["copy_of"].choices = [(one.key, one.name) for one in Profile.objects.all()]
+
+    def clean(self):
+        data = super().clean()
+        for name in ("name_en", "name_es"):
+            taken = Profile.objects.exclude(pk=self.instance.pk).filter(**{f"{name}__iexact": (data.get(name) or "").strip()})
+            if data.get(name) and taken.exists():
+                self.add_error(name, _("Another profile already has this name."))
+        return data
+
+    def save(self, commit=True):
+        profile = super().save(commit=False)
+        if not profile.pk:                                          # its key never changes: logins store it
+            base = slugify(profile.name_en)[:14] or "profile"
+            key, n = base, 1
+            while Profile.objects.filter(key=key).exists():
+                n += 1
+                key = f"{base}-{n}"
+            profile.key = key
+            source = Profile.objects.filter(key=self.cleaned_data.get("copy_of")).first()
+            profile.ticks = list(source.ticks) if source else []
+        profile.save()
+        return profile
 
 
 def managers(but=None, profile=None, ticks=None):

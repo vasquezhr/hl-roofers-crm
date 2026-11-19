@@ -48,6 +48,14 @@
             <div class="form-text">{% trans "The customer wrote this. It came from a lead or the website, so it cannot be changed. Add your own notes on the record instead." %}</div>
           </div>
           {% endfor %}
+          {% for label, text in read_only %}
+          {# a field the login's profile may see but not change (Customer's email, Prices and money) #}
+          <div class="mb-3">
+            <div class="form-label small fw-semibold mb-1">{{ label }}</div>
+            <div class="small bg-body-tertiary border rounded p-2">{{ text }}</div>
+            <div class="form-text">{% trans "Your profile can see this but not change it." %}</div>
+          </div>
+          {% endfor %}
           {% if form.section %}<input type="hidden" name="section" value="{{ form.section }}">{% endif %}
           {% include "crm/_fields.html" %}
           <div class="d-flex gap-2 justify-content-end">

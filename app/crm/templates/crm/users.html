@@ -33,30 +33,21 @@
   </div>
 </div>
 
-<h2 class="h6 mt-4 mb-2">{% trans "What each profile allows" %}</h2>
-<div class="row g-3 mb-3">
-  <div class="col-lg-4">
-    <div class="card shadow-sm h-100"><div class="card-body small">
-      <h3 class="h6">{% trans "Administrator" %}</h3>
-      <div class="text-body-secondary">{% trans "Can see" %}</div><p>{% trans "Everything." %}</p>
-      <div class="text-body-secondary">{% trans "Can do" %}</div><p class="mb-0">{% trans "Everything, plus logins, permission sets, prices, company details, the notes import and the Recycle Bin." %}</p>
-    </div></div>
-  </div>
-  <div class="col-lg-4">
-    <div class="card shadow-sm h-100"><div class="card-body small">
-      <h3 class="h6">{% trans "Office" %}</h3>
-      <div class="text-body-secondary">{% trans "Can see" %}</div><p>{% trans "All leads, accounts, opportunities, jobs, the schedule, proposals, invoices and reports." %}</p>
-      <div class="text-body-secondary">{% trans "Can do" %}</div><p>{% trans "Create and edit records, convert leads, book, send proposals and invoices, record payments." %}</p>
-      <div class="text-body-secondary">{% trans "Cannot" %}</div><p class="mb-0">{% trans "Manage logins or change settings. Deleting, the Price Book and costs each need a permission set." %}</p>
-    </div></div>
-  </div>
-  <div class="col-lg-4">
-    <div class="card shadow-sm h-100"><div class="card-body small">
-      <h3 class="h6">{% trans "Crew" %}</h3>
-      <div class="text-body-secondary">{% trans "Can see" %}</div><p>{% trans "Only the jobs scheduled to their crew, with everything needed to finish them: customer, scope, price, change orders, deposits, the signed proposal, the invoice and the balance due." %}</p>
-      <div class="text-body-secondary">{% trans "Can do" %}</div><p>{% trans "Call, text, get directions, add notes. With Crew Lead: start and finish a job, change the extra workers, record a payment they collect, confirm changes." %}</p>
-      <div class="text-body-secondary">{% trans "Cannot" %}</div><p class="mb-0">{% trans "See the business's costs or margins, the Price Book, leads, other crews' jobs, reports or the dashboard." %}</p>
-    </div></div>
+{# Profiles: every profile has the same tick list (permissions.py); only which ticks are on differs. Salesforce: Setup › Profiles. #}
+<div class="d-flex align-items-center gap-2 mt-4 mb-2">
+  <h2 class="h6 mb-0 flex-grow-1">{% trans "What each profile allows" %}</h2>
+  <a class="btn btn-outline-primary btn-sm text-nowrap" href="{% url 'profile_new' %}">{% icon "plus" %} {% trans "Add a profile" %}</a>
+</div>
+<p class="small text-body-secondary mb-2">{% trans "Every profile has the same list of ticks: what it may see, create, edit and delete, which sections it sees, and which pages and actions it has. Open one to change its ticks." %}</p>
+<div class="card shadow-sm mb-3">
+  <div class="list-group list-group-flush">
+    {% for row in profiles %}
+    <a class="list-group-item list-group-item-action d-flex align-items-center gap-2" href="{% url 'profile_edit' row.profile.key %}">
+      <div class="flex-grow-1 hl-minw0"><div class="fw-semibold">{{ row.profile.name }}</div>
+        <div class="small text-body-secondary">{% if row.logins == 1 %}{% trans "1 login" %}{% else %}{% trf "%(n)s logins" n=row.logins %}{% endif %}{% if row.profile.has_everything %} · {% trans "Everything" %}{% endif %}</div></div>
+      <span class="text-body-secondary">›</span>
+    </a>
+    {% endfor %}
   </div>
 </div>
 
@@ -65,7 +56,8 @@
   <ul class="small mb-0 ps-3">
     <li>{% trans "The office and the administrator each have their own login, so the history shows who changed what." %}</li>
     <li>{% trans "A crew can share one login: the history then shows the crew, not the person. A login made for one person on a crew shows that person." %}</li>
-    <li>{% trans "Deleted records go to the Recycle Bin for 30 days. Only the administrator deletes them for good." %}</li>
+    <li>{% trans "Deleted records go to the Recycle Bin for 30 days. Only a profile with Delete for good empties them out of it." %}</li>
+    <li>{% trans "At least one active login always keeps Manage logins and profiles: the app refuses a change that would leave nobody able to fix the logins." %}</li>
     <li>{% trans "A phone stays signed in for 30 days, so nobody types a password on a roof." %}</li>
     <li>{% trans "To take a login away, turn off 'Can sign in'. Its name stays in the history." %}</li>
   </ul>

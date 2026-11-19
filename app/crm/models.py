@@ -1557,6 +1557,8 @@ class Activity(models.Model):
         "pick_added": _("Pick list value added: %(detail)s"), "pick_edited": _("Pick list value changed: %(detail)s"),
         "login_added": _("Login added: %(detail)s"), "login_edited": _("Login changed: %(detail)s"),
         "login_password": _("Password changed for %(detail)s"),
+        "profile_added": _("Profile added: %(detail)s"), "profile_ticks": _("Profile ticks changed: %(detail)s"),
+        "profile_edited": _("Profile renamed: %(detail)s"), "profile_deleted": _("Profile deleted: %(detail)s"),
         # deleting, and the Recycle Bin
         "deleted": _("Moved to the Recycle Bin"), "restored": _("Restored from the Recycle Bin"),
         "record_deleted": _("Deleted: %(detail)s"), "record_restored": _("Restored: %(detail)s"),
@@ -1580,7 +1582,9 @@ class Activity(models.Model):
     # how the stored detail of some kinds is put into words when it is read
     READERS = {"reschedule_reason": lambda key: pick_name("reschedule_reason", key), "stage_changed": stage_text, "file_added": file_text, "changed": range_from_code, "day_added": range_from_code, "day_removed": range_from_code, "booked": booking_text, "inspection_booked": when_text, "note_read": when_text,
                "edited": changes_text, "contact_edited": changes_text, "property_edited": changes_text,
-               "type_edited": changes_text, "pick_edited": changes_text, "company_edited": changes_text, "look_edited": changes_text, "price_set": changes_text, "login_edited": changes_text, "note_edited": changes_text}
+               "type_edited": changes_text, "pick_edited": changes_text, "company_edited": changes_text, "look_edited": changes_text, "price_set": changes_text, "login_edited": changes_text, "note_edited": changes_text,
+               "profile_ticks": permissions.change_text, "profile_edited": changes_text, "profile_added": permissions.name_text,
+               "profile_deleted": permissions.name_text}
 
     lead = models.ForeignKey("Lead", null=True, blank=True, on_delete=models.CASCADE, related_name="activities")
     account = models.ForeignKey(Account, null=True, blank=True, on_delete=models.CASCADE, related_name="activities")

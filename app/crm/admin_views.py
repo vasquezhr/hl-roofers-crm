@@ -7,6 +7,7 @@ The administrator's pages for people and for deleted records.
   Take an inspection       for a login with the "Inspector" permission
   Colors and icon          the business's two colors and the app's icon (and the icon itself, which anyone may fetch)
 """
+import json
 import logging
 from datetime import timedelta
 
@@ -27,13 +28,13 @@ from django.utils.text import slugify
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
-from . import automations, health, logo, look, logs, objectload, recycle
+from . import automations, health, logo, look, logs, objectload, permissions, recycle
 from .access import jobs_for, with_permission
 from .permissions import DELETE_TICKS
-from .forms import LoginDetailsForm, LookForm, PickItemForm, WorkTypeForm
+from .forms import LoginDetailsForm, LookForm, PickItemForm, ProfileForm, WorkTypeForm, managers
 from .history import changes, field_changes
 from .models import (LANGS, Account, Activity, Attachment, BackupRun, BinEntry, ChangeOrder, ChangeSet, Company, Contact, ImportedNote, Job, Lead, Note, Opportunity, Payment, PriceUpload,
-                     PICK_LISTS, PickItem, Property, User, WorkType, digits, log, pick_items)
+                     PICK_LISTS, PickItem, Profile, Property, User, WorkType, digits, log, pick_items)
 from .views import form_page, page_of, saved
 
 
@@ -44,13 +45,93 @@ logger = logging.getLogger(__name__)
 @with_permission("users")
 def users(request):
     logins = User.objects.select_related("crew").order_by("-is_active", "profile", "username")
-    return render(request, "crm/users.html", {"logins": logins})
+    counts = {}
+    for login in logins:
+        counts[login.profile] = counts.get(login.profile, 0) + 1
+    profiles = [{"profile": one, "logins": counts.get(one.key, 0)} for one in Profile.objects.all()]
+    return render(request, "crm/users.html", {"logins": logins, "profiles": profiles})
 
 
 def login_page(request, form, title):
-    intro = _("Each login has one profile. Permission sets add to it: the first seven are for an Office login, and Crew Lead is for a Crew login. "
-              "The Administrator profile has all of them.")
+    intro = _("Each login has one profile, which sets what it may do (What each profile allows, on the Users and permissions page). "
+              "Permission sets add ticks to it, for this login only: Crew Lead on a login whose profile has My Day and My Jobs, the others on any other login.")
     return form_page(request, form, title, reverse("users"), intro=intro)
+
+
+# ---------------------------------------------------------------- profiles: one tick list, the same for every profile (permissions.py)
+def tick_rows(ticks):
+    """The Profiles page's list, with each tick on or off: the object grid, the rule, the sections, and the pages and actions."""
+    on = set(ticks)
+    box = lambda tick: {"tick": tick, "on": tick in on}                 # noqa: E731
+    objects = [{"key": key, "label": label, "means": permissions.CREATE_MEANS.get(key, ""),
+                "cells": [box(f"{key}.{action}") if not (action == "edit" and key in permissions.NO_EDIT) else None
+                          for action, _word in permissions.OBJECT_ACTIONS]} for key, label in permissions.OBJECTS]
+    return {"objects": objects, "actions_head": [word for _action, word in permissions.OBJECT_ACTIONS],
+            "rules": [{**box(key), "label": label, "help": help_text} for key, label, help_text in permissions.RULES],
+            "sections": [{"label": label, "help": help_text, "see": box(f"{key}.see"), "edit": box(f"{key}.edit") if edit else None}
+                         for key, label, help_text, edit in permissions.SECTIONS],
+            "pages": [{**box(key), "label": label, "help": help_text} for key, label, help_text in permissions.PAGES],
+            "actions": [{**box(key), "label": label, "help": help_text} for key, label, help_text in permissions.ACTIONS]}
+
+
+@with_permission("users")
+def profile_new(request):
+    """Add a profile: its names, and the profile it starts as a copy of. Its ticks are changed on the next page."""
+    form = ProfileForm(request.POST or None, initial={"copy_of": request.GET.get("copy", "office")})
+    if form.is_valid():
+        source = Profile.objects.filter(key=form.cleaned_data.get("copy_of")).first()
+        profile = form.save()
+        log(None, "profile_added", request.user, detail=json.dumps({"en": profile.name_en, "es": profile.name_es,
+                                                                      "from_en": source.name_en if source else "", "from_es": source.name_es if source else ""}))
+        saved(request, _("Profile added. Tick what it may do, then save."))
+        return redirect("profile_edit", key=profile.key)
+    return form_page(request, form, _("Add a profile"), reverse("users"),
+                     intro=_("A profile is the list of ticks every login on it shares. The new one starts with the ticks of the profile it copies."))
+
+
+@with_permission("users")
+def profile_edit(request, key):
+    """One profile: its names and the same tick list as every other profile. Save asks first nothing; it refuses a change that would leave
+    no active login able to manage logins and profiles, and says why."""
+    profile = get_object_or_404(Profile, key=key)
+    old_name = profile.name_en                                          # the history line names it as it was
+    form = ProfileForm(request.POST or None, instance=profile)
+    ticks, problem = profile.ticks, ""
+    if request.method == "POST":
+        ticks = permissions.tidy(request.POST.getlist("tick"))
+        if not managers(profile=profile, ticks=ticks):
+            problem = _("No active login would still be able to manage logins and profiles, so nobody could fix the logins. "
+                        "Give that tick to another login's profile first, or keep it here.")
+        elif form.is_valid():
+            before = list(profile.ticks)
+            names = changes(form, name=old_name)
+            profile = form.save(commit=False)
+            profile.ticks = ticks
+            profile.save()
+            if names:
+                log(None, "profile_edited", request.user, detail=names)
+            if set(before) != set(ticks):
+                log(None, "profile_ticks", request.user, detail=permissions.change_code(profile, before, ticks))
+            saved(request)
+            return redirect("users")
+    logins = User.objects.filter(profile=profile.key).select_related("crew").order_by("-is_active", "username")
+    return render(request, "crm/profile.html", {"profile": profile, "form": form, "rows": tick_rows(ticks), "problem": problem, "logins": logins,
+                                                "sets": [(User._meta.get_field(f"can_{name}").verbose_name, [permissions.name_of(tick) for tick in adds])
+                                                         for name, adds in permissions.SETS.items()]})
+
+
+@with_permission("users")
+@require_POST
+def profile_delete(request, key):
+    """Delete a profile that no login uses. One that a login uses, even a login that cannot sign in, is kept."""
+    profile = get_object_or_404(Profile, key=key)
+    if User.objects.filter(profile=profile.key).exists():
+        messages.warning(request, _("A login uses this profile. Give each of its logins another profile first."))
+        return redirect("profile_edit", key=profile.key)
+    log(None, "profile_deleted", request.user, detail=json.dumps({"en": profile.name_en, "es": profile.name_es}))
+    profile.delete()
+    saved(request, _("Profile deleted"))
+    return redirect("users")
 
 
 @with_permission("users")

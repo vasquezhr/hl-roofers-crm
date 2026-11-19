@@ -237,3 +237,101 @@ class TheChecksReadTheTicks(Base):
             self.assertIn(self.client.get(address).status_code, (403, 404), address)
         self.assertEqual(self.client.post(reverse("opp_sign", args=[self.job_one.number])).status_code, 403)
         self.assertNotContains(self.client.get(reverse("search"), {"q": "wyckoff"}), self.job_one.number + "<")
+
+
+def setup_lines():
+    from crm.models import Activity
+    return [line.text for line in Activity.objects.filter(lead=None, account=None, opportunity=None, job=None).order_by("id")]
+
+
+class TheProfilesPage(Base):
+    """Admin › Users and permissions › Profiles: the same list on every profile, a way to add one, rename it and delete it."""
+
+    def setUp(self):
+        self.sign_in(self.admin)
+
+    def post_ticks(self, key, ticks, **names):
+        profile = Profile.objects.get(key=key)
+        return self.client.post(reverse("profile_edit", args=[key]), {"name_en": names.get("en", profile.name_en),
+                                                                         "name_es": names.get("es", profile.name_es), "tick": ticks})
+
+    def test_every_profile_shows_the_same_list(self):
+        page = self.client.get(reverse("users"))
+        for one in Profile.objects.all():
+            self.assertContains(page, reverse("profile_edit", args=[one.key]))
+        boxes = {}
+        for key in ("admin", "office", "crew"):
+            html = self.client.get(reverse("profile_edit", args=[key])).content.decode()
+            boxes[key] = html.count('name="tick"')
+            for tick in Profile.objects.get(key=key).ticks:
+                self.assertIn(f'value="{tick}"', html)
+        self.assertEqual(set(boxes.values()), {len(permissions.EVERY_TICK)})
+        self.assertContains(self.client.get(reverse("profile_edit", args=["crew"])), "Only jobs scheduled to their crew")
+        for user in (self.office, self.login1):
+            self.sign_in(user)
+            for address in (reverse("profile_edit", args=["office"]), reverse("profile_new")):
+                self.assertEqual(self.client.get(address).status_code, 403)
+            self.assertEqual(self.client.post(reverse("profile_delete", args=["office"])).status_code, 403)
+
+    def test_adding_a_profile_as_a_copy(self):
+        answer = self.client.post(reverse("profile_new"), {"name_en": "Estimator", "name_es": "Estimador", "copy_of": "office"})
+        estimator = Profile.objects.get(name_en="Estimator")
+        self.assertRedirects(answer, reverse("profile_edit", args=[estimator.key]))
+        self.assertEqual(estimator.ticks, Profile.objects.get(key="office").ticks)
+        self.assertEqual(setup_lines(), ["Profile added: Estimator · a copy of Office"])
+        self.assertContains(self.client.post(reverse("profile_new"), {"name_en": "estimator", "name_es": "Otro", "copy_of": "office"}),
+                            "Another profile already has this name.")
+        # a login on it
+        self.client.post(reverse("user_new"), {"username": "ines", "new_password": "shingles-and-nails", "first_name": "Ines", "last_name": "",
+                                               "email": "", "profile": estimator.key, "crew": "", "is_active": "on"})
+        self.assertEqual(User.objects.get(username="ines").profile_name, "Estimator")
+
+    def test_ticks_and_names_are_in_the_setup_history(self):
+        office = Profile.objects.get(key="office")
+        ticks = [tick for tick in office.ticks if tick != "job.edit"] + ["dashboard"]
+        self.assertRedirects(self.post_ticks("office", ticks, en="Office staff"), reverse("users"))
+        office.refresh_from_db()
+        self.assertEqual((office.name_en, office.has("job.edit"), office.has("dashboard")), ("Office staff", False, True))
+        self.assertEqual(setup_lines(), ["Profile renamed: Office · Name in English: Office → Office staff",
+                                         "Profile ticks changed: Office staff · Jobs: Edit: yes → no; Dashboard: no → yes"])
+        from django.utils import translation
+        from crm.models import Activity
+        with translation.override("es"):
+            self.assertEqual(Activity.objects.filter(kind="profile_ticks").get().text,
+                             "Perfil: marcas cambiadas: Oficina · Trabajos: Editar: sí → no; Panel: no → sí")
+        self.sign_in(self.office)                                                 # it counts at once for every login on it
+        self.assertRedirects(self.client.get(reverse("start")), reverse("dashboard"))
+
+    def test_nobody_is_locked_out(self):
+        admin = Profile.objects.get(key="admin")
+        page = self.post_ticks("admin", [tick for tick in admin.ticks if tick != "users"])
+        self.assertContains(page, "No active login would still be able to manage logins and profiles")
+        self.assertTrue(Profile.objects.get(key="admin").has("users"))
+        self.assertEqual(setup_lines(), [])
+        # another login that can: then the tick may go
+        self.ticks("office", on=["users"])
+        self.assertRedirects(self.post_ticks("admin", [tick for tick in admin.ticks if tick != "users"]), reverse("users"),
+                             fetch_redirect_response=False)                         # this login now cannot open it itself
+        self.assertFalse(Profile.objects.get(key="admin").has("users"))
+        # nor by switching off or moving the last login that can
+        self.office.is_active = False
+        self.office.save()
+        self.ticks("admin", on=["users"])
+        edit = reverse("user_edit", args=[self.admin.pk])
+        page = self.client.post(edit, {"username": "admin", "new_password": "", "first_name": "", "last_name": "", "email": "", "profile": "crew",
+                                       "crew": self.crew1.pk, "is_active": "on"})
+        self.assertContains(page, "This is the only active login that can manage logins and profiles.")
+        self.assertEqual(User.objects.get(pk=self.admin.pk).profile, "admin")
+
+    def test_a_profile_is_deleted_only_when_no_login_uses_it(self):
+        spare = Profile.objects.create(key="spare", name_en="Spare", name_es="De reserva", ticks=["search"])
+        User.objects.create_user("old", password="x", profile="spare", is_active=False)               # a login that cannot sign in still counts
+        answer = self.client.post(reverse("profile_delete", args=["spare"]), follow=True)
+        self.assertContains(answer, "A login uses this profile.")
+        self.assertTrue(Profile.objects.filter(key="spare").exists())
+        User.objects.filter(username="old").update(profile="office")
+        self.assertNotContains(self.client.get(reverse("profile_edit", args=["office"])), "Delete the profile")
+        self.assertContains(self.client.get(reverse("profile_edit", args=["spare"])), "Delete the profile")
+        self.assertRedirects(self.client.post(reverse("profile_delete", args=["spare"])), reverse("users"))
+        self.assertFalse(Profile.objects.filter(key=spare.key).exists())
+        self.assertEqual(setup_lines(), ["Profile deleted: Spare"])

@@ -9,7 +9,7 @@ from django.utils.functional import lazy
 from django.utils.translation import gettext_lazy as _
 
 from .models import (PICK_FIELDS, Account, Activity, ChangeOrder, Company, Contact, Crew, ImportBatch, ImportedNote, Job, Lead, Note, Opportunity,
-                     Payment, PriceEntry, PriceItem, PriceUpload, Property, ProposalLine, Sequence, User, Worker, pick_items)
+                     Payment, PriceEntry, PriceItem, PriceUpload, Profile, Property, ProposalLine, Sequence, User, Worker, pick_items)
 
 
 class PickLists:
@@ -32,8 +32,8 @@ admin.site.site_header = admin.site.site_title = lazy(site_name, str)()
 
 @admin.register(User)
 class LoginAdmin(UserAdmin):
-    """A login. The profile (Admin, Office or Crew) is the only access setting, so Django's own
-    staff, superuser, group and permission boxes are left off this page."""
+    """A login. Its profile (Admin > Users and permissions) is the access setting, so Django's own staff, superuser, group and permission
+    boxes are left off this page: the admin site follows the profile's "The admin site" tick. The profile is a drop-down of the profiles."""
     list_display = ("username", "first_name", "last_name", "profile", "crew", "is_active", "last_login")
     list_filter = ("profile", "is_active")
     fieldsets = (
@@ -43,6 +43,11 @@ class LoginAdmin(UserAdmin):
         (_("Dates"), {"fields": ("last_login", "date_joined")}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + ((_("Profile in the app"), {"fields": ("profile", "crew")}),)
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == "profile":
+            return forms.ChoiceField(label=db_field.verbose_name.capitalize(), choices=[(one.key, one.name) for one in Profile.objects.all()])
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
 
 
 class WorkerInline(admin.TabularInline):

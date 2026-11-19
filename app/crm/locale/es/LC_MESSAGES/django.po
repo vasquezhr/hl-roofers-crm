@@ -1384,41 +1384,8 @@ msgstr "Nunca"
 msgid "What each profile allows"
 msgstr "Qué permite cada perfil"
 
-msgid "Administrator"
-msgstr "Administrador"
-
 msgid "Can see"
 msgstr "Puede ver"
-
-msgid "Everything."
-msgstr "Todo."
-
-msgid "Can do"
-msgstr "Puede hacer"
-
-msgid "Everything, plus logins, permission sets, prices, company details, the notes import and the Recycle Bin."
-msgstr "Todo, y además usuarios, permisos adicionales, precios, datos de la empresa, la importación de notas y la Papelera."
-
-msgid "All leads, accounts, opportunities, jobs, the schedule, proposals, invoices and reports."
-msgstr "Todos los prospectos, cuentas, oportunidades, trabajos, la agenda, propuestas, facturas y reportes."
-
-msgid "Create and edit records, convert leads, book, send proposals and invoices, record payments."
-msgstr "Crear y editar registros, convertir prospectos, agendar, enviar propuestas y facturas, registrar pagos."
-
-msgid "Cannot"
-msgstr "No puede"
-
-msgid "Manage logins or change settings. Deleting, the Price Book and costs each need a permission set."
-msgstr "Administrar usuarios ni cambiar ajustes. Eliminar, la Lista de precios y los costos necesitan cada uno un permiso adicional."
-
-msgid "Only the jobs scheduled to their crew, with everything needed to finish them: customer, scope, price, change orders, deposits, the signed proposal, the invoice and the balance due."
-msgstr "Solo los trabajos programados para su equipo, con todo lo necesario para terminarlos: cliente, alcance, precio, órdenes de cambio, anticipos, la propuesta firmada, la factura y el saldo pendiente."
-
-msgid "Call, text, get directions, add notes. With Crew Lead: start and finish a job, change the extra workers, record a payment they collect, confirm changes."
-msgstr "Llamar, enviar mensajes, ver cómo llegar, agregar notas. Con Líder de equipo: empezar y terminar un trabajo, cambiar los trabajadores extra, registrar un pago que cobren, confirmar cambios."
-
-msgid "See the business's costs or margins, the Price Book, leads, other crews' jobs, reports or the dashboard."
-msgstr "Ver los costos o márgenes del negocio, la Lista de precios, los prospectos, los trabajos de otros equipos, los reportes ni el panel."
 
 msgid "Rules for every login"
 msgstr "Reglas para todos los usuarios"
@@ -1428,9 +1395,6 @@ msgstr "La oficina y el administrador tienen cada uno su propio usuario, para qu
 
 msgid "A crew can share one login: the history then shows the crew, not the person. A login made for one person on a crew shows that person."
 msgstr "Un equipo puede compartir un usuario: el historial muestra entonces el equipo, no la persona. Un usuario creado para una persona del equipo muestra a esa persona."
-
-msgid "Deleted records go to the Recycle Bin for 30 days. Only the administrator deletes them for good."
-msgstr "Los registros eliminados van a la Papelera por 30 días. Solo el administrador los elimina para siempre."
 
 msgid "A phone stays signed in for 30 days, so nobody types a password on a roof."
 msgstr "Un teléfono se queda con la sesión abierta 30 días, para que nadie escriba una contraseña en un techo."
@@ -3735,9 +3699,6 @@ msgstr "Precio y pagos"
 msgid "Linked Records"
 msgstr "Registros relacionados"
 
-msgid "Each login has one profile. Permission sets add to it: the first seven are for an Office login, and Crew Lead is for a Crew login. The Administrator profile has all of them."
-msgstr "Cada usuario tiene un perfil. Los permisos adicionales se suman: los primeros siete son para un usuario de Oficina, y Líder de equipo es para un usuario de Equipo. El perfil Administrador los tiene todos."
-
 msgid "New request from %(name)s, an existing customer"
 msgstr "Solicitud nueva de %(name)s, un cliente existente"
 
@@ -4480,3 +4441,108 @@ msgstr "Puede editar"
 
 msgid "Supplier costs and the margin: when writing a proposal, in the Price Book and in the exports."
 msgstr "Los costos del proveedor y el margen: al escribir una propuesta, en la lista de precios y en las exportaciones."
+
+msgid "Your profile can see this but not change it."
+msgstr "Su perfil puede ver esto pero no cambiarlo."
+
+msgid "Every profile has this same list. Tick what a login on this profile may do."
+msgstr "Cada perfil tiene esta misma lista. Marque lo que puede hacer un usuario con este perfil."
+
+msgid "Copy this profile"
+msgstr "Copiar este perfil"
+
+msgid "Object access"
+msgstr "Acceso a los registros"
+
+msgid "For each kind of record: see it, create it, change it on its Edit page, and delete it. Create, Edit and Delete count only with See. Change orders and payments also need See of Prices and money."
+msgstr "Para cada tipo de registro: verlo, crearlo, cambiarlo en su página de Editar, y eliminarlo. Crear, Editar y Eliminar cuentan solo con Ver. Las órdenes de cambio y los pagos también necesitan Ver de Precios y dinero."
+
+msgid "Sections and fields"
+msgstr "Secciones y campos"
+
+msgid "A section the profile cannot see is left out of every page, search, report, export and the Data editor. Can edit counts only with Can see."
+msgstr "Una sección que el perfil no puede ver queda fuera de todas las páginas, búsquedas, reportes, exportaciones y del Editor de datos. Puede editar cuenta solo con Puede ver."
+
+msgid "Section or field"
+msgstr "Sección o campo"
+
+msgid "Pages and actions"
+msgstr "Páginas y acciones"
+
+msgid "Actions"
+msgstr "Acciones"
+
+msgid "Logins on this profile"
+msgstr "Usuarios con este perfil"
+
+msgid "No login uses this profile."
+msgstr "Ningún usuario tiene este perfil."
+
+msgid "Delete this profile? This cannot be undone."
+msgstr "¿Eliminar este perfil? No se puede deshacer."
+
+msgid "Delete the profile"
+msgstr "Eliminar el perfil"
+
+msgid "Switched on for one login (on its own page), a set adds these ticks to that login, on top of its profile."
+msgstr "Activado para un usuario (en su propia página), un permiso adicional le agrega estas marcas a ese usuario, además de su perfil."
+
+msgid "Add a profile"
+msgstr "Agregar un perfil"
+
+msgid "Every profile has the same list of ticks: what it may see, create, edit and delete, which sections it sees, and which pages and actions it has. Open one to change its ticks."
+msgstr "Cada perfil tiene la misma lista de marcas: lo que puede ver, crear, editar y eliminar, qué secciones ve, y qué páginas y acciones tiene. Abra uno para cambiar sus marcas."
+
+msgid "1 login"
+msgstr "1 usuario"
+
+msgid "%(n)s logins"
+msgstr "%(n)s usuarios"
+
+msgid "Deleted records go to the Recycle Bin for 30 days. Only a profile with Delete for good empties them out of it."
+msgstr "Los registros eliminados van a la Papelera por 30 días. Solo un perfil con Eliminar para siempre los saca de ahí."
+
+msgid "At least one active login always keeps Manage logins and profiles: the app refuses a change that would leave nobody able to fix the logins."
+msgstr "Al menos un usuario activo siempre conserva Administrar usuarios y perfiles: la aplicación rechaza un cambio que dejaría a nadie capaz de arreglar los usuarios."
+
+msgid "Each login has one profile, which sets what it may do (What each profile allows, on the Users and permissions page). Permission sets add ticks to it, for this login only: Crew Lead on a login whose profile has My Day and My Jobs, the others on any other login."
+msgstr "Cada usuario tiene un perfil, que define lo que puede hacer (Qué permite cada perfil, en la página de Usuarios y permisos). Los permisos adicionales le agregan marcas, solo para este usuario: Líder de equipo en un usuario cuyo perfil tiene Mi día y Mis trabajos, los demás en cualquier otro usuario."
+
+msgid "Profile deleted"
+msgstr "Perfil eliminado"
+
+msgid "Profile added. Tick what it may do, then save."
+msgstr "Perfil agregado. Marque lo que puede hacer, y luego guarde."
+
+msgid "A profile is the list of ticks every login on it shares. The new one starts with the ticks of the profile it copies."
+msgstr "Un perfil es la lista de marcas que comparten todos sus usuarios. El nuevo empieza con las marcas del perfil que copia."
+
+msgid "No active login would still be able to manage logins and profiles, so nobody could fix the logins. Give that tick to another login's profile first, or keep it here."
+msgstr "Ningún usuario activo podría seguir administrando usuarios y perfiles, así que nadie podría arreglar los usuarios. Primero dele esa marca al perfil de otro usuario, o déjela aquí."
+
+msgid "A login uses this profile. Give each of its logins another profile first."
+msgstr "Un usuario tiene este perfil. Primero dele otro perfil a cada uno de sus usuarios."
+
+msgid "Start as a copy of"
+msgstr "Empezar como copia de"
+
+msgid "The new profile starts with the same ticks. Change them on the next page."
+msgstr "El nuevo perfil empieza con las mismas marcas. Cámbielas en la página siguiente."
+
+msgid "Another profile already has this name."
+msgstr "Otro perfil ya tiene este nombre."
+
+msgid "Profile added: %(detail)s"
+msgstr "Perfil agregado: %(detail)s"
+
+msgid "Profile ticks changed: %(detail)s"
+msgstr "Perfil: marcas cambiadas: %(detail)s"
+
+msgid "Profile renamed: %(detail)s"
+msgstr "Perfil renombrado: %(detail)s"
+
+msgid "Profile deleted: %(detail)s"
+msgstr "Perfil eliminado: %(detail)s"
+
+msgid "a copy of %(name)s"
+msgstr "una copia de %(name)s"

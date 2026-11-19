@@ -169,3 +169,42 @@ def tidy(ticks):
     """Only known ticks, once each, in the list's own order."""
     wanted = set(ticks)
     return [tick for tick in EVERY_TICK if tick in wanted]
+
+
+# ---------------------------------------------------------------- the Setup history line of a change of ticks
+def change_code(profile, before, after):
+    """What a Save on a profile's ticks changed, stored so it reads in either language: the profile's names and each tick, before and after."""
+    import json
+    before, after = set(before), set(after)
+    changed = [[tick, tick in before, tick in after] for tick in EVERY_TICK if (tick in before) != (tick in after)]
+    return json.dumps({"en": profile.name_en, "es": profile.name_es, "ticks": changed})
+
+
+def change_text(detail):
+    """Office · Jobs: Edit: yes → no; Schedule: no → yes"""
+    import json
+    from django.utils import translation
+    try:
+        data = json.loads(detail)
+        name = data["es"] if (translation.get_language() or "").startswith("es") else data["en"]
+        yes, no = _("yes"), _("no")
+        parts = [f"{name_of(tick)}: {yes if old else no} → {yes if new else no}" for tick, old, new in data["ticks"]]
+    except (ValueError, KeyError, TypeError):
+        return detail
+    return f"{name} · " + "; ".join(parts)
+
+
+def name_text(detail):
+    """A profile's name, stored in both languages: Estimator (or Estimador in Spanish), and the profile it was copied from."""
+    import json
+    from django.utils import translation
+    try:
+        data = json.loads(detail)
+    except (ValueError, TypeError):
+        return detail
+    if not isinstance(data, dict):
+        return detail
+    spanish = (translation.get_language() or "").startswith("es")
+    name = data.get("es" if spanish else "en", "")
+    copied = data.get("from_es" if spanish else "from_en", "")
+    return f"{name} · " + (_("a copy of %(name)s") % {"name": copied}) if copied else name

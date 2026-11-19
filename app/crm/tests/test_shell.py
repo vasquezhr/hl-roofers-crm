@@ -363,8 +363,9 @@ class WordsForAnyBusiness(Base):
     """What every business reads says "the business", not H & L."""
 
     def test_the_users_page(self):
+        """The profiles' cards were replaced by one tick list on Nov 16, 2026: its words say "the business" too."""
         self.sign_in(self.admin)
-        self.assertContains(self.client.get(reverse("users")), "See the business's costs or margins")
+        self.assertContains(self.client.get(reverse("profile_edit", args=["admin"])), "The business&#x27;s own details")
 
     def test_the_admin_site_has_the_business_name(self):
         self.sign_in(self.admin)
