@@ -39,7 +39,9 @@ def gone_field(name, label):
 
 # fields that were removed, so the history lines written while they existed still read in words.
 # "Work on a day off" was dropped on Nov 16, 2026 (migration 0026): a day off is now booked by hand with no tick.
-GONE = {"day_off_ok": gone_field("day_off_ok", gettext_lazy("Work on a day off"))}
+# A login's own "can edit" list was dropped the same day (migration 0031): Edit is a tick of its profile.
+GONE = {"day_off_ok": gone_field("day_off_ok", gettext_lazy("Work on a day off")),
+        "edit_objects": gone_field("edit_objects", gettext_lazy("can edit"))}
 
 
 # ---------------------------------------------------------------- writing: what a form changed
@@ -108,7 +110,11 @@ def shown(field, text):
         which = PICK_FIELDS.get((field.model._meta.model_name, field.name)) if getattr(field, "model", None) else None
         if which:                                                   # a value of one of the business's pick lists, by its name
             return pick_name(which, text)
-        if field.name == "edit_objects":                            # the kinds of record a login may edit
+        if field.name == "profile" and getattr(field, "model", None) and field.model._meta.model_name == "user":     # a login's profile, by its name
+            from .models import Profile
+            profile = Profile.objects.filter(key=text).first()
+            return profile.name if profile else text
+        if field.name == "edit_objects":                            # the kinds of record a login could edit, before Nov 16, 2026
             from .models import EDIT_OBJECTS
             labels = dict(EDIT_OBJECTS)
             return ", ".join(str(labels.get(key.strip(), key.strip())) for key in text.split(","))

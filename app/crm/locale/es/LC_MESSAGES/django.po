@@ -1809,9 +1809,6 @@ msgstr "%(name)s no es una foto ni un PDF. Solo se pueden agregar fotos (JPEG, P
 msgid "Workers who help on this job. They have no login; this records who worked."
 msgstr "Trabajadores que ayudan en este trabajo. No tienen usuario; aquí se anota quién trabajó."
 
-msgid "For the Crew profile: the crew whose jobs this login sees."
-msgstr "Para el perfil Equipo: el equipo cuyos trabajos ve este usuario."
-
 msgid "Type of account"
 msgstr "Tipo de cuenta"
 
@@ -1878,9 +1875,6 @@ msgstr "Proveedor"
 msgid "Product line"
 msgstr "Línea de producto"
 
-msgid "For an Office login: the kinds of record it may change on their Edit pages. The administrator may edit everything."
-msgstr "Para un usuario de Oficina: los tipos de registro que puede cambiar en sus páginas de Editar. El administrador puede editar todo."
-
 msgid "At least 10 characters. For a login that exists, leave this empty to keep its password."
 msgstr "Al menos 10 caracteres. Para un usuario que ya existe, déjelo vacío para conservar su contraseña."
 
@@ -1946,9 +1940,6 @@ msgstr "Empezar una oportunidad nueva"
 
 msgid "A new login needs a password."
 msgstr "Un usuario nuevo necesita una contraseña."
-
-msgid "This is the only administrator. Add another administrator before changing this one."
-msgstr "Este es el único administrador. Agregue otro administrador antes de cambiar este."
 
 msgid "Add the request to job #%(number)s"
 msgstr "Agregar el pedido al trabajo #%(number)s"
@@ -4318,3 +4309,180 @@ msgstr "El equipo leyó la nota del %(detail)s"
 
 msgid "The office can see that you read it"
 msgstr "La oficina ya ve que la leyó"
+
+msgid "For a profile with My Day and My Jobs: the crew whose jobs this login sees."
+msgstr "Para un perfil con Mi día y Mis trabajos: el equipo cuyos trabajos ve este usuario."
+
+msgid "What this login may do. Admin › Users and permissions › Profiles sets each one."
+msgstr "Lo que puede hacer este usuario. Admin › Usuarios y permisos › Perfiles define cada uno."
+
+msgid "This is the only active login that can manage logins and profiles. Give another login that first."
+msgstr "Este es el único usuario activo que puede administrar usuarios y perfiles. Primero déselo a otro usuario."
+
+msgid "profiles"
+msgstr "perfiles"
+
+msgid "Add photos and files"
+msgstr "Agregar fotos y archivos"
+
+msgid "Photos and files"
+msgstr "Fotos y archivos"
+
+msgid "See"
+msgstr "Ver"
+
+msgid "Create"
+msgstr "Crear"
+
+msgid "Only jobs scheduled to their crew"
+msgstr "Solo los trabajos agendados a su equipo"
+
+msgid "Jobs, and everything on them, only when the job is on this login's crew. Unticked, the login sees every job."
+msgstr "Los trabajos, y todo lo que tienen, solo cuando el trabajo es del equipo de este usuario. Sin marcar, el usuario ve todos los trabajos."
+
+msgid "Prices and money"
+msgstr "Precios y dinero"
+
+msgid "Prices, totals, change orders, payments, balances, and the proposals, invoices and receipts. Can edit: the price on the Edit pages."
+msgstr "Precios, totales, órdenes de cambio, pagos, saldos, y las propuestas, facturas y recibos. Puede editar: el precio en las páginas de Editar."
+
+msgid "Costs and margins"
+msgstr "Costos y márgenes"
+
+msgid "Supplier costs and the margin: when writing a proposal, in the Price changes report and in the exports."
+msgstr "Los costos del proveedor y el margen: al escribir una propuesta, en el reporte de Cambios de precio y en las exportaciones."
+
+msgid "Customer's email"
+msgstr "Correo del cliente"
+
+msgid "The email address of a customer, a contact and a lead, on every page, in search, the exports and the Data editor."
+msgstr "El correo de un cliente, un contacto y un prospecto, en todas las páginas, en la búsqueda, las exportaciones y el Editor de datos."
+
+msgid "Notes on a job"
+msgstr "Notas en un trabajo"
+
+msgid "The notes the office and the crews write on a job, the crews' notes on Today and the pop-up for the crew. Can edit: add a note."
+msgstr "Las notas que la oficina y los equipos escriben en un trabajo, las notas de los equipos en Hoy y la ventana para el equipo. Puede editar: agregar una nota."
+
+msgid "The History of a lead, an account, an opportunity and a job: who changed what, and when."
+msgstr "El Historial de un prospecto, una cuenta, una oportunidad y un trabajo: quién cambió qué, y cuándo."
+
+msgid "The office's first page."
+msgstr "La primera página de la oficina."
+
+msgid "The numbers and charts. A login with it opens on the dashboard."
+msgstr "Los números y las gráficas. Un usuario con esto abre en el panel."
+
+msgid "The ready-made reports and their spreadsheet files."
+msgstr "Los reportes listos y sus archivos de hoja de cálculo."
+
+msgid "See the schedule, book jobs and inspections, change dates and crews, and the calendar addresses."
+msgstr "Ver la agenda, agendar trabajos e inspecciones, cambiar fechas y equipos, y las direcciones del calendario."
+
+msgid "Search by name, address, phone or job number. It finds only what the login may see."
+msgstr "Buscar por nombre, dirección, teléfono o número de trabajo. Solo encuentra lo que el usuario puede ver."
+
+msgid "My Day and My Jobs"
+msgstr "Mi día y Mis trabajos"
+
+msgid "The crew's own pages. A login with them belongs to a crew: it needs a crew picked, opens on My Day, and the office's notes pop up for it."
+msgstr "Las páginas propias del equipo. Un usuario con ellas pertenece a un equipo: necesita un equipo elegido, abre en Mi día, y las notas de la oficina le aparecen en una ventana."
+
+msgid "Manage the Price Book"
+msgstr "Administrar la lista de precios"
+
+msgid "Upload price files, type prices and roll an upload back. The Price Book shows costs."
+msgstr "Subir archivos de precios, escribir precios y deshacer una subida. La lista de precios muestra los costos."
+
+msgid "Single and bulk changes to customers, after a confirmation."
+msgstr "Cambios uno por uno y en grupo a los clientes, después de una confirmación."
+
+msgid "Templates and exports"
+msgstr "Plantillas y exportaciones"
+
+msgid "The Data editor's templates and exports of every kind of record."
+msgstr "Las plantillas y exportaciones del Editor de datos de cada tipo de registro."
+
+msgid "Customers, leads, Apple Notes and every kind of record, and the notes waiting for review."
+msgstr "Clientes, prospectos, Apple Notes y cada tipo de registro, y las notas que esperan revisión."
+
+msgid "Company details, colors and icon"
+msgstr "Datos de la compañía, colores e ícono"
+
+msgid "The business's own details, its logo, colors and icon."
+msgstr "Los datos propios del negocio, su logo, colores e ícono."
+
+msgid "Types of work, pick lists and automations"
+msgstr "Tipos de trabajo, listas de opciones y automatizaciones"
+
+msgid "The lists the business keeps, and the automations' switches."
+msgstr "Las listas que guarda el negocio, y los interruptores de las automatizaciones."
+
+msgid "Who changed the app's own setup, and when."
+msgstr "Quién cambió la configuración de la aplicación, y cuándo."
+
+msgid "System status and logs"
+msgstr "Estado del sistema y registros"
+
+msgid "Backups, disk and memory, and the error log. Low readings are emailed to these logins."
+msgstr "Copias de seguridad, disco y memoria, y el registro de errores. Las lecturas bajas se envían por correo a estos usuarios."
+
+msgid "Manage logins and profiles"
+msgstr "Administrar usuarios y perfiles"
+
+msgid "Add and change logins, profiles and permission sets. At least one active login always keeps this."
+msgstr "Agregar y cambiar usuarios, perfiles y permisos adicionales. Al menos un usuario activo siempre conserva esto."
+
+msgid "The admin site"
+msgstr "El sitio de administración"
+
+msgid "Every table as it is stored, at /admin/, for repairs."
+msgstr "Cada tabla tal como está guardada, en /admin/, para reparaciones."
+
+msgid "Convert leads, or mark them Not a fit"
+msgstr "Convertir prospectos, o marcarlos No califica"
+
+msgid "Write and send proposals"
+msgstr "Escribir y enviar propuestas"
+
+msgid "Mark opportunities signed or lost"
+msgstr "Marcar oportunidades firmadas o perdidas"
+
+msgid "Marking one signed creates its job."
+msgstr "Marcar una como firmada crea su trabajo."
+
+msgid "Create and send invoices, and email receipts"
+msgstr "Crear y enviar facturas, y enviar recibos por correo"
+
+msgid "Start and finish jobs"
+msgstr "Empezar y terminar trabajos"
+
+msgid "A crew login: only on its own jobs."
+msgstr "Un usuario de equipo: solo en sus propios trabajos."
+
+msgid "Change the extra workers on a job"
+msgstr "Cambiar los trabajadores extra de un trabajo"
+
+msgid "Confirm changes with Got it"
+msgstr "Confirmar cambios con Enterado"
+
+msgid "A crew login: a job that was moved, and the office's notes."
+msgstr "Un usuario de equipo: un trabajo que se movió, y las notas de la oficina."
+
+msgid "Move an opportunity or a job to any stage."
+msgstr "Mover una oportunidad o un trabajo a cualquier etapa."
+
+msgid "Take inspections"
+msgstr "Tomar inspecciones"
+
+msgid "The email when a job is done"
+msgstr "El correo cuando un trabajo está terminado"
+
+msgid "For whoever sends the invoices."
+msgstr "Para quien envía las facturas."
+
+msgid "Empty records out of the Recycle Bin."
+msgstr "Sacar registros de la Papelera para siempre."
+
+msgid "Can edit"
+msgstr "Puede editar"

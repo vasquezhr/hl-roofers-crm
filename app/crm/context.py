@@ -23,12 +23,18 @@ TABS = {
     "my_day": ("my_day", _("My Day"), "my_day"),
     "my_jobs": ("my_jobs", _("My Jobs"), "my_jobs"),
 }
-# the tabs each profile sees, in order
-NAV = {
-    "admin": ["dashboard", "today", "leads", "opps", "jobs", "schedule", "accounts", "search", "reports", "admin"],
-    "office": ["today", "leads", "opps", "jobs", "schedule", "accounts", "search", "reports"],
-    "crew": ["my_day", "my_jobs", "search"],
-}
+# every tab, in order, and the tick that shows it (permissions.py). A login sees the tabs its profile and permission sets allow.
+NAV = [("dashboard", "dashboard"), ("today", "today"), ("my_day", "my_day"), ("my_jobs", "my_day"), ("leads", "lead.see"),
+       ("opps", "opportunity.see"), ("jobs", "job.see"), ("schedule", "schedule"), ("accounts", "account.see"), ("search", "search"),
+       ("reports", "reports"), ("admin", "admin")]
+# the cards of the Admin hub (Admin > ...), each with its tick. The Price Book and the Data editor are cards there too; a login without
+# the Admin tab that may open one of them gets a tab of its own.
+ADMIN_TICKS = ["users", "company", "setup", "setup_history", "status", "import_data", "export_data", "admin_site", "purge"]
+
+
+def opens_admin(user):
+    """True when the login may open the Admin hub: it has one of the Admin pages besides the Price Book and the Data editor."""
+    return any(user.can(tick) for tick in ADMIN_TICKS)
 # which tab is highlighted: a page's name starts with one of these
 TAB_BY_PAGE = [
     ("home", "today"), ("dashboard", "dashboard"), ("lead", "leads"), ("opp", "opps"), ("proposal", "opps"),
@@ -60,16 +66,18 @@ def navigation(request):
     user = getattr(request, "user", None)
     if not user or not user.is_authenticated:
         return {}
-    keys = [key for key in NAV[user.profile] if exists(TABS[key][0])]
-    if user.is_office_profile and not user.is_admin_profile and (user.can("price_book") or user.can("costs")):
+    admin = opens_admin(user)
+    keys = [key for key, tick in NAV if (admin if tick == "admin" else user.can(tick)) and exists(TABS[key][0])
+            and not (key == "jobs" and user.is_crew_login)]                # a crew login lists its jobs on My Jobs
+    if not admin and (user.can("price_book") or user.can("costs.see")):
         keys.append("prices")                                       # a permission set gives the office its own Price Book tab
-    if user.is_office_profile and not user.is_admin_profile and user.can("data_editor"):
+    if not admin and user.can("data_editor"):
         keys.append("editor")
     page = request.resolver_match.url_name if request.resolver_match else ""
     active = next((tab for start, tab in TAB_BY_PAGE if page and page.startswith(start)), "")
     if active == "admin" and "admin" not in keys:
         active = "prices" if page.startswith("price") else "editor" if page.startswith("editor") else ""
-    if user.is_crew_profile and active == "jobs":
+    if user.is_crew_login and active == "jobs":
         active = "my_jobs"
     tabs = [{"key": k, "url": TABS[k][0], "label": TABS[k][1], "icon": TABS[k][2], "active": k == active} for k in keys]
     # phones show up to five tabs; with more, the fifth is "More"

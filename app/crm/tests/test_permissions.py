@@ -5,8 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from crm import recycle
-from crm.models import (Account, Activity, BinEntry, ChangeOrder, Contact, Job, Lead, Note, Opportunity, Payment, PriceEntry, PriceItem, Property, User,
-                        every_object)
+from crm.models import (Account, Activity, BinEntry, ChangeOrder, Contact, Job, Lead, Note, Opportunity, Payment, PriceEntry, PriceItem, Property, User)
 
 from .base import MONDAY, Base
 
@@ -22,7 +21,7 @@ class UsersPage(Base):
 
     def details(self, **changes):
         return {"username": "glenda", "new_password": "shingles-and-nails", "first_name": "Glenda", "last_name": "", "email": "", "profile": "office", "crew": "",
-                "is_active": "on", "edit_objects": every_object(), **changes}
+                "is_active": "on", **changes}
 
     def test_the_administrator_sees_every_login(self):
         page = self.client.get(reverse("users"))
@@ -75,10 +74,11 @@ class UsersPage(Base):
         self.assertFalse(self.client.login(username="office", password="x"))
 
     def test_the_last_administrator_cannot_be_taken_away(self):
+        """The one login that can manage logins and profiles keeps that: someone must always be able to fix the logins."""
         edit = reverse("user_edit", args=[self.admin.pk])
         for change in ({"profile": "office"}, {"is_active": ""}):
             page = self.client.post(edit, self.details(**{"username": "admin", "new_password": "", "first_name": "", "profile": "admin", **change}))
-            self.assertContains(page, "This is the only administrator.")
+            self.assertContains(page, "This is the only active login that can manage logins and profiles.")
         self.admin.refresh_from_db()
         self.assertTrue(self.admin.is_admin_profile and self.admin.is_active)
 
@@ -87,7 +87,9 @@ class UsersPage(Base):
         self.office.can_crew_lead = True
         self.assertFalse(self.login1.can("delete") or self.login1.can("price_book"))
         self.assertFalse(self.office.can("crew_lead"))
-        self.assertTrue(all(self.admin.can(name) for name in User.OFFICE_SETS + User.CREW_SETS))      # the administrator has every one
+        # the administrator has what every set adds, except the job-done email, which only ever went to Office logins with Billing
+        self.assertTrue(all(self.admin.can(name) for name in User.OFFICE_SETS + User.CREW_SETS if name != "billing"))
+        self.assertFalse(self.admin.can("billing"))
 
 
 class PermissionSets(Base):

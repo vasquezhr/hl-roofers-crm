@@ -4,7 +4,7 @@ from datetime import date
 from django.test import TestCase
 from django.utils import timezone, translation
 
-from crm.models import Account, Contact, Crew, Opportunity, Property, User, Worker, forget_work_types
+from crm.models import Account, Contact, Crew, Opportunity, Profile, Property, User, Worker, forget_work_types
 
 MONDAY, FRIDAY, SATURDAY = date(2026, 11, 9), date(2026, 11, 13), date(2026, 11, 14)
 
@@ -57,3 +57,11 @@ class Base(StartInEnglish, TestCase):
 
     def sign_in(self, user):
         self.client.force_login(user)
+
+    @staticmethod
+    def ticks(key, on=(), off=()):
+        """Change a profile's ticks, as Admin > Users and permissions > Profiles does: ticks("office", off=["job.edit"])."""
+        profile = Profile.objects.get(key=key)
+        profile.ticks = [tick for tick in profile.ticks + list(on) if tick not in off]
+        profile.save()
+        return profile

@@ -33,7 +33,7 @@ from django.dispatch import receiver
 from django.utils import timezone, translation
 from django.utils.translation import gettext_lazy as _
 
-from . import look
+from . import look, permissions
 from .dates import range_from_code, range_text
 from .history import booking_text, changes_text, file_text, stage_text, when_text
 
@@ -181,14 +181,14 @@ def pick_choices(which, current=None, blank=False):
 
 
 
-# ---------------------------------------------------------------- what a login may edit, object by object
+# ---------------------------------------------------------------- what a login may edit, object by object (before Nov 16, 2026)
 EDIT_OBJECTS = [("lead", _("Leads")), ("account", _("Accounts")), ("contact", _("Contacts")), ("property", _("Properties")),
                 ("note", _("Notes in Details")), ("opportunity", _("Opportunities")), ("job", _("Jobs")),
                 ("change_order", _("Change orders")), ("payment", _("Payments"))]
 
 
 def every_object():
-    """A new office login may edit every kind of record. The administrator can take any of them away."""
+    """Migration 0011 still names this. Edit is now a tick of the login's profile (permissions.py)."""
     return [key for key, _label in EDIT_OBJECTS]
 
 
@@ -240,18 +240,60 @@ class Worker(models.Model):
         return self.name
 
 
+class Profile(models.Model):
+    """What a login may do. Every profile has the same list of ticks (permissions.py); only which are on differs.
+    Admin > Users and permissions > Profiles changes them, adds a profile (a copy of another, as Salesforce's Clone does), renames one,
+    and deletes one that no login uses. Like a type of work, a login stores its profile's key, which never changes."""
+    key = models.SlugField(max_length=20, unique=True, editable=False)
+    name_en = models.CharField(_("name in English"), max_length=60)
+    name_es = models.CharField(_("name in Spanish"), max_length=60)
+    ticks = models.JSONField(default=list, blank=True, editable=False)
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name, verbose_name_plural = _("profile"), _("profiles")
+
+    def __str__(self):
+        return self.name_en
+
+    @property
+    def name(self):
+        return self.name_es if (translation.get_language() or "").startswith("es") else self.name_en
+
+    def has(self, tick):
+        """True when the tick is on, with every tick it needs (permissions.counts)."""
+        return permissions.counts(set(self.ticks or []), tick)
+
+    @property
+    def has_everything(self):
+        """Every tick the Administrator profile starts with: the Users page then says "Everything"."""
+        return set(permissions.DEFAULTS["admin"]) <= set(self.ticks or [])
+
+    def save(self, *args, **kwargs):
+        """The admin site follows the "The admin site" tick: every login on this profile gets it, or loses it, at once."""
+        self.ticks = permissions.tidy(self.ticks or [])
+        super().save(*args, **kwargs)
+        site = self.has("admin_site")
+        User.objects.filter(profile=self.key).exclude(is_staff=site, is_superuser=site).update(is_staff=site, is_superuser=site)
+
+    @classmethod
+    def built_in(cls, key):
+        """One of the three profiles a business starts with, made again with its first ticks if it was deleted."""
+        name_en, name_es = permissions.NAMES[key]
+        return cls.objects.get_or_create(key=key, defaults={"name_en": name_en, "name_es": name_es, "ticks": permissions.DEFAULTS[key]})[0]
+
+    @classmethod
+    def keys_with(cls, tick):
+        """The keys of the profiles that have this tick: User.objects.filter(profile__in=Profile.keys_with("lead.see"))"""
+        return [profile.key for profile in cls.objects.all() if profile.has(tick)]
+
+
 class User(AbstractUser):
-    """A login. The profile decides what the person sees: Admin, Office or Crew."""
-
-    class Profile(models.TextChoices):
-        ADMIN = "admin", _("Administrator")
-        OFFICE = "office", _("Office")
-        CREW = "crew", _("Crew")
-
-    profile = models.CharField(_("profile"), max_length=10, choices=Profile.choices, default=Profile.OFFICE)
+    """A login. Its profile decides what the person may do (Admin > Users and permissions > Profiles); its permission sets add to it."""
+    profile = models.CharField(_("profile"), max_length=20, default="office")         # the key of a Profile
     crew = models.ForeignKey(Crew, verbose_name=_("crew"), null=True, blank=True, on_delete=models.SET_NULL, related_name="logins",
                              help_text=_("Set this only for a crew's shared login."))
-    # Permission sets: add-ons to the profile, switched on for one login at a time. The Admin profile has all of them.
+    # Permission sets: add-ons to the profile, switched on for one login at a time. What each one adds is in permissions.SETS.
     can_price_book = models.BooleanField(_("Manage Price Book"), default=False,
                                          help_text=_("Open the Price Book, upload price files, type prices and roll an upload back."))
     can_costs = models.BooleanField(_("View Costs and Margins"), default=False,
@@ -268,72 +310,93 @@ class User(AbstractUser):
     can_crew_lead = models.BooleanField(_("Crew Lead"), default=True,
                                         help_text=_("Start and finish the crew's jobs, record a payment, change the extra workers and confirm changes. "
                                                     "Without it, a crew login only reads its crew's jobs and adds notes."))
-    # Edit, object by object: which kinds of record this login may change on their Edit pages (an Office login only)
-    edit_objects = models.JSONField(_("can edit"), default=every_object, blank=True)
-    OFFICE_SETS = ["price_book", "costs", "billing", "data_editor", "inspect", "delete", "change_stages"]       # these add to the Office profile
-    CREW_SETS = ["crew_lead"]                                                                  # this one adds to the Crew profile
+    OFFICE_SETS = ["price_book", "costs", "billing", "data_editor", "inspect", "delete", "change_stages"]   # these add to a login that is not on a crew
+    CREW_SETS = ["crew_lead"]                                                                  # this one adds to a crew login
 
-    def may_edit(self, what):
-        """True when this login may change this kind of record: user.may_edit("job"). The Admin profile may edit everything;
-        a crew login edits no record (it adds notes and payments on its own jobs instead)."""
-        if self.is_admin_profile:
-            return True
-        return not self.is_crew_profile and what in (self.edit_objects or [])
+    # ---------- what this login may do: its profile's ticks, and the ticks of its permission sets
+    @property
+    def profile_record(self):
+        """The login's Profile, read once. A key with no profile (one deleted in the admin site) allows nothing."""
+        held = getattr(self, "_profile_held", None)
+        if held is None or held.key != self.profile:
+            held = Profile.objects.filter(key=self.profile).first() or Profile(key=self.profile, name_en=self.profile, name_es=self.profile)
+            self._profile_held = held
+        return held
 
     @property
-    def edits_everything(self):
-        return set(every_object()) <= set(self.edit_objects or [])
+    def profile_name(self):
+        return self.profile_record.name
 
     @property
-    def edit_names(self):
-        """The kinds of record this login may edit, for the Users page."""
-        return [label for key, label in EDIT_OBJECTS if key in (self.edit_objects or [])]
+    def is_crew_login(self):
+        """A login that belongs to a crew: its profile has My Day and My Jobs. It needs a crew, opens on My Day, and the office's notes pop up for it."""
+        return self.profile_record.has("my_day")
+
+    @property
+    def sets_that_count(self):
+        """The permission sets switched on for this login that count for it: the Crew Lead set for a crew login, the others for any other login."""
+        return [name for name in (self.CREW_SETS if self.is_crew_login else self.OFFICE_SETS) if getattr(self, f"can_{name}")]
+
+    @property
+    def ticks(self):
+        found = set(self.profile_record.ticks or [])
+        for name in self.sets_that_count:
+            found |= set(permissions.SETS[name])
+        return found
 
     def can(self, what):
-        """True when this login has a permission set: user.can("price_book"). The Admin profile has every one."""
-        if self.is_admin_profile:
-            return True
-        return what in (self.CREW_SETS if self.is_crew_profile else self.OFFICE_SETS) and getattr(self, f"can_{what}")
+        """True when this login has the tick, with every tick it needs: user.can("job.see"), user.can("schedule")."""
+        if what in permissions.SETS:                    # the name of a permission set: true when the login has everything the set adds
+            return all(permissions.counts(self.ticks, tick) for tick in permissions.SETS[what]) if what != "delete" else self.deletes_anything
+        return permissions.counts(self.ticks, what)
+
+    def may_edit(self, what):
+        """True when this login may change this kind of record on its Edit page: user.may_edit("job")."""
+        return self.can(f"{what}.edit")
+
+    @property
+    def deletes_anything(self):
+        """True when it may delete some kind of record. The Recycle Bin then opens for it."""
+        return any(self.can(f"{key}.delete") for key, _label in permissions.OBJECTS)
 
     @property
     def sets(self):
         """The names of the permission sets this login has, for the Users page."""
-        names = self.CREW_SETS if self.is_crew_profile else self.OFFICE_SETS
-        return [self._meta.get_field(f"can_{name}").verbose_name for name in names if getattr(self, f"can_{name}")]
+        return [self._meta.get_field(f"can_{name}").verbose_name for name in self.sets_that_count]
 
     def clean(self):
         super().clean()
-        if self.profile == self.Profile.CREW and not self.crew:
+        if self.is_crew_login and not self.crew:
             raise ValidationError({"crew": _("Pick the crew this login belongs to.")})
 
     def save(self, *args, **kwargs):
-        """The profile is the one switch. The Admin profile also opens the admin site at /admin/."""
+        """The admin site at /admin/ follows the profile's "The admin site" tick. A login that is not a crew login has no crew."""
         if self._state.adding and self.is_superuser:          # made with "python manage.py createsuperuser"
-            self.profile = self.Profile.ADMIN
-        self.is_staff = self.is_superuser = self.profile == self.Profile.ADMIN
-        if self.profile != self.Profile.CREW:
+            self.profile = Profile.built_in("admin").key
+        self.is_staff = self.is_superuser = self.profile_record.has("admin_site")
+        if not self.is_crew_login:
             self.crew = None
         super().save(*args, **kwargs)
 
     @property
     def is_admin_profile(self):
-        return self.profile == self.Profile.ADMIN
+        return self.profile == "admin"
 
     @property
     def is_crew_profile(self):
-        return self.profile == self.Profile.CREW
+        return self.is_crew_login
 
     @property
     def is_office_profile(self):
         """Office and Admin: everyone who is not a crew login."""
-        return not self.is_crew_profile
+        return not self.is_crew_login
 
     @property
     def label(self):
         """The name shown in history lines. A crew's shared login shows the crew ("Crew 1"); a login made for one
         person on a crew, with that person's name filled in, shows the person and the crew ("Wilmer (Crew 1)")."""
         name = self.get_full_name()
-        if self.is_crew_profile and self.crew:
+        if self.is_crew_login and self.crew:
             return f"{name} ({self.crew.name})" if name else self.crew.name
         return name or self.username
 

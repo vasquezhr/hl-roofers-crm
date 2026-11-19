@@ -342,8 +342,8 @@ class EditInPlace(Base):
         lead = Lead.objects.create(name="Mina Seo", phone="(804) 555-0178")
         for section in ["request", "contact", "assigned"]:
             self.assertContains(self.client.get(reverse("lead", args=[lead.pk])), f"?section={section}")
-        User.objects.filter(pk=self.office.pk).update(edit_objects=[])
-        self.sign_in(User.objects.get(pk=self.office.pk))
+        self.ticks("office", off=["job.edit"])
+        self.sign_in(self.office)
         page = self.client.get(reverse("job", args=[self.roof.number]))
         self.assertNotContains(page, "?section=scope")                                            # no Edit permission for jobs: no pencil
         self.assertContains(page, "?section=crew")                                                # but the office still schedules
@@ -405,8 +405,8 @@ class EditInPlace(Base):
         self.assertEqual(Job.objects.get(pk=self.roof.pk).price, 685)
 
     def test_the_same_permissions_apply(self):
-        User.objects.filter(pk=self.office.pk).update(edit_objects=["lead"])
-        self.sign_in(User.objects.get(pk=self.office.pk))
+        self.ticks("office", off=["job.edit"])
+        self.sign_in(self.office)
         self.assertEqual(self.client.post(reverse("job_edit", args=[self.roof.number]), {"section": "money", "price": "1"}).status_code, 403)
         self.assertEqual(self.client.get(reverse("job_edit", args=[self.roof.number]) + "?section=money&partial=1").status_code, 403)
         self.sign_in(self.login1)

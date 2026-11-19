@@ -207,7 +207,7 @@ def visible(model):
     if model is Worker:
         records = records.filter(crew__isnull=True)                     # an extra worker; crew members are not in this list
     if model is User:
-        return User.objects.filter(is_active=True).exclude(profile=User.Profile.CREW)
+        return User.objects.filter(is_active=True, profile__in=Profile.keys_with("lead.see"))
     for field in model._meta.get_fields():
         if field.many_to_one and field.concrete and any(other.name == "bin" for other in field.related_model._meta.get_fields()):
             inside = models.Q(**{f"{field.name}__bin__isnull": True})

@@ -57,7 +57,7 @@ def user_new(request):
     form = LoginDetailsForm(request.POST or None)
     if form.is_valid():
         user = form.save()
-        log(None, "login_added", request.user, detail=f"{user.username} · {user.get_profile_display()}")
+        log(None, "login_added", request.user, detail=f"{user.username} · {user.profile_name}")
         saved(request, _("Login added: %(detail)s") % {"detail": user.username})
         return redirect("users")
     return login_page(request, form, _("Add a login"))

@@ -89,7 +89,7 @@ def link(name, *args):
 
 def billing_logins():
     """The logins that do billing and have an email address."""
-    return list(User.objects.filter(is_active=True, profile=User.Profile.OFFICE, can_billing=True).exclude(email=""))
+    return [user for user in User.objects.filter(is_active=True).exclude(email="") if user.can("billing")]
 
 
 def names(users):

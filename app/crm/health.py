@@ -107,7 +107,8 @@ def words(reading):
 
 
 def administrators():
-    return list(User.objects.filter(is_active=True, profile=User.Profile.ADMIN).exclude(email=""))
+    """The logins whose profile opens System status, and have an email address."""
+    return [user for user in User.objects.filter(is_active=True).exclude(email="") if user.can("status")]
 
 
 def already_told(reading, now):

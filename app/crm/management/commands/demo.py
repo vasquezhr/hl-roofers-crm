@@ -197,14 +197,14 @@ class Command(BaseCommand):
                 Worker.objects.create(name=member, crew=crews[name])
         for name in EXTRA_WORKERS:
             workers[name] = Worker.objects.create(name=name)
-        User.objects.create_user("admin", password=PASSWORD, first_name="Admin", profile=User.Profile.ADMIN)
-        office = User.objects.create_user("office", password=PASSWORD, first_name="Office", profile=User.Profile.OFFICE,
+        User.objects.create_user("admin", password=PASSWORD, first_name="Admin", profile="admin")
+        office = User.objects.create_user("office", password=PASSWORD, first_name="Office", profile="office",
                                           can_billing=True, can_price_book=True)          # two permission sets, as in the mockup
         company = Company.load()
         company.lead_owner = office                                        # website requests go to the office
         company.save()
-        crew1 = User.objects.create_user("crew1", password=PASSWORD, profile=User.Profile.CREW, crew=crews["Crew 1"])
-        User.objects.create_user("crew2", password=PASSWORD, profile=User.Profile.CREW, crew=crews["Crew 2"])
+        crew1 = User.objects.create_user("crew1", password=PASSWORD, profile="crew", crew=crews["Crew 1"])
+        User.objects.create_user("crew2", password=PASSWORD, profile="crew", crew=crews["Crew 2"])
 
         # customers
         accounts, places = {}, {}

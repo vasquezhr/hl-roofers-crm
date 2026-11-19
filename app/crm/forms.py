@@ -8,8 +8,8 @@ from django.utils.translation import gettext_lazy as _
 from PIL import Image
 
 from . import inline, logo, look
-from .models import (EDIT_OBJECTS, LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment,
-                     PickItem, PriceItem, Property, User, Worker, WorkType, home_state, pick_choices, pick_items, type_choices, work_types)
+from .models import (LANGS, Account, ChangeOrder, Company, Contact, Crew, Job, Lead, Note, Opportunity, Payment,
+                     PickItem, PriceItem, Profile, Property, User, Worker, WorkType, home_state, pick_choices, pick_items, type_choices, work_types)
 
 
 def type_box():
@@ -374,7 +374,7 @@ class CompanyForm(Bootstrap, forms.ModelForm):
         self.logo_png = None
         if not self.instance.logo:
             del self.fields["no_logo"]
-        self.fields["lead_owner"].queryset = self.fields["lead_owner"].queryset.exclude(profile="crew").filter(is_active=True)
+        self.fields["lead_owner"].queryset = self.fields["lead_owner"].queryset.filter(profile__in=Profile.keys_with("lead.see"), is_active=True)
         self.fields["lead_owner"].label_from_instance = lambda user: user.label
 
     def clean_logo_upload(self):
@@ -389,9 +389,6 @@ class CompanyForm(Bootstrap, forms.ModelForm):
 class LoginDetailsForm(Bootstrap, forms.ModelForm):
     """A login: who it is for, its profile, its permission sets, and (when typed) a new password.
     The password box is not one of the login's own fields: a password is only ever saved through set_password, which scrambles it."""
-    edit_objects = forms.MultipleChoiceField(
-        label=_("Edit"), choices=EDIT_OBJECTS, required=False, widget=forms.CheckboxSelectMultiple,
-        help_text=_("For an Office login: the kinds of record it may change on their Edit pages. The administrator may edit everything."))
     new_password = forms.CharField(label=_("Password"), required=False, strip=False,
                                    widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
                                    help_text=_("At least 10 characters. For a login that exists, leave this empty to keep its password."))
@@ -399,7 +396,7 @@ class LoginDetailsForm(Bootstrap, forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["username", "first_name", "last_name", "email", "profile", "crew", "is_active", "edit_objects",
+        fields = ["username", "first_name", "last_name", "email", "profile", "crew", "is_active",
                   "can_price_book", "can_costs", "can_billing", "can_data_editor", "can_inspect", "can_delete", "can_change_stages", "can_crew_lead"]
         labels = {"is_active": _("Can sign in")}
         help_texts = {"is_active": _("Turn this off instead of deleting a login. Its name stays in the history."),
@@ -408,20 +405,20 @@ class LoginDetailsForm(Bootstrap, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["profile"] = forms.ChoiceField(label=_("Profile"), choices=[(one.key, one.name) for one in Profile.objects.all()],
+                                                   help_text=_("What this login may do. Admin › Users and permissions › Profiles sets each one."))
         self.fields["crew"].queryset = Crew.objects.filter(active=True)
-        self.fields["crew"].help_text = _("For the Crew profile: the crew whose jobs this login sees.")
-        if self.instance.pk:                                        # a login that exists shows only the sets for its profile
+        self.fields["crew"].help_text = _("For a profile with My Day and My Jobs: the crew whose jobs this login sees.")
+        if self.instance.pk:                                        # a login that exists shows only the sets that count for it
             for name in User.OFFICE_SETS + User.CREW_SETS:
                 if name not in self.sets_for(self.instance.profile):
                     del self.fields[f"can_{name}"]
-            if self.instance.profile != User.Profile.OFFICE:
-                del self.fields["edit_objects"]
-        else:
-            self.initial.setdefault("edit_objects", [key for key, _label in EDIT_OBJECTS])
 
     @staticmethod
     def sets_for(profile):
-        return [] if profile == User.Profile.ADMIN else User.CREW_SETS if profile == User.Profile.CREW else User.OFFICE_SETS
+        """The permission sets that count for a login on this profile: Crew Lead on a crew login, the others on any other."""
+        crew = User(profile=profile).is_crew_login
+        return User.CREW_SETS if crew else User.OFFICE_SETS
 
     def clean_new_password(self):
         password = self.cleaned_data["new_password"]
@@ -434,24 +431,32 @@ class LoginDetailsForm(Bootstrap, forms.ModelForm):
     def clean(self):
         data = super().clean()
         user = self.instance
-        if user.pk and user.is_admin_profile and (data.get("profile") != User.Profile.ADMIN or not data.get("is_active")):
-            if not User.objects.filter(profile=User.Profile.ADMIN, is_active=True).exclude(pk=user.pk).exists():
-                raise forms.ValidationError(_("This is the only administrator. Add another administrator before changing this one."))
+        if user.pk and user.can("users") and (not User(profile=data.get("profile", user.profile)).can("users") or not data.get("is_active")):
+            if not managers(but=user):
+                raise forms.ValidationError(_("This is the only active login that can manage logins and profiles. Give another login that first."))
         return data
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        for name in User.OFFICE_SETS + User.CREW_SETS:              # a set that is not for this profile goes back to how a new login starts
+        for name in User.OFFICE_SETS + User.CREW_SETS:              # a set that does not count for this profile goes back to how a new login starts
             if name not in self.sets_for(user.profile):
                 setattr(user, f"can_{name}", User._meta.get_field(f"can_{name}").default)
-        if user.profile == User.Profile.CREW:
-            user.edit_objects = []                                  # a crew login edits no record
-        elif "edit_objects" not in self.fields:
-            user.edit_objects = user.edit_objects or [key for key, _label in EDIT_OBJECTS]
         if self.cleaned_data["new_password"]:
             user.set_password(self.cleaned_data["new_password"])
         user.save()
         return user
+
+
+def managers(but=None, profile=None, ticks=None):
+    """The active logins that can manage logins and profiles, leaving out the login `but`, and reading `ticks` for `profile` when they
+    are given (the ticks a profile is about to get). The app never lets this become empty: someone must always be able to fix the logins."""
+    found = []
+    for user in User.objects.filter(is_active=True).exclude(pk=getattr(but, "pk", None)):
+        if profile is not None and user.profile == profile.key:
+            user._profile_held = Profile(key=profile.key, ticks=ticks)
+        if user.can("users"):
+            found.append(user)
+    return found
 
 
 # ---------- Edit pages: every field a person can change on a record. Numbers, stages, dates stamped by a step,
@@ -469,7 +474,7 @@ class LeadEditForm(LeadForm):
         if self.instance.message_locked:                            # the customer's own words are shown, not edited
             self.locked = [("message", self.fields["message"].label, self.instance.message)]
             del self.fields["message"]
-        self.fields["owner"].queryset = User.objects.filter(is_active=True).exclude(profile=User.Profile.CREW)
+        self.fields["owner"].queryset = User.objects.filter(is_active=True, profile__in=Profile.keys_with("lead.see"))
         self.fields["owner"].label_from_instance = lambda user: user.label
         self.prune()
 

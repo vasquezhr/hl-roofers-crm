@@ -126,8 +126,7 @@ class EditPermissions(Base):
 
     def test_each_one_can_be_taken_away(self):
         for what, address in self.pages.items():
-            self.office.edit_objects = [key for key in self.pages if key != what]
-            self.office.save()
+            self.ticks("office", on=[f"{key}.edit" for key in self.pages if key != what], off=[f"{what}.edit"])
             self.sign_in(self.office)
             self.assertEqual(self.client.get(address).status_code, 403, what)
             self.assertEqual(self.client.post(address, {}).status_code, 403, what)
@@ -135,8 +134,7 @@ class EditPermissions(Base):
             self.assertEqual(self.client.get(self.pages[others[0]]).status_code, 200, f"{what}: {others[0]} still opens")
 
     def test_the_buttons_follow_the_permission(self):
-        self.office.edit_objects = []
-        self.office.save()
+        self.ticks("office", off=[f"{key}.edit" for key in self.pages])
         self.sign_in(self.office)
         for page, address in [(reverse("lead", args=[self.lead.pk]), self.pages["lead"]), (reverse("job", args=[self.job.number]), self.pages["job"]),
                               (reverse("account", args=[self.account.pk]), self.pages["account"]), (reverse("account", args=[self.account.pk]), self.pages["note"]),
@@ -145,8 +143,6 @@ class EditPermissions(Base):
         self.assertNotContains(self.client.get(reverse("job", args=[self.job.number])), reverse("job_ref", args=[self.job.number]))
 
     def test_the_administrator_edits_everything_and_a_crew_nothing(self):
-        self.admin.edit_objects = []
-        self.admin.save()
         self.sign_in(self.admin)
         for what, address in self.pages.items():
             self.assertEqual(self.client.get(address).status_code, 200, what)
@@ -154,20 +150,14 @@ class EditPermissions(Base):
         for what, address in self.pages.items():
             self.assertRedirects(self.client.get(address), reverse("my_day"), msg_prefix=what)
 
-    def test_the_users_page_sets_them_and_the_history_says_so(self):
+    def test_a_login_has_no_edit_list_of_its_own(self):
+        """Edit is a tick of the profile (Nov 16, 2026): the login's page has no Edit list, and two logins on one profile edit the same."""
         self.sign_in(self.admin)
-        base = {"username": "office", "new_password": "", "first_name": "", "last_name": "", "email": "", "profile": "office", "crew": "", "is_active": "on"}
-        self.client.post(reverse("user_edit", args=[self.office.pk]), {**base, "edit_objects": ["lead", "job"]})
-        self.office.refresh_from_db()
-        self.assertEqual(self.office.edit_objects, ["lead", "job"])
-        line = Activity.objects.filter(lead=None, account=None, opportunity=None, job=None).first().text
-        self.assertIn("Can edit: Leads, Accounts, Contacts, Properties, Notes in Details, Opportunities, Jobs, Change orders, Payments → Leads, Jobs", line)
-        page = self.client.get(reverse("users"))
-        self.assertContains(page, "Edit: Leads, Jobs")
-        # a new office login starts with every kind ticked; a crew login gets none
-        self.client.post(reverse("user_new"), {**base, "username": "glenda", "new_password": "shingles-and-nails", "edit_objects": [key for key in self.pages]})
-        self.assertTrue(User.objects.get(username="glenda").edits_everything)
-        self.client.post(reverse("user_new"), {**base, "username": "wilmer", "new_password": "shingles-and-nails", "profile": "crew", "crew": self.crew1.pk,
-                                               "edit_objects": ["job"]})
-        self.assertEqual(User.objects.get(username="wilmer").edit_objects, [])
+        self.assertNotContains(self.client.get(reverse("user_edit", args=[self.office.pk])), 'name="edit_objects"')
+        glenda = User.objects.create_user("glenda", password="x", profile="office")
+        self.ticks("office", off=["job.edit"])
+        for user in (self.office, glenda):
+            self.sign_in(user)
+            self.assertEqual(self.client.get(self.pages["job"]).status_code, 403)
+            self.assertEqual(self.client.get(self.pages["lead"]).status_code, 200)
 

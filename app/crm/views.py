@@ -30,7 +30,7 @@ from .forms import (AccountForm, ContactForm, InspectionForm, JobEditForm, LostF
                     OpportunityEditForm, OpportunityForm, PropertyForm,
                     RefForm, RescheduleReasonForm, ScheduleForm, SignForm, StageForm, WarrantyForm)
 from .importer import find_account
-from .models import Account, Activity, Attachment, Company, Contact, Crew, ImportedNote, Job, Lead, Note, Opportunity, Property, Worker, is_day_off, log, pick_choices
+from .models import Account, Activity, Attachment, Company, Contact, Crew, ImportedNote, Job, Lead, Note, Opportunity, Profile, Property, Worker, is_day_off, log, pick_choices
 from .search import search as find_records
 from .templatetags.crm_tags import ago
 
@@ -124,7 +124,7 @@ def home(request):
                               "what": what, "number": job.number, "now": job.rescheduled_words, "crew": job.crew.name}})
     # notes the crews wrote on their jobs, since the start of the last work day
     since = timezone.make_aware(datetime.combine(scheduling.work_day(-1, day), datetime.min.time()))
-    crew_notes = (Activity.objects.filter(kind="note", job__isnull=False, job__bin__isnull=True, user__profile="crew", at__gte=since)
+    crew_notes = (Activity.objects.filter(kind="note", job__isnull=False, job__bin__isnull=True, user__profile__in=Profile.keys_with("my_day"), at__gte=since)
                   .select_related("job__account")[:12])
     # for a login with the Inspector permission: the inspections nobody has taken yet
     open_inspections = (list(opps.filter(stage=Opportunity.Stage.INSPECTION, inspector__isnull=True).order_by("created_at"))

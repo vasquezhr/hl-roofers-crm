@@ -111,7 +111,7 @@ class Command(BaseCommand):
             company.name, company.tagline, company.accent_color, company.bar_color = name, tagline, main, bar
             company.full_clean()
             company.save()
-            admin = User.objects.create_user(login, password=password, profile=User.Profile.ADMIN)
+            admin = User.objects.create_user(login, password=password, profile="admin")
             if types == "clear":
                 WorkType.objects.exclude(key__in=WorkType.BUILT_IN).delete()
             forget_work_types()
