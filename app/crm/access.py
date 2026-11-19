@@ -12,7 +12,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import redirect
 
-from .models import Job
+from .models import Activity, Job
 
 
 def office_only(view):
@@ -81,3 +81,13 @@ def job_or_404(user, number):
         return jobs_for(user).get(number=number)
     except Job.DoesNotExist:
         raise Http404
+
+
+def unread_notes(user, job=None):
+    """The notes the office wrote on this crew's jobs that the crew has not tapped Got it on yet, newest first (the pop-up on
+    My Day, My Jobs and the job). Empty for anyone but a crew. A note written before Nov 16, 2026 is not one (for_crew is False)."""
+    if not user.is_crew_profile:
+        return []
+    jobs = jobs_for(user) if job is None else jobs_for(user).filter(pk=job.pk)
+    return list(Activity.objects.filter(kind="note", for_crew=True, read_at__isnull=True, job__in=jobs.values("pk"))
+                .select_related("job__account").order_by("-at", "-id"))

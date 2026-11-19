@@ -1465,6 +1465,7 @@ class Activity(models.Model):
         "payment": _("Payment recorded: %(detail)s"),
         # the schedule
         "changed": _("Dates changed (before: %(detail)s)"), "notified": _("The crew was told by text"), "got_it": _("The crew saw the change"),
+        "note_read": _("The crew read the note of %(detail)s"),
         "worker_added": _("Extra worker added: %(detail)s"), "worker_removed": _("Extra worker removed: %(detail)s"),
         "booked": _("Put on the schedule: %(detail)s"), "crew_changed": _("Crew changed: %(detail)s"),
         "reschedule_reason": _("Reason for the new dates: %(detail)s"),
@@ -1522,7 +1523,7 @@ class Activity(models.Model):
         "low_disk": _("Low disk space: %(detail)s"), "low_ram": _("Low memory (RAM): %(detail)s"),
     }
     # how the stored detail of some kinds is put into words when it is read
-    READERS = {"reschedule_reason": lambda key: pick_name("reschedule_reason", key), "stage_changed": stage_text, "file_added": file_text, "changed": range_from_code, "day_added": range_from_code, "day_removed": range_from_code, "booked": booking_text, "inspection_booked": when_text,
+    READERS = {"reschedule_reason": lambda key: pick_name("reschedule_reason", key), "stage_changed": stage_text, "file_added": file_text, "changed": range_from_code, "day_added": range_from_code, "day_removed": range_from_code, "booked": booking_text, "inspection_booked": when_text, "note_read": when_text,
                "edited": changes_text, "contact_edited": changes_text, "property_edited": changes_text,
                "type_edited": changes_text, "pick_edited": changes_text, "company_edited": changes_text, "look_edited": changes_text, "price_set": changes_text, "login_edited": changes_text, "note_edited": changes_text}
 
@@ -1535,6 +1536,10 @@ class Activity(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     actor = models.CharField(max_length=80, blank=True)         # who did it, as shown at the time ("Crew 1")
     at = models.DateTimeField(default=timezone.now)
+    # a note the office wrote on a job pops up for the job's crew until the crew taps Got it (Nov 16); then who and when
+    for_crew = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True)
+    read_by = models.CharField(max_length=80, blank=True)
 
     class Meta:
         ordering = ["-at", "-id"]

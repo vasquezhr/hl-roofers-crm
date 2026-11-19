@@ -21,7 +21,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from . import scheduling
-from .access import job_or_404, jobs_for, office_only
+from .access import job_or_404, jobs_for, office_only, unread_notes
 from .dates import work_days_text
 from .history import booking_code, when_code
 from .models import Company, Crew, Job, Opportunity, Worker, is_day_off, log
@@ -167,6 +167,28 @@ def job_seen(request, number):
     return redirect(back)
 
 
+# ---------------------------------------------------------------- the office's notes, popped up for the crew
+@login_required
+@require_POST
+def notes_read(request):
+    """The Got it button on the pop-up of the office's new notes. Each note shown is marked read, with who and when, and the job's
+    history says so; the office then sees it on the note. Like Got it on a moved job, it is the crew lead's button."""
+    back = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(back, allowed_hosts={request.get_host()}):
+        back = reverse("my_day")
+    if not (request.user.is_crew_profile and request.user.can("crew_lead")):
+        raise PermissionDenied
+    wanted = {int(pk) for pk in request.POST.getlist("note") if pk.isdigit()}
+    now = timezone.now()
+    for note in unread_notes(request.user):                             # only this crew's jobs, only notes still unread
+        if note.pk in wanted:
+            note.read_at, note.read_by = now, request.user.label
+            note.save(update_fields=["read_at", "read_by"])
+            log(note.job, "note_read", request.user, detail=when_code(timezone.localtime(note.at)))
+    saved(request, _("The office can see that you read it"))
+    return redirect(back)
+
+
 # ---------------------------------------------------------------- extra workers on a job
 @login_required
 @require_POST
@@ -208,6 +230,7 @@ def my_day(request):
         "members": crew.members.filter(active=True) if crew else [],
         "changes": [job for job in jobs_for(request.user).filter(changed_at__isnull=False, seen_at__isnull=True) if job.pk not in on_today],
         "feeds": [{"label": crew.name, "address": feed_address(request, crew.calendar_token())}] if crew else [],
+        "popup": unread_notes(request.user),                            # the office's new notes, popped up until the crew taps Got it
     })
 
 

@@ -153,8 +153,18 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   check('tapping Call is written in the history', (await office.locator('main').evaluate(e => e.textContent)).includes('Called'));
   await snap(office, 'job-office');
 
+  // a note from the office pops up for the job's crew until it taps Got it (Nov 16)
+  await office.fill('#notes textarea[name=text]', 'Gate code is 4417. Park on the street.');
+  await andWait(office, () => office.click('#notes button:has-text("Save the note")'));
+  check('the office is told the note pops up for the crew', (await office.locator('#notes').innerText()).includes('pops up for the crew') && (await office.locator('#notes [data-note-read]').first().innerText()).includes('Not read yet'));
+
   console.log('Crew 1: its own jobs only');
-  const crew = await signIn(browser, 'crew1', { viewport: { width: 390, height: 844 } });
+  const crew = await signIn(browser, 'crew1', { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await crew.waitForSelector('#notePopup.show', { timeout: 5000 }).catch(() => {});
+  check('the office\'s new note pops up for the crew on My Day', await crew.locator('#notePopup.show').isVisible() && (await crew.locator('#notePopup').innerText()).includes('Gate code is 4417.'));
+  await snap(crew, 'note-popup-phone');
+  await andWait(crew, () => crew.locator('#notePopup button:has-text("Got it")').tap());
+  check('Got it closes it, and it does not pop up again', (await crew.locator('#notePopup').count()) === 0 && (await crew.locator('.toast').innerText()).includes('The office can see that you read it'));
   check('a crew lands on My Day', (await text(crew, 'h1')) === 'My Day');
   check('My Day shows the crew\'s work', (await main(crew)).includes('Denise Wyckoff') && (await main(crew)).includes('Next work day'));
   check('and the changes it has not seen', (await main(crew)).includes('Changes to your jobs') && (await main(crew)).includes(number));
@@ -320,6 +330,9 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await snap(admin, 'admin-phone-dark');
   const officeImports = await office.goto(base + '/imports/');
   check('the office cannot open the Admin page', officeImports.status() === 403);
+
+  await office.goto(base + `/jobs/${number}/`);
+  check('the office sees who read the note, and when', /Read by Crew 1 · /.test(await office.locator('#notes [data-note-read]').first().innerText()));
 
   console.log('The dashboard and the reports');
   const boss = await signIn(browser, 'admin');

@@ -877,9 +877,6 @@ msgstr "Agregar una nota para la oficina"
 msgid "The office sees it here and on its Today page."
 msgstr "La oficina la ve aquí y en su página Hoy."
 
-msgid "The crew on this job sees it too."
-msgstr "El equipo de este trabajo también la ve."
-
 msgid "The work side. A job starts when its proposal is signed and keeps the same number."
 msgstr "El lado del trabajo. Un trabajo empieza cuando se firma su propuesta y conserva el mismo número."
 
@@ -4297,3 +4294,27 @@ msgstr "%(what)s: trabajo #%(number)s. %(now)s. %(crew)s todavía no lo ha visto
 
 msgid "When the dates or the crew of a scheduled job change: shows the crew Rescheduled (or Crew changed) until it taps Got it, and prepares the text for the crew."
 msgstr "Cuando cambian las fechas o el equipo de un trabajo programado: le muestra al equipo Reprogramado (o Cambio de equipo) hasta que toque Enterado, y prepara el mensaje para el equipo."
+
+msgid "A note from the office"
+msgstr "Una nota de la oficina"
+
+msgid "%(n)s notes from the office"
+msgstr "%(n)s notas de la oficina"
+
+msgid "The crew lead's login taps Got it."
+msgstr "El usuario del encargado toca Enterado."
+
+msgid "Read by %(who)s · %(when)s"
+msgstr "Leída por %(who)s · %(when)s"
+
+msgid "Not read yet by the crew"
+msgstr "El equipo todavía no la ha leído"
+
+msgid "It pops up for the crew on this job until they tap Got it. You then see here that they read it."
+msgstr "Le aparece al equipo de este trabajo hasta que toque Enterado. Después usted ve aquí que la leyó."
+
+msgid "The crew read the note of %(detail)s"
+msgstr "El equipo leyó la nota del %(detail)s"
+
+msgid "The office can see that you read it"
+msgstr "La oficina ya ve que la leyó"

@@ -287,3 +287,10 @@ document.addEventListener("click", function (event) {
     if (!document.querySelector("[data-editing]")) showEditAll(document.querySelector("[data-edit-all]"), false);
   }
 });
+
+/* 15. The office's new notes pop up for the crew (a Bootstrap modal marked data-pop) on My Day, My Jobs and the job,
+   until the crew lead taps Got it. Bootstrap's modal works the same in Safari on the iPhone. */
+document.addEventListener("DOMContentLoaded", function () {
+  var pop = document.querySelector(".modal[data-pop]");
+  if (pop && window.bootstrap) window.bootstrap.Modal.getOrCreateInstance(pop).show();
+});

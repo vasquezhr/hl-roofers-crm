@@ -25,4 +25,5 @@
 {% if finished %}<div class="list-group shadow-sm mb-3">{% for job in finished %}{% include "crm/_job_row.html" %}{% endfor %}</div>
 {% else %}<div class="small text-body-secondary mb-3">{% trans "None" %}</div>{% endif %}
 {% endif %}
+{% include "crm/_note_popup.html" %}
 {% endblock %}

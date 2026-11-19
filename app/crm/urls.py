@@ -77,6 +77,7 @@ urlpatterns = [
     path("jobs/<str:number>/invoice/", money_views.invoice, name="invoice"),
     path("jobs/<str:number>/invoice/send/", money_views.invoice_send, name="invoice_send"),
     path("jobs/<str:number>/got-it/", schedule_views.job_seen, name="job_seen"),
+    path("notes/got-it/", schedule_views.notes_read, name="notes_read"),
     path("jobs/<str:number>/workers/", schedule_views.job_worker, name="job_worker"),
     path("my-jobs/", views.my_jobs, name="my_jobs"),
     path("my-day/", schedule_views.my_day, name="my_day"),

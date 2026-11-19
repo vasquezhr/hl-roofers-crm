@@ -23,7 +23,7 @@ from django.views.decorators.http import require_POST
 
 from . import automations, scheduling
 from .documents import document_rows, keep, proposal_document
-from .access import job_or_404, jobs_for, may_edit, office_only, with_permission
+from .access import job_or_404, jobs_for, may_edit, office_only, unread_notes, with_permission
 from .dates import day_text, range_code, work_days_text
 from .history import changes, when_code
 from .forms import (AccountForm, ContactForm, InspectionForm, JobEditForm, LostForm, NewAccountForm, NoteEditForm, NoteForm,
@@ -496,6 +496,7 @@ def job(request, number):
         "reasons": pick_choices("reschedule_reason") if job.stage in (Job.Stage.SCHEDULED, Job.Stage.IN_PROGRESS) else [],
         # notes typed by the office or the crew are shown apart from the rest of the history
         "notes": [line for line in lines if line.kind == "note"], "history": [line for line in lines if line.kind != "note"],
+        "popup": unread_notes(request.user, job) if not office else [],          # the office's new notes, popped up for the crew
         "note_form": NoteForm(),
     })
 
@@ -646,11 +647,15 @@ def job_warranty(request, number):
 @login_required
 @require_POST
 def job_note(request, number):
-    """A note on a job, from the office or the crew. It shows in the job's history."""
+    """A note on a job, from the office or the crew. It shows in the job's history. A note from the office pops up for the
+    job's crew until the crew taps Got it; a note the crew wrote never pops up for it."""
     job = job_or_404(request.user, number)
     form = NoteForm(request.POST)
     if form.is_valid():
-        log(job, "note", request.user, detail=form.cleaned_data["text"].strip()[:1000])
+        line = log(job, "note", request.user, detail=form.cleaned_data["text"].strip()[:1000])
+        if not request.user.is_crew_profile:
+            line.for_crew = True
+            line.save(update_fields=["for_crew"])
         saved(request)
     return redirect("job", number=job.number)
 
@@ -668,6 +673,7 @@ def my_jobs(request):
         "now": [job for job in waiting if job.on_day(day)],
         "upcoming": [job for job in waiting if not job.on_day(day)],
         "finished": mine.filter(stage__in=FINISHED_JOBS).order_by("-last_day")[:30],
+        "popup": unread_notes(request.user), "can_confirm": request.user.can("crew_lead"),
     })
 
 

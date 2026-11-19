@@ -245,7 +245,10 @@
     <h2 class="h6 mb-2" data-section="notes">{% trans "Notes" %}</h2>
     {% for line in notes %}
     <div class="border-bottom py-2">
-      <div class="small text-body-secondary">{{ line.at|day_time }} · {{ line.actor|default:"—" }}</div>
+      <div class="small text-body-secondary">{{ line.at|day_time }} · {{ line.actor|default:"—" }}
+        {# a note from the office pops up for the crew; the office sees whether the crew read it, who and when #}
+        {% if line.for_crew and not crew_view %}{% if line.read_at %}{% trf "Read by %(who)s · %(when)s" who=line.read_by when=line.read_at|day_time as read %}{% else %}{% trans "Not read yet by the crew" as read %}{% endif %}
+        <span data-note-read>{% if line.read_at %}{% badge read "success" %}{% else %}{% badge read "secondary" %}{% endif %}</span>{% endif %}</div>
       <div class="hl-pre">{{ line.detail }}</div>
     </div>
     {% empty %}
@@ -255,7 +258,7 @@
       {% csrf_token %}
       <label class="form-label small fw-semibold mb-1" for="{{ note_form.text.id_for_label }}">{% if crew_view %}{% trans "Add a note for the office" %}{% else %}{% trans "Add a note" %}{% endif %}</label>
       {{ note_form.text }}
-      <div class="form-text">{% if crew_view %}{% trans "The office sees it here and on its Today page." %}{% else %}{% trans "The crew on this job sees it too." %}{% endif %}</div>
+      <div class="form-text">{% if crew_view %}{% trans "The office sees it here and on its Today page." %}{% else %}{% trans "It pops up for the crew on this job until they tap Got it. You then see here that they read it." %}{% endif %}</div>
       <button type="submit" class="btn btn-outline-secondary btn-sm mt-2">{% trans "Save the note" %}</button>
     </form>
   </div>
@@ -268,4 +271,5 @@
     {% include "crm/_history.html" %}
   </div>
 </div>
+{% if crew_view %}{% include "crm/_note_popup.html" %}{% endif %}
 {% endblock %}

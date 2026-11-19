@@ -234,3 +234,80 @@ class RescheduleImport(test_objectload.Uploads):
         one = Reschedule.objects.get(job=job)
         self.assertEqual((one.was_first, one.now_first, one.reason, one.actor), (date(2026, 11, 10), date(2026, 11, 12), "weather", "admin"))
         self.assertTrue(DataImport.objects.exists())
+
+
+class NotePopUps(Base):
+    """Item 2: every new note the office writes on a crew's job pops up for that crew until it taps Got it; the office then sees who read it and when."""
+
+    def setUp(self):
+        from crm.models import Activity
+        self.Activity = Activity
+        self.roof = self.job(self.crew1, "scheduled")
+        self.other = self.job(self.crew2, "scheduled")
+        self.login1.can_crew_lead = True
+        self.login1.save()
+
+    def note(self, user, job, text):
+        self.sign_in(user)
+        self.client.post(reverse("job_note", args=[job.number]), {"text": text})
+        return self.Activity.objects.filter(kind="note", job=job).first()
+
+    def test_an_office_note_pops_up_for_that_crew_only(self):
+        old = self.Activity.objects.create(job=self.roof, kind="note", detail="Written before Nov 16", actor="office")   # an older note: never pops up
+        first = self.note(self.office, self.roof, "Gate code is 4417.")
+        second = self.note(self.office, self.roof, "Dog in the back yard.")
+        self.assertTrue(first.for_crew and not old.for_crew)
+        self.sign_in(self.login1)
+        for address in (reverse("my_day"), reverse("my_jobs"), reverse("job", args=[self.roof.number])):
+            page = self.client.get(address)
+            self.assertEqual(page.context["popup"], [second, first], address)                       # newest first, one pop-up
+            self.assertContains(page, "data-pop")
+            self.assertContains(page, "2 notes from the office")
+        self.sign_in(self.login2)                                                                 # another crew: nothing
+        self.assertEqual(self.client.get(reverse("my_day")).context["popup"], [])
+        self.sign_in(self.office)
+        self.assertNotContains(self.client.get(reverse("job", args=[self.roof.number])), "data-pop")
+
+    def test_got_it_marks_every_note_shown_and_the_office_sees_it(self):
+        note = self.note(self.office, self.roof, "Gate code is 4417.")
+        other = self.note(self.office, self.other, "Crew 2's note.")
+        self.sign_in(self.login1)
+        answer = self.client.post(reverse("notes_read"), {"note": [note.pk, other.pk], "next": reverse("my_day")}, follow=True)
+        self.assertRedirects(answer, reverse("my_day"))
+        self.assertContains(answer, "The office can see that you read it")
+        note.refresh_from_db()
+        other.refresh_from_db()
+        self.assertEqual((bool(note.read_at), note.read_by, bool(other.read_at)), (True, "Crew 1", False))          # never another crew's note
+        self.assertEqual(self.client.get(reverse("my_day")).context["popup"], [])
+        self.assertEqual(self.roof.activities.first().kind, "note_read")
+        self.assertTrue(self.roof.activities.first().text.startswith("The crew read the note of "))
+        self.sign_in(self.office)
+        page = self.client.get(reverse("job", args=[self.roof.number]))
+        self.assertContains(page, "Read by Crew 1 · ")
+        self.client.cookies[settings.LANGUAGE_COOKIE_NAME] = "es"
+        self.assertContains(self.client.get(reverse("job", args=[self.roof.number])), "Leída por Crew 1")
+        self.assertContains(self.client.get(reverse("job", args=[self.other.number])), "El equipo todavía no la ha leído")
+
+    def test_a_crew_note_never_pops_up_and_only_the_crew_lead_confirms(self):
+        mine = self.note(self.login1, self.roof, "Ridge vent delivered short.")
+        self.assertFalse(mine.for_crew)
+        self.assertEqual(self.client.get(reverse("my_day")).context["popup"], [])
+        note = self.note(self.office, self.roof, "Gate code is 4417.")
+        self.login1.can_crew_lead = False
+        self.login1.save()
+        self.sign_in(self.login1)
+        page = self.client.get(reverse("my_day"))
+        self.assertContains(page, "The crew lead's login taps Got it.")
+        self.assertNotContains(page, reverse("notes_read"))
+        self.assertEqual(self.client.post(reverse("notes_read"), {"note": [note.pk]}).status_code, 403)
+        self.sign_in(self.office)
+        self.assertEqual(self.client.post(reverse("notes_read"), {"note": [note.pk]}).status_code, 403)
+        self.assertIsNone(self.Activity.objects.get(pk=note.pk).read_at)
+
+    def test_in_spanish(self):
+        self.note(self.office, self.roof, "Gate code is 4417.")
+        self.sign_in(self.login1)
+        self.client.cookies[settings.LANGUAGE_COOKIE_NAME] = "es"
+        page = self.client.get(reverse("my_jobs"))
+        self.assertContains(page, "Una nota de la oficina")
+        self.assertContains(page, "Enterado")

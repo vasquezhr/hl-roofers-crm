@@ -1,0 +1,36 @@
+{% load i18n crm_tags %}
+{% comment %}The office's new notes on this crew's jobs, in a pop-up (a Bootstrap modal) that opens by itself (hl.js, part 15) on My Day, My Jobs
+and the job, until the crew lead taps Got it. Newest first, one Got it for all of them. Needs: popup, can_confirm.{% endcomment %}
+{% if popup %}
+<div class="modal fade" id="notePopup" tabindex="-1" aria-labelledby="notePopupTitle" aria-modal="true" role="dialog" data-pop{% if can_confirm %} data-bs-backdrop="static" data-bs-keyboard="false"{% endif %}>
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="notePopupTitle">{% icon "msg" %} {% if popup|length == 1 %}{% trans "A note from the office" %}{% else %}{% trf "%(n)s notes from the office" n=popup|length %}{% endif %}</h2>
+        {% if not can_confirm %}<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button>{% endif %}
+      </div>
+      <div class="modal-body">
+        {% for note in popup %}
+        <div class="{% if not forloop.first %}border-top pt-2 mt-2{% endif %}" data-popup-note>
+          <a class="small fw-semibold text-decoration-none" href="{% url 'job' note.job.number %}#notes">#{{ note.job.number }} · {{ note.job.account.name }}</a>
+          <div class="small text-body-secondary">{{ note.at|day_time }} · {{ note.actor|default:"—" }}</div>
+          <div class="hl-pre">{{ note.detail }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="modal-footer">
+        {% if can_confirm %}
+        <form method="post" action="{% url 'notes_read' %}" class="w-100">
+          {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+          {% for note in popup %}<input type="hidden" name="note" value="{{ note.pk }}">{% endfor %}
+          <button type="submit" class="btn btn-primary w-100">{% icon "check" %} {% trans "Got it" %}</button>
+        </form>
+        {% else %}
+        <div class="small text-body-secondary me-auto">{% trans "The crew lead's login taps Got it." %}</div>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
