@@ -649,7 +649,7 @@ Built in the app and in the mockup.
 
 ### Requests from the user on Nov 16, 2026 (second message)
 
-Seven of his items are answered and built here, in the app and in the mockup, in English and Spanish (items 6, how the reports get their data, and 7, the profiles, are separate). The Salesforce Help links below were written from memory: help.salesforce.com could not be opened from this machine (the network refuses it), so they were not checked.
+Seven of his items are answered and built here, in the app and in the mockup, in English and Spanish (item 6, how the reports get their data, is separate; item 7, the profiles, is below, built on Nov 19). The Salesforce Help links below were written from memory: help.salesforce.com could not be opened from this machine (the network refuses it), so they were not checked.
 
 1. **Change dates button.** The user: "change dates button on schedule is arbitrary, next to the start job button". **Answer:** remove it. **Built:** the job page no longer has the office's Change the schedule button (the mockup's Change dates) next to Start job. The dates of a job on the schedule change only with the pencil on **Crew and Dates**, which opens the same schedule form in place; nothing else linked only to that button (the README's walk-through now uses the pencil). A job waiting for a date keeps its **Schedule the job** button. In Salesforce Field Service a service appointment's times are changed on the record itself ([Salesforce Help: Service Appointment Fields](https://help.salesforce.com/s/articleView?id=sf.fs_service_appointment_fields.htm&type=5)).
    - **Choices to confirm:** in the mockup, the Crew and Dates pencil now shows for any office login (as in the app), not only for a login with the Edit permission for jobs.
@@ -684,3 +684,67 @@ Seven of his items are answered and built here, in the app and in the mockup, in
 9. **Recycle Bin back link.** The user: "recycle bin doesn't have a way to go back in the top left". **Built:** the Recycle Bin has the arrow at the top left, like the other Admin pages, and it names the screen you came from (Today, Jobs, Admin …); with nothing to go back to it says **Admin** for the administrator.
    - **Choices to confirm:** an office login with the Delete records set cannot open Admin, so with nothing to go back to its arrow says **Today**.
 
+7. **Profiles with one tick list** (built Nov 19, in the app and the mockup). The user, twice: "All profiles should have the same settings. For example, Crew profiles should have the same options as Office or Owner... but checked for their profile. And then, let's say I want to take away their ability to see the notes on a object, i can just tick that", and "how about a way to add profiles? update all current profiles to have the same list of available settings. including admin. include a way to add profiles. also ensure that the best fields/settings are selected per object." **His answers:** the list has (a) See / Create / Edit / Delete for each kind of record, (b) Can see / Can edit for sections and fields such as notes, money, history and costs, (c) the pages and actions; the two fixed crew rules become ticks; permission sets stay and add ticks to one login; Admin gets the same list, but the app never lets the last login that can manage logins lose it; profiles can be added as a copy, renamed, and deleted when no login uses them; the starting ticks do exactly what each profile does today.
+   - **Admin › Users and permissions › What each profile allows** lists the profiles, each with how many logins use it, and **Add a profile**. A profile's page has its names (English and Spanish) and the whole list: the object grid (See, Create, Edit, Delete for Leads, Accounts, Contacts, Properties, Notes in Details, Opportunities, Jobs, Change orders, Payments, Photos and files; a photo has no Edit page) and **Only jobs scheduled to their crew**; **Sections and fields** (Prices and money, Costs and margins, Customer's email, Notes on a job, History); **Pages and actions**. Below: the logins on it, **Delete the profile** when none, and what each permission set adds. **Copy this profile** starts a new one from it. In the mockup the same, in a window.
+   - **Every check reads the ticks, on the server:** each page asks for its ticks (`needs("lead.see")`, `with_permission("users")`, `may_edit("job")`, in `app/crm/access.py`); every job is reached through `jobs_for`, so "Only jobs scheduled to their crew" holds on the job, its documents, deletes, the Schedule, search, reports and exports. A section a profile cannot see is left out of every page, the search (a record is not found by an email or a note it may not see), the reports (a money column is dropped; a report about leads needs Leads), the Data editor (its Email column), the templates, exports and uploads (the column is not there, and a cell in it is never read), and a value sent anyway is not saved. A field it may see but not edit shows as words on the Edit page. The navigation tabs follow the ticks too.
+   - **Some ticks need another,** as in Salesforce (Edit needs Read): Create, Edit and Delete need See; Can edit needs Can see; change orders, payments and the documents (proposals, invoices, receipts) need See of Prices and money.
+   - **Every login keeps exactly what it could do** (migrations 0029, 0030 and 0031). The three profiles are made with the ticks below. A login keeps its profile; an Office login whose own Edit list (the Nov 13 Edit permissions) was not every kind moves to a copy of Office made for it, named "Office - its login name", with those Edit ticks (logins with the same list share one copy); the per-login Edit list is then removed. A permission set switched on for an administrator (which added nothing before) is switched off, since it would now add something.
+   - **Every change is in Admin › Setup history,** in both languages: "Profile added: Estimator · a copy of Office", "Profile ticks changed: Office · Jobs: Edit: yes → no; Dashboard: no → yes", "Profile renamed: …", "Profile deleted: …".
+   - **Nobody is locked out:** a Save that would leave no active login able to manage logins and profiles is refused, and says why; so is switching that last login off or moving it to another profile.
+   - **The starting ticks** (A = Administrator, O = Office, C = Crew; "·" = not ticked):
+
+| Kind of record | See | Create | Edit | Delete |
+| --- | --- | --- | --- | --- |
+| Leads, Accounts, Contacts, Properties, Notes in Details, Opportunities | A O · | A O · | A O · | A · · |
+| Jobs (Create: New warranty job; Mark signed is under the actions) | A O C | A O · | A O · | A · · |
+| Change orders | A O C | A O · | A O · | A · · |
+| Payments (Create: Record payment) | A O C | A O · | A O · | A · · |
+| Photos and files | A O C | A O C | no Edit page | A · · |
+
+| Tick | Administrator | Office | Crew |
+| --- | --- | --- | --- |
+| Only jobs scheduled to their crew | — | — | yes |
+| Prices and money: Can see / Can edit | yes / yes | yes / yes | yes / — |
+| Costs and margins: Can see | yes | — (the View Costs and Margins set adds it) | — |
+| Customer's email: Can see / Can edit | yes / yes | yes / yes | — / — |
+| Notes on a job: Can see / Can edit (add a note) | yes / yes | yes / yes | yes / yes |
+| History: Can see | yes | yes | yes |
+| Today | yes | yes | — |
+| Dashboard | yes | — | — |
+| Reports | yes | yes | — |
+| Schedule | yes | yes | — |
+| Search | yes | yes | yes |
+| My Day and My Jobs | — | — | yes |
+| Manage the Price Book | yes | — (set) | — |
+| Data editor | yes | — (set) | — |
+| Templates and exports; Import data; Company details, colors and icon; Types of work, pick lists and automations; Setup history; System status and logs; Manage logins and profiles; The admin site; Delete for good | yes | — | — |
+| Convert leads, or mark them Not a fit; Write and send proposals; Mark opportunities signed or lost; Create and send invoices, and email receipts | yes | yes | — |
+| Start and finish jobs; Change the extra workers on a job | yes | yes | — (Crew Lead adds them) |
+| Confirm changes with Got it | yes (no effect without a crew) | — | — (Crew Lead adds it) |
+| Change stage; Take inspections | yes | — (set) | — |
+| The email when a job is done | — | — (Billing adds it) | — |
+
+| Permission set (for one login) | Adds |
+| --- | --- |
+| Manage Price Book | Manage the Price Book |
+| View Costs and Margins | Costs and margins: Can see |
+| Billing | The email when a job is done |
+| Data Editor | Data editor |
+| Inspector | Take inspections |
+| Delete records | Delete, for every kind of record |
+| Change stages | Change stage |
+| Crew Lead | Start and finish jobs, Change the extra workers on a job, Confirm changes with Got it, Payments: Create |
+
+   - **Why some starting ticks look odd** (each reproduces what the profile did before): the Administrator has no "The email when a job is done", because that email only ever went to Office logins with Billing; Office has no Costs and margins, Delete, Change stage or Take inspections, because those came from permission sets; the **Price changes report** stays on the Reports tick alone, so Office still reads it (see the choices below).
+   - Salesforce does the same with profiles ([Salesforce Help: Profiles](https://help.salesforce.com/s/articleView?id=sf.admin_userprofiles.htm&type=5)), object permissions ([Object Permissions](https://help.salesforce.com/s/articleView?id=sf.users_profiles_object_perms.htm&type=5)), field-level security ([Field-Level Security](https://help.salesforce.com/s/articleView?id=sf.admin_fls.htm&type=5)), permission sets ([Permission Sets](https://help.salesforce.com/s/articleView?id=sf.perm_sets_overview.htm&type=5)) and Clone on a profile ([Clone Profiles](https://help.salesforce.com/s/articleView?id=sf.users_profiles_clone.htm&type=5)). These links were written from memory: help.salesforce.com could not be opened from this machine, so they were not checked.
+   - **Tests:** the existing permission tests run as they were, except where the per-login Edit list or the old Users page cards were named; new ones: the migration keeps every login's abilities, each default, the tick dependencies, unticking Notes in Details and Notes on a job hides them everywhere, the email, money and history, a new profile, the Profiles page, the lock-out, deleting a profile, and that a crew never reaches another crew's job until "Only jobs scheduled to their crew" is unticked. The mockup test has a part for the profiles.
+   - **Choices to confirm:**
+     - The **Price changes report** shows supplier costs, and the Office profile could read it before without View Costs and Margins. To change nothing, it stays on the Reports tick, so a profile without Costs and margins still sees costs there. Should it need Costs and margins?
+     - **A crew login** is one whose profile has **My Day and My Jobs**: it needs a crew, opens on My Day, gets the office's notes as a pop-up, and is sent to My Day from a page it may not open. Is that the right tick to carry this?
+     - **Permission sets keep their old rule:** Crew Lead counts only for a crew login, the other seven only for any other login (as before). Should any set count for any login?
+     - **Mark lost** is with Mark signed, under "Mark opportunities signed or lost", not under the Opportunities Edit tick, so that no login lost it in the move; **booking an inspection** is under Schedule.
+     - **Import data** of customers needs Accounts: Create; of leads, Leads: Create; of the Apple Notes, Notes in Details: Create; a kind of record, Create to add or Edit to update. **Crews, extra workers, pick list values and types of work** in the Data editor follow "Types of work, pick lists and automations"; **Price Book items** follow "Manage the Price Book".
+     - **A document** (proposal, change order, invoice, receipt) is under Prices and money; for a login without Customer's email, the email is taken off the document it opens (the customer's own copy is not changed).
+     - **A login with "Only jobs scheduled to their crew"** gets no report or export that counts jobs (they count every crew's), and only its crew's jobs on the Schedule.
+     - **The Data editor's Email column** shows only with Customer's email Can edit (not as read-only words with Can see alone).
+     - **Not checked:** the app's pages in Safari on a Mac and an iPhone.

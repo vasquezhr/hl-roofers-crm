@@ -467,6 +467,16 @@ const snap = async (page, name) => { if (shots) await page.screenshot({ path: pa
   await admin.goto(base + '/manage/history/');
   const setup = await main(admin);
   check('the Setup history says who did it', ['Login added: wilmer', 'Deleted: Naomi Iturralde', 'Restored: Naomi Iturralde'].every(words => setup.includes(words)), setup);
+  // Nov 16, item 7: profiles with one tick list, the same list on every profile
+  await admin.goto(base + '/manage/users/');
+  check('the profiles are listed with Add a profile', (await main(admin)).includes('What each profile allows') && (await admin.locator('a[href="/manage/profiles/new/"]').count()) === 1);
+  const tickCounts = [];
+  for (const key of ['admin', 'office', 'crew']) {
+    await admin.goto(base + '/manage/profiles/' + key + '/');
+    tickCounts.push(await admin.locator('input[name="tick"]').count());
+  }
+  check('every profile has the same list', tickCounts.length === 3 && tickCounts.every(n => n === tickCounts[0] && n > 60), tickCounts.join(','));
+  check('the Crew profile has "Only jobs scheduled to their crew" ticked', await admin.isChecked('#t-own_jobs'));
 
   console.log('Nov 12 and 13: Edit, money in the Recycle Bin, days off, photos, receipts, colors, hiding sections');
   const nextDay = weekday => { const d = new Date(); do { d.setDate(d.getDate() + 1); } while (d.getDay() !== weekday); return iso(d); };
