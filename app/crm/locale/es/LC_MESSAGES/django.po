@@ -1594,9 +1594,6 @@ msgstr "Cuando se firma una propuesta: crea el trabajo con el mismo número y ag
 msgid "Appointment changed"
 msgstr "Cita cambiada"
 
-msgid "When the dates or the crew of a scheduled job change: marks it Changed and prepares the text for the crew."
-msgstr "Cuando cambian las fechas o el equipo de un trabajo programado: lo marca como Cambió y prepara el mensaje para el equipo."
-
 msgid "Job done"
 msgstr "Trabajo terminado"
 
@@ -4297,3 +4294,6 @@ msgstr "Las fechas del trabajo cambian, así que es una reprogramación. Diga po
 
 msgid "%(what)s: job #%(number)s. %(now)s. %(crew)s has not seen it yet."
 msgstr "%(what)s: trabajo #%(number)s. %(now)s. %(crew)s todavía no lo ha visto."
+
+msgid "When the dates or the crew of a scheduled job change: shows the crew Rescheduled (or Crew changed) until it taps Got it, and prepares the text for the crew."
+msgstr "Cuando cambian las fechas o el equipo de un trabajo programado: le muestra al equipo Reprogramado (o Cambio de equipo) hasta que toque Enterado, y prepara el mensaje para el equipo."

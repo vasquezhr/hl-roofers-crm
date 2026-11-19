@@ -155,7 +155,7 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
   /* ================= PHASE 3: scheduling and crew ================= */
   if (upTo >= 3) {
     await go("#schedule"); v = await view();
-    ok(/Crew 1 · day 2 of 3/.test(v) && /Denise Wyckoff/.test(v) && /Changed/.test(v) && /Inspections/.test(v) && /Book a visit/.test(v), "week view: " + v.slice(0, 500));
+    ok(/Crew 1 · day 2 of 3/.test(v) && /Denise Wyckoff/.test(v) && /Rescheduled/.test(v) && /Inspections/.test(v) && /Book a visit/.test(v), "week view: " + v.slice(0, 500));
     ok((await p.$$("#view .row.g-2 > .col-12")).length === 7, "the week shows all seven days");
     ok(/Sat/.test(await p.textContent("#view .row.g-2")) && /Sun/.test(await p.textContent("#view .row.g-2")), "Saturday and Sunday are in the week, as days off");
     await shot("p3-schedule");
@@ -196,9 +196,10 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     ok(/Inspección/.test(await p.locator(`#view button[data-stop][aria-controls$="-insp-${bookedOpp}"]`).first().textContent()), "and in Spanish it says Inspección");
     await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200); await p.evaluate(() => { S.week = 0; });
     // change an already scheduled job: the crew gets a Changed notice
-    await go("#job/26-126"); ok(!/Change dates/.test(await view()), "no Change dates button next to Start job"); await act("inlineOpen", '[data-sec="crew"]'); await p.fill("#jsDay", await p.evaluate(() => iso(wd(3)))); await act("saveSchedule"); v = await view();
-    ok(/Changed/.test(v) && /Notify crew/.test(v) && /Crew 2 has not seen it yet/.test(v) && /Dates changed/.test(v), "changed notice for the office: " + v.slice(0, 500));
-    await go("#today"); v = await view(); ok(/Crew 1 has not seen the change to job #26-104/.test(v), "today lists unseen changes");
+    await go("#job/26-126"); ok(!/Change dates/.test(await view()), "no Change dates button next to Start job"); await act("inlineOpen", '[data-sec="crew"]'); await p.fill("#jsDay", await p.evaluate(() => iso(wd(3))));
+    await act("saveSchedule"); ok(/Pick why the dates are changing/.test(await p.textContent("#jsProblem")), "new dates need a reason"); await p.selectOption("#jsReason", "weather"); await act("saveSchedule"); v = await view();
+    ok(/Rescheduled/.test(v) && /Now on/.test(v) && /Notify crew/.test(v) && /Crew 2 has not seen it yet/.test(v) && /Dates changed/.test(v) && /Reason for the new dates: Weather/.test(v), "rescheduled notice for the office: " + v.slice(0, 500));
+    await go("#today"); v = await view(); ok(/Rescheduled: job #26-104\. Now on .*Crew 1 has not seen it yet/.test(v), "today lists unseen changes");
     // crew 1: My Day
     await role("crew", "c1"); v = await view();
     ok((await hash()) === "#myday" && /Changes to your jobs/.test(v) && /#26-104/.test(v) && /Got it/.test(v), "my day shows changes: " + v.slice(0, 300));
@@ -222,7 +223,7 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     const tip = await p.textContent(".tooltip").catch(() => ""); ok(/\$55,100 · /.test(tip), "chart tooltip: " + tip);
     await p.mouse.move(5, 5); await shot("p4-dashboard");
     await go("#reports"); v = await view(); ok(/Ready-made reports/.test(v) && /Lead response time/.test(v) && /Price changes/.test(v), "reports hub");
-    ok((await p.$$('#view a[href^="#report/"].list-group-item')).length === 8, "eight reports listed");
+    ok((await p.$$('#view a[href^="#report/"].list-group-item')).length === 9, "nine reports listed (Rescheduled jobs, Nov 16)");
     await shot("p4-reports");
     await go("#report/revenue"); ok((await p.$$("#view tbody tr")).length === 4, "revenue: 3 months plus total by default");
     await p.click('[data-act="setFilter"][data-value="y"]'); await p.waitForTimeout(200); ok((await p.$$("#view tbody tr")).length === 7, "revenue: 6 months plus total for the year");
@@ -376,12 +377,12 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     // any day: a Saturday is booked by hand with no tick (Nov 16); the schedule shades it grey, with no words on it
     const saturday = await day(6), sunday = await day(0);
     await go("#job/26-118"); await act("inlineOpen", '[data-sec="crew"]'); ok(!(await p.$("#jsOff")) && !/Work on a day off/.test(await modal()), "no Work on a day off tick");
-    await p.fill("#jsDay", saturday); await inModal("saveSchedule"); v = await view(); ok(/Sat,/.test(v) && /Dates changed/.test(v), "booked on a Saturday: " + v.slice(0, 600));
+    await p.fill("#jsDay", saturday); await p.selectOption("#jsReason", "customer"); await inModal("saveSchedule"); v = await view(); ok(/Sat,/.test(v) && /Dates changed/.test(v), "booked on a Saturday: " + v.slice(0, 600));
     await go("#schedule"); v = await view(); ok(/Terrence Oakes/.test(v), "the schedule shows the job on the day off");
     ok((await p.$$eval("#view .card-header", hs => hs.filter(h => { const c = h.cloneNode(true); c.querySelectorAll(".visually-hidden").forEach(e => e.remove()); return /Día libre|Day off/.test(c.textContent); }).length)) === 0 && (await p.locator("#view .card-header.bg-body-secondary").count()) >= 1, "no Day off words on the calendar, but the shading stays");
     await shot("p5-schedule-day-off");
     // a job of several days skips days off after its first day
-    await go("#job/26-118"); await act("inlineOpen", '[data-sec="crew"]'); await p.fill("#jsDay", await day(4)); await p.fill("#jsDays", "5"); await inModal("saveSchedule");           // Thursday, 5 days
+    await go("#job/26-118"); await act("inlineOpen", '[data-sec="crew"]'); await p.fill("#jsDay", await day(4)); await p.fill("#jsDays", "5"); await p.selectOption("#jsReason", "materials"); await inModal("saveSchedule");           // Thursday, 5 days
     ok(await p.evaluate(() => jobOf("26-118").days.map(x => x.getDay()).join() === "4,5,1,2,3"), "the days skip days off: Thu, Fri, Mon, Tue, Wed");
     // clicking a day on the Schedule calendar opens the form with that day; it books nothing by itself
     await p.setViewportSize({ width: 390, height: 844 }); await go("#schedule"); await p.waitForTimeout(300);
@@ -402,10 +403,10 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
     ok((await p.inputValue("#jsDay")) === saturday && !/is a day off/.test(await p.textContent("#modal")) && !(await p.$("#jsOff")), "a clicked day off opens the form with that day, and no tick");
     ok(await p.evaluate(id => jobOf(id).stage === "signed" && !jobOf(id).days.length, waitingId), "the click booked nothing");
     await p.click("#modal .btn-close"); await p.waitForTimeout(400);
-    await go("#job/26-104"); await p.click('summary:has-text("Add a day")'); await p.fill("#adDay", sunday); await act("dayAdd");
+    await go("#job/26-104"); await p.click('summary:has-text("Add a day")'); await p.fill("#adDay", sunday); await p.selectOption("#adReason", "crew"); await act("dayAdd");
     v = await view(); ok(!(await p.$("#adOff")), "adding a day off needs no tick");
-    ok(/Days added by hand/.test(v) && /Day added by hand: Sun/.test(v) && /Changed/.test(v), "a Sunday added by hand marks the job Changed: " + v.slice(0, 900));
-    await act("dayRemove"); v = await view(); ok(/Day taken off: Sun/.test(v) && !/Days added by hand/.test(v), "the added day taken off again");
+    ok(/Days added by hand/.test(v) && /Day added by hand: Sun/.test(v) && /Rescheduled/.test(v), "a Sunday added by hand marks the job Rescheduled: " + v.slice(0, 900));
+    await act("dayRemove"); await p.selectOption("#trReason", "other"); await inModal("dayRemoveGo"); v = await view(); ok(/Day taken off: Sun/.test(v) && !/Days added by hand/.test(v), "the added day taken off again");
     // photos and files: a real photo shows while the page is open; anything else is refused
     const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
     await go("#job/26-112"); await p.setInputFiles("#fileIn", { name: "porch.png", mimeType: "image/png", buffer: png });
@@ -683,6 +684,28 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
       await p.click(`[data-act="clickDay"][data-day="${sun}"]`); await p.waitForTimeout(380); await p.fill("#jsDays", "2"); await inModal("saveSchedule");
       ok(await p.evaluate(id => { const j = jobOf(id); return j.stage === "scheduled" && j.days.map(x => x.getDay()).join() === "0,1"; }, toBookJob), "a Sunday clicked on the calendar is booked by hand, then Monday");
     } else ok(false, "a job waiting to be booked for the day-off step");
+    // items 3 and 4: "Rescheduled" and "Now on ...", a reason for new dates, the job's reschedules, the report and the dashboard tile
+    await role("office");
+    const sched2 = await p.evaluate(() => { const j = JOBS.find(x => x.stage === "scheduled" && x.crew && !(x.changed && !x.changed.seen)); return j ? j.id : ""; });
+    await go("#job/" + sched2); await act("inlineOpen", '[data-sec="crew"]');
+    await p.selectOption("#jsCrew", await p.evaluate(id => (jobOf(id).crew === "c1" ? "c2" : "c1"), sched2)); await inModal("saveSchedule"); v = await view();
+    ok(/Crew changed/.test(v) && /Now Crew [12]/.test(v) && !/Pick why/.test(v) && (await p.evaluate(id => (jobOf(id).resched || []).length, sched2)) === 0, "a change of crew alone needs no reason and reads Crew changed: " + v.slice(0, 400));
+    await act("inlineOpen", '[data-sec="crew"]'); await p.fill("#jsDays", "3"); await p.selectOption("#jsReason", "materials"); await inModal("saveSchedule"); v = await view();
+    ok(/Rescheduled/.test(v) && /Now on/.test(v) && /Rescheduled once\./.test(v) && /Materials late/.test(v) && (await p.locator("[data-reschedule]").count()) === 1, "new dates: Rescheduled, and the job lists the reschedule with its reason");
+    await shot("p7-job-rescheduled");
+    await go("#schedule"); ok((await p.locator("#view [data-stop] + div .badge.text-bg-warning").count()) >= 1 && !(await p.$$eval("#view [data-stop]", bs => bs.some(b => /!/.test(b.textContent)))), "the Schedule line carries a Rescheduled tag under it, no !");
+    await go("#report/rescheduled"); await p.click('[data-act="setFilter"][data-name="range"][data-value="m"]'); await p.waitForTimeout(250); v = await view();
+    ok(/Rescheduled jobs/.test(v) && (await p.locator("[data-totals] tbody tr").count()) >= 2 && /Materials late/.test(v) && /Weather/.test(v), "the Rescheduled jobs report: totals by reason, then each one: " + v.slice(0, 500));
+    let [rdown] = await Promise.all([p.waitForEvent("download"), p.click('[data-act="csv"]')]);
+    ok(/Reason,Reschedules,Jobs/.test(require("fs").readFileSync(await rdown.path(), "utf8")), "its export has the totals too");
+    await role("admin"); await go("#dashboard"); ok(/^[1-9]\d* Rescheduled this month$/.test((await p.innerText('[data-tile="rescheduled"]')).replace(/\s+/g, " ").trim()), "the dashboard tile counts this month's reschedules");
+    await go("#admin/picks"); v = await view(); ok(/Why a job was rescheduled/.test(v) && /Crew not available/.test(v) && /Equipo no disponible/.test(v), "the reasons are a pick list");
+    await role("crew", "c1"); await go("#myjobs"); v = await view(); ok(/Rescheduled/.test(v), "the crew's job list tags the moved job");
+    await p.click('[data-act="setLang"][data-lang="es"]'); await p.waitForTimeout(200); await go("#myday"); v = await view();
+    ok(/Reprogramado/.test(v) && /Ahora:/.test(v), "in Spanish: Reprogramado, Ahora: " + v.slice(0, 300));
+    await role("office"); await go("#report/rescheduled"); v = await view(); ok(/Trabajos reprogramados/.test(v) && /Motivo/.test(v) && !/\{[a-z]+\}/.test(v), "the report in Spanish");
+    await go("#job/" + sched2); v = await view(); ok(/Reprogramaciones/.test(v) && /Reprogramado una vez/.test(v) && /Materiales atrasados/.test(v), "the job's reschedules in Spanish");
+    await p.click('[data-act="setLang"][data-lang="en"]'); await p.waitForTimeout(200);
     //@@NOV16@@
   }
 

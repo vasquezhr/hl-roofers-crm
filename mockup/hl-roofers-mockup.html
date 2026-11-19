@@ -395,7 +395,7 @@ const I18N = {
       costs: "See supplier costs and the margin, in the Price Book and when writing a proposal. For someone who prices jobs", inspector: "See the inspections nobody has taken, and take them" },
     auto: { title: "Automations", desc: "Ready-made automations with an on/off switch", sub: "Each one does one job. Turn it on or off; nothing to draw or program.",
       always: "Always on", off: "Off", history: "What ran lately", turnedOn: "Turned on", turnedOff: "Turned off",
-      h1: "Mina Seo's request was assigned to the office", h2: "Job #26-104 was marked Changed and the crew text was prepared",
+      h1: "Mina Seo's request was assigned to the office", h2: "Job #26-104 was marked Rescheduled and the crew text was prepared",
       h3: "“Follow up with Anjali Raman” was added to Today", h4: "The weekly summary was emailed to the owners",
       route: "Route new lead", routeD: "When a lead arrives: applies the routing rules and tells the person it was assigned to.",
       remind: "Uncontacted lead reminder", remindD: "A lead still New after 2 hours: shows on Today and emails the person it is assigned to. After a whole day: emails that same person again. Nobody else is told.",
@@ -582,7 +582,7 @@ const I18N = {
       costs: "Ver los costos de proveedores y el margen, en la lista de precios y al escribir una propuesta. Para quien pone precio a los trabajos", inspector: "Ver las inspecciones que nadie ha tomado, y tomarlas" },
     auto: { title: "Automatizaciones", desc: "Automatizaciones listas, con interruptor de encendido y apagado", sub: "Cada una hace una sola tarea. Se enciende o se apaga; no hay nada que dibujar ni programar.",
       always: "Siempre encendida", off: "Apagada", history: "Lo que se ejecutó últimamente", turnedOn: "Encendida", turnedOff: "Apagada",
-      h1: "El pedido de Mina Seo se asignó a la oficina", h2: "El trabajo #26-104 se marcó como Cambió y se preparó el mensaje para el equipo",
+      h1: "El pedido de Mina Seo se asignó a la oficina", h2: "El trabajo #26-104 se marcó como Reprogramado y se preparó el mensaje para el equipo",
       h3: "Se agregó «Dar seguimiento a Anjali Raman» a Hoy", h4: "Se envió por correo el resumen semanal a los dueños",
       route: "Asignar prospecto nuevo", routeD: "Cuando llega un prospecto: aplica las reglas de asignación y avisa a quien le tocó.",
       remind: "Recordatorio de prospecto sin contactar", remindD: "Un prospecto que sigue Nuevo después de 2 horas: aparece en Hoy y se envía un correo a la persona asignada. Después de un día entero: se le envía otro correo a esa misma persona. No se avisa a nadie más.",
@@ -1519,7 +1519,7 @@ function jobRow(j) {
   const a = acct(j.acct), c = j.crew ? crewName(crewOf(j.crew)) : "";
   const moneyLine = j.type === "warranty" ? "" : `<div class="fw-semibold mt-1">${money(jobTotal(j))}</div>`;
   return recRow("#job/" + j.id, `#${j.id} · ${tt("type." + j.type)}${jobTags(j)}`, esc(a.name),
-    esc(addrLine(placeOf(j)) + (c ? " · " + c : "") + " · " + jobDates(j)), jobBadge(j) + moneyLine);
+    esc(addrLine(placeOf(j)) + (c ? " · " + c : "") + " · " + jobDates(j)) + (j.changed && !j.changed.seen ? " " + reschedBadge(j) : ""), jobBadge(j) + moneyLine);
 }
 
 route("jobs", {
@@ -1582,6 +1582,7 @@ route("job", {
       `<div class="d-flex flex-wrap gap-2 mb-3">${jobActions(j)}</div>` +
       `<div class="row g-3"><div class="col-lg-6">` + section(tt("customer"), custBlock(a, p, "job", j.id, j.opp && oppOf(j.opp) ? oppOf(j.opp).src : ""), "", "customer", { kind: "job", id: j.id, sec: "customer" }) +
       section(tt("job.crewAndDates"), crewCard, "", "crew", crew && !isCrew() && ["scheduled", "inprogress"].includes(j.stage) ? { kind: "job", id: j.id, sec: "crew" } : null) +
+      (j.stage !== "signed" || (j.resched || []).length ? reschedCard(j) : "") +
       `</div><div class="col-lg-6">` + section(tt("job.scope"), `<ul class="small mb-0 ps-3">${scopeOf(j).map(s => `<li>${esc(s)}</li>`).join("")}</ul>`, "", "scope", { kind: "job", id: j.id, sec: "scope" }) + jobMoneyCard(j) +
       (j.type === "warranty" ? "" : documentsCard(j.opp && oppOf(j.opp) ? [oppOf(j.opp)] : [], [j])) +
       (linked.length ? section(tt("job.linked"), `<ul class="list-unstyled small mb-0">${linked.map(l => `<li class="mb-1">${ic("link")} ${l}</li>`).join("")}</ul>`, "", "linked") : "") + `</div></div>` +
@@ -1589,6 +1590,15 @@ route("job", {
   }
 });
 
+// each time the job's dates changed: before and after, why, who and when (Nov 16)
+function reschedCard(j) {
+  const list = j.resched || [];
+  return section(`${tt("job.reschedules")} <span class="text-body-secondary fw-normal">${list.length}</span>`, list.length
+    ? `<div class="small text-body-secondary mb-1">${list.length === 1 ? tt("job.reschedOnce") : tt("job.reschedTimes", { n: list.length })}</div><ul class="list-unstyled small mb-0">` +
+      list.map(x => `<li class="border-top py-1" data-reschedule><span class="fw-semibold">${esc(rangeText(x.was))} → ${esc(rangeText(x.now))}</span> · ${tt("resched." + x.reason)}<br>` +
+        `<span class="text-body-secondary">${esc(fmtStamp(x.d))} · ${esc(whoName(x.w))}</span></li>`).join("") + `</ul>`
+    : `<div class="small text-body-secondary">${tt("job.notResched")}</div>`, "", "reschedules");
+}
 const STAGE_LOG = { inprogress: "log.started", done: "log.done", invoiced: "log.invoiced", paid: "log.paid" };
 ACT.jobStage = d => { const j = jobOf(d.id); j.stage = d.to; addLog(j, STAGE_LOG[d.to]); toast(t(STAGE_LOG[d.to])); render(); };
 ACT.demoOnly = () => toast(t("demoOnly"));
@@ -1606,6 +1616,7 @@ ACT.jobSchedule = d => {
     field(t("crew"), `<select class="form-select" id="jsCrew">${CREWS.map(c => `<option value="${c.id}"${c.id === crewId ? " selected" : ""}>${esc(crewName(c))} · ${esc(c.lead)}</option>`).join("")}</select>`) +
     `<div class="row g-2"><div class="col-7">${field(t("job.firstDay"), `<input type="date" class="form-control" id="jsDay" value="${iso(first)}">`)}</div>` +
     `<div class="col-5">${field(t("job.howManyDays"), `<input type="number" class="form-control" id="jsDays" min="1" max="20" value="${days}">`)}</div></div>` +
+    (j.stage !== "signed" ? field(t("sched.why"), reasonSelect("jsReason")) + `<div class="form-text mt-n2 mb-3">${tt("sched.whyHelp")}</div>` : "") +
     `<div class="alert alert-danger py-2 small d-none" id="jsProblem"></div>` +
     `<div class="form-text">${tt("job.scheduleHint")}</div>`,
     cancelBtn() + `<button type="button" class="btn btn-primary" data-act="saveSchedule" data-id="${j.id}">${tt("job.schedule")}</button>`));
@@ -1616,13 +1627,14 @@ ACT.saveSchedule = d => {
   const start = dayFromIso(val("jsDay"));
   const days = [new Date(start)], cur = new Date(start), wasDays = j.days.slice(), wasCrew = j.crew;     // the first day, then work days only
   while (days.length < n) { cur.setDate(cur.getDate() + 1); if (!isOff(cur)) days.push(new Date(cur)); }
+  const moved = j.stage !== "signed" && wasDays.map(iso).join() !== days.map(iso).join(), reason = $("#jsReason") ? val("jsReason") : "";
+  if (moved && !reason) { $("#jsProblem").textContent = t("sched.whyNeeded"); $("#jsProblem").classList.remove("d-none"); return; }   // a reschedule needs its reason
   j.added = [];
   j.crew = val("jsCrew"); j.days = days; j.time = "08:00";
   if (j.stage === "signed") { j.stage = "scheduled"; addLog(j, "log.scheduled"); }
-  else {
-    if (wasDays.map(iso).join() !== days.map(iso).join() || wasCrew !== j.crew) {       // an already scheduled job changed: the crew gets a "Changed" notice
-      j.changed = { wasDays, seen: false, d: new Date() }; addLog(j, "log.changed", { was: rangeText(wasDays) });
-    }
+  else if (moved || wasCrew !== j.crew) {       // an already scheduled job changed: the crew gets a "Rescheduled" (or "Crew changed") notice
+    markMoved(j, wasDays, wasCrew, moved);
+    if (moved) { addLog(j, "log.changed", { was: rangeText(wasDays) }); keepResched(j, wasDays, reason); }
   }
   closeModal(); toast(t("log.scheduled")); render();
 };
@@ -2835,8 +2847,27 @@ const CREW_TONE = { c1: "primary", c2: "success" };
 
 /* ---------- sample change: this job was moved and its crew has not seen it yet ---------- */
 const rangeText = days => (days.length > 1 ? fmtDay(days[0]) + " – " + fmtDay(days[days.length - 1]) : fmtDay(days[0]));
-jobOf("26-104").changed = { wasDays: [wd(1), wd(2)], seen: false, d: ago(1) };
+jobOf("26-104").changed = { wasDays: [wd(1), wd(2)], wasCrew: "c1", dates: true, seen: false, d: ago(1) };
+jobOf("26-104").resched = [{ was: [wd(1), wd(2)], now: jobOf("26-104").days.slice(), reason: "weather", w: "office", d: ago(1) }];
+jobOf("26-104").reason = "weather";
 seed(jobOf("26-104"), ago(1), "office", "log.changed", () => ({ was: rangeText([wd(1), wd(2)]) }));
+seed(jobOf("26-104"), ago(1), "office", "log.reason", () => ({ reason: t("resched.weather") }));
+// a moved job: "Rescheduled" and its new dates, or "Crew changed" and its crew when only the crew changed (Nov 16)
+const reschedIs = j => !!j.changed && (j.changed.dates !== false || !j.changed.wasCrew || j.changed.wasCrew === j.crew);
+const reschedBadge = j => `<span class="badge text-bg-warning">${tt(reschedIs(j) ? "sched.rescheduled" : "sched.crewChanged")}</span>`;
+const reschedWords = j => (reschedIs(j) ? t("sched.nowOn", { dates: rangeText(j.days) }) : t("sched.nowCrew", { crew: crewName(crewOf(j.crew)) }));
+// the first change's "before" is kept until the crew has seen it
+function markMoved(j, wasDays, wasCrew, dates) {
+  const c = j.changed && !j.changed.seen ? j.changed : { wasDays, wasCrew, dates: false };
+  j.changed = { wasDays: c.wasDays, wasCrew: c.wasCrew, dates: c.dates || dates, seen: false, d: new Date() };
+}
+// each time a scheduled job gets new dates: before, after, why, who and when
+function keepResched(j, wasDays, reason) {
+  (j.resched = j.resched || []).unshift({ was: wasDays.slice(), now: j.days.slice(), reason, w: me(), d: new Date() }); j.reason = reason;
+  addLog(j, "log.reason", () => ({ reason: t("resched." + reason) }));
+}
+const reasonSelect = (id, short) => `<select class="form-select${short ? " form-select-sm w-auto" : ""}" id="${id}" aria-label="${tt("sched.why")}"><option value="">${tt(short ? "sched.whyShort" : "imp.choose")}</option>` +
+  pickKeys("resched").map(k => `<option value="${k}">${tt("resched." + k)}</option>`).join("") + `</select>`;
 
 /* ---------- the week ---------- */
 // Each stop is one line: number · customer · crew (an inspection, in blue: its time). A click or a tap opens its details below it (a Bootstrap collapse).
@@ -2851,10 +2882,10 @@ function schedItem(s, day) {
   const details = insp
     ? `<span class="fw-semibold">${fmtTime(s.time)}</span> · ${tt("stage.inspection")}<br>${esc(name)}<br><a href="#opp/${r.id}">${tt("sched.openOpp")} ›</a>`
     : `<span class="fw-semibold">${esc(crewName(crewOf(r.crew)))}</span> · ` + (r.days.length > 1 ? tt("sched.dayOf", { i, n: r.days.length }) : fmtTime(r.time)) +
-      `<br>${esc(name)} · ${tt("type." + r.type)}` + (changed ? `<br>${badge(t("sched.changed"), "warning")}` : "") + `<br><a href="#job/${r.id}">${tt("sched.openJob", { n: r.id })} ›</a>`;
+      `<br>${esc(name)} · ${tt("type." + r.type)}` + (changed ? `<br>${reschedBadge(r)} ${esc(reschedWords(r))}` : "") + `<br><a href="#job/${r.id}">${tt("sched.openJob", { n: r.id })} ›</a>`;
   return `<div class="small rounded-end border-start border-3 border-${tone} bg-${tone}-subtle">` +
     `<button type="button" class="btn btn-sm w-100 text-start text-reset border-0 rounded-0 px-1 py-0 d-flex align-items-center hl-minw0" data-stop data-bs-toggle="collapse" data-bs-target="#${id}" aria-expanded="false" aria-controls="${id}" title="${esc(plain)}">` +
-    `${line}${changed ? `<span class="badge text-bg-warning ms-auto">!<span class="visually-hidden"> ${tt("sched.changed")}</span></span>` : ""}</button>` +
+    `${line}</button>` + (changed ? `<div class="px-1 pb-1 lh-1">${reschedBadge(r)}</div>` : "") +     // its tag under the line, so the line stays whole
     `<div class="collapse" id="${id}"><div class="px-1 pb-1">${details}</div></div></div>`;
 }
 const bookCur = () => { const l = toBook(); return l.find(x => x.key === S.book) || l[0]; };
@@ -3018,39 +3049,51 @@ ACT.feedReset = d => {
 // For work that does not follow on from the job's other days, or a day off (no tick needed). The crew sees the job as Changed.
 const addDayForm = j => `<details class="mt-2"><summary class="small fw-semibold text-primary">${tt("job.addDay")}</summary><div class="mt-2">` +
   `<input type="date" class="form-control form-control-sm mb-2" id="adDay" value="${iso(wd(1))}" aria-label="${tt("sched.day")}">` +
+  `<div class="mb-2">${reasonSelect("adReason", true)}</div>` +
   `<button type="button" class="btn btn-outline-primary btn-sm" data-act="dayAdd" data-id="${j.id}">${ic("plus")} ${tt("job.addDayBtn")}</button></div></details>`;
 ACT.dayAdd = d => {
   const j = jobOf(d.id), raw = val("adDay");
   if (!raw) { $("#adDay").classList.add("is-invalid"); return; }
   const day = dayFromIso(raw);
   if (j.days.some(x => sameDay(x, day))) { toast(t("job.dayAlready", { day: fmtDay(day) })); return; }
+  if (!val("adReason")) { $("#adReason").classList.add("is-invalid"); toast(t("sched.whyNeeded")); return; }      // the dates change: a reschedule
   const was = j.days.slice();
   j.days = [...j.days, day].sort((a, b) => a - b); j.added = [...(j.added || []), day];
-  j.changed = { wasDays: was, seen: false, d: new Date() }; addLog(j, "log.dayAdded", { day: fmtDay(day) });
+  markMoved(j, was, j.crew, true); addLog(j, "log.dayAdded", { day: fmtDay(day) }); keepResched(j, was, val("adReason"));
   toast(t("log.dayAdded", { day: fmtDay(day) })); render();
 };
+// taking a day off changes the dates too: the reason is asked in a small window first
 ACT.dayRemove = d => {
-  const j = jobOf(d.id), day = dayFromIso(d.day), was = j.days.slice();
+  const day = dayFromIso(d.day);
+  openModal(modalShell(tt("sched.takeOffTitle", { day: fmtDay(day) }), `<p class="small text-body-secondary">${tt("sched.takeOffHelp")}</p>` + field(t("sched.why"), reasonSelect("trReason")),
+    cancelBtn() + `<button type="button" class="btn btn-primary" data-act="dayRemoveGo" data-id="${d.id}" data-day="${d.day}">${tt("job.takeOff")}</button>`));
+};
+ACT.dayRemoveGo = d => {
+  const j = jobOf(d.id), day = dayFromIso(d.day), was = j.days.slice(), reason = val("trReason");
+  if (!reason) { $("#trReason").classList.add("is-invalid"); return; }
+  closeModal();
   j.days = j.days.filter(x => !sameDay(x, day)); j.added = (j.added || []).filter(x => !sameDay(x, day));
-  j.changed = { wasDays: was, seen: false, d: new Date() }; addLog(j, "log.dayRemoved", { day: fmtDay(day) });
+  markMoved(j, was, j.crew, true); addLog(j, "log.dayRemoved", { day: fmtDay(day) }); keepResched(j, was, reason);
   toast(t("log.dayRemoved", { day: fmtDay(day) })); render();
 };
 
 /* ---------- changes: office changes a job, the crew sees "Changed" and taps Got it ---------- */
 function changedBox(j) {
   if (!j.changed) return "";
-  const crew = crewOf(j.crew), c = j.changed, was = rangeText(c.wasDays);
-  const body = t("sms.changed", { id: j.id, name: acct(j.acct).name, now: jobDates(j), was });
+  const crew = crewOf(j.crew), c = j.changed;
+  if (isCrew() && c.seen) return "";
+  const body = t(reschedIs(j) ? "sms.changed" : "sms.crewNow", { id: j.id, name: acct(j.acct).name, now: rangeText(j.days) });
   const right = isCrew()
     ? (c.seen || !isCrewLead() ? "" : `<button type="button" class="btn btn-warning btn-sm" data-act="gotIt" data-id="${j.id}">${ic("check")} ${tt("sched.gotIt")}</button>`)
     : (c.seen ? badge(t("sched.seenBy", { who: crewName(crew) }), "success")
       : `<a class="btn btn-outline-dark btn-sm" href="${smsHref(crew.phone, body)}" data-act="notifyCrew" data-id="${j.id}">${ic("msg")} ${tt("sched.notify")}</a>`);
-  return `<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 py-2 small mb-2"><div class="flex-grow-1">${ic("bell")} <span class="fw-semibold">${tt("sched.changed")}.</span> ${tt("sched.changedWas", { was })}` +
-    (!isCrew() && !c.seen ? ` <span class="text-body-secondary">${tt("sched.notSeen", { who: crewName(crew) })}</span>` : "") + `</div>${right}</div>`;
+  return `<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 py-2 small mb-2" data-rescheduled><div class="flex-grow-1">${reschedBadge(j)} <span class="fw-semibold">${esc(reschedWords(j))}</span>` +
+    (!isCrew() && !c.seen ? ` <span class="text-body-secondary">· ${tt("sched.notSeen", { who: crewName(crew) })}</span>` : "") + `</div>${right}</div>`;
 }
 ACT.notifyCrew = d => { addLog(jobOf(d.id), "log.notified"); setTimeout(render, 400); };
 ACT.gotIt = d => { const j = jobOf(d.id); j.changed.seen = true; addLog(j, "log.gotIt"); toast(t("sched.gotItDone")); render(); };
-ATTENTION.push(() => JOBS.filter(j => j.changed && !j.changed.seen).map(j => ({ icon: "bell", href: "#job/" + j.id, text: t("today.changeNotSeen", { crew: crewName(crewOf(j.crew)), id: j.id }) })));
+ATTENTION.push(() => JOBS.filter(j => j.changed && !j.changed.seen).map(j => ({ icon: "bell", href: "#job/" + j.id,
+  text: t("today.changeNotSeen", { what: t(reschedIs(j) ? "sched.rescheduled" : "sched.crewChanged"), crew: crewName(crewOf(j.crew)), id: j.id, now: reschedWords(j) }) })));
 
 /* ---------- extra workers on a job (no login; just a record of who worked) ---------- */
 function workersEditor(j) {
@@ -3171,9 +3214,10 @@ route("dashboard", {
     const tile = (value, label, extra) => `<div class="col"><div class="card h-100 shadow-sm"><div class="card-body p-3"><div class="fs-4 fw-bold">${value}</div><div class="small text-body-secondary">${esc(label)}</div>${extra || ""}</div></div></div>`;
     const up = UPLOADS.find(u => !u.rolled);
     return pageHead(tt("nav.dashboard"), esc(fmtDay(TODAY))) + tilesRow() +
-      `<div class="row row-cols-1 row-cols-md-3 g-2 mb-3">` +
+      `<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-2 mb-3">` +
       tile(money(last.total), t("dash.revLast", { month: fmtMonth(last.d) }), `<div class="small ${p >= 0 ? "text-success" : "text-danger"}">${p >= 0 ? "▲" : "▼"} ${pctText(p)} ${tt("dash.vs", { month: prev.d.toLocaleDateString(loc(), { month: "long" }) })}</div>`) +
-      tile(week, t("dash.jobsWeek")) + tile(OPPS.filter(o => o.stage === "inspection").length, t("dash.inspections")) + `</div>` +
+      tile(week, t("dash.jobsWeek")) + tile(OPPS.filter(o => o.stage === "inspection").length, t("dash.inspections")) +
+      `<div class="col"><a href="#report/rescheduled" class="card h-100 shadow-sm text-decoration-none" data-tile="rescheduled"><div class="card-body p-3"><div class="fs-4 fw-bold">${reschedIn("m").length}</div><div class="small text-body-secondary">${tt("dash.rescheduled")}</div></div></a></div>` + `</div>` +
       chartsRow() +
       section(tt("status.title"), dl([[tt("status.backup"), `${badge(t("status.ok"), "success")} ${tt("status.backupWhen")}`],
         [tt("status.priceUpload"), up ? esc(up.file) + " · " + esc(fmtDate(up.d)) : tt("none")]]), `<a class="small" href="#admin/status">${tt("status.more")}</a>`) +
@@ -3209,6 +3253,19 @@ const REPORTS = [
         .filter(x => x.p !== 0).sort((a, b) => Math.abs(b.p) - Math.abs(a.p)).map(x => [x.it.name, x.it.supplier, money(x.before), money(x.it.cost), pctText(x.p)]); } }
 ];
 const reportRange = () => S.f.range || "q";
+// Rescheduled jobs: each reschedule in the period (this month, the last three months, this year), and the totals by reason
+const reschedIn = f => { const from = f === "m" ? monthStart(0) : f === "q" ? monthStart(2) : new Date(TODAY.getFullYear(), 0, 1);
+  return JOBS.flatMap(j => (j.resched || []).map(x => ({ j, x }))).filter(o => o.x.d >= from).sort((a, b) => b.x.d - a.x.d); };
+REPORTS.splice(REPORTS.findIndex(r => r.id === "priceChanges"), 0, { id: "rescheduled", cols: ["reports.cChangedOn", "reports.cJob", "customer", "crew", "reports.cBefore", "reports.cNow", "reports.cReason", "reports.cWho"],
+  rows: f => reschedIn(f).map(({ j, x }) => [fmtDate(x.d), "#" + j.id, acct(j.acct).name, crewName(crewOf(j.crew)), rangeText(x.was), rangeText(x.now), t("resched." + x.reason), whoName(x.w)]),
+  totalCols: ["reports.cReason", "reports.cReschedules", "reports.cJobs"],
+  totals: f => { const list = reschedIn(f), keys = [...new Set(list.map(o => o.x.reason))];
+    const rows = keys.map(k => { const of = list.filter(o => o.x.reason === k); return [t("resched." + k), of.length, new Set(of.map(o => o.j.id)).size]; }).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    return rows.length ? [...rows, [t("total"), list.length, new Set(list.map(o => o.j.id)).size]] : []; } });
+const tableOf = (cols, rows, bold) => `<div class="table-responsive"><table class="table table-sm table-striped align-middle small mb-0"><thead><tr>` +
+  cols.map((c, i) => `<th class="${i ? "text-end" : "ps-3"}${i === cols.length - 1 ? " pe-3" : ""}">${tt(c)}</th>`).join("") + `</tr></thead><tbody>` +
+  (rows.length ? rows.map((row, n) => `<tr class="${bold && n === rows.length - 1 ? "fw-bold" : ""}">` + row.map((c, i) => `<td class="${i ? "text-end text-nowrap" : "ps-3"}${i === row.length - 1 ? " pe-3" : ""}">${esc(c)}</td>`).join("") + `</tr>`).join("")
+    : `<tr><td colspan="${cols.length}" class="text-center text-body-secondary py-3">${tt("reports.noRows")}</td></tr>`) + `</tbody></table></div>`;
 
 route("reports", {
   roles: ["admin", "office"], icon: "reports",
@@ -3227,6 +3284,7 @@ route("report", {
     return backLink("#reports", t("nav.reports")) +
       pageHead(tt("reports." + r.id), tt("reports." + r.id + "D"), `<button type="button" class="btn btn-outline-secondary btn-sm text-nowrap" data-act="csv" data-id="${r.id}">${ic("download")} ${tt("reports.export")}</button>`) +
       (r.live ? `<p class="small text-body-secondary">${tt("reports.asOfToday")}</p>` : pills("range", reportRange(), [["m", t("reports.rangeM")], ["q", t("reports.rangeQ")], ["y", t("reports.rangeY")]])) +
+      (r.totals ? `<div class="card shadow-sm mb-3" data-totals>${tableOf(r.totalCols, r.totals(reportRange()), true)}</div>` : "") +
       `<div class="card shadow-sm mb-3"><div class="table-responsive"><table class="table table-sm table-striped align-middle small mb-0"><thead><tr>` +
       r.cols.map((c, i) => `<th class="${i ? "text-end" : "ps-3"}${i === r.cols.length - 1 ? " pe-3" : ""}">${tt(c)}</th>`).join("") + `</tr></thead><tbody>` +
       (rows.length ? rows.map((row, n) => `<tr class="${r.total && n === rows.length - 1 ? "fw-bold" : ""}">` + row.map((c, i) => `<td class="${i ? "text-end text-nowrap" : "ps-3"}${i === row.length - 1 ? " pe-3" : ""}">${esc(c)}</td>`).join("") + `</tr>`).join("")
@@ -3237,7 +3295,7 @@ route("report", {
 // Export: a real .csv file that Excel and Numbers open
 ACT.csv = d => {
   const r = REPORTS.find(x => x.id === d.id), cell = c => { const s = String(c); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const text = "﻿" + [r.cols.map(c => t(c)), ...r.rows(reportRange())].map(row => row.map(cell).join(",")).join("\r\n");
+  const text = "﻿" + [r.cols.map(c => t(c)), ...r.rows(reportRange()), ...(r.totals ? [[], r.totalCols.map(c => t(c)), ...r.totals(reportRange())] : [])].map(row => row.map(cell).join(",")).join("\r\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" })); a.download = "h-and-l-" + r.id + ".csv";
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
@@ -3806,19 +3864,49 @@ const FOURTH = {
 };
 function deepAssign(into, from) { for (const [k, v] of Object.entries(from)) { if (v && typeof v === "object") deepAssign(into[k] = into[k] || {}, v); else into[k] = v; } }
 for (const lang of ["en", "es"]) deepAssign(I18N[lang], FOURTH[lang]);
+// Nov 16 (the user's second message): Rescheduled instead of Changed, a reason for new dates, the Rescheduled jobs report
+const NOV16B = {
+  en: { resched: { weather: "Weather", customer: "Customer asked", materials: "Materials late", crew: "Crew not available", other: "Other" },
+    picks: { resched: "Why a job was rescheduled", reschedAbout: "Asked when the dates of a scheduled job change. The Rescheduled jobs report counts them." },
+    sched: { rescheduled: "Rescheduled", crewChanged: "Crew changed", nowOn: "Now on {dates}", nowCrew: "Now {crew}", why: "Why are the dates changing?", whyShort: "Why?",
+      whyHelp: "Needed when the dates of a scheduled job change. Not for a change of crew alone.", whyNeeded: "Pick why the dates are changing.",
+      takeOffTitle: "Take {day} off the job", takeOffHelp: "The job's dates change, so this is a reschedule. Say why." },
+    sms: { changed: "H & L: job #{id} ({name}) is rescheduled. Now on {now}. Please tap Got it in the app.", crewNow: "H & L: job #{id} ({name}) is now on your schedule, {now}. Please tap Got it in the app." },
+    today: { changeNotSeen: "{what}: job #{id}. {now}. {crew} has not seen it yet." },
+    log: { reason: "Reason for the new dates: {reason}" },
+    job: { reschedules: "Reschedules", reschedOnce: "Rescheduled once.", reschedTimes: "Rescheduled {n} times.", notResched: "Not rescheduled." },
+    reports: { rescheduled: "Rescheduled jobs", rescheduledD: "Each time a scheduled job got new dates, and the totals by reason", cChangedOn: "Changed on", cJob: "Job",
+      cReason: "Reason", cWho: "Who", cReschedules: "Reschedules", cJobs: "Jobs" },
+    dash: { rescheduled: "Rescheduled this month" },
+    auto: { changedD: "When the dates or the crew of a scheduled job change: shows the crew Rescheduled (or Crew changed) until it taps Got it, and prepares the text for the crew." } },
+  es: { resched: { weather: "Clima", customer: "El cliente lo pidió", materials: "Materiales atrasados", crew: "Equipo no disponible", other: "Otro" },
+    picks: { resched: "Por qué se reprogramó un trabajo", reschedAbout: "Se pregunta cuando cambian las fechas de un trabajo programado. El informe Trabajos reprogramados los cuenta." },
+    sched: { rescheduled: "Reprogramado", crewChanged: "Cambio de equipo", nowOn: "Ahora: {dates}", nowCrew: "Ahora: {crew}", why: "¿Por qué cambian las fechas?", whyShort: "¿Por qué?",
+      whyHelp: "Se necesita cuando cambian las fechas de un trabajo programado. No para un cambio de equipo solamente.", whyNeeded: "Escoja por qué cambian las fechas.",
+      takeOffTitle: "Quitar {day} del trabajo", takeOffHelp: "Las fechas del trabajo cambian, así que es una reprogramación. Diga por qué." },
+    sms: { changed: "H & L: el trabajo #{id} ({name}) se reprogramó. Ahora: {now}. Por favor toque Enterado en la app.", crewNow: "H & L: el trabajo #{id} ({name}) ahora está en su agenda, {now}. Por favor toque Enterado en la app." },
+    today: { changeNotSeen: "{what}: trabajo #{id}. {now}. {crew} todavía no lo ha visto." },
+    log: { reason: "Motivo de las fechas nuevas: {reason}" },
+    job: { reschedules: "Reprogramaciones", reschedOnce: "Reprogramado una vez.", reschedTimes: "Reprogramado {n} veces.", notResched: "Sin reprogramar." },
+    reports: { rescheduled: "Trabajos reprogramados", rescheduledD: "Cada vez que un trabajo programado tuvo fechas nuevas, y los totales por motivo", cChangedOn: "Cambiado el", cJob: "Trabajo",
+      cReason: "Motivo", cWho: "Quién", cReschedules: "Reprogramaciones", cJobs: "Trabajos" },
+    dash: { rescheduled: "Reprogramados este mes" },
+    auto: { changedD: "Cuando cambian las fechas o el equipo de un trabajo programado: le muestra al equipo Reprogramado (o Cambio de equipo) hasta que toque Enterado, y prepara el mensaje para el equipo." } }
+};
+for (const lang of ["en", "es"]) deepAssign(I18N[lang], NOV16B[lang]);
 // a few existing words that read differently now
 try { S.sideIcons = localStorage.getItem("hl-side") === "icons"; } catch (e) { S.sideIcons = false; }
 
 /* ---------- pick lists: the drop-downs follow what Admin > Pick lists says ---------- */
 const PICK_GROUPS = [
   { id: "src", builtIn: ["web", "referral", "repeat", "contractor", "warranty", "imported", "existing"], length: 12 },
-  { id: "lost", builtIn: [], length: 12 }, { id: "unfit", builtIn: [], length: 12 },
+  { id: "resched", builtIn: [], length: 12 }, { id: "lost", builtIn: [], length: 12 }, { id: "unfit", builtIn: [], length: 12 },
   { id: "method", builtIn: ["check"], length: 12 }, { id: "kind", builtIn: ["homeowner", "contractor", "warranty"], length: 12 },
   { id: "fileKind", builtIn: ["before", "document", "signedProposal", "signedCO"], length: 16 }
 ];
 const PICKS = {};
 PICK_GROUPS.forEach(g => { PICKS[g.id] = Object.keys(I18N.en[g.id]).map((key, i) => ({ key, en: I18N.en[g.id][key], es: I18N.es[g.id][key], pos: (i + 1) * 10, active: true })); });
-const PICK_ORDER = ["src", "lost", "unfit", "method", "kind", "fileKind"];
+const PICK_ORDER = ["src", "resched", "lost", "unfit", "method", "kind", "fileKind"];
 // the values to pick from: the ones offered, and `current` (what the record being edited has) even when it is switched off
 function pickKeys(id, current) { return PICKS[id].filter(x => x.active || x.key === current).sort((a, b) => a.pos - b.pos).map(x => x.key); }
 function syncPicks() { PICK_GROUPS.forEach(g => PICKS[g.id].forEach(x => { I18N.en[g.id][x.key] = x.en; I18N.es[g.id][x.key] = x.es; })); }
@@ -4289,7 +4377,7 @@ ADMIN_PAGES.push({
 // file is made; here they are written out below, the same code names. A stand-in, like the rest of this page: the mockup reads .csv only
 // (an .xlsx is not read: the sample rows stand in), saves .csv where the app saves .xlsx, and keeps the changes only for accounts, contacts,
 // properties, leads, crews and extra workers. The other kinds are checked and reviewed, and the results say they were not saved here.
-const PICK_APP = { src: "source", lost: "lost_reason", unfit: "unfit_reason", method: "payment_method", kind: "account_kind", fileKind: "file_kind" };
+const PICK_APP = { src: "source", resched: "reschedule_reason", lost: "lost_reason", unfit: "unfit_reason", method: "payment_method", kind: "account_kind", fileKind: "file_kind" };
 const yn = b => (b ? "yes" : "no");
 // each column: [code name, English, Spanish, required to add, what it takes: "id", "ref:<kind>", "yes", "num", "int", "date", "text", or a function giving the allowed values]
 const OBJS = [
@@ -4337,9 +4425,10 @@ const OBJS = [
       ["account_id", "Account", "Cuenta", 0, "ref:account"], ["place_id", "Property", "Propiedad", 0, "ref:property"], ["job_type", "Type of work", "Tipo de trabajo", 0, () => TYPE_LIST.filter(x => x.active).map(x => x.key)],
       ["price", "Price", "Precio", 0, "num"], ["labor_only", "Labor only", "Solo mano de obra", 0, "yes"], ["scope", "Scope of work", "Alcance del trabajo", 0, "text"], ["crew_id", "Crew", "Equipo", 0, "ref:crew"],
       ["first_day", "First day", "Primer día", 0, "date"], ["days", "Days", "Días", 0, "int"],
-      ["ref_type", "Kind of number", "Tipo de número", 0, () => ["po", "claim", "wo"]], ["ref_number", "Outside number", "Número externo", 0, "text"]],
+      ["ref_type", "Kind of number", "Tipo de número", 0, () => ["po", "claim", "wo"]], ["ref_number", "Outside number", "Número externo", 0, "text"],
+      ["reschedule_reason", "Reason for the new dates", "Motivo de las fechas nuevas", 0, () => pickKeys("resched")]],
     rows: () => JOBS.map(j => ({ id: j.id, v: { opportunity_id: j.opp || "", warranty_for_id: j.warrantyFor || "", account_id: j.acct, place_id: j.prop, job_type: j.type, price: j.price, labor_only: yn(j.laborOnly),
-      scope: (j.scope || []).join(" / "), crew_id: j.crew || "", first_day: j.days.length ? iso(j.days[0]) : "", days: j.days.length || 1, ref_type: j.ref ? j.ref.type : "", ref_number: j.ref ? j.ref.num : "" } })) },
+      scope: (j.scope || []).join(" / "), crew_id: j.crew || "", first_day: j.days.length ? iso(j.days[0]) : "", days: j.days.length || 1, reschedule_reason: j.reason || "", ref_type: j.ref ? j.ref.type : "", ref_number: j.ref ? j.ref.num : "" } })) },
   { key: "change_order", en: "Change orders", es: "Órdenes de cambio", parent: "job_id", cols: [["job_id", "Job", "Trabajo", 1, "ref:job"], ["description", "What changes", "Qué cambia", 1, "text"], ["amount", "Amount", "Importe", 1, "num"]],
     rows: () => JOBS.flatMap(j => (j.cos || []).map(c => ({ id: j.id + "-" + c.id, v: { job_id: j.id, description: c.text, amount: c.amount } }))) },
   { key: "payment", en: "Payments", es: "Pagos", parent: "job_id", cols: [["job_id", "Job", "Trabajo", 1, "ref:job"], ["paid_on", "Date", "Fecha", 0, "date"], ["amount", "Amount", "Importe", 1, "num"],

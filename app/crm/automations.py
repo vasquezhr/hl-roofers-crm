@@ -42,7 +42,7 @@ AUTOMATIONS = [
     {"key": "signed", "field": None, "name": gettext_lazy("Proposal signed"),
      "about": gettext_lazy("When a proposal is signed: creates the job with the same number and adds “Schedule job…” to Today.")},
     {"key": "changed", "field": "auto_changed", "name": gettext_lazy("Appointment changed"),
-     "about": gettext_lazy("When the dates or the crew of a scheduled job change: marks it Changed and prepares the text for the crew.")},
+     "about": gettext_lazy("When the dates or the crew of a scheduled job change: shows the crew Rescheduled (or Crew changed) until it taps Got it, and prepares the text for the crew.")},
     {"key": "job_done", "field": "auto_job_done", "name": gettext_lazy("Job done"),
      "about": gettext_lazy("When a job is marked done: adds “Send the invoice…” to Today and emails the logins that have the Billing permission.")},
     {"key": "overdue", "field": "auto_overdue", "name": gettext_lazy("Invoice overdue"),
